@@ -245,8 +245,8 @@ try {
     analysis.missingValueAssetIds(dPart, ctx), [999999999]);
 
   /* ---------------------------- portefeuille ---------------------------- */
-  group('Portefeuille reconcilie (compte reel)');
-  const fx = await json('./fixtures/portfolio-wars_choing.json');
+  group('Portefeuille reconcilie (donnees reelles anonymisees)');
+  const fx = await json('./fixtures/portfolio-sample.json');
   const rep = portfolio.reconcile(
     { ...portfolio.emptyReport(fx.userId), rolimons: { value: fx.playerinfo.value, rap: fx.playerinfo.rap } },
     { value: fx.playerinfo.value, rap: fx.playerinfo.rap },

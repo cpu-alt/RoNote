@@ -21,7 +21,7 @@ const [rawV3, rawV1, thumbs, fxPortfolio] = await Promise.all([
   json('./fixtures/rolimons-v3-itemdetails.json'),
   json('./fixtures/rolimons-itemdetails.json'),
   json('./fixtures/thumbs.json'),
-  json('./fixtures/portfolio-wars_choing.json')
+  json('./fixtures/portfolio-sample.json')
 ]);
 
 const cat = {
@@ -39,7 +39,7 @@ const SETTINGS = {
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
 
-const ME = 2778878982;
+const ME = 1234567890;
 const asset = (id, rap, name, serial = null) =>
   ({ assetId: id, name, recentAveragePrice: rap, serialNumber: serial });
 const bundle = (id, rap, name, serial = null) =>
@@ -58,7 +58,7 @@ function makeCard(kind, partner, mine, theirs, { robuxMine = 0, robuxTheirs = 0,
   const id = ++nextId;
   const detail = apiMod.normalizeTradeDetail({
     tradeId: id, status,
-    participantAOffer: { user: { id: ME, name: 'wars_choing', displayName: 'wars_choing' }, robux: robuxMine, items: mine },
+    participantAOffer: { user: { id: ME, name: 'DemoTrader', displayName: 'DemoTrader' }, robux: robuxMine, items: mine },
     participantBOffer: { user: partner, robux: robuxTheirs, items: theirs }
   }, { created: new Date(Date.now() - minutes * 60000).toISOString() });
 
@@ -132,7 +132,7 @@ for (let i = 120; i >= 0; i--) {
 }
 
 const STATE = {
-  userId: ME, userName: 'wars_choing', enabled: true,
+  userId: ME, userName: 'DemoTrader', enabled: true,
   inboundCount: CARDS.inbound.length, lastOkAt: Date.now() - 12000, lastError: null,
   tracked: { [CARDS.outbound[0].tradeId]: { at: Date.now() } },
   links: {},
