@@ -1,0 +1,16 @@
+{
+  "name": "ronote",
+  "version": "2.9.0",
+  "private": true,
+  "type": "module",
+  "description": "Extension navigateur : alertes de trades Roblox (reçus / terminés) avec dédup fiable par ID de trade.",
+  "scripts": {
+    "build": "python tools/build.py",
+    "build:node": "node tools/build.mjs",
+    "check": "python tools/check.py",
+    "check:node": "node tools/check.mjs",
+    "test": "node tools/test-dedup.mjs && node tools/test-tracker.mjs && node tools/test-content.mjs",
+    "serve": "python tools/serve.py",
+    "icons": "powershell -ExecutionPolicy Bypass -File tools/make-icons.ps1"
+  }
+}

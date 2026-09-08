@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>RoNote — Réglages</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../icons/icon128.png" alt="" width="46" height="46">
+    <div>
+      <h1>RoNote</h1>
+      <p>Alertes de trades Roblox — déduplication par identifiant de trade.</p>
+    </div>
+    <span class="saved" id="saved">Enregistré ✓</span>
+  </header>
+
+  <section class="diag" id="diag"></section>
+
+  <section>
+    <h2>Général</h2>
+    <label class="row">
+      <span><b>Langue</b><small>S'applique au popup, aux réglages et aux notifications.</small></span>
+      <select id="lang">
+        <option value="auto">Automatique (langue du navigateur)</option>
+        <option value="fr">Français</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+    <label class="row switch">
+      <input type="checkbox" id="enabled">
+      <span><b>Surveillance active</b><small>Coupe complètement les vérifications quand c'est décoché.</small></span>
+    </label>
+    <label class="row">
+      <span><b>Intervalle de vérification</b><small>30 s est le minimum garanti par le navigateur. En dessous, la cadence est « au mieux » tant que le navigateur garde l'extension éveillée.</small></span>
+      <select id="pollSeconds">
+        <option value="10">10 secondes (best effort)</option>
+        <option value="15">15 secondes (best effort)</option>
+        <option value="30">30 secondes (recommandé)</option>
+        <option value="60">1 minute</option>
+        <option value="120">2 minutes</option>
+        <option value="300">5 minutes</option>
+      </select>
+    </label>
+  </section>
+
+  <section>
+    <h2>Ce que je veux surveiller</h2>
+    <label class="row switch"><input type="checkbox" id="watchInbound">
+      <span><b>Trades reçus</b><small>Onglet « Inbound » — le cas principal, contre-offres comprises.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="watchCompleted">
+      <span><b>Trades complétés</b><small>Onglet « Completed » — confirmation qu'un échange est passé.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="watchOutbound">
+      <span><b>Mes trades envoyés</b><small>Onglet « Outbound » — nécessaire pour le suivi ci-dessous et pour reconnaître les contre-offres.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="watchRejectedError">
+      <span><b>« Rejected due to an error »</b><small>Onglet « Inactive » — trades annulés par une erreur Roblox, dans les deux sens.</small></span></label>
+  </section>
+
+  <section>
+    <h2>Suivi des trades envoyés</h2>
+    <p class="hint top">Un trade suivi vous prévient dès qu'il change d'état : accepté, refusé, contré, expiré. Épinglez-en un depuis l'onglet <b>Envoyés</b> du popup (📌), ou laissez RoNote le faire automatiquement.</p>
+    <label class="row switch"><input type="checkbox" id="autoTrackCounters">
+      <span><b>Suivre automatiquement mes contre-offres</b><small>Quand vous contrez un trade, votre proposition est suivie et vous êtes averti s'il la re-contre.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="autoTrackOutbound">
+      <span><b>Suivre automatiquement tous mes envois</b><small>Sinon, seuls les trades épinglés à la main (et vos contre-offres) sont suivis.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="notifyUntrackedOutbound">
+      <span><b>Alerter aussi pour les envois non suivis</b><small>Utile si vous envoyez beaucoup de trades sans vouloir les épingler un par un.</small></span></label>
+
+    <div class="row"><span><b>Événements à notifier</b><small>S'applique au suivi automatique. Un trade épinglé à la main notifie toujours.</small></span>
+      <div class="checks">
+        <label><input type="checkbox" id="no-accepted"> 🎉 Accepté</label>
+        <label><input type="checkbox" id="no-declined"> ❌ Refusé</label>
+        <label><input type="checkbox" id="no-countered"> 🔄 Contré</label>
+        <label><input type="checkbox" id="no-expired"> ⏳ Expiré</label>
+        <label><input type="checkbox" id="no-error"> ⚠️ Erreur</label>
+      </div>
+    </div>
+
+    <label class="row"><span><b>Fenêtre de rattachement d'une contre-offre</b><small>Délai maximum entre « il a contré » et l'arrivée de sa contre-offre pour les relier. En minutes.</small></span>
+      <input type="number" id="counterWindowMinutes" min="5" max="1440" step="5"></label>
+  </section>
+
+  <section>
+    <h2>Notifications</h2>
+    <label class="row switch"><input type="checkbox" id="desktopNotifications">
+      <span><b>Notifications bureau</b><small>Notifications système Windows / macOS / Linux.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="showItems">
+      <span><b>Détail des objets</b><small>Affiche ce que vous donnez et recevez directement dans la notification.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="requireInteraction">
+      <span><b>Notification persistante</b><small>Reste affichée jusqu'à ce que vous cliquiez (Chrome/Edge).</small></span></label>
+    <label class="row switch"><input type="checkbox" id="openOnClick">
+      <span><b>Ouvrir le trade au clic</b></span></label>
+    <label class="row switch"><input type="checkbox" id="badge">
+      <span><b>Compteur sur l'icône</b><small>Nombre de trades en attente affiché sur l'icône de l'extension.</small></span></label>
+    <label class="row"><span><b>Notifications max par vérification</b><small>Au-delà, une seule notification résumé est envoyée par type d'événement.</small></span>
+      <input type="number" id="maxNotificationsPerPoll" min="1" max="20" step="1"></label>
+    <p class="hint">Une alerte n'apparaît pas pendant que tu joues ? Windows coupe les notifications tout seul en plein écran ou en jeu (Paramètres › Système › Notifications › « Ne pas déranger »). Le son de RoNote, lui, joue quand même.</p>
+  </section>
+
+  <section>
+    <h2>Son</h2>
+    <label class="row switch"><input type="checkbox" id="sound">
+      <span><b>Jouer un son</b><small>Un son différent par type d'événement. Le bouton ▶ fait écouter la sonnerie choisie.</small></span></label>
+    <div class="row"><span><b>Trade reçu / contre-offre</b></span>
+      <span class="btnrow"><select id="snd-inbound"></select><button class="btn" data-play="inbound" title="Écouter">▶</button></span></div>
+    <div class="row"><span><b>Trade accepté / complété</b></span>
+      <span class="btnrow"><select id="snd-accepted"></select><button class="btn" data-play="accepted" title="Écouter">▶</button></span></div>
+    <div class="row"><span><b>Refusé, contré, expiré</b></span>
+      <span class="btnrow"><select id="snd-declined"></select><button class="btn" data-play="declined" title="Écouter">▶</button></span></div>
+    <div class="row"><span><b>Erreur Roblox</b></span>
+      <span class="btnrow"><select id="snd-error"></select><button class="btn" data-play="error" title="Écouter">▶</button></span></div>
+    <label class="row"><span><b>Volume</b></span>
+      <input type="range" id="volume" min="0" max="1" step="0.05"></label>
+    <div class="row"><span><b>Test</b><small>Envoie une notification et joue le son des trades reçus.</small></span>
+      <button id="btn-test" class="btn">Tester</button></div>
+  </section>
+
+  <section>
+    <h2>Analyse de valeur</h2>
+    <label class="row switch"><input type="checkbox" id="useRolimons">
+      <span><b>Utiliser les cotes Rolimon's</b><small>Cotes communautaires + détection des items « projected ». Cache de 3 h.</small></span></label>
+    <label class="row"><span><b>Base de calcul</b><small>La <b>value</b> est le chiffre sur lequel se fait un trade : c'est la cote de référence de toute la communauté. Le RAP vient de Roblox mais ne reflète que l'historique des ventes, et il se gonfle à coups de rachats entre complices.</small></span>
+      <select id="valueBasis">
+        <option value="value">Value Rolimon's (recommandé)</option>
+        <option value="prudent">Prudente — le plus bas des deux</option>
+        <option value="rap">RAP Roblox uniquement</option>
+      </select></label>
+    <label class="row switch"><input type="checkbox" id="robuxTax">
+      <span><b>Compter les Robux nets de taxe</b><small>Roblox prélève 30 % sur les Robux reçus dans un trade. Décoché, RoNote compte le montant brut — donc surévalue ce qu'on vous propose.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="showItemDetails">
+      <span><b>Détail des objets dans le popup</b><small>Ajoute sous chaque trade une liste dépliable : nom, série, value et RAP de chaque objet.</small></span></label>
+    <label class="row"><span><b>Seuil « cote spéculative »</b><small>Un objet dont la value dépasse ce multiple de son RAP est signalé 📈 : sa cote repose sur l'avis de la communauté plus que sur des ventes réelles.</small></span>
+      <input type="number" id="speculativeRatio" min="1" max="10" step="0.1"></label>
+    <label class="row switch"><input type="checkbox" id="trackPortfolio">
+      <span><b>Suivre la valeur de mon compte</b><small>Relève la value et le RAP totaux de ton profil Rolimon's pour tracer ta progression dans l'onglet <b>Bénéfice</b>.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="reconcilePortfolio">
+      <span><b>Corriger les visages passés en bundles</b><small>Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire, que Rolimon's continue de compter ; un visage reçu arrive en bundle, que Rolimon's ne voit pas. RoNote compare visage par visage ce que Rolimon's compte et les bundles réellement possédés, puis affiche le détail de la correction.</small></span></label>
+    <p class="hint">Quel que soit ce réglage, <b>les deux chiffres restent affichés</b>. Un trade où la value et le RAP se contredisent est marqué ⚖️ « verdict incertain », une cote révisée récemment est signalée 🔁, et dans ces deux cas la notification n'est jamais supprimée par un filtre.</p>
+    <p class="hint">Objets non cotés (visages, objets de bundle, nouveautés) : RoNote récupère le RAP officiel auprès de Roblox. Si l'objet reste sans cote, il est signalé <b>❔ sans cote</b> et exclu des totaux — jamais compté comme 0 — et la notification n'est jamais supprimée par un filtre dans ce cas.</p>
+  </section>
+
+    <section>
+    <h2>Filtres <small class="hint">(s'appliquent uniquement aux trades reçus)</small></h2>
+    <label class="row switch"><input type="checkbox" id="onlyWins">
+      <span><b>Ne notifier que les trades gagnants</b><small>Les autres restent visibles dans le popup et le journal, sans alerte. Sans effet sur un trade dont les cotes sont incertaines : il est toujours notifié.</small></span></label>
+    <label class="row"><span><b>Gain minimum</b><small>En % sur la base de calcul choisie ci-dessus, appliqué si l'option précédente est active.</small></span>
+      <input type="number" id="minGainPercent" min="-100" max="500" step="1"></label>
+    <label class="row"><span><b>Valeur minimum reçue</b><small>Ignore les offres dont le total proposé est inférieur, sur la base de calcul choisie. 0 = désactivé.</small></span>
+      <input type="number" id="minTheirValue" min="0" step="1000"></label>
+    <label class="row switch"><input type="checkbox" id="ignoreProjected">
+      <span><b>Ignorer les trades contenant un item « projected »</b></span></label>
+    <label class="row switch"><input type="checkbox" id="alwaysNotifyCounters">
+      <span><b>Les contre-offres passent outre les filtres</b><small>Une réponse à votre propre trade vous est toujours notifiée.</small></span></label>
+  </section>
+
+  <section>
+    <h2>Heures silencieuses</h2>
+    <label class="row switch"><input type="checkbox" id="qh-enabled">
+      <span><b>Activer</b><small>Aucune notification bureau pendant la plage (le suivi continue, rien n'est perdu).</small></span></label>
+    <label class="row"><span><b>De</b></span><input type="time" id="qh-start"></label>
+    <label class="row"><span><b>À</b></span><input type="time" id="qh-end"></label>
+    <label class="row switch"><input type="checkbox" id="qh-still">
+      <span><b>Notifier quand même</b><small>Garde les alertes mais sans son.</small></span></label>
+  </section>
+
+  <section>
+    <h2>Utilisateurs ignorés</h2>
+    <div id="ignored" class="chips"></div>
+    <p class="hint">Astuce : le bouton « Ignorer » d'une notification ajoute directement l'expéditeur ici.</p>
+  </section>
+
+  <section>
+    <h2>Diagnostic d'un trade</h2>
+    <p class="hint top">Un trade qui refuse de s'évaluer ? Colle son numéro (visible sur sa carte dans le popup) : RoNote teste chaque version de l'API, en direct et via un onglet Roblox, et affiche la réponse brute.</p>
+    <div class="row"><span><b>Numéro du trade</b><small>Exemple : 2645140139823455</small></span>
+      <input type="text" id="diag-id" placeholder="2645140139823455" inputmode="numeric"></div>
+    <div class="row"><span><b>Lancer le test</b><small>Garde un onglet roblox.com ouvert pour tester aussi le relais.</small></span>
+      <span class="btnrow"><button id="btn-diag" class="btn">Diagnostiquer</button>
+      <button id="btn-diag-copy" class="btn" hidden>Copier</button></span></div>
+    <pre id="diag-out" hidden></pre>
+  </section>
+
+  <section>
+    <h2>Maintenance</h2>
+    <div class="row"><span><b>Réinitialiser le suivi</b><small>Reprend une photo de l'existant et vide les trades suivis. Les trades actuellement présents ne seront pas notifiés.</small></span>
+      <button id="btn-reset" class="btn">Réinitialiser</button></div>
+    <div class="row"><span><b>Exporter le journal</b><small>Fichier CSV de tous les événements détectés.</small></span>
+      <button id="btn-export" class="btn">Exporter</button></div>
+    <div class="row"><span><b>Vider le journal</b></span>
+      <button id="btn-clear" class="btn danger">Vider</button></div>
+  </section>
+
+  <footer>RoNote v2.9.0 — extension locale, aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's.</footer>
+</div>
+<script type="module" src="options.js"></script>
+</body>
+</html>

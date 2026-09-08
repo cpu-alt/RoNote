@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — auto-tests</title>
+<style>
+  body { background:#0a0d13; color:#e9eef8; font:13px/1.5 "Segoe UI",system-ui,sans-serif; margin:0; padding:18px 22px; }
+  h1 { font-size:16px; margin:0 0 4px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#8e9cb3; margin:18px 0 6px; }
+  .l { padding:2px 0 2px 18px; text-indent:-18px; font-variant-numeric:tabular-nums; }
+  .ok { color:#2fd070; } .ko { color:#ff5f66; } .info { color:#8e9cb3; }
+  #sum { position:sticky; top:0; background:#141926; border:1px solid #222b3c; border-radius:10px;
+         padding:10px 14px; font-size:15px; font-weight:700; margin-bottom:10px; }
+  pre { color:#ff5f66; white-space:pre-wrap; font-size:11px; }
+</style>
+</head>
+<body>
+  <h1>RoNote — auto-tests</h1>
+  <div id="sum">exécution…</div>
+  <div id="out"></div>
+  <script type="module" src="./selftest.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — aperçu du popup</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:#05070b; display:flex; flex-wrap:wrap; gap:20px; padding:20px; font:12px "Segoe UI",system-ui,sans-serif; color:#8e9cb3; }
+  .frame { flex:none; width:420px; height:600px; border:1px solid #222b3c; border-radius:12px; overflow:hidden; box-shadow:0 18px 50px #0009; }
+  iframe { width:420px; height:600px; border:0; display:block; }
+  .side { flex:1 1 260px; min-width:240px; }
+  h1 { color:#e9eef8; font-size:15px; margin:0 0 8px; }
+  p { line-height:1.6; }
+  button { background:#141926; color:#e9eef8; border:1px solid #222b3c; border-radius:8px; padding:6px 10px; cursor:pointer; margin:2px 2px 0 0; }
+  button:hover { border-color:#4d9fff; }
+</style>
+</head>
+<body>
+  <script>
+    // Les erreurs d'un module a top-level await ne remontent nulle part :
+    // on les affiche, sinon on debugge a l'aveugle.
+    const show = (m) => { const d = document.getElementById('log'); if (d) d.textContent = m; };
+    addEventListener('error', e => show('ERREUR ' + e.message));
+    addEventListener('unhandledrejection', e => show('ERREUR ' + (e.reason?.stack || e.reason)));
+  </script>
+  <div class="frame"><iframe id="f" title="popup"></iframe></div>
+  <div class="side">
+    <h1>Aperçu du popup</h1>
+    <p>Le vrai <code>popup.html</code> / <code>popup.css</code> / <code>popup.js</code>, alimenté par
+       un faux service worker : cotes réelles de Rolimon's, vignettes réelles du CDN Roblox.</p>
+    <p>Onglets à tester :</p>
+    <div>
+      <button data-tab="inbound">Reçus</button>
+      <button data-tab="outbound">Envoyés</button>
+      <button data-tab="stats">Bénéfice</button>
+      <button data-tab="history">Journal</button>
+    </div>
+    <p>Langue :
+      <a href="?lang=fr" style="color:#4d9fff">Français</a> ·
+      <a href="?lang=en" style="color:#4d9fff">English</a></p>
+    <p id="log"></p>
+  </div>
+  <script type="module" src="./preview.js"></script>
+</body>
+</html>

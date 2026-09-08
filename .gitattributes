@@ -1,0 +1,9 @@
+# Fins de ligne normalisees dans le depot, natives dans le repertoire de travail.
+* text=auto
+
+# Binaires : jamais de conversion.
+*.png binary
+*.zip binary
+*.mp3 binary
+*.ogg binary
+*.wav binary

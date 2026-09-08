@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.preview/
+*.zip
+
+# Scratch local
+*.log
+.DS_Store
+Thumbs.db

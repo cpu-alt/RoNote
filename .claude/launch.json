@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ronote-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/serve.py", "8777"],
+      "port": 8777,
+      "url": "http://localhost:8777"
+    }
+  ]
+}

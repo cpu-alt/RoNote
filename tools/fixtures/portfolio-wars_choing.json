@@ -1,0 +1,2560 @@
+{
+ "note": "Compte reel (wars_choing, 2778878982) : trois visages fantomes chez Rolimon's, cinq bundles possedes qu'il ignore.",
+ "userId": 2778878982,
+ "playerinfo": {
+  "value": 1836950,
+  "rap": 1821180,
+  "rank": 5134,
+  "privacy_enabled": false,
+  "terminated": false
+ },
+ "playerassets": {
+  "1080949": 2,
+  "1081300": 1,
+  "1082932": 3,
+  "1098277": 1,
+  "1139753": 1,
+  "1173851": 1,
+  "1309918": 2,
+  "1396360": 1,
+  "1532389": 1,
+  "5808105": 2,
+  "6548058": 1,
+  "11844853": 1,
+  "12313606": 1,
+  "13334984": 1,
+  "16412796": 1,
+  "16924470": 1,
+  "16987194": 1,
+  "17408283": 3,
+  "17450058": 1,
+  "17925914": 1,
+  "18174901": 1,
+  "18821226": 1,
+  "19027209": 2,
+  "19395368": 1,
+  "20048880": 1,
+  "20064349": 1,
+  "20335699": 1,
+  "20573078": 1,
+  "21719280": 1,
+  "22151798": 1,
+  "22547702": 2,
+  "23301644": 1,
+  "24440014": 1,
+  "24826737": 1,
+  "25308989": 1,
+  "25609906": 1,
+  "26018282": 1,
+  "26020654": 5,
+  "27398610": 1,
+  "28276664": 1,
+  "28502997": 1,
+  "32858699": 3,
+  "33337041": 1,
+  "33872761": 1,
+  "35246042": 1,
+  "35685322": 10,
+  "35686181": 1,
+  "37819953": 1,
+  "42840130": 1,
+  "44113968": 2,
+  "44856567": 1,
+  "45093148": 2,
+  "49491781": 1,
+  "49939702": 1,
+  "50382508": 1,
+  "50430316": 1,
+  "51245998": 2,
+  "52463255": 2,
+  "52501424": 1,
+  "52502129": 1,
+  "52539791": 1,
+  "52554739": 1,
+  "52564187": 1,
+  "54586667": 1,
+  "55620437": 1,
+  "56944284": 1,
+  "60115725": 1,
+  "60674516": 1,
+  "60674719": 1,
+  "62721575": 1,
+  "63695803": 1,
+  "64507797": 1,
+  "64510677": 1,
+  "65979823": 1,
+  "66303534": 1,
+  "66416616": 1,
+  "67494312": 1,
+  "69964719": 1,
+  "71037056": 1,
+  "74939534": 1,
+  "75550883": 2,
+  "76692101": 1,
+  "76692331": 1,
+  "78002464": 2,
+  "78033496": 1,
+  "84418938": 2,
+  "85879447": 1,
+  "89611341": 2,
+  "90249069": 3,
+  "93068184": 1,
+  "95354259": 1,
+  "100932574": 1,
+  "102631707": 1,
+  "105341547": 1,
+  "111903483": 1,
+  "112609138": 1,
+  "113325566": 1,
+  "113325603": 1,
+  "116693694": 1,
+  "116778440": 1,
+  "119095672": 2,
+  "120757139": 1,
+  "120759721": 1,
+  "121925647": 1,
+  "127505604": 1,
+  "128207293": 1,
+  "129471170": 1,
+  "136803077": 1,
+  "140493381": 1,
+  "152187346": 1,
+  "153027826": 4,
+  "153558902": 1,
+  "155504606": 1,
+  "162066176": 1,
+  "163995329": 1,
+  "169602010": 1,
+  "175134660": 2,
+  "177433041": 1,
+  "187846264": 1,
+  "192465416": 1,
+  "250405532": 1,
+  "273968642": 1,
+  "286513125": 2,
+  "295456141": 1,
+  "361950297": 1,
+  "383606760": 1,
+  "390972175": 3,
+  "402302006": 1,
+  "406000562": 1,
+  "493489234": 1,
+  "532181076": 1,
+  "553723613": 2,
+  "553878047": 1,
+  "553879651": 1,
+  "564449640": 1,
+  "583721561": 1,
+  "628783410": 1,
+  "833773264": 1,
+  "987022351": 1,
+  "1117744489": 1,
+  "1191136166": 1,
+  "1230404580": 1,
+  "1556204905": 1,
+  "1609390589": 2,
+  "1609402609": 1,
+  "1744198126": 1,
+  "2470988022": 1,
+  "2528066922": 1,
+  "3581868178": 1,
+  "3798243238": 1,
+  "4773579034": 1,
+  "8763364938": 1,
+  "11829528061": 1,
+  "8835800486": 1,
+  "13241836994": 4,
+  "14524326503": 2,
+  "17266515535": 1,
+  "87983592197138": 2
+ },
+ "bundles": [
+  {
+   "id": 196625578789242,
+   "name": "Purple Super Happy Joy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 160001924154932,
+   "name": "The Dog Whisperer",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 74870047635131,
+   "name": "Snowman Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 236385495807573,
+   "name": "Fawkes Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 141680612726107,
+   "name": "Blue Goof",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 307,
+   "name": "Tentacled Alien  ",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 308,
+   "name": "Action Figure",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 68037240136329,
+   "name": "Cute Thing (Roundy)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 79181,
+   "name": "Fish Bowl Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 48,
+   "name": "Elder Animation Package",
+   "bundleType": "AvatarAnimations"
+  },
+  {
+   "id": 7218,
+   "name": "Mini Chibi",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4164795,
+   "name": "Amazon Unboxed Animation Pack",
+   "bundleType": "AvatarAnimations"
+  },
+  {
+   "id": 1530495,
+   "name": "Nguyễn Gơn",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1496695,
+   "name": "Nguyễn Boi",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 460500,
+   "name": "Competitor's Iris Cleats",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 62696,
+   "name": "Moxxie Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 45407,
+   "name": "Black Skilly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 51050,
+   "name": "The Spooked Recolorable",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 8713,
+   "name": "Sparkling Look(Dynamic)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 46405,
+   "name": "Red Slime Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 8531,
+   "name": "Golden Cone",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 8229,
+   "name": "Steven Wide Eyelashes w/ Lower Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 47836,
+   "name": "Rainbow Skilly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 53285,
+   "name": "Animated Pumpkin Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 79595,
+   "name": "Anime Girl Wink",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 92240,
+   "name": "Halloween",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4758,
+   "name": "Cute Axolotl with Kawaii Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 46676,
+   "name": "Pixel Pumpkin",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 63480,
+   "name": "Ghost",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 45155,
+   "name": "Raco_colorable",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 63235,
+   "name": "Animated Sleepy Blush",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 51141,
+   "name": "Animated Sleepy Blush",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1158,
+   "name": "Award-Winning Smile",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 6625,
+   "name": "The Earth",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 6707,
+   "name": "Mercury Noobtrap",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1316,
+   "name": "Red Lip - Tate McRae",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1317,
+   "name": "I <3 New Site Theme",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5632,
+   "name": "Pink Gleaming Anime Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5302,
+   "name": "Lucky Block Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5231,
+   "name": "Blocky Skeleton",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4823,
+   "name": "Bloomglowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5099,
+   "name": "Happy Joe's Alternative",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5101,
+   "name": "Kawaii Raccoon Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5145,
+   "name": "Kawaii Cow Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5080,
+   "name": "Kawaii Cat Head (Style 2)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 5103,
+   "name": "Kawaii Skunk Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4869,
+   "name": "Flower",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4943,
+   "name": "Kawaii Bear Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4946,
+   "name": "Kawaii Panda Bear",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4816,
+   "name": "Kawaii Penguin Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4619,
+   "name": "Red Cannon head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4778,
+   "name": "White Skeleton",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4825,
+   "name": "muscles guy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4654,
+   "name": "Scrambled 4x4 Puzzle Cube",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4635,
+   "name": "Vanilla & Chocolate Pudding",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4711,
+   "name": "Capybara",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4684,
+   "name": "Grey Frog Meme Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4682,
+   "name": "Golden Frog Meme Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4687,
+   "name": "Pink Frog Meme Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4678,
+   "name": "Frog Meme Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4726,
+   "name": "Animated Vintage TV",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4596,
+   "name": "Coconut Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4749,
+   "name": "Gleaming Anime Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4611,
+   "name": "Scrambled 3x3 Puzzle Cube",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4521,
+   "name": "Creepy Smiles",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4505,
+   "name": "4x4 Puzzle Cube",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4493,
+   "name": "Rubberhose Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4403,
+   "name": "DonterDraws Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4382,
+   "name": "Animated Flame Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2836,
+   "name": "GigaChad",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1958,
+   "name": "Abominación de prueba",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3730,
+   "name": "Green Robot Furry ",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3992,
+   "name": "[Recolorable] silly head idk",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4256,
+   "name": "Uncle Guina",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4340,
+   "name": "Funny Meme Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4163,
+   "name": "Tough Guy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3919,
+   "name": "Recolorable Orange Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4208,
+   "name": "Tiny Guy (Makes your hats small!)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4214,
+   "name": "Catlike Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4268,
+   "name": "Jerry's Alternative Red",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4350,
+   "name": "Heirloom Puppet",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4210,
+   "name": "Egg Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4270,
+   "name": "Jerry's Alternative Soulless",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4063,
+   "name": "[NOT FREE] Animated Cat Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3990,
+   "name": "The Abyss of sadness",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 4007,
+   "name": "Recolorable Alien Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3968,
+   "name": "Scarlett",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3915,
+   "name": "Recolorable Yellow Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4078,
+   "name": "Purple Guy Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3245,
+   "name": "Happy Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1969,
+   "name": "THE GUY",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1981,
+   "name": "Jerry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1988,
+   "name": "Jerry Larry Red",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1982,
+   "name": "Jerry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3921,
+   "name": "Recolorable Red Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3923,
+   "name": "Recolorable Purple Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 4010,
+   "name": "Recolorable Alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3914,
+   "name": "Recolorable Grey Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3890,
+   "name": "Alien Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3868,
+   "name": "Jane Face.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3712,
+   "name": "Freckled Face Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3816,
+   "name": "AlterDemon Head [No Outline]",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3951,
+   "name": "Uncle guinea (COLORABLE)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3848,
+   "name": "Gojo",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3911,
+   "name": "Recolorable Green Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3910,
+   "name": "Recolorable Blue Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3908,
+   "name": "Recolorable Black Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3901,
+   "name": "Recolorable Cyan Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3854,
+   "name": "You're joking.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3836,
+   "name": "Split-In-Half",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3722,
+   "name": "Stary Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3813,
+   "name": "Telly the TV",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3814,
+   "name": "Great Googly Moogly Eyes Dynamic Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3773,
+   "name": "Blue and Red Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3772,
+   "name": "Grey Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3771,
+   "name": "Green and Yellow Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3770,
+   "name": "Orange Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3769,
+   "name": "Pink and Purple Robot",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3768,
+   "name": "Red and Blue Robot",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3767,
+   "name": "White and Yellow Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3766,
+   "name": "Brown Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3765,
+   "name": "White Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3734,
+   "name": "Purple Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3735,
+   "name": "Red Robot Furry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3711,
+   "name": "Blushing Head w/ Pores Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3681,
+   "name": "Luffy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3615,
+   "name": "Cyclops Purple Dragon Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3614,
+   "name": "Cyclops Red Dragon Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3572,
+   "name": "Animated Robot Face Neutral",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3684,
+   "name": "Kawaii Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3675,
+   "name": "Monkey The Gym Bro",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3674,
+   "name": "Gorrila The Gym Bro",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3558,
+   "name": "Big Animated Cat Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3524,
+   "name": "Colorable AlterDemon Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3646,
+   "name": "Cute Plush Girl Face.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3657,
+   "name": "Black Creature",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3584,
+   "name": "Chip Man Brick",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3586,
+   "name": "Chip Man Cookie",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3587,
+   "name": "Icecream",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3588,
+   "name": "Chip Man Lava",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3593,
+   "name": "[NOT FREE] Animated Mouse Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3610,
+   "name": "Animated Triangle Cat Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3645,
+   "name": "Animated Rounded Animal Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3647,
+   "name": "Animated Deer Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3569,
+   "name": "Rainbow Guinea",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3557,
+   "name": "C: head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3373,
+   "name": "me after the bundle gets rejected for the 4th time",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3298,
+   "name": "Mr. Banana",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2169,
+   "name": "Mr. Cheese Green",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2628,
+   "name": "Mr. Cheese Blue",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2165,
+   "name": "Mr. Pizza",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2672,
+   "name": "Mr. Cheese Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2670,
+   "name": "Mr. Cheese Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2671,
+   "name": "Mr. Cheese Pink",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3458,
+   "name": "Recolorable Blocky Soldier",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3451,
+   "name": "Blocky Soldier",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3379,
+   "name": "[FACELESS] Animated Cat Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3484,
+   "name": "Mr. Charcoal",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3490,
+   "name": "Mr. Strawberry",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3421,
+   "name": "Red Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3420,
+   "name": "Skelly with Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3418,
+   "name": "Black Skelly with Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3419,
+   "name": "Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3417,
+   "name": "Black Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3428,
+   "name": "Purple Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3426,
+   "name": "Purple Skelly with Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3424,
+   "name": "Blue Skelly with Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3422,
+   "name": "Red Skelly with Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3423,
+   "name": "Blue Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3357,
+   "name": "mister scary man",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3362,
+   "name": "Red Wolf Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3310,
+   "name": "Mr. Bricks",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3354,
+   "name": "Fluffy Eyelashes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3328,
+   "name": "Red Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3323,
+   "name": "Dog Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3356,
+   "name": "Hum Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3303,
+   "name": "Mr. Ice Cream",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3304,
+   "name": "Snowman",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3301,
+   "name": "Mr. Donut",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3312,
+   "name": "Mr. Bricks Golden",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3300,
+   "name": "Mr. Crystal",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3299,
+   "name": "Mr. Cookie",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3239,
+   "name": "Hero Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3211,
+   "name": "flubdub the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3207,
+   "name": "aske the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3210,
+   "name": "asdlpasdp the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3214,
+   "name": "gaguuga the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3306,
+   "name": "Shocked Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3309,
+   "name": "Mr. Waffle",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3320,
+   "name": "Rainbow R6 Converter",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3321,
+   "name": "Pink Minature Holstein Cow",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3325,
+   "name": "Wolf Bundle",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3333,
+   "name": "bambam the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3336,
+   "name": "mike the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3337,
+   "name": "glabgalab the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3342,
+   "name": "buggy the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3349,
+   "name": "Horrified Figure",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3282,
+   "name": "Fighter Cat Eyes.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3288,
+   "name": "Woman",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3283,
+   "name": "Harley Base",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3278,
+   "name": "Glowing Rainbow GigaChad",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3275,
+   "name": "Glowing Color Changing",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3257,
+   "name": "Glowing Purple Yellow Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3221,
+   "name": "ocean glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3217,
+   "name": "void glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3219,
+   "name": "inverted glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3220,
+   "name": "fire glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3218,
+   "name": "vibrant glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3246,
+   "name": "Alert Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3216,
+   "name": "beach glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3234,
+   "name": "Big Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3205,
+   "name": "Animated Droop Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3181,
+   "name": "Animated Dog Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3160,
+   "name": "Blinky",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3209,
+   "name": "me when :3 [FIXED]",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3213,
+   "name": "Animated Small Bunny Ears",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3215,
+   "name": "Pleasantly Surprised Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3126,
+   "name": "The Eyes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3136,
+   "name": "Recolorable Skelly With Cyan Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3117,
+   "name": "Face Of Chaos",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3137,
+   "name": "Recolorable Skelly With Pink Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3150,
+   "name": "Recolorable Skelly With Golden Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3147,
+   "name": "Recolorable Skelly With Purple Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3144,
+   "name": "Recolorable Skelly With Orange Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3134,
+   "name": "Recolorable Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3128,
+   "name": "Recolorable Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3142,
+   "name": "Recolorable Skelly With Green Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3140,
+   "name": "Recolorable Skelly With Blue Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3138,
+   "name": "Recolorable Skelly With White Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2981,
+   "name": "Anime Girl Skin Tone 1",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1739,
+   "name": "clay head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3110,
+   "name": "Rebel",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3112,
+   "name": "SCARY",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2912,
+   "name": "Golden Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2913,
+   "name": "Golden Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3095,
+   "name": "Harley Base",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3071,
+   "name": "VERY HAPPY!",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3103,
+   "name": "The Man",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3102,
+   "name": "Cute Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3040,
+   "name": "Pinhead",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3052,
+   "name": "Voxel Guy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2932,
+   "name": "Red Guinea",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3050,
+   "name": "Smile Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3035,
+   "name": "Animated Antennae",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 3026,
+   "name": "dabawookie the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3027,
+   "name": "helpmeplease the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3028,
+   "name": "richington the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2986,
+   "name": "Long Larry",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2960,
+   "name": "The Brute",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3011,
+   "name": "martin the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 3013,
+   "name": "disgusto the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2968,
+   "name": "Missing Head Texture.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2958,
+   "name": "Teethy Grin Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2942,
+   "name": "Beady Eyed Stare Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2997,
+   "name": "Glass Man",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2709,
+   "name": "Li's Face. (Colorable)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2941,
+   "name": "Extremely Overjoyed Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2999,
+   "name": "Ultimate Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2915,
+   "name": "Sadden Guinea",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2854,
+   "name": "Skull Head with Facial Animation in White",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2901,
+   "name": "Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2904,
+   "name": "Black Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2905,
+   "name": "Black Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2906,
+   "name": "Lime Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2908,
+   "name": "Sly Thief",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2909,
+   "name": "Lime Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2910,
+   "name": "Orange Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2911,
+   "name": "Orange Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2896,
+   "name": "Who Put you on the Planet",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2897,
+   "name": "Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2875,
+   "name": "Rainbow Billy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2774,
+   "name": "PAINT THE GYM BRO",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2715,
+   "name": "Mister Li Face.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2853,
+   "name": "free bebe",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2716,
+   "name": "Guest 2005 Face.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2695,
+   "name": "Pumpkin Kid Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2835,
+   "name": "Animated Animal Ears (COLORABLE)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2766,
+   "name": "SPONGE THE GYM BRO",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2739,
+   "name": "[12HR⌛] Cyclops Ted",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2795,
+   "name": "bill",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2735,
+   "name": "AlterDemon Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2744,
+   "name": "Skelly's Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2741,
+   "name": "Purple Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2746,
+   "name": "Blue Skelly With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2745,
+   "name": "Red Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2738,
+   "name": "Blocky Diamond Guy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2728,
+   "name": "Minature Holstein Cow",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2747,
+   "name": "Blue Skelly",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2734,
+   "name": "Red Skeely With Red Eyes",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2733,
+   "name": "Red Skelly's Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2176,
+   "name": "Skelly's Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2459,
+   "name": "Blocky Guy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2458,
+   "name": "Disappointed",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2460,
+   "name": "Scary Monster",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2669,
+   "name": "Mr. Cheese Rainbow",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2546,
+   "name": "Deformed",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2457,
+   "name": "Sad",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2456,
+   "name": "Happy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2449,
+   "name": "Demon Face.",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2612,
+   "name": "coco the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2604,
+   "name": "muzzle creature",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2593,
+   "name": "Baby Rainbow Glowing Goober!",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2580,
+   "name": "rainglowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1997,
+   "name": "Evil Villain Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2539,
+   "name": "Baby GLOWING Goober! (REACTIVE)",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2450,
+   "name": "White Dog",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2585,
+   "name": "Metallic Action Figure",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2505,
+   "name": "Jimmy the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2532,
+   "name": "Gumdrop Sticknob",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2565,
+   "name": "Happy Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2564,
+   "name": "Sad Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2557,
+   "name": "Glowing Miami Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2559,
+   "name": "Purple Glowing Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2535,
+   "name": "cow(1)",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2552,
+   "name": "Glowing Red Blue Gradient",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2136,
+   "name": "#tottalynottemplatebundlereal",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2468,
+   "name": "Devious Eyelashes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2469,
+   "name": "Cute Eyelashes",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2517,
+   "name": "Emerald Blocky Guy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2528,
+   "name": "Blocky Sticknob",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2514,
+   "name": "diego",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2152,
+   "name": "rectangle man",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2096,
+   "name": "abomination 2.0",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2417,
+   "name": "Golden Blocky Guy (BROKEN)",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2357,
+   "name": "Cartoony Black Outlined Head (Recolorable)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2439,
+   "name": "All Seeing",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2416,
+   "name": "glowber",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2420,
+   "name": "glowbe",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2422,
+   "name": "glawb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2424,
+   "name": "glawber",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2427,
+   "name": "glewber",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2329,
+   "name": "Cartoony Outlined Head (Black)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2239,
+   "name": "Anime Blind",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2256,
+   "name": "Anime Pink",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2290,
+   "name": "steely the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2271,
+   "name": "Anime Green",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2013,
+   "name": "Greetings from Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2262,
+   "name": "Rainbow Diamond Armor",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2308,
+   "name": "Grumpy Alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2312,
+   "name": "jimmy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2027,
+   "name": "Angry Creature",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2299,
+   "name": "Angry Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2244,
+   "name": "my honest reaction to that information",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2006,
+   "name": "mama give me money",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1989,
+   "name": "TODAY WE WILL BE PUTTING THIS THING FOR FREE",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2300,
+   "name": "Dog",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2288,
+   "name": "reflecto the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2287,
+   "name": "Purple Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2278,
+   "name": "dooboworp the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2255,
+   "name": "Red Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2243,
+   "name": "Fire Cube",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2127,
+   "name": "Anime Black",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2134,
+   "name": "Anime Yellow",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2199,
+   "name": "Recolorable Skeleton",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2252,
+   "name": "Orange Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2129,
+   "name": "Anime Blue",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2130,
+   "name": "Anime Brown",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2132,
+   "name": "Anime Purple",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2133,
+   "name": "Anime Red",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2234,
+   "name": "Glowing Ice Gradient Man",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2238,
+   "name": "Glowing Gradient Man",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2180,
+   "name": "mr muscles boy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2144,
+   "name": "Im Listening",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2025,
+   "name": "Useless Superhero",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2022,
+   "name": "Smug",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2067,
+   "name": "Soulless",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2017,
+   "name": "metaverse moai 😱",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2007,
+   "name": "fingleboot the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2008,
+   "name": "Rust Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2043,
+   "name": "Billy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2005,
+   "name": "purple alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 2002,
+   "name": "glowb",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 2018,
+   "name": "Jones",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 990,
+   "name": "Base Body - Robin",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 994,
+   "name": "Base Body - Jordan",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 993,
+   "name": "Base Body - Andi",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 989,
+   "name": "Base Body - Harper",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 991,
+   "name": "Base Body - Dawson",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 995,
+   "name": "Base Body - Billie",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1946,
+   "name": "long nose",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1934,
+   "name": "alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1735,
+   "name": "Upset Again",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1850,
+   "name": "They Upset 😭",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 992,
+   "name": "Base Body - Rene",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1954,
+   "name": "Recolorable Goober Alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1696,
+   "name": "Round Headed Body (Female)",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1866,
+   "name": "joshua the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1878,
+   "name": "Blush face (fixed)",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1877,
+   "name": "Big Forehead",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1962,
+   "name": "doobagorp the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1966,
+   "name": "darwin the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1886,
+   "name": "Wink face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1712,
+   "name": "Void Vision",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1882,
+   "name": "alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1884,
+   "name": "Free Spikey Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1887,
+   "name": "Sir Michel",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1888,
+   "name": "barry the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1893,
+   "name": "gerald the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1894,
+   "name": "googorp the alien",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1908,
+   "name": "Billy 2.0",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1918,
+   "name": "Robot Silver Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1919,
+   "name": "OG billy",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1923,
+   "name": "joe",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1942,
+   "name": "Long-Nosed Goober",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1899,
+   "name": "Swirly Smile",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1952,
+   "name": "Faceless",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1873,
+   "name": "blush face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1706,
+   "name": "Evil Monster",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1792,
+   "name": "Bobby's Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1800,
+   "name": "average roblocks enjoyer",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1740,
+   "name": "Cute Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1701,
+   "name": "Round Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1655,
+   "name": "average roblox developer stare face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1681,
+   "name": "Square Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1680,
+   "name": "Poorly Drawn Witch Head",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1764,
+   "name": "Manny Stickman",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 1796,
+   "name": "Bobby",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 957,
+   "name": "The Winning Smile",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1036,
+   "name": ":]",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 956,
+   "name": "Classic Female Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 959,
+   "name": "Classic Male Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1043,
+   "name": "Whistle",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 962,
+   "name": "Chill",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1039,
+   "name": "Braces",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 968,
+   "name": "Check It",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 1184,
+   "name": "Hexonoval Shoes ",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 987,
+   "name": "Base Body - Kayden",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 984,
+   "name": "Base Body - Glenn",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 986,
+   "name": "Base Body - Devin",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 983,
+   "name": "Base Body - Charlie",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 985,
+   "name": "Base Body - Parker",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 982,
+   "name": "Base Body - Peyton",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 980,
+   "name": "Base Body - Cameron",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 979,
+   "name": "Base Body - Riley",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 946,
+   "name": "Stevie Standard",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 947,
+   "name": "Devon Default",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 942,
+   "name": "Gil by Guilded",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 949,
+   "name": "Man Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 948,
+   "name": "Woman Face",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 945,
+   "name": "Dylan Default",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 706,
+   "name": "Wonder Woman’s Golden Armor",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 905,
+   "name": "Canvas Shoes - Gray",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 894,
+   "name": "Canvas Shoes - White",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 896,
+   "name": "Sneakers - White",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 666,
+   "name": "Bracelets of Victory",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 872,
+   "name": "Roblox Sneakers - Gray",
+   "bundleType": "Shoes"
+  },
+  {
+   "id": 128,
+   "name": "Claire",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 129,
+   "name": "Serena",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 130,
+   "name": "Lin",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 127,
+   "name": "Casey",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 125,
+   "name": "Oakley",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 126,
+   "name": "John",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 828,
+   "name": "Grey",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 687,
+   "name": "Skyler",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 573,
+   "name": "Oliver",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 605,
+   "name": "Dennis",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 792,
+   "name": "Kid Nezha",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 108,
+   "name": "ROBLOX Girl",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 607,
+   "name": "Lindsey",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 337,
+   "name": "City Life Woman",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 239,
+   "name": "Woman",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 813,
+   "name": "Forest Elf",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 341,
+   "name": "Squad Ghouls: Drop Dead Tedd",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 339,
+   "name": "The High Seas: Beatrix The Pirate Queen",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 606,
+   "name": "Cindy",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 572,
+   "name": "Summer",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 608,
+   "name": "Kenneth",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 282,
+   "name": "ROBLOX Girl   ",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 299652,
+   "name": "Silly Fun",
+   "bundleType": "DynamicHead"
+  },
+  {
+   "id": 722,
+   "name": "Denny",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 589,
+   "name": "Junkbot",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 356,
+   "name": "Rthro Animation Package",
+   "bundleType": "AvatarAnimations"
+  },
+  {
+   "id": 741,
+   "name": "Linlin",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 338,
+   "name": "Knights of Redcliff: Paladin",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 238,
+   "name": "Man   ",
+   "bundleType": "BodyParts"
+  },
+  {
+   "id": 109,
+   "name": "ROBLOX Boy",
+   "bundleType": "BodyParts"
+  }
+ ],
+ "expected": {
+  "ghostValue": 14611,
+  "extraValue": 109201,
+  "value": 1931540,
+  "ghosts": 3,
+  "extras": 5
+ }
+}
