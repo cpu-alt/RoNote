@@ -210,13 +210,43 @@ quand « c'est lent ».
 
 ## Installation
 
-### 1. Générer les icônes (déjà fait, à refaire seulement si tu les modifies)
+Deux chemins : **utiliser** RoNote (télécharger un paquet tout prêt) ou
+**développer** dessus (construire depuis les sources).
+
+### Utiliser : depuis une Release
+
+Aucun outil à installer, pas de Python, pas de Node.
+
+1. Va sur la page [Releases](https://github.com/cpu-alt/RoNote/releases) et
+   télécharge `ronote-chrome-vX.Y.Z.zip` (ou `ronote-firefox-…` pour Firefox).
+2. **Dézippe le fichier** dans un dossier que tu ne supprimeras pas : Chrome
+   charge l'extension *depuis ce dossier*, il ne la copie pas ailleurs.
+3. **Chrome / Edge / Brave / Opera** — `chrome://extensions` → active le
+   **Mode développeur** (en haut à droite) → **Charger l'extension non
+   empaquetée** → sélectionne le dossier dézippé.
+4. **Firefox** (128 minimum) — `about:debugging#/runtime/this-firefox` →
+   **Charger un module temporaire** → sélectionne `manifest.json` dans le
+   dossier dézippé.
+
+> **Pourquoi le mode développeur ?** RoNote n'est pas publiée sur le Chrome Web
+> Store, et Chrome refuse d'installer une extension venue d'ailleurs sans lui.
+> Conséquences à connaître : Chrome affiche un avertissement « Désactivez les
+> extensions en mode développeur » à chaque démarrage (tu peux le fermer), et
+> **il n'y a pas de mise à jour automatique** — pour passer à une nouvelle
+> version, retélécharge le zip et remplace le contenu du dossier.
+>
+> Sous Firefox, un module temporaire **disparaît à la fermeture du navigateur**.
+> C'est une limite de Mozilla pour les extensions non signées.
+
+### Développer : depuis les sources
+
+#### 1. Générer les icônes (déjà fait, à refaire seulement si tu les modifies)
 
 ```bash
 npm run icons
 ```
 
-### 2. Construire les paquets
+#### 2. Construire les paquets
 
 ```bash
 python tools/build.py
@@ -242,7 +272,7 @@ python tools/build.py
 > par une ancienne version du build). Retire RoNote de `chrome://extensions` et
 > recharge `dist/chrome` une fois : c'est réglé définitivement.
 
-### 3. Charger l'extension
+#### 3. Charger l'extension
 
 **Chrome / Edge / Brave / Opera**
 1. Va sur `chrome://extensions` (ou `edge://extensions`)
@@ -254,7 +284,7 @@ python tools/build.py
 2. **Charger un module temporaire** → sélectionne `dist/firefox/manifest.json`
 3. Dans `about:addons` → RoNote → Permissions, autorise l'accès à `roblox.com`
 
-### 4. Vérifier
+#### 4. Vérifier
 
 Connecte-toi sur `roblox.com`, puis ouvre le popup : tu dois voir
 `Actif · vérifié il y a Xs` et ton pseudo. Le bouton **Tester** dans les réglages
