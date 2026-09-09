@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Politique de confidentialité — RoNote</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1d21; --muted: #5c6470;
+    --line: #e3e6ea; --accent: #2b6cb0; --code-bg: #f4f6f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --fg: #e6e9ed; --muted: #9aa3ae;
+      --line: #2a2f36; --accent: #7fb3e8; --code-bg: #1d2126;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 .4rem; letter-spacing: -.02em; }
+  h2 { font-size: 1.2rem; margin: 2.4rem 0 .6rem; letter-spacing: -.01em; }
+  .meta { color: var(--muted); font-size: .9rem; margin: 0 0 2rem; }
+  .lede {
+    border-left: 3px solid var(--accent); padding: .1rem 0 .1rem 1rem;
+    margin: 0 0 1rem; font-size: 1.05rem;
+  }
+  a { color: var(--accent); }
+  code {
+    background: var(--code-bg); padding: .12em .4em;
+    border-radius: 4px; font-size: .88em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .scroll { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .3rem 0; }
+  footer {
+    margin-top: 3.5rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Politique de confidentialité — RoNote</h1>
+<p class="meta">Dernière mise à jour : 9 septembre 2026 · Version 2.9.0</p>
+
+<p>RoNote est une extension de navigateur qui affiche des notifications sur les
+trades Roblox. Elle est conçue pour fonctionner <strong>entièrement sur ton
+ordinateur</strong>.</p>
+
+<h2>En une phrase</h2>
+<p class="lede"><strong>RoNote n'envoie aucune de tes données à qui que ce soit.</strong>
+Il n'y a pas de serveur RoNote, pas de compte à créer, pas de télémétrie, pas de
+publicité, pas d'analyse d'audience, et rien n'est jamais vendu ni partagé.</p>
+
+<h2>Les données auxquelles RoNote accède</h2>
+<p>Quand tu es connecté à Roblox, RoNote lit, depuis ton navigateur :</p>
+<ul>
+  <li><strong>tes trades</strong> — reçus, envoyés, terminés, refusés : identifiants, dates, statut ;</li>
+  <li><strong>les objets de ces trades</strong> — noms, identifiants, vignettes, valeurs ;</li>
+  <li><strong>le profil public du joueur en face</strong> — pseudo, nom d'affichage, avatar ;</li>
+  <li><strong>ton propre pseudo et ton identifiant Roblox</strong>, pour savoir de quel compte il s'agit ;</li>
+  <li><strong>ton inventaire</strong>, si tu utilises l'onglet Bénéfice.</li>
+</ul>
+
+<h2>Où ces données sont stockées</h2>
+<p>Uniquement dans le <strong>stockage local</strong> de ton navigateur
+(<code>storage.local</code>), sur ta machine. Concrètement : tes réglages, l'état de
+suivi des trades, l'historique de la valeur de ton compte et le journal des
+événements.</p>
+<p>Ce stockage est <strong>local et non synchronisé</strong> : RoNote n'utilise
+volontairement pas <code>storage.sync</code>, donc rien ne remonte vers ton compte
+Google ni vers aucun autre appareil.</p>
+<p>Pour tout effacer : désinstalle l'extension, ou utilise <strong>Réinitialiser</strong>
+dans les réglages. Il n'y a aucune copie ailleurs à supprimer.</p>
+
+<h2>Les seules connexions réseau</h2>
+<p>RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Domaine</th><th>Pourquoi</th><th>Ce qui est envoyé</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>*.roblox.com</code></td>
+      <td>Lire tes trades, les objets, les vignettes, les profils</td>
+      <td>Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur</td>
+    </tr>
+    <tr>
+      <td><code>*.rolimons.com</code></td>
+      <td>Télécharger la table publique des valeurs d'objets</td>
+      <td><strong>Rien te concernant</strong> — c'est un simple téléchargement du catalogue public, identique pour tous les utilisateurs</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<p>Rolimon's est <strong>désactivable</strong> dans les réglages. Sans lui, RoNote se
+rabat sur le RAP fourni par Roblox et ne contacte plus que Roblox.</p>
+<p><strong>Aucune requête ne part vers un autre domaine.</strong> Il n'existe aucun
+serveur appartenant à l'auteur de RoNote.</p>
+
+<h2>L'utilisation de ta session Roblox</h2>
+<p>Pour lire <em>tes</em> trades, RoNote interroge l'API de Roblox en réutilisant la
+session déjà ouverte dans ton navigateur — exactement comme le fait le site
+roblox.com quand tu navigues dessus.</p>
+<p>RoNote <strong>ne lit pas ton mot de passe, ne le stocke pas et ne le transmet
+pas</strong>. Elle ne copie pas non plus ton cookie de session : celui-ci reste géré
+par le navigateur, qui l'attache lui-même aux requêtes vers Roblox.</p>
+
+<h2>La seule action qui modifie ton compte</h2>
+<p>RoNote peut <strong>refuser</strong> un trade reçu ou <strong>annuler</strong> un
+trade envoyé, et uniquement sur ton clic explicite, en deux temps, depuis la vue de
+détail.</p>
+<p>RoNote <strong>ne peut pas accepter un trade</strong>, ni en créer, ni en contrer.
+C'est un choix délibéré : ces actions transfèrent des objets, et un clic mal placé
+serait irréversible. Refuser ou annuler ne fait que détruire une offre.</p>
+
+<h2>Les permissions demandées, et pourquoi</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>Permission</th><th>À quoi elle sert</th></tr></thead>
+  <tbody>
+    <tr><td><code>storage</code></td><td>Conserver tes réglages et l'état de suivi entre deux démarrages</td></tr>
+    <tr><td><code>alarms</code></td><td>Déclencher la vérification périodique des trades</td></tr>
+    <tr><td><code>notifications</code></td><td>Afficher les notifications bureau — la fonction même de l'extension</td></tr>
+    <tr><td><code>scripting</code></td><td>Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail</td></tr>
+    <tr><td><code>offscreen</code></td><td>Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio</td></tr>
+    <tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Corriger les en-têtes <code>Origin</code> et <code>Referer</code> des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique <strong>uniquement aux requêtes émises par l'extension</strong> (hors onglet), jamais à ta navigation</td></tr>
+    <tr><td><code>*.roblox.com</code></td><td>Le site dont RoNote lit les trades</td></tr>
+    <tr><td><code>*.rolimons.com</code></td><td>La table publique des valeurs</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Enfants et âge minimum</h2>
+<p>RoNote ne collecte aucune donnée, et n'en transmet donc aucune, quel que soit
+l'âge de l'utilisateur.</p>
+
+<h2>Absence d'affiliation</h2>
+<p>RoNote est un projet indépendant. Il <strong>n'est ni affilié, ni approuvé, ni
+sponsorisé par Roblox Corporation ni par Rolimon's</strong>. « Roblox » est une
+marque de Roblox Corporation.</p>
+
+<h2>Modifications</h2>
+<p>Toute évolution de cette politique sera publiée sur cette page, avec la date de
+mise à jour ci-dessus. Le code étant ouvert, chaque changement de comportement est
+vérifiable dans l'historique du dépôt.</p>
+
+<h2>Contact</h2>
+<p>Une question, ou un doute sur ce document ? Ouvre une
+<a href="https://github.com/cpu-alt/RoNote/issues">issue sur GitHub</a>.</p>
+
+<footer>
+  RoNote — <a href="https://github.com/cpu-alt/RoNote">code source sur GitHub</a> · Licence MIT
+</footer>
+
+</main>
+</body>
+</html>
