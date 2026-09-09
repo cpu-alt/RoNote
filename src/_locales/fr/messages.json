@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "RoNote — Alertes de trades Roblox",
+    "description": "Nom de l'extension, affiché dans le magasin et dans chrome://extensions."
+  },
+  "appDesc": {
+    "message": "Notifications bureau fiables pour vos trades Roblox (reçus, terminés, refusés) avec analyse de valeur, sons et filtres.",
+    "description": "Résumé, 132 caractères maximum."
+  },
+  "actionTitle": {
+    "message": "RoNote — Trades Roblox",
+    "description": "Infobulle du bouton de la barre d'outils."
+  }
+}

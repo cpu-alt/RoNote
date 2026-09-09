@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "RoNote — Roblox Trade Alerts",
+    "description": "Extension name, shown in the Web Store and chrome://extensions."
+  },
+  "appDesc": {
+    "message": "Reliable desktop alerts for your Roblox trades (inbound, completed, declined) with value analysis, sounds and filters.",
+    "description": "Short description, 132 characters max."
+  },
+  "actionTitle": {
+    "message": "RoNote — Roblox trades",
+    "description": "Toolbar button tooltip."
+  }
+}

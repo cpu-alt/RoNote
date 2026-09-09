@@ -1,7 +1,7 @@
 # RoNote — Alertes de trades Roblox
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.9.1-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.9.2-brightgreen.svg)](CHANGELOG.md)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
 ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un

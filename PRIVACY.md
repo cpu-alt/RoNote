@@ -1,6 +1,6 @@
 # Privacy Policy — RoNote
 
-**Last updated: 9 September 2026 · Version 2.9.1**
+**Last updated: 9 September 2026 · Version 2.9.2**
 
 *[Version française](PRIVACY.fr.md)*
 

@@ -3,6 +3,21 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.9.2 — le nom de l'extension suit la langue du navigateur
+
+Le Chrome Web Store tire le titre et le résumé **du paquet**, pas de la fiche :
+une fiche en anglais affichait quand même « RoNote — Alertes de trades Roblox ».
+Les deux manifestes passent donc par `_locales/`, avec l'anglais en langue de
+repli.
+
+- `src/_locales/en/messages.json` et `src/_locales/fr/messages.json` portent le
+  nom, le résumé et l'infobulle du bouton ;
+- les manifestes référencent `__MSG_appName__`, `__MSG_appDesc__` et
+  `__MSG_actionTitle__`, avec `"default_locale": "en"`.
+
+Un navigateur en français affiche le nom français, tous les autres l'anglais.
+L'interface, elle, était déjà bilingue depuis la v2.4.
+
 ## v2.9.1 — le jeton CSRF n'est plus diffusé à la cantonade
 
 Correctif d'hygiène, sans changement visible.

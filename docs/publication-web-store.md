@@ -12,7 +12,7 @@ Retour au [README](../README.md).
 |---|---|
 | Compte développeur | 5 $ une fois, sur <https://chrome.google.com/webstore/devconsole> |
 | Vérification | Google demande une adresse e-mail vérifiée et une identité |
-| Paquet à téléverser | `dist/ronote-chrome-v2.9.1.zip`, produit par `python tools/build.py` |
+| Paquet à téléverser | `dist/ronote-chrome-v2.9.2.zip`, produit par `python tools/build.py` |
 | URL de confidentialité | `https://cpu-alt.github.io/RoNote/privacy.html` (en ligne) |
 
 > **Choisis « Unlisted » au premier envoi.** L'installation se fait par lien, les mises
@@ -23,17 +23,11 @@ Retour au [README](../README.md).
 
 ## 1. Store listing
 
-**Name** (45 caractères max)
-
-```
-RoNote — Roblox Trade Alerts
-```
-
-**Short description** (132 caractères max)
-
-```
-Reliable desktop alerts for your Roblox trades (inbound, completed, declined) with value analysis, sounds and filters.
-```
+> **Le nom et le résumé ne se saisissent pas.** La console les affiche en
+> « Titre issu du package » / « Résumé issu du package » : ils viennent du
+> manifeste, via `_locales/`. Un navigateur en français verra
+> « RoNote — Alertes de trades Roblox », tous les autres
+> « RoNote — Roblox Trade Alerts ». Rien à faire ici.
 
 **Detailed description**
 
@@ -154,12 +148,6 @@ puis, dans un autre terminal, Chrome en headless sur
 ---
 
 ## 6. Points de vigilance
-
-**Le nom de l'extension dans Chrome reste en français.** La fiche est en anglais, mais
-`src/manifest.json` déclare `"name": "RoNote — Alertes de trades Roblox"` et une
-`description` française : c'est ce qui s'affichera dans `chrome://extensions` et dans
-le bandeau du magasin. Pour un vrai bilinguisme il faut passer par `_locales/` et
-`default_locale` — un changement dans `src/`, à décider séparément.
 
 **Délai de revue.** Compte plusieurs jours. Le trio « interception réseau en monde
 MAIN + réécriture d'en-têtes + POST authentifié » déclenche généralement une revue
