@@ -1,104 +1,103 @@
-# Politique de confidentialité — RoNote
+# Privacy Policy — RoNote
 
-**Dernière mise à jour : 9 septembre 2026 · Version 2.9.0**
+**Last updated: 9 September 2026 · Version 2.9.0**
 
-RoNote est une extension de navigateur qui affiche des notifications sur les trades
-Roblox. Elle est conçue pour fonctionner **entièrement sur ton ordinateur**.
+*[Version française](PRIVACY.fr.md)*
 
-## En une phrase
+RoNote is a browser extension that shows desktop notifications about your Roblox
+trades. It is built to run **entirely on your own computer**.
 
-**RoNote n'envoie aucune de tes données à qui que ce soit.** Il n'y a pas de
-serveur RoNote, pas de compte à créer, pas de télémétrie, pas de publicité, pas
-d'analyse d'audience, et rien n'est jamais vendu ni partagé.
+## In one sentence
 
-## Les données auxquelles RoNote accède
+**RoNote does not send any of your data to anyone.** There is no RoNote server, no
+account to create, no telemetry, no ads, no analytics, and nothing is ever sold or
+shared.
 
-Quand tu es connecté à Roblox, RoNote lit, depuis ton navigateur :
+## What RoNote reads
 
-- **tes trades** — reçus, envoyés, terminés, refusés : identifiants, dates, statut ;
-- **les objets de ces trades** — noms, identifiants, vignettes, valeurs ;
-- **le profil public du joueur en face** — pseudo, nom d'affichage, avatar ;
-- **ton propre pseudo et ton identifiant Roblox**, pour savoir de quel compte il s'agit ;
-- **ton inventaire**, si tu utilises l'onglet Bénéfice.
+While you are signed in to Roblox, RoNote reads, from within your browser:
 
-## Où ces données sont stockées
+- **your trades** — inbound, outbound, completed, declined: IDs, dates, status;
+- **the items in those trades** — names, IDs, thumbnails, values;
+- **the public profile of the other player** — username, display name, avatar;
+- **your own username and Roblox ID**, so it knows which account it is looking at;
+- **your inventory**, if you use the Portfolio tab.
 
-Uniquement dans le **stockage local** de ton navigateur (`storage.local`), sur ta
-machine. Concrètement : tes réglages, l'état de suivi des trades, l'historique de la
-valeur de ton compte et le journal des événements.
+## Where that data is stored
 
-Ce stockage est **local et non synchronisé** : RoNote n'utilise volontairement pas
-`storage.sync`, donc rien ne remonte vers ton compte Google ni vers aucun autre
-appareil.
+Only in your browser's **local storage** (`storage.local`), on your machine. In
+practice: your settings, trade tracking state, your account value history, and the
+event log.
 
-Pour tout effacer : désinstalle l'extension, ou utilise **Réinitialiser** dans les
-réglages. Il n'y a aucune copie ailleurs à supprimer.
+That storage is **local and never synced**: RoNote deliberately avoids
+`storage.sync`, so nothing is uploaded to your Google account or to any other device.
 
-## Les seules connexions réseau
+To erase everything: uninstall the extension, or use **Reset** in the settings page.
+There is no copy anywhere else to delete.
 
-RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :
+## The only network connections
 
-| Domaine | Pourquoi | Ce qui est envoyé |
+RoNote contacts exactly two domains, both declared in its manifest:
+
+| Domain | Why | What is sent |
 |---|---|---|
-| `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
-| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets | **Rien te concernant** — c'est un simple téléchargement du catalogue public, identique pour tous les utilisateurs |
+| `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
+| `*.rolimons.com` | Download the public item value table | **Nothing about you** — it is a plain download of the public catalogue, identical for every user |
 
-Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
-RAP fourni par Roblox et ne contacte plus que Roblox.
+Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
+RAP reported by Roblox and contacts nothing but Roblox.
 
-**Aucune requête ne part vers un autre domaine.** Il n'existe aucun serveur
-appartenant à l'auteur de RoNote.
+**No request goes to any other domain.** There is no server belonging to RoNote's
+author.
 
-## L'utilisation de ta session Roblox
+## How your Roblox session is used
 
-Pour lire *tes* trades, RoNote interroge l'API de Roblox en réutilisant la session
-déjà ouverte dans ton navigateur — exactement comme le fait le site roblox.com quand
-tu navigues dessus.
+To read *your* trades, RoNote queries the Roblox API reusing the session already open
+in your browser — exactly as roblox.com itself does while you browse.
 
-RoNote **ne lit pas ton mot de passe, ne le stocke pas et ne le transmet pas**. Elle
-ne copie pas non plus ton cookie de session : celui-ci reste géré par le navigateur,
-qui l'attache lui-même aux requêtes vers Roblox.
+RoNote **does not read, store or transmit your password**. It does not copy your
+session cookie either: the cookie stays managed by the browser, which attaches it to
+Roblox requests on its own.
 
-## La seule action qui modifie ton compte
+## The only action that changes your account
 
-RoNote peut **refuser** un trade reçu ou **annuler** un trade envoyé, et uniquement
-sur ton clic explicite, en deux temps, depuis la vue de détail.
+RoNote can **decline** an inbound trade or **cancel** an outbound one, and only on
+your explicit click, in two steps, from the detail view.
 
-RoNote **ne peut pas accepter un trade**, ni en créer, ni en contrer. C'est un choix
-délibéré : ces actions transfèrent des objets, et un clic mal placé serait
-irréversible. Refuser ou annuler ne fait que détruire une offre.
+RoNote **cannot accept a trade**, create one, or counter one. That is deliberate:
+those actions transfer items, and a misplaced click would be irreversible. Declining
+or cancelling only destroys an offer.
 
-## Les permissions demandées, et pourquoi
+## The permissions requested, and why
 
-| Permission | À quoi elle sert |
+| Permission | What it is for |
 |---|---|
-| `storage` | Conserver tes réglages et l'état de suivi entre deux démarrages |
-| `alarms` | Déclencher la vérification périodique des trades |
-| `notifications` | Afficher les notifications bureau — la fonction même de l'extension |
-| `scripting` | Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail |
-| `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
-| `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
-| `*.roblox.com` | Le site dont RoNote lit les trades |
-| `*.rolimons.com` | La table publique des valeurs |
+| `storage` | Keep your settings and tracking state between browser restarts |
+| `alarms` | Trigger the periodic trade check |
+| `notifications` | Show the desktop notifications — the extension's whole purpose |
+| `scripting` | Read the trade shown on screen when the API does not return its detail |
+| `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
+| `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
+| `*.roblox.com` | The site whose trades RoNote reads |
+| `*.rolimons.com` | The public value table |
 
-## Enfants et âge minimum
+## Children and minimum age
 
-RoNote ne collecte aucune donnée, et n'en transmet donc aucune, quel que soit l'âge
-de l'utilisateur.
+RoNote collects no data, and therefore transmits none, whatever the user's age.
 
-## Absence d'affiliation
+## No affiliation
 
-RoNote est un projet indépendant. Il **n'est ni affilié, ni approuvé, ni sponsorisé
-par Roblox Corporation ni par Rolimon's**. « Roblox » est une marque de Roblox
+RoNote is an independent project. It is **not affiliated with, endorsed by, or
+sponsored by Roblox Corporation or Rolimon's**. "Roblox" is a trademark of Roblox
 Corporation.
 
-## Modifications
+## Changes
 
-Toute évolution de cette politique sera publiée sur cette page, avec la date de mise
-à jour ci-dessus. Le code étant ouvert, chaque changement de comportement est
-vérifiable dans l'historique du dépôt.
+Any change to this policy will be published on this page, with the updated date
+above. The code being open, every behaviour change is verifiable in the repository
+history.
 
 ## Contact
 
-Une question, ou un doute sur ce document ? Ouvre une
-[issue sur GitHub](https://github.com/cpu-alt/RoNote/issues).
+A question, or a doubt about this document? Open an
+[issue on GitHub](https://github.com/cpu-alt/RoNote/issues).

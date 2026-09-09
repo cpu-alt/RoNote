@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — prise de vue</title>
+<style>
+  html, body { margin:0; width:1280px; height:800px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(1100px 620px at 78% 18%, #1b2740 0%, transparent 60%),
+      radial-gradient(900px 560px at 12% 92%, #14233a 0%, transparent 62%),
+      #05070b;
+    display:flex; align-items:center; gap:64px; padding:0 76px;
+    font:14px "Segoe UI", system-ui, sans-serif; color:#8e9cb3;
+    box-sizing:border-box;
+  }
+  .stage { flex:none; width:420px; height:640px; display:flex; align-items:center; }
+  .frame {
+    width:420px; height:600px; border:1px solid #263149; border-radius:14px;
+    overflow:hidden; box-shadow:0 30px 80px #000c, 0 0 0 1px #ffffff08;
+    transform:scale(1.06); transform-origin:center;
+  }
+  iframe { width:420px; height:600px; border:0; display:block; }
+  .side { flex:1; max-width:560px; }
+  .kicker {
+    display:inline-block; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:#4d9fff; font-weight:600; margin-bottom:18px;
+  }
+  h1 {
+    color:#eef3fb; font-size:42px; line-height:1.15; margin:0 0 20px;
+    letter-spacing:-.02em; font-weight:700;
+  }
+  p { font-size:18px; line-height:1.6; margin:0; color:#93a2ba; }
+  #log { display:none; }
+  .ctl { display:none; }
+</style>
+</head>
+<body>
+  <div class="stage"><div class="frame"><iframe id="f" title="popup"></iframe></div></div>
+  <div class="side">
+    <span class="kicker" id="kicker">RoNote</span>
+    <h1 id="title">RoNote</h1>
+    <p id="sub"></p>
+  </div>
+
+  <div class="ctl">
+    <button data-tab="inbound"></button>
+    <button data-tab="outbound"></button>
+    <button data-tab="stats"></button>
+    <button data-tab="history"></button>
+  </div>
+  <p id="log"></p>
+
+  <script type="module" src="./preview.js"></script>
+  <script>
+    const COPY_EN = {
+      inbound: {
+        kicker: 'Inbound trades',
+        title: 'Every trade,\nvalued properly',
+        sub: "Value, RAP, and Robux counted net of the 30% tax. The usual traps are flagged: projected items, speculative quotes, faces with no value."
+      },
+      outbound: {
+        kicker: 'Outbound trades',
+        title: 'Your offers tracked\nto the end',
+        sub: "Accepted, declined, countered or expired: you are told at every change, and counter-offers stay chained to the original offer."
+      },
+      stats: {
+        kicker: 'Portfolio tab',
+        title: 'Your account value,\nover time',
+        sub: "How your portfolio actually moves, reconciled item by item — including the faces and bundles Rolimon's miscounts."
+      },
+      history: {
+        kicker: 'Log',
+        title: 'No false alerts,\nand proof of it',
+        sub: "Tracking rests on the unique trade ID, never on a position in the list. The log keeps a trace of every event."
+      }
+    };
+    const COPY_FR = {
+      inbound: {
+        kicker: 'Trades reçus',
+        title: 'Chaque trade,\névalué à la value',
+        sub: "Value, RAP, et les Robux comptés nets des 30 % de taxe. Les pièges sont signalés : objets projected, cotes spéculatives, visages sans cote."
+      },
+      outbound: {
+        kicker: 'Trades envoyés',
+        title: 'Tes envois suivis\njusqu’au bout',
+        sub: "Accepté, refusé, contré ou expiré : tu es prévenu à chaque changement, et les contre-offres restent chaînées à l’offre d’origine."
+      },
+      stats: {
+        kicker: 'Onglet Bénéfice',
+        title: 'La valeur de ton compte,\ndans le temps',
+        sub: "L’évolution réelle de ton portefeuille, réconciliée objet par objet — y compris les visages et bundles que Rolimon’s compte mal."
+      },
+      history: {
+        kicker: 'Journal',
+        title: 'Zéro fausse alerte,\net de quoi le vérifier',
+        sub: "Le suivi repose sur l’identifiant unique du trade, jamais sur sa position dans la liste. Le journal garde la trace de chaque événement."
+      }
+    };
+    const qs = new URLSearchParams(location.search);
+    const tab = qs.get('tab') || 'inbound';
+    // `lang` sert deux fois : preview.js le lit pour l'interface du popup,
+    // et il choisit ici la legende, sinon la capture serait bilingue.
+    const COPY = qs.get('lang') === 'en' ? COPY_EN : COPY_FR;
+    const c = COPY[tab] || COPY.inbound;
+    document.getElementById('kicker').textContent = c.kicker;
+    document.getElementById('title').innerHTML =
+      c.title.split('\n').map(s => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))).join('<br>');
+    document.getElementById('sub').textContent = c.sub;
+
+    // preview.js ecrit le popup dans l'iframe en top-level await, et popup.js
+    // ne pose ses listeners d'onglet qu'une fois son module execute. Cliquer
+    // des que l'element existe part donc trop tot : on reclique jusqu'a ce que
+    // l'onglet porte vraiment `.active`, sinon la legende et la capture se
+    // contredisent.
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    (async () => {
+      const frame = document.getElementById('f');
+      let ok = false;
+      for (let i = 0; i < 150 && !ok; i++) {
+        const el = frame.contentDocument?.querySelector(`.tab[data-tab="${tab}"]`);
+        if (el) {
+          el.click();
+          ok = el.classList.contains('active');
+        }
+        if (!ok) await sleep(100);
+      }
+      document.getElementById('log').textContent = ok ? '' : 'ONGLET NON ACTIVE';
+      await sleep(1500);
+      document.title = ok ? 'PRET' : 'ECHEC';
+    })();
+  </script>
+</body>
+</html>

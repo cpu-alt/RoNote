@@ -73,7 +73,7 @@ pas de télémétrie. Les seules requêtes vont vers les API publiques de Roblox
 si tu laisses l'option active, vers Rolimon's pour la table des valeurs — qui ne
 reçoit rien te concernant.
 
-Détail complet : **[Politique de confidentialité](PRIVACY.md)**.
+Détail complet : **[Politique de confidentialité](PRIVACY.fr.md)** · *[English](PRIVACY.md)*
 
 ## Construire depuis les sources
 
