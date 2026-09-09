@@ -1,7 +1,7 @@
 # RoNote — Alertes de trades Roblox
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.9.0-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.9.1-brightgreen.svg)](CHANGELOG.md)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
 ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un
@@ -106,7 +106,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 79 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 93 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le vrai popup, branché sur un faux service worker |
 
 Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes : c'est ce qui
@@ -121,7 +121,7 @@ permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque c
 ## Contribuer
 
 Les issues et les pull requests sont les bienvenues. Avant d'ouvrir une PR, fais
-tourner `python tools/check.py` et les 79 tests du navigateur.
+tourner `python tools/check.py` et les 93 tests du navigateur.
 
 ## Licence
 

@@ -3,6 +3,20 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.9.1 — le jeton CSRF n'est plus diffusé à la cantonade
+
+Correctif d'hygiène, sans changement visible.
+
+- `hook.js` transmettait le détail des trades et le jeton CSRF avec
+  `postMessage(..., '*')` : le navigateur les livrait donc quelle que soit
+  l'origine. Le message est désormais adressé à `location.origin`, et
+  `relay.js` vérifie l'origine en plus de la fenêtre source.
+
+Ça ne bouchait aucune fuite — n'importe quel script de la page peut déjà lire
+ce jeton dans `meta[name="csrf-token"]`, et c'est d'ailleurs le repli qu'utilise
+`relay.js`. Mais diffuser plus large que nécessaire n'a aucune raison d'être,
+surtout dans une extension qui part en revue manuelle.
+
 ## v2.9.0 — le son ne se perd plus, et un son par événement
 
 « Des fois je reçois la notification, des fois non. » Quatre causes trouvées,

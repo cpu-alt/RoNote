@@ -24,12 +24,12 @@
   const send = (id, data) => {
     if (!looksLikeTrade(data)) return;
     try {
-      window.postMessage({ __ronote: 'trade-detail', tradeId: String(id), detail: data }, '*');
+      window.postMessage({ __ronote: 'trade-detail', tradeId: String(id), detail: data }, location.origin);
     } catch { /* donnee non clonable : on laisse tomber */ }
   };
 
   const sendToken = (token) => {
-    if (token) window.postMessage({ __ronote: 'csrf', token: String(token) }, '*');
+    if (token) window.postMessage({ __ronote: 'csrf', token: String(token) }, location.origin);
   };
 
   // --- fetch ---------------------------------------------------------

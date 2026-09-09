@@ -12,7 +12,7 @@ Retour au [README](../README.md).
 |---|---|
 | Compte développeur | 5 $ une fois, sur <https://chrome.google.com/webstore/devconsole> |
 | Vérification | Google demande une adresse e-mail vérifiée et une identité |
-| Paquet à téléverser | `dist/ronote-chrome-v2.9.0.zip`, produit par `python tools/build.py` |
+| Paquet à téléverser | `dist/ronote-chrome-v2.9.1.zip`, produit par `python tools/build.py` |
 | URL de confidentialité | `https://cpu-alt.github.io/RoNote/privacy.html` (en ligne) |
 
 > **Choisis « Unlisted » au premier envoi.** L'installation se fait par lien, les mises

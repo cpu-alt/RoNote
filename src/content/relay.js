@@ -13,7 +13,7 @@
 const B = globalThis.browser ?? globalThis.chrome;
 
 window.addEventListener('message', (e) => {
-  if (e.source !== window) return;
+  if (e.source !== window || e.origin !== location.origin) return;
   const d = e.data;
   if (!d || typeof d !== 'object') return;
 

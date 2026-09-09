@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RoNote — Alertes de trades Roblox",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "Notifications bureau fiables pour vos trades Roblox (reçus, terminés, refusés) avec analyse de valeur, sons et filtres.",
   "permissions": [
     "storage",

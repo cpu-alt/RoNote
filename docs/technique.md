@@ -761,7 +761,7 @@ tous les chiffres.
 python tools/serve.py
 ```
 
-puis <http://127.0.0.1:8777/tools/selftest.html> — **79 tests, sans rien installer.**
+puis <http://127.0.0.1:8777/tools/selftest.html> — **93 tests, sans rien installer.**
 
 Les faire tourner dans un navigateur n'est pas un pis-aller : c'est le seul moyen de
 vérifier d'un coup la **syntaxe**, les **imports** et le **comportement**, sur le
@@ -839,7 +839,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 70 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 93 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le popup, en vrai (`?lang=en` pour l'anglais) |
 
 `preview.html` ne remaquette rien : il charge **le vrai** `popup.html` /
@@ -886,7 +886,7 @@ src/
 tools/
   build.py / check.py      build et vérifications, sans Node
   serve.py                 serveur statique pour les deux pages ci-dessous
-  selftest.html/.js        79 tests, dans un vrai navigateur
+  selftest.html/.js        93 tests, dans un vrai navigateur
   preview.html/.js         le vrai popup, branché sur un faux service worker
   fixtures/                vraies réponses d'API (catalogues, inventaire réel)
   *.mjs                    équivalents Node historiques
