@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RoNote — promo</title>
+<style>
+  html, body { margin:0; padding:0; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(70% 120% at 78% 12%, #1d2b47 0%, transparent 62%),
+      radial-gradient(60% 110% at 10% 95%, #15243c 0%, transparent 64%),
+      #05070b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    color:#eef3fb;
+  }
+  /* Une seule maquette, deux formats : les tailles sont posees par le script
+     pour eviter deux fichiers qui divergeraient au premier changement. */
+  .wrap { display:flex; align-items:center; gap:var(--gap); padding:0 var(--pad); }
+  .icon {
+    width:var(--icon); height:var(--icon); flex:none;
+    border-radius:22%;
+    box-shadow:0 12px 34px #000a, 0 0 0 1px #ffffff10;
+  }
+  .name {
+    font-size:var(--name); font-weight:700; letter-spacing:-.025em;
+    line-height:1; margin:0 0 var(--sp);
+  }
+  .tag {
+    font-size:var(--tag); line-height:1.35; margin:0; color:#9db0c8;
+    max-width:var(--tagw);
+  }
+  .accent { color:#5aa9ff; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <img class="icon" src="../src/icons/icon128.png" alt="">
+    <div>
+      <p class="name">RoNote</p>
+      <p class="tag" id="tag"></p>
+    </div>
+  </div>
+<script>
+  const SIZES = {
+    small:   { w:440,  h:280, icon:'84px',  name:'44px',  tag:'15px', gap:'20px', pad:'26px', sp:'10px', tagw:'210px',
+               text: 'Roblox trade alerts,<br>valued at <span class="accent">value</span> — not RAP.' },
+    marquee: { w:1400, h:560, icon:'190px', name:'104px', tag:'30px', gap:'56px', pad:'90px', sp:'22px', tagw:'700px',
+               text: 'Desktop alerts the moment a Roblox trade moves.<br>Every offer valued item by item, at <span class="accent">value</span> — not RAP.' }
+  };
+  const key = new URLSearchParams(location.search).get('size') || 'small';
+  const s = SIZES[key] || SIZES.small;
+  const r = document.documentElement.style;
+  r.setProperty('--icon', s.icon);
+  r.setProperty('--name', s.name);
+  r.setProperty('--tag',  s.tag);
+  r.setProperty('--gap',  s.gap);
+  r.setProperty('--pad',  s.pad);
+  r.setProperty('--sp',   s.sp);
+  r.setProperty('--tagw', s.tagw);
+  document.body.style.width  = s.w + 'px';
+  document.body.style.height = s.h + 'px';
+  document.getElementById('tag').innerHTML = s.text;
+</script>
+</body>
+</html>
