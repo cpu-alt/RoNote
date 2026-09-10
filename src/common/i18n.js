@@ -276,6 +276,12 @@ const EN = {
   'Non connecté à Roblox (cookie de session introuvable).':
     'Not signed in to Roblox (session cookie not found).',
 
+  'Un de tes objets a été réévalué': 'One of your items was revalued',
+  '{n} de tes objets ont été réévalués': '{n} of your items were revalued',
+  '+{n} autres': '+{n} more',
+  'Impact sur ton compte : {v}': 'Impact on your account: {v}',
+  'cote {a} → {b} · impact {c}': 'value {a} → {b} · impact {c}',
+
   /* --- issues d'un trade envoyé ----------------------------------------- */
   'Trade accepté': 'Trade accepted',
   'Trade refusé': 'Trade declined',
@@ -401,6 +407,13 @@ const EN = {
   'Objets non cotés (visages, objets de bundle, nouveautés) : RoNote récupère le RAP officiel auprès de Roblox. Si l\'objet reste sans cote, il est signalé': 'Unvalued items (faces, bundle items, brand-new items): RoNote fetches the official RAP from Roblox. If the item still has no value, it is flagged',
   '❔ sans cote': '❔ no value',
   'et exclu des totaux — jamais compté comme 0 — et la notification n\'est jamais supprimée par un filtre dans ce cas.': 'and excluded from the totals — never counted as 0 — and the notification is never dropped by a filter in that case.',
+
+  'Alerter quand un objet que je possède est réévalué': 'Alert me when an item I own is revalued',
+  "Rolimon's révise ses cotes régulièrement. À chaque nouvelle table (toutes les 3 h), RoNote la compare à la précédente et te prévient si un objet de ton inventaire a bougé. S'appuie sur l'inventaire relevé pour la correction des visages : les deux réglages précédents doivent rester actifs.":
+    "Rolimon's revises its values regularly. With every new table (every 3 h), RoNote compares it with the previous one and alerts you when an item in your inventory has moved. It relies on the inventory read for the face correction: the two settings above must stay on.",
+  'Seuil de réévaluation': 'Revaluation threshold',
+  'Variation minimale de la cote, à la hausse comme à la baisse, en %.': 'Minimum change in value, up or down, in %.',
+  'Objet réévalué': 'Item revalued',
 
   /* --- popup : zoom, refus, infobulle d'un objet ------------------------ */
   '{n} objet': '{n} item',

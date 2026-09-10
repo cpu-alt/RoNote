@@ -77,6 +77,7 @@ try {
   const apiMod = await import('../src/common/api.js');
   const analysis = await import('../src/common/analysis.js');
   const portfolio = await import('../src/common/portfolio.js');
+  const revalue = await import('../src/common/revalue.js');
   const filters = await import('../src/common/filters.js');
   const thumbs = await import('../src/common/thumbs.js');
   const streams = await import('../src/background/streams.js');
@@ -265,6 +266,16 @@ try {
   check('chaque ligne sait quelle vignette demander',
     portfolio.portfolioThumbKeys(rep).every(k => k.length > 0), true);
 
+  // Ce que croise l'alerte de reevaluation, sur le meme inventaire reel.
+  {
+    const owned = fx.bundles.filter(b => b.bundleType === 'DynamicHead');
+    const held = revalue.holdingsOf({ counts: fx.playerassets }, owned, cat);
+    const sum = (pfx) => Object.entries(held).filter(([k]) => k.startsWith(pfx)).reduce((a, [, n]) => a + n, 0);
+    check('reevaluation : chaque visage possede compte une fois, par son bundle', sum('b:'), rep.ownedFaces);
+    check('reevaluation : aucun ancien exemplaire de visage compte en plus',
+      Object.keys(held).filter(k => k.startsWith('a:') && cat.bundleOf?.[k.slice(2)]).length, 0);
+  }
+
   /* ------------------------------ vignettes ----------------------------- */
   group('Vignettes');
   check('cle asset / bundle', [thumbs.assetKey(12), thumbs.bundleKey(12)], ['a:12', 'b:12']);
@@ -297,6 +308,7 @@ try {
     ['outbound_declined', 'outbound_countered', 'outbound_expired'].map(defaults.soundGroupOf),
     ['declined', 'declined', 'declined']);
   check('erreur Roblox -> famille « erreur »', defaults.soundGroupOf('trade_error'), 'error');
+  check('objet reevalue -> sa propre famille', defaults.soundGroupOf('revalued'), 'revalued');
   check('type inconnu -> comme un trade recu', defaults.soundGroupOf('zzz'), 'inbound');
   // Migration : l'ancienne sonnerie unique devient celle des trades recus.
   store.settings = { soundName: 'coins' };

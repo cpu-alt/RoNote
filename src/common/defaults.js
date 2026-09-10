@@ -39,7 +39,8 @@ export const DEFAULTS = {
     inbound:  'chime',        // trade recu, contre-offre
     accepted: 'success',      // trade accepte / complete
     declined: 'ping',         // refuse, contre, expire
-    error:    'alert'         // « Rejected due to an error », intervention Roblox
+    error:    'alert',        // « Rejected due to an error », intervention Roblox
+    revalued: 'coins'         // objet possede reevalue par Rolimon's
   },
   volume: 0.6,
 
@@ -50,6 +51,10 @@ export const DEFAULTS = {
   robuxTax: true,             // compter les Robux recus nets des 30 % preleves par Roblox
   trackPortfolio: true,       // suivre la valeur totale du compte (profil Rolimon's)
   reconcilePortfolio: true,   // corriger la valeur Rolimon's (visages fantomes / absents)
+  // Reevaluation des objets possedes : prevenir quand Rolimon's revise la
+  // cote d'un objet de l'inventaire d'au moins ce pourcentage.
+  revalAlerts: true,
+  revalMinPercent: 10,
   showItemDetails: true,      // liste depliable des objets sous chaque trade
 
   // --- Filtres (uniquement pour les trades RECUS) ------------------------
@@ -77,13 +82,14 @@ export const SOUNDS = {
 };
 
 /** Familles de son, dans l'ordre ou elles sont jouees quand plusieurs tombent ensemble. */
-export const SOUND_GROUPS = ['inbound', 'accepted', 'error', 'declined'];
+export const SOUND_GROUPS = ['inbound', 'accepted', 'error', 'declined', 'revalued'];
 
 const GROUP_OF = {
   inbound: 'inbound', counter: 'inbound',
   completed: 'accepted', outbound_accepted: 'accepted',
   outbound_declined: 'declined', outbound_countered: 'declined', outbound_expired: 'declined',
-  trade_error: 'error'
+  trade_error: 'error',
+  revalued: 'revalued'
 };
 
 /** Famille de son d'un type d'evenement (inconnu -> comme un trade recu). */

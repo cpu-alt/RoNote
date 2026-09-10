@@ -1,10 +1,10 @@
 import { B, HAS_OFFSCREEN, IS_FIREFOX, safe } from '../common/shim.js';
 import { playToneInPage } from '../common/tones.js';
 import { SOUND_GROUPS, soundGroupOf } from '../common/defaults.js';
-import { fmtNum, fmtPct, inQuietHours, sleep } from '../common/utils.js';
+import { fmtNum, fmtPct, fmtSigned, inQuietHours, sleep } from '../common/utils.js';
 import { verdict } from '../common/analysis.js';
 import { getState, setState } from '../common/state.js';
-import { TRADE_URL, TAB_URL } from '../common/api.js';
+import { TRADE_URL, TAB_URL, ASSET_URL, BUNDLE_URL } from '../common/api.js';
 import { BASIS_SHORT } from '../common/roli.js';
 import { t, p as plural } from '../common/i18n.js';
 
@@ -313,6 +313,44 @@ export async function notifySummary(kind, count, settings) {
   st.notifMap = st.notifMap || {};
   st.notifMap[id] = { url: TAB_URL(SUMMARY_TAB[kind] || 'Inbound'), at: Date.now() };
   await setState(st);
+}
+
+/**
+ * Objets possedes reevalues par Rolimon's : UNE notification par passage, du
+ * plus gros impact au plus petit. Les revisions arrivent par lots, a chaque
+ * rafraichissement de la table : une notification par objet serait du bruit.
+ *
+ * @param hits  rendu de detectRevaluations (revalue.js), deja trie
+ */
+export async function notifyRevaluations(hits, settings) {
+  if (!hits?.length || !settings.desktopNotifications) return null;
+  if (inQuietHours(settings.quietHours) && !settings.quietHours.stillNotify) return null;
+
+  const arrow = (n) => (n >= 0 ? '📈' : '📉');
+  const total = hits.reduce((s, h) => s + h.delta, 0);
+  const top = hits[0];
+  const line = (h) => `${arrow(h.pct)} ${h.name}${h.count > 1 ? ` ×${h.count}` : ''} : `
+    + `${fmtNum(h.from)} → ${fmtNum(h.to)} (${fmtPct(h.pct)})`;
+  const shown = hits.slice(0, 3).map(line);
+  if (hits.length > 3) shown.push(t('+{n} autres', { n: hits.length - 3 }));
+
+  const id = `ronote:revalued:${Date.now()}`;
+  await create(id, {
+    title: hits.length === 1
+      ? `${arrow(top.pct)} ${t('Un de tes objets a été réévalué')}`
+      : `${arrow(total)} ${t('{n} de tes objets ont été réévalués', { n: hits.length })}`,
+    message: shown.join('\n'),
+    contextMessage: t('Impact sur ton compte : {v}', { v: fmtSigned(total) }),
+    iconUrl: FALLBACK_ICON,
+    requireInteraction: settings.requireInteraction,
+    priority: 1
+  });
+
+  const st = await getState();
+  st.notifMap = st.notifMap || {};
+  st.notifMap[id] = { url: top.kind === 'bundle' ? BUNDLE_URL(top.id) : ASSET_URL(top.id), at: Date.now() };
+  await setState(st);
+  return id;
 }
 
 export async function notifySystem(title, message, tag = 'sys') {

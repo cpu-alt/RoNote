@@ -149,6 +149,9 @@ const STATE = {
 };
 
 const HISTORY = [
+  // Deux reevaluations d'objets possedes : une hausse, une baisse sur deux exemplaires.
+  { at: Date.now() - 20 * 60000, kind: 'revalued', name: 'Domino Crown', key: 'a:1', from: 5000000, to: 5750000, pct: 15, count: 1, delta: 750000, notified: true },
+  { at: Date.now() - 20 * 60000, kind: 'revalued', name: "Jester's Cap", key: 'a:2', from: 36000, to: 31500, pct: -12.5, count: 2, delta: -9000, notified: true },
   { at: Date.now() - 3 * 60000, kind: 'inbound', tradeId: CARDS.inbound[0].tradeId, partner: 'Shedletsky', pct: 18.4, give: 400000, get: 473700, notified: true },
   { at: Date.now() - 42 * 60000, kind: 'counter', tradeId: CARDS.inbound[1].tradeId, partner: 'Roblox', pct: -93.6, give: 413601, get: 24448, notified: false, skipped: 'gain -93.6% < 0%' },
   { at: Date.now() - 130 * 60000, kind: 'inbound', tradeId: CARDS.inbound[2].tradeId, partner: 'Shedletsky', pct: null, unknown: 1, notified: true },

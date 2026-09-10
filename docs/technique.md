@@ -677,6 +677,38 @@ propre proposition, tu veux la voir même si elle est « perdante ».
 
 ---
 
+## Réévaluation des objets possédés
+
+Rolimon's révise ses cotes, parfois de plusieurs dizaines de pourcents d'un coup.
+`roli.js` comparait déjà chaque nouvelle table à la précédente (toutes les 3 h) et
+gardait 7 jours de révisions, mais ne s'en servait que pour marquer 🔁 les objets
+d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
+
+- **l'inventaire** vient du rafraîchissement du portefeuille (toutes les 10 min),
+  qui le relevait déjà pour corriger les visages. `buildPortfolio` le garde
+  désormais dans le rapport, sous les mêmes clés que les révisions (`a:` pour un
+  asset, `b:` pour un bundle) ;
+- **un visage n'alerte qu'une fois** : Rolimon's peut publier sa révision sous
+  l'id du bundle ou sous l'ancien asset, et `revalue.js` prend l'un ou l'autre,
+  jamais les deux ;
+- **un repère** joue le rôle du watermark des flux. Au premier passage, ou tant
+  que l'option est coupée, il suit l'heure courante sans rien notifier : activer
+  l'option ne déverse pas 7 jours de révisions d'un coup. Il avance ensuite
+  jusqu'à la révision la plus récente *connue*, possédée ou non, pour qu'un objet
+  acheté après coup ne fasse pas remonter une vieille révision ;
+- **une seule notification par passage**, du plus gros impact au plus petit
+  (quantité × écart de cote), avec son propre son, et une ligne par objet dans le
+  journal.
+
+Le seuil (10 % par défaut, 3 % au minimum : en dessous, `roli.js` ne retient même
+pas la révision) vaut à la hausse comme à la baisse. L'alerte arrive au plus
+~3 h après la révision chez Rolimon's, la fraîcheur de la table.
+
+La détection est un module pur, testé à part (`tools/test-revalue.mjs`) et sur
+l'inventaire réel anonymisé dans les auto-tests.
+
+---
+
 ## Le reste
 
 ### Dans chaque notification
@@ -733,6 +765,7 @@ tous les chiffres.
 - **Robux nets de taxe** (30 % prélevés par Roblox sur les Robux reçus)
 - **Détail des objets** dépliable sous chaque trade
 - **Correction des visages passés en bundles** dans l'onglet Bénéfice
+- **Alerte quand un objet possédé est réévalué**, avec son seuil
 - **Filtres** : trades gagnants uniquement, gain min en %, valeur min reçue, items
   projected, joueurs ignorés
 - **Heures silencieuses** (le suivi continue, rien n'est perdu ; le son est coupé)
@@ -857,6 +890,7 @@ src/
     thumbs.js              résolution des vignettes (candidats ordonnés, cache)
     analysis.js            identité d'un objet, évaluation, verdict
     portfolio.js           >> réconciliation de la valeur du compte
+    revalue.js             >> révisions de cote × objets possédés
     state.js               réglages / état / flux (clés séparées) / journal
     filters.js             décision de notifier (module pur, testé)
     tones.js               sonneries WebAudio (aussi injectées pour Firefox)

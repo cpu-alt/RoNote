@@ -32,6 +32,7 @@
  */
 import * as api from './api.js';
 import { readEntry } from './roli.js';
+import { holdingsOf } from './revalue.js';
 
 /** Ce que Rolimon's compte, ce que le joueur possede, et l'ecart entre les deux. */
 export async function buildPortfolio(userId, cat) {
@@ -44,7 +45,8 @@ export async function buildPortfolio(userId, cat) {
     ghosts: [], extras: [],
     ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
     value: 0, rap: 0, rank: 0,
-    ownedFaces: 0, countedItems: 0, holds: 0
+    ownedFaces: 0, countedItems: 0, holds: 0,
+    holdings: null
   };
   if (!base.userId) return { ...base, reason: 'utilisateur inconnu' };
 
@@ -80,6 +82,12 @@ export async function buildPortfolio(userId, cat) {
     countedItems: counted ? Object.values(counted.counts).reduce((s, n) => s + n, 0) : 0,
     holds: counted?.holds?.length || 0
   };
+
+  // Ce que le joueur detient, sous les cles des revisions de cote : c'est ce
+  // que croise l'alerte de reevaluation (revalue.js). Calcule meme quand la
+  // reconciliation reste partielle ; `null` seulement si aucune source n'a
+  // repondu, pour ne pas confondre « rien possede » et « rien su ».
+  out.holdings = counted || owned ? holdingsOf(counted, owned, cat) : null;
 
   // Sans l'une des deux sources, la reconciliation n'a pas de sens : on rend
   // les chiffres de Rolimon's tels quels plutot qu'une correction a moitie faite.
@@ -173,7 +181,8 @@ export function emptyReport(userId) {
     ghosts: [], extras: [],
     ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
     value: 0, rap: 0, rank: 0,
-    ownedFaces: 0, countedItems: 0, holds: 0
+    ownedFaces: 0, countedItems: 0, holds: 0,
+    holdings: null
   };
 }
 

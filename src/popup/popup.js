@@ -538,6 +538,16 @@ async function quickDecline(btn, tradeId, kind) {
 /* =============================== journal ================================ */
 
 function historyHtml(h) {
+  // Une reevaluation n'est pas un trade : ni partenaire ni numero, mais un
+  // objet, ses deux cotes et l'impact sur le compte.
+  if (h.kind === 'revalued') {
+    return `<div class="log">
+    <span class="k">${h.pct >= 0 ? '📈' : '📉'}</span>
+    <span class="m"><span class="p">${escapeHtml(h.name)}</span>${h.count > 1 ? ` <span class="s">×${h.count}</span>` : ''} <span class="${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>
+      <div class="s">${t('cote {a} → {b} · impact {c}', { a: fmtNum(h.from), b: fmtNum(h.to), c: fmtSigned(h.delta) })}</div></span>
+    <span class="s">${timeAgo(h.at)}</span>
+  </div>`;
+  }
   const icon = KIND_ICON[h.kind] || '•';
   const pct = (h.pct === null || h.pct === undefined) ? ''
     : ` <span class="${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>`;

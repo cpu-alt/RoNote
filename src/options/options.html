@@ -110,6 +110,8 @@
       <span class="btnrow"><select id="snd-declined"></select><button class="btn" data-play="declined" title="Écouter">▶</button></span></div>
     <div class="row"><span><b>Erreur Roblox</b></span>
       <span class="btnrow"><select id="snd-error"></select><button class="btn" data-play="error" title="Écouter">▶</button></span></div>
+    <div class="row"><span><b>Objet réévalué</b></span>
+      <span class="btnrow"><select id="snd-revalued"></select><button class="btn" data-play="revalued" title="Écouter">▶</button></span></div>
     <label class="row"><span><b>Volume</b></span>
       <input type="range" id="volume" min="0" max="1" step="0.05"></label>
     <div class="row"><span><b>Test</b><small>Envoie une notification et joue le son des trades reçus.</small></span>
@@ -136,6 +138,10 @@
       <span><b>Suivre la valeur de mon compte</b><small>Relève la value et le RAP totaux de ton profil Rolimon's pour tracer ta progression dans l'onglet <b>Bénéfice</b>.</small></span></label>
     <label class="row switch"><input type="checkbox" id="reconcilePortfolio">
       <span><b>Corriger les visages passés en bundles</b><small>Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire, que Rolimon's continue de compter ; un visage reçu arrive en bundle, que Rolimon's ne voit pas. RoNote compare visage par visage ce que Rolimon's compte et les bundles réellement possédés, puis affiche le détail de la correction.</small></span></label>
+    <label class="row switch"><input type="checkbox" id="revalAlerts">
+      <span><b>Alerter quand un objet que je possède est réévalué</b><small>Rolimon's révise ses cotes régulièrement. À chaque nouvelle table (toutes les 3 h), RoNote la compare à la précédente et te prévient si un objet de ton inventaire a bougé. S'appuie sur l'inventaire relevé pour la correction des visages : les deux réglages précédents doivent rester actifs.</small></span></label>
+    <label class="row"><span><b>Seuil de réévaluation</b><small>Variation minimale de la cote, à la hausse comme à la baisse, en %.</small></span>
+      <input type="number" id="revalMinPercent" min="3" max="100" step="1"></label>
     <p class="hint">Quel que soit ce réglage, <b>les deux chiffres restent affichés</b>. Un trade où la value et le RAP se contredisent est marqué ⚖️ « verdict incertain », une cote révisée récemment est signalée 🔁, et dans ces deux cas la notification n'est jamais supprimée par un filtre.</p>
     <p class="hint">Objets non cotés (visages, objets de bundle, nouveautés) : RoNote récupère le RAP officiel auprès de Roblox. Si l'objet reste sans cote, il est signalé <b>❔ sans cote</b> et exclu des totaux — jamais compté comme 0 — et la notification n'est jamais supprimée par un filtre dans ce cas.</p>
   </section>

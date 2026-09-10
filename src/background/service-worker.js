@@ -13,6 +13,7 @@ import {
 } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
+import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
 import { inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
@@ -20,7 +21,9 @@ import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
 } from './tracker.js';
-import { notifyTrade, notifySummary, notifySystem, playSound, playSoundsFor, setBadge } from './notifier.js';
+import {
+  notifyTrade, notifySummary, notifyRevaluations, notifySystem, playSound, playSoundsFor, setBadge
+} from './notifier.js';
 
 const ALARM = 'ronote:poll';
 const DETAIL_TTL = 10 * 60 * 1000;
@@ -571,6 +574,52 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
   }
 }
 
+/* ====================== reevaluation des objets ======================= */
+
+/**
+ * Croise les revisions de cote avec ce que le joueur possede (revalue.js).
+ *
+ * `state.revalSince` joue le role du watermark des flux : au premier passage,
+ * ou tant que l'option est coupee, il suit l'heure courante sans rien notifier.
+ * Sinon, activer l'option ferait tomber d'un coup 7 jours de revisions.
+ */
+async function stepRevaluations(ctx) {
+  const { settings, state } = ctx;
+  const active = settings.revalAlerts && settings.useRolimons
+    && settings.trackPortfolio && settings.reconcilePortfolio !== false;
+  if (!active || !state.revalSince) {
+    state.revalSince = Date.now();
+    return;
+  }
+
+  // Rien de plus recent que le repere : inutile de relire le rapport du
+  // portefeuille, ce qui arriverait sinon toutes les 30 s pour rien.
+  const changes = ctx.cat?.changes || {};
+  if (newestRevision(changes) <= state.revalSince) return;
+
+  // Sans inventaire connu pour CE compte, on ne sait rien : le repere reste en
+  // place, et rien n'est perdu pour le passage suivant.
+  const report = await getPortfolioReport();
+  if (!report?.holdings || Number(report.userId) !== Number(state.userId)) return;
+
+  const { hits, latest } = detectRevaluations(changes, report.holdings, ctx.cat, {
+    since: state.revalSince,
+    minPct: Math.max(3, Number(settings.revalMinPercent) || 10)
+  });
+  state.revalSince = latest;
+  if (!hits.length) return;
+
+  ctx.events.push({ kind: 'revalued', hits });
+  const at = Date.now();
+  for (const h of hits) {
+    ctx.history.push({
+      at, kind: 'revalued', name: h.name, key: h.key,
+      from: h.from, to: h.to, pct: h.pct, count: h.count, delta: h.delta,
+      notified: true
+    });
+  }
+}
+
 /* =============================== tick ================================== */
 
 async function getMe(state) {
@@ -624,6 +673,7 @@ async function tick(reason = 'manual') {
       state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
       await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null });
       state.portfolioAt = 0; state.historyFetchedAt = 0; state.portfolioLast = null;
+      state.revalSince = 0;
       memDetails.clear();
       await clearThumbs();
     }
@@ -673,6 +723,11 @@ async function tick(reason = 'manual') {
 
     // Contres non rattaches a une contre-offre entrante : on notifie a part.
     for (const card of ctx.pendingCountered.values()) ctx.events.push(card);
+
+    // Objets possedes reevalues depuis le dernier passage. L'inventaire vient
+    // du rafraichissement precedent du portefeuille (10 min au plus) : il
+    // change rarement plus vite, et on n'attend pas Rolimon's pour notifier.
+    await stepRevaluations(ctx);
 
     await emit(ctx);
 
@@ -726,6 +781,11 @@ async function emit(ctx) {
     byKind.get(card.kind).push(card);
   }
   for (const [kind, cards] of byKind) {
+    // Une reevaluation porte deja tous ses objets : sa propre notification.
+    if (kind === 'revalued') {
+      for (const c of cards) await notifyRevaluations(c.hits, ctx.settings);
+      continue;
+    }
     if (cards.length > max) {
       for (const c of cards.slice(-max)) await notifyTrade(c, ctx.settings);
       await notifySummary(kind, cards.length, ctx.settings);

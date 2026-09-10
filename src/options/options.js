@@ -10,7 +10,7 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
   'sound', 'useRolimons', 'trackPortfolio', 'reconcilePortfolio', 'robuxTax', 'showItemDetails',
-  'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters'];
+  'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters', 'revalAlerts'];
 const NUMS = ['maxNotificationsPerPoll', 'minGainPercent', 'minTheirValue', 'counterWindowMinutes'];
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
 
@@ -22,7 +22,7 @@ let belowMark = {};
 
 /* ------------------------------- rendu -------------------------------- */
 
-const SOUND_KEYS = ['inbound', 'accepted', 'declined', 'error'];
+const SOUND_KEYS = ['inbound', 'accepted', 'declined', 'error', 'revalued'];
 
 function fillSounds() {
   const options = Object.entries(SOUNDS)
@@ -45,6 +45,12 @@ function render() {
   $('#valueBasis').disabled = !settings.useRolimons;
   $('#speculativeRatio').disabled = !settings.useRolimons;
   $('#reconcilePortfolio').disabled = !settings.trackPortfolio;
+  // L'alerte croise les revisions avec l'inventaire que releve le portefeuille :
+  // sans cotes, sans suivi ou sans reconciliation, elle n'a rien a croiser.
+  const revalOk = settings.useRolimons && settings.trackPortfolio && settings.reconcilePortfolio !== false;
+  $('#revalAlerts').disabled = !revalOk;
+  $('#revalMinPercent').disabled = !revalOk;
+  $('#revalMinPercent').value = settings.revalMinPercent ?? 10;
   $('#speculativeRatio').value = settings.speculativeRatio ?? 1.6;
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of NUMS) { const el = $('#' + k); if (el) el.value = settings[k] ?? 0; }
@@ -137,6 +143,12 @@ function wire() {
     e.target.value = v;
     save({ speculativeRatio: v });
   });
+  // En dessous de 3 %, roli.js ne retient meme pas la revision.
+  $('#revalMinPercent').addEventListener('change', e => {
+    const v = Math.min(100, Math.max(3, Math.round(Number(e.target.value)) || 10));
+    e.target.value = v;
+    save({ revalMinPercent: v });
+  });
   $('#pollSeconds').addEventListener('change', e => save({ pollSeconds: Number(e.target.value) }));
   for (const k of SOUND_KEYS) {
     $('#snd-' + k).addEventListener('change', e => save({ sounds: { [k]: e.target.value } }));
@@ -203,11 +215,13 @@ function wire() {
   $('#btn-export').addEventListener('click', async () => {
     const { history } = await send({ type: 'ronote:get' });
     const rows = [['date', 'type', 'tradeId', 'statut', 'partenaire', 'partenaireId',
-      'valeur_donnee', 'valeur_recue', 'ecart_pct', 'objets_sans_cote', 'reponse_au_trade', 'notifie', 'filtre']];
+      'valeur_donnee', 'valeur_recue', 'ecart_pct', 'objets_sans_cote', 'reponse_au_trade', 'notifie', 'filtre',
+      'objet', 'cote_avant', 'cote_apres', 'quantite', 'impact']];
     for (const h of history || []) {
-      rows.push([new Date(h.at).toISOString(), h.kind, h.tradeId, h.status ?? '', h.partner, h.partnerId ?? '',
+      rows.push([new Date(h.at).toISOString(), h.kind, h.tradeId ?? '', h.status ?? '', h.partner ?? '', h.partnerId ?? '',
         h.give ?? '', h.get ?? '', h.pct == null ? '' : h.pct.toFixed(2), h.unknown ?? '', h.counterTo ?? '',
-        h.notified ? 'oui' : 'non', h.skipped ?? '']);
+        h.notified ? 'oui' : 'non', h.skipped ?? '',
+        h.name ?? '', h.from ?? '', h.to ?? '', h.count ?? '', h.delta ?? '']);
     }
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
