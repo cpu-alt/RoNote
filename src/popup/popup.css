@@ -350,26 +350,23 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .tc-rbx { color: #74d68a; font-weight: 650; }
 .tc-unk { color: var(--face); font-weight: 650; }
 
-/* ------------------------------ la balance ------------------------------ */
+/* ------------------------------- le verdict ----------------------------- */
 
+/* L'écart en grand, sur un fond qui dit déjà gagné (vert) ou perdu (rouge). */
 .tc-bal {
-  margin-top: 10px; padding: 8px 10px; border-radius: 12px;
-  background: #0a0e1899; border: 1px solid #ffffff0d;
+  display: flex; align-items: baseline; gap: 8px;
+  margin-top: 10px; padding: 8px 11px; border-radius: 12px;
+  background: #ffffff08; border: 1px solid #ffffff0d;
 }
-.tc-gauge { display: flex; gap: 3px; height: 6px; border-radius: 4px; overflow: hidden; background: #ffffff0d; }
-.tc-gauge i { min-width: 3px; border-radius: 4px; }
-.tc-gauge .give { background: linear-gradient(90deg, #ff5f6680, #ff5f66); }
-.tc-gauge .get  { background: linear-gradient(90deg, #2fd070, #2fd07080); }
-.tc-gauge .unk  { flex: 1; background: repeating-linear-gradient(135deg, #c792ea55 0 6px, transparent 6px 12px); }
-.tc-bal-row { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; }
+.tc-bal.win     { background: linear-gradient(90deg, #13351f, #0f2a1a); border-color: #1d4a2e; }
+.tc-bal.loss    { background: linear-gradient(90deg, #38171a, #2b1416); border-color: #4d2327; }
+.tc-bal.unknown { background: linear-gradient(90deg, #2b2139, #241d31); border-color: #3d2f55; }
 .tc-bal-l { font-size: 9.5px; font-weight: 750; letter-spacing: .55px; text-transform: uppercase; color: var(--faint); }
-.tc-bal-row b { font-size: 17px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
-.tc-bal-p { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tc-bal b { font-size: 18px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+.tc-bal-p { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .tc-bal-a { margin-left: auto; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tc-bal.big { padding: 0; background: none; border: 0; }
-.tc-bal.big .tc-gauge { height: 9px; border-radius: 6px; }
-.tc-bal.big .tc-bal-row { margin-top: 9px; }
-.tc-bal.big .tc-bal-row b { font-size: 26px; letter-spacing: -.8px; }
+.tc-bal.big { margin-top: 0; padding: 11px 13px; }
+.tc-bal.big b { font-size: 26px; letter-spacing: -.8px; }
 .tc-bal.big .tc-bal-p { font-size: 14px; }
 
 /* ------------------------------ pastilles ------------------------------ */

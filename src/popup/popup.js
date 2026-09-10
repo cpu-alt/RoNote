@@ -202,35 +202,25 @@ function sideHtml(title, side, a, incoming) {
 }
 
 /**
- * La balance du trade : ce que je donne contre ce que je reçois, en une barre.
- * Le côté le plus lourd prend la place — on voit qui gagne avant de lire un
- * chiffre. Puis l'écart, LE chiffre de la carte.
+ * Le verdict du trade : l'écart en grand sur fond vert ou rouge, le
+ * pourcentage à côté, le RAP en regard. LE chiffre de la carte.
  */
 function balanceHtml(a, { big = false } = {}) {
   const size = big ? ' big' : '';
   if (a.incomplete) {
     return `<div class="tc-bal unknown${size}">
-      <div class="tc-gauge"><i class="unk"></i></div>
-      <div class="tc-bal-row">
-        <span class="tc-bal-l">${t('Écart')}</span>
-        <b style="color:var(--face)">${t('non calculable')}</b>
-        <span class="tc-bal-a">${plural(a.unknownCount, '{n} objet sans cote', '{n} objets sans cote')}</span>
-      </div>
+      <span class="tc-bal-l">${t('Écart')}</span>
+      <b style="color:var(--face)">${t('non calculable')}</b>
+      <span class="tc-bal-a">${plural(a.unknownCount, '{n} objet sans cote', '{n} objets sans cote')}</span>
     </div>`;
   }
-  const give = Math.max(0, mainOf(a.give, a));
-  const get = Math.max(0, mainOf(a.get, a));
-  const total = give + get || 1;
   const tone = toneOf(a.pctMain, 3);
   const aside = a.hasValues && a.basis === 'value' ? `RAP ${fmtSigned(a.deltaRap)} (${fmtPct(a.pctRap)})` : '';
   return `<div class="tc-bal ${tone}${size}">
-    <div class="tc-gauge"><i class="give" style="flex:${(give / total).toFixed(4)}"></i><i class="get" style="flex:${(get / total).toFixed(4)}"></i></div>
-    <div class="tc-bal-row">
-      <span class="tc-bal-l">${t(BASIS_SHORT[a.basis] || 'Value')}</span>
-      <b class="${tone}">${fmtSigned(a.deltaMain, true)}</b>
-      <span class="tc-bal-p ${tone}">${fmtPct(a.pctMain)}</span>
-      ${aside ? `<span class="tc-bal-a">${aside}</span>` : ''}
-    </div>
+    <span class="tc-bal-l">${t(BASIS_SHORT[a.basis] || 'Value')}</span>
+    <b class="${tone}">${fmtSigned(a.deltaMain, true)}</b>
+    <span class="tc-bal-p ${tone}">${fmtPct(a.pctMain)}</span>
+    ${aside ? `<span class="tc-bal-a">${aside}</span>` : ''}
   </div>`;
 }
 

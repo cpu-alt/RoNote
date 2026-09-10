@@ -36,9 +36,9 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
   d'un onglet à l'autre ;
 - **Reçus, Envoyés, Terminés** : un bandeau en tête (combien, combien de gagnants
   et de perdants, le meilleur trade ou le bilan), des filtres en pastilles, et des
-  cartes refaites — anneau de couleur autour de l'avatar selon le verdict, et une
-  **barre de balance** qui montre d'un coup d'œil qui gagne le trade ;
-- **le zoom sur un trade** monte du bas, verdict et balance en grand ;
+  cartes refaites — anneau de couleur autour de l'avatar selon le verdict, et
+  l'écart toujours en grand sur fond vert ou rouge ;
+- **le zoom sur un trade** monte du bas, verdict et écart en grand ;
 - **le Journal** se lit comme un relevé : groupé par jour (Aujourd'hui, Hier…),
   une icône de couleur par type d'événement, l'heure, des filtres et le résumé des
   dernières 24 heures ; un clic ouvre le trade ;
