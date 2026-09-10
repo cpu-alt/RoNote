@@ -6,8 +6,11 @@
   "description": "__MSG_appDesc__",
   "browser_specific_settings": {
     "gecko": {
-      "id": "ronote@local.extension",
-      "strict_min_version": "128.0"
+      "id": "ronote@cpu-alt.github.io",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   },
   "permissions": [
