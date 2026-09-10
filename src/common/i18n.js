@@ -490,7 +490,7 @@ const EN = {
   'désactivé': 'disabled',
   'table non actualisée': 'table not refreshed',
   'à jour {ago}': 'up to date {ago}',
-  'Dernier id reçu': 'Last inbound id',
+  'Dernier trade reçu': 'Last inbound trade',
   'reçus {a} · envoyés {b} · finis {c} · inactifs {d}': 'inbound {a} · outbound {b} · completed {c} · inactive {d}',
 
   /* --- bases de calcul -------------------------------------------------- */

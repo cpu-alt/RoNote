@@ -100,7 +100,7 @@ let streamsSignature = null;
 function signatureOf(streams) {
   return Object.keys(streams).sort().map(k => {
     const s = streams[k] || {};
-    return `${k}:${s.watermark || 0}:${s.seen?.length || 0}:${s.seen?.[0] || 0}:${s.seededAt || 0}`;
+    return `${k}:${s.newest || 0}:${s.belowMark || 0}:${s.seen?.length || 0}:${s.seen?.[0] || 0}:${s.seededAt || 0}`;
   }).join('|');
 }
 

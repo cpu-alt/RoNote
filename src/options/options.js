@@ -17,7 +17,7 @@ const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
 let settings = null;
 let state = null;
 let counts = {};
-let watermarks = {};
+let newest = {};
 let belowMark = {};
 
 /* ------------------------------- rendu -------------------------------- */
@@ -107,7 +107,7 @@ function renderDiag() {
       settings.useRolimons && !state?.valueCount ? 'err' : (state?.valueStale ? 'warn' : ''),
       state?.valueStale ? t('table non actualisée')
         : state?.valueTs ? t('à jour {ago}', { ago: timeAgo(state.valueTs) }) : ''),
-    cell(t('Dernier id reçu'), watermarks.inbound ? '#' + watermarks.inbound : '—',
+    cell(t('Dernier trade reçu'), newest.inbound ? timeAgo(newest.inbound) : '—',
       belowMark.inbound ? 'warn' : '',
       belowMark.inbound ? t('{n} trade(s) plus ancien(s) que le suivi, jamais notifié(s)', { n: belowMark.inbound }) : '')
   ].join('');
@@ -238,7 +238,7 @@ async function load() {
   settings = r.settings;
   state = r.state;
   counts = r.counts || {};
-  watermarks = r.watermarks || {};
+  newest = r.newest || {};
   belowMark = r.belowMark || {};
   render();
 }

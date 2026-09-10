@@ -579,7 +579,7 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
 /**
  * Croise les revisions de cote avec ce que le joueur possede (revalue.js).
  *
- * `state.revalSince` joue le role du watermark des flux : au premier passage,
+ * `state.revalSince` joue le role de la photo initiale des flux : au premier passage,
  * ou tant que l'option est coupee, il suit l'heure courante sans rien notifier.
  * Sinon, activer l'option ferait tomber d'un coup 7 jours de revisions.
  */
@@ -883,7 +883,7 @@ async function handleMessage(msg) {
         portfolio: await getPortfolio(),
         report: await getPortfolioReport(),
         counts: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.seen?.length || 0])),
-        watermarks: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.watermark || 0])),
+        newest: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.newest || 0])),
         belowMark: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.belowMark || 0]))
       };
     }

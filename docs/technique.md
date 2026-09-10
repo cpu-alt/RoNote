@@ -15,22 +15,26 @@ de la même erreur : comparer la **première ligne** de la liste, le **pseudo** 
 l'expéditeur, ou le **nombre** de trades. Dès que la liste bouge, ces trois repères
 mentent.
 
-RoNote utilise l'API officielle `trades.roblox.com` et raisonne uniquement sur
-`trade.id`, un entier **unique**, **immuable** et **strictement croissant** :
+RoNote utilise l'API officielle `trades.roblox.com` et raisonne sur `trade.id`, un
+entier **unique** et **immuable**. Il n'est en revanche **pas croissant** : Roblox
+attribue ses identifiants sans ordre, et un trade reçu à 10 h peut porter un id plus
+petit que celui de 9 h. Jusqu'à la 2.9.2, RoNote écartait tout id inférieur au plus
+grand déjà vu : la plupart des nouveaux trades reçus passaient à la trappe sans un mot.
 
 | Mécanisme | Rôle |
 |---|---|
 | `seen` | Ensemble borné (2000/flux) des ids déjà traités → un trade ne peut jamais alerter deux fois. |
-| `watermark` | Plus grand id jamais observé → protège même si le cache est purgé, et évite le flot d'alertes au premier lancement. |
-| `seededAt` | Photo initiale silencieuse de l'existant. |
+| `newest` | Date de création la plus récente vue sur le flux → un ancien trade jamais vu qui remonte dans la liste (créé plus d'une heure avant) n'alerte pas, même si le cache est purgé. |
+| `seededAt` | Photo initiale silencieuse de l'existant → pas de flot d'alertes au premier lancement. |
 
 Conséquences concrètes :
 
 - Tu refuses un trade → celui du dessous a un id **déjà connu** → silence.
 - Le même joueur t'envoie **2 trades** → 2 ids différents → **2 alertes**.
+- Un nouveau trade porte un id **plus petit** que les précédents → alerte quand même.
 - Un vieux trade se finalise **après** un plus récent → détecté quand même
-  (les flux `Completed` / `Inactive` se fient à `seen`, pas au watermark, justement
-  parce que les fins de trade n'arrivent pas dans l'ordre des ids).
+  (les flux `Completed` / `Inactive` se fient à `seen` seul : la date de création
+  d'un trade ne dit rien du moment où il se termine).
 
 ---
 
@@ -691,7 +695,7 @@ d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
 - **un visage n'alerte qu'une fois** : Rolimon's peut publier sa révision sous
   l'id du bundle ou sous l'ancien asset, et `revalue.js` prend l'un ou l'autre,
   jamais les deux ;
-- **un repère** joue le rôle du watermark des flux. Au premier passage, ou tant
+- **un repère** joue le rôle de la photo initiale des flux. Au premier passage, ou tant
   que l'option est coupée, il suit l'heure courante sans rien notifier : activer
   l'option ne déverse pas 7 jours de révisions d'un coup. Il avance ensuite
   jusqu'à la révision la plus récente *connue*, possédée ou non, pour qu'un objet
@@ -826,7 +830,7 @@ objet qui ne doit jamais absorber ce que RoNote a écrit dessous.
 Les suites Node restent disponibles si Node est installé :
 
 ```bash
-npm test    # anti-doublon (17) + envois et contre-offres (33)
+npm test    # anti-doublon (26) + envois et contre-offres (33)
             # + scripts de contenu et pont page ↔ extension (17)
             # + réévaluation des objets possédés (20)
 ```
@@ -896,7 +900,7 @@ src/
     filters.js             décision de notifier (module pur, testé)
     tones.js               sonneries WebAudio (aussi injectées pour Firefox)
   background/
-    streams.js             >> moteur anti-doublon (seen + watermark) + direction
+    streams.js             >> moteur anti-doublon (seen + date de création) + direction
     tracker.js             >> suivi des envois + chaînage des contre-offres
     notifier.js            notifications, son, badge
     service-worker.js      orchestration, alarmes, filtres, messages

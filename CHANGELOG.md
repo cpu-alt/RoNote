@@ -3,7 +3,15 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## v2.10.0 — prévenu quand un objet que tu possèdes est réévalué
+## v2.10.0 — les alertes de trades reçus réparées, et l'alerte de réévaluation
+
+**Corrigé : les trades reçus ne déclenchaient presque plus d'alerte.** Roblox
+numérote ses trades sans ordre, alors que RoNote les croyait croissants : tout
+nouveau trade dont le numéro était plus petit que le plus grand déjà vu était
+écarté sans un mot. Les trades complétés, suivis autrement, alertaient toujours —
+d'où une panne difficile à remarquer. RoNote se fie désormais aux trades déjà vus
+et à leur date de création. Le suivi automatique des trades envoyés, touché par le
+même défaut, est réparé du même coup.
 
 **Nouveau : l'alerte de réévaluation.** Rolimon's révise ses cotes régulièrement,
 parfois de plusieurs dizaines de pourcents d'un coup. RoNote te prévient désormais

@@ -286,10 +286,9 @@ try {
   const st = {};
   streams.markSeen(st, 'inbound', [5]);
   check('markSeen sur un flux inexistant ne casse rien', st.inbound, undefined);
-  st.inbound = { seen: [3], watermark: 3, seededAt: 1 };
+  st.inbound = { seen: [3], seededAt: 1 };
   streams.markSeen(st, 'inbound', [7, 3]);
-  check('markSeen : ids uniques, watermark releve',
-    [st.inbound.seen, st.inbound.watermark], [[7, 3], 7]);
+  check('markSeen : ids uniques, les derniers marques en tete', st.inbound.seen, [7, 3]);
   check('statut normalise', ['Rejected due to an error', 'countered', 'COMPLETED'].map(tracker.normStatus),
     ['RejectedDueToError', 'Countered', 'Completed']);
 
@@ -320,19 +319,22 @@ try {
     [patched.sounds.inbound, patched.sounds.error], ['coins', 'down']);
   delete store.settings;
 
-  // Un id sous le watermark est ecarte, mais compte : c'est le seul moyen de
-  // voir un jour un identifiant Roblox qui ne serait pas croissant.
+  // Les ids Roblox ne sont pas croissants : un id plus petit que tous les
+  // autres peut etre un trade tout neuf. Seul un trade cree bien avant le plus
+  // recent connu est ecarte — et compte, pour le diagnostic.
   {
-    const st2 = { inbound: { seen: [10], watermark: 10, seededAt: 1 } };
+    const T = Date.parse('2026-09-10T10:00:00Z');
+    const iso = (min) => new Date(T + min * 60000).toISOString();
+    const st2 = { inbound: { seen: [10], newest: T, seededAt: 1 } };
     const realFetch2 = globalThis.fetch;
     globalThis.fetch = async () => ({
       ok: true, status: 200, headers: { get: () => null },
-      json: async () => ({ data: [{ id: 12 }, { id: 9 }] })
+      json: async () => ({ data: [{ id: 3, created: iso(2) }, { id: 10, created: iso(0) }, { id: 1, created: iso(-180) }] })
     });
     let r2 = null;
     try { r2 = await streams.pollStream('inbound', st2); } finally { globalThis.fetch = realFetch2; }
-    check('sous le watermark : ecarte mais compte',
-      [r2.fresh.map(x => x.id), st2.inbound.belowMark], [[12], 1]);
+    check('id plus petit mais trade recent : detecte ; ancien trade qui remonte : ecarte mais compte',
+      [r2.fresh.map(x => x.id), st2.inbound.belowMark], [[3], 1]);
   }
 
   /* -------------------------------- langues ----------------------------- */
