@@ -30,6 +30,21 @@ visage fantôme jamais. Elle est préparée par le service worker avec le reste 
 portefeuille : ouvrir l'onglet ne déclenche aucun appel. Seule l'ouverture de la
 fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
 
+**Tous les onglets refaits dans le même style.**
+
+- **En-tête** en verre et **barre d'onglets en pilules**, dont la pastille glisse
+  d'un onglet à l'autre ;
+- **Reçus, Envoyés, Terminés** : un bandeau en tête (combien, combien de gagnants
+  et de perdants, le meilleur trade ou le bilan), des filtres en pastilles, et des
+  cartes refaites — anneau de couleur autour de l'avatar selon le verdict, et une
+  **barre de balance** qui montre d'un coup d'œil qui gagne le trade ;
+- **le zoom sur un trade** monte du bas, verdict et balance en grand ;
+- **le Journal** se lit comme un relevé : groupé par jour (Aujourd'hui, Hier…),
+  une icône de couleur par type d'événement, l'heure, des filtres et le résumé des
+  dernières 24 heures ; un clic ouvre le trade ;
+- les cartes arrivent en cascade à l'ouverture d'un onglet, et une à une à mesure
+  qu'elles sont évaluées — jamais au rafraîchissement de fond.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant

@@ -309,4 +309,10 @@ if (shot.get('tab')) {
     }));
   }
   if (shot.get('item')) pdoc.querySelector('[data-item]')?.click();
+  // `trade=1` : ouvre le zoom du premier trade évalué ; `detail=1` : déplie son détail.
+  if (shot.get('trade') || shot.get('detail')) {
+    await until(() => pdoc.querySelector('.tc-body[data-zoom] .tc-swap'));
+    if (shot.get('detail')) pdoc.querySelector('button[data-expand]')?.click();
+    else pdoc.querySelector('.tc-body[data-zoom]')?.click();
+  }
 }

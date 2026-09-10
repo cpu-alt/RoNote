@@ -3,7 +3,7 @@ import {
   fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml, clamp
 } from '../common/utils.js';
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
-import { t, p as plural, setLang, translateDom } from '../common/i18n.js';
+import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
 
 const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
@@ -14,7 +14,11 @@ let tab = 'inbound';
 const cards = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const failures = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const expanded = new Set();     // trades dont le detail des objets est deplie
-let zoomed = null;              // tradeId affiche en grand, ou null
+const shownCards = new Set();   // cartes deja montrees evaluees : leur arrivee ne se rejoue pas
+let zoomed = null;              // trade (ou objet) affiche en grand, ou null
+
+/** Filtre de chaque liste. Il ne regarde que ce popup : « Tous » à chaque ouverture. */
+const listFilter = { inbound: 'all', outbound: 'all', completed: 'all', history: 'all' };
 
 const tradeUrl = (id) => `https://www.roblox.com/trades?tradeId=${id}`;
 
@@ -22,6 +26,20 @@ const KIND_ICON = {
   inbound: '📥', counter: '🔄', completed: '✅', outbound: '📤',
   outbound_accepted: '🎉', outbound_declined: '❌', outbound_countered: '🔄',
   outbound_expired: '⏳', trade_error: '⚠️', declined_by_me: '🚫'
+};
+
+/** Ce que raconte chaque ligne du journal, et sa couleur. */
+const KIND_INFO = {
+  inbound:            { label: 'Nouveau trade reçu', tone: 'accent' },
+  counter:            { label: 'Contre-offre reçue', tone: 'accent' },
+  completed:          { label: 'Trade complété', tone: 'win' },
+  outbound_accepted:  { label: 'Ton trade a été accepté', tone: 'win' },
+  outbound_declined:  { label: 'Ton trade a été refusé', tone: 'loss' },
+  outbound_countered: { label: 'Ton trade a été contré', tone: 'warn' },
+  outbound_expired:   { label: 'Ton trade a expiré', tone: 'even' },
+  trade_error:        { label: 'Trade rejeté (erreur Roblox)', tone: 'loss' },
+  declined_by_me:     { label: 'Refusé ou annulé depuis RoNote', tone: 'even' },
+  revalued:           { label: 'Objet réévalué', tone: 'face' }
 };
 
 const STATUS_LABEL = {
@@ -130,70 +148,89 @@ function itemTags(i) {
   ].filter(Boolean).join(' · ');
 }
 
-const MAX_TILES = 7;
+/* ============================ une carte : pièces ========================= */
 
+/** Le chiffre qui compte, selon la base choisie dans les réglages. */
+const mainOf = (side, a) => (a.basis === 'rap' ? side.rap : a.basis === 'prudent' ? side.prudent : side.value);
+const cardTone = (a) => (!a ? 'even' : a.incomplete ? 'unknown' : toneOf(a.pctMain, 3));
+
+const partnerName = (c) => escapeHtml(c.partner?.displayName || c.partner?.name || t('Joueur'));
+const partnerHandle = (c) => (c.partner?.name && c.partner.name !== c.partner.displayName
+  ? ` <span class="s">@${escapeHtml(c.partner.name)}</span>` : '');
+const avatarHtml = (c) => (c.headshot
+  ? `<img class="av" src="${escapeHtml(c.headshot)}" alt="" data-icon="">`
+  : '<div class="av ph"></div>');
+
+/** Quatre vignettes au plus par côté : au-delà, la dernière devient « +n ». */
 function tilesHtml(side) {
-  if (!side.items.length) {
-    return `<div class="tiles"><div class="tile">—</div></div>`;
-  }
-  const shown = side.items.slice(0, MAX_TILES).map(i => {
+  if (!side.items.length) return `<div class="tc-tiles"><div class="tc-tile empty">—</div></div>`;
+  const cut = side.items.length > 4 ? 3 : 4;
+  const shown = side.items.slice(0, cut).map(i => {
     const cls = itemClasses(i);
     const title = escapeHtml(itemTitle(i));
     return i.thumb
-      ? `<img class="${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}">`
-      : `<div class="tile ${cls}" title="${title}">${itemIcon(i)}</div>`;
+      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}">`
+      : `<div class="tc-tile ph ${cls}" title="${title}">${itemIcon(i)}</div>`;
   }).join('');
-  const rest = side.items.length - MAX_TILES;
-  const more = rest > 0
-    ? `<div class="tile more" title="${escapeHtml(side.items.slice(MAX_TILES).map(i => i.name).join(', '))}">+${rest}</div>`
+  const rest = side.items.slice(cut);
+  const more = rest.length
+    ? `<div class="tc-tile more" title="${escapeHtml(rest.map(i => i.name).join(', '))}">+${rest.length}</div>`
     : '';
-  return `<div class="tiles">${shown}${more}</div>`;
+  return `<div class="tc-tiles">${shown}${more}</div>`;
 }
 
-/** Le total d'un côté : la value en clair, le RAP juste dessous en gris. */
-function sideTotalHtml(side, a, incoming) {
-  const basis = a.basis;
-  const main = basis === 'rap' ? side.rap : basis === 'prudent' ? side.prudent : side.value;
+/** Un côté du trade : ses objets, son total, puis le RAP, les Robux et les objets sans cote. */
+function sideHtml(title, side, a, incoming) {
   // Un côté dont on ne connaît aucun objet ne vaut pas zéro : il vaut
   // « on ne sait pas ». Afficher 0 serait un mensonge par arrondi.
   const blind = side.itemCount > 0 && side.unknownCount === side.itemCount && !side.robux;
   const sub = [];
-  if (a.hasValues && basis !== 'rap') sub.push(`RAP ${fmtNum(side.rap)}`);
-  if (a.hasValues && basis === 'rap') sub.push(`Value ${fmtNum(side.value)}`);
-
-  const rbx = side.robux > 0
-    ? (incoming && side.robuxNet !== side.robux
-      ? `<div class="rbx">R$ ${fmtNum(side.robuxNet)} <s>${t('net de 30 %')}</s></div>`
-      : `<div class="rbx">R$ ${fmtNum(side.robux)}</div>`)
-    : '';
-
-  const unk = side.unknownCount
-    ? `<div class="side-x" title="${escapeHtml((side.unknownItems || []).join(', '))}">${t('+{n} sans cote', { n: side.unknownCount })}</div>`
-    : '';
-
-  return `<div class="side-v">${blind ? `<span style="color:var(--face)">—</span>` : fmtFull(main)}</div>
-    ${sub.length ? `<div class="side-r">${sub.join(' · ')}</div>` : ''}${rbx}${unk}`;
+  if (a.hasValues) sub.push(a.basis === 'rap' ? `Value ${fmtNum(side.value)}` : `RAP ${fmtNum(side.rap)}`);
+  if (side.robux > 0) {
+    const net = incoming && side.robuxNet !== side.robux;
+    sub.push(`<span class="tc-rbx"${net ? ` title="${escapeHtml(t('net de 30 %'))}"` : ''}>R$ ${fmtNum(net ? side.robuxNet : side.robux)}</span>`);
+  }
+  if (side.unknownCount) {
+    sub.push(`<span class="tc-unk" title="${escapeHtml((side.unknownItems || []).join(', '))}">${t('+{n} sans cote', { n: side.unknownCount })}</span>`);
+  }
+  return `<div class="tc-side ${incoming ? 'get' : 'give'}">
+    <div class="tc-side-h">${title}</div>
+    ${tilesHtml(side)}
+    <div class="tc-amt">${blind ? '<span class="tc-blind">—</span>' : fmtFull(mainOf(side, a))}</div>
+    <div class="tc-sub">${sub.join(' · ')}</div>
+  </div>`;
 }
 
-/** La barre de verdict : LE chiffre de la carte. */
-function barHtml(a, big = false) {
-  const cls = 'bar' + (big ? ' wide' : '');
+/**
+ * La balance du trade : ce que je donne contre ce que je reçois, en une barre.
+ * Le côté le plus lourd prend la place — on voit qui gagne avant de lire un
+ * chiffre. Puis l'écart, LE chiffre de la carte.
+ */
+function balanceHtml(a, { big = false } = {}) {
+  const size = big ? ' big' : '';
   if (a.incomplete) {
-    return `<div class="${cls} unknown">
-      <span class="lbl">${t('Écart')}</span>
-      <span class="big" style="color:var(--face)">${t('non calculable')}</span>
-      <span class="aside">${plural(a.unknownCount, '{n} objet sans cote', '{n} objets sans cote')}</span>
+    return `<div class="tc-bal unknown${size}">
+      <div class="tc-gauge"><i class="unk"></i></div>
+      <div class="tc-bal-row">
+        <span class="tc-bal-l">${t('Écart')}</span>
+        <b style="color:var(--face)">${t('non calculable')}</b>
+        <span class="tc-bal-a">${plural(a.unknownCount, '{n} objet sans cote', '{n} objets sans cote')}</span>
+      </div>
     </div>`;
   }
+  const give = Math.max(0, mainOf(a.give, a));
+  const get = Math.max(0, mainOf(a.get, a));
+  const total = give + get || 1;
   const tone = toneOf(a.pctMain, 3);
-  const aside = a.hasValues && a.basis === 'value'
-    ? `RAP ${fmtSigned(a.deltaRap)} (${fmtPct(a.pctRap)})`
-    : '';
-  return `<div class="${cls} ${tone}">
-    <span class="lbl">${t(BASIS_SHORT[a.basis] || 'Value')}</span>
-    <span class="big ${tone}">${fmtSigned(a.deltaMain, true)}</span>
-    <span class="pct ${tone}">${fmtPct(a.pctMain)}</span>
-    ${aside ? `<span class="aside">${aside}</span>` : ''}
+  const aside = a.hasValues && a.basis === 'value' ? `RAP ${fmtSigned(a.deltaRap)} (${fmtPct(a.pctRap)})` : '';
+  return `<div class="tc-bal ${tone}${size}">
+    <div class="tc-gauge"><i class="give" style="flex:${(give / total).toFixed(4)}"></i><i class="get" style="flex:${(get / total).toFixed(4)}"></i></div>
+    <div class="tc-bal-row">
+      <span class="tc-bal-l">${t(BASIS_SHORT[a.basis] || 'Value')}</span>
+      <b class="${tone}">${fmtSigned(a.deltaMain, true)}</b>
+      <span class="tc-bal-p ${tone}">${fmtPct(a.pctMain)}</span>
+      ${aside ? `<span class="tc-bal-a">${aside}</span>` : ''}
+    </div>
   </div>`;
 }
 
@@ -240,7 +277,7 @@ const itemUrl = (i) => (i.bundleId
 
 function detailRow(i, big = false) {
   const img = i.thumb
-    ? `<img src="${escapeHtml(i.thumb)}" alt="">`
+    ? `<img src="${escapeHtml(i.thumb)}" alt="" data-icon="${itemIcon(i)}">`
     : `<div class="ph">${itemIcon(i)}</div>`;
   const right = i.unknown
     ? `<b style="color:var(--face)">—</b><span>${t('sans cote')}</span>`
@@ -265,38 +302,41 @@ function detailHtml(a, outbound) {
 
 /* ============================== une carte =============================== */
 
-const partnerName = (c) => escapeHtml(c.partner?.displayName || c.partner?.name || t('Joueur'));
-
-function headHtml(c) {
-  const uname = c.partner?.name && c.partner.name !== c.partner.displayName
-    ? ` <span class="s">@${escapeHtml(c.partner.name)}</span>` : '';
-  const av = c.headshot ? `<img class="av" src="${escapeHtml(c.headshot)}" alt="">` : '<div class="av"></div>';
-  return `<div class="head">${av}
-    <div class="who"><div class="n">${partnerName(c)}${uname}</div>
-      <div class="t">#${c.tradeId} · ${timeAgo(c.created)}</div></div>`;
-}
-
-function cardHtml(c, { outbound = false } = {}) {
+function cardHtml(c, { outbound = false, enter = false } = {}) {
   const a = c.analysis;
   const link = data.state?.links?.[c.tradeId];
-  const chip = link
-    ? `<div class="chip-link">${t('↩ contre-offre sur le trade #{id}', { id: link.counterTo })}${link.round > 2 ? ' ' + t('· {n}ᵉ échange', { n: link.round }) : ''}</div>`
-    : '';
-
   const tracked = !!data.state?.tracked?.[c.tradeId];
+  const tone = cardTone(a);
+  const isOpen = !c.status || c.status === 'Open' || c.status === 'Unknown' || c.status === 'Pending';
+
   const pin = outbound
-    ? `<button class="pin ${tracked ? 'on' : ''}" data-track="${c.tradeId}" data-on="${tracked ? '0' : '1'}"
+    ? `<button class="tc-btn pin ${tracked ? 'on' : ''}" data-track="${c.tradeId}" data-on="${tracked ? '0' : '1'}"
          title="${escapeHtml(t(tracked ? 'Ne plus suivre ce trade' : 'Suivre ce trade (alerte si accepté, refusé ou contré)'))}">📌</button>`
     : '';
-
-  const status = outbound && c.status && STATUS_LABEL[c.status]
-    ? `<span class="badge">${t(STATUS_LABEL[c.status])}</span>` : '';
-
-  const isOpen = !c.status || c.status === 'Open' || c.status === 'Unknown' || c.status === 'Pending';
   const nix = a && isOpen && tab !== 'completed'
-    ? `<button class="nix" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}"
+    ? `<button class="tc-btn nix" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}"
          title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">✕</button>`
     : '';
+  const verdict = a
+    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${c.verdict?.icon || ''} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
+    : '';
+  // Pas de numéro de trade ici : ses 16 chiffres mangeaient le statut. Il
+  // reste dans le zoom.
+  const meta = [
+    timeAgo(c.created),
+    outbound && c.status && STATUS_LABEL[c.status] ? `<span class="tc-status">${t(STATUS_LABEL[c.status])}</span>` : '',
+    tracked ? `<span class="tc-status on">📌 ${t('suivi')}</span>` : ''
+  ].filter(Boolean).join(' · ');
+  const counter = link
+    ? `<div class="tc-link">${t('↩ contre-offre sur le trade #{id}', { id: link.counterTo })}${link.round > 2 ? ' ' + t('· {n}ᵉ échange', { n: link.round }) : ''}</div>`
+    : '';
+
+  const head = `<div class="tc-head">
+      <span class="av-ring ${tracked ? 'tracked' : tone}">${avatarHtml(c)}</span>
+      <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div><div class="t">${meta}</div></div>
+      ${verdict}${nix}${pin}
+    </div>`;
+  const cls = `tc${enter ? ' tc-enter' : ''}`;
 
   if (!a) {
     // La raison est affichée EN CLAIR : une erreur planquée dans une infobulle
@@ -307,44 +347,118 @@ function cardHtml(c, { outbound = false } = {}) {
            <button class="err-retry" data-retry="${c.tradeId}">${t('Réessayer')}</button>
          </div>`
       : '';
-    return `<article class="card ${tracked ? 'tracked' : 'even'}">
-      <div class="body" data-zoom="${c.tradeId}">
-        ${headHtml(c)}${status}${pin}</div>${chip}${why}
-      </div></article>`;
+    return `<article class="${cls}" data-tone="${tracked ? 'tracked' : 'even'}">
+      <div class="tc-body" data-zoom="${c.tradeId}">${head}${counter}${why}</div>
+    </article>`;
   }
 
-  const tone = a.incomplete ? 'unknown' : toneOf(a.pctMain, 3);
   const open = expanded.has(c.tradeId);
   const showDetail = data.settings?.showItemDetails !== false;
   const nb = a.give.items.length + a.get.items.length;
 
-  return `<article class="card ${tracked ? 'tracked' : tone}">
-    <div class="body" data-zoom="${c.tradeId}">
-      ${headHtml(c)}
-      ${status || `<span class="badge ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${c.verdict?.icon || ''} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`}
-      ${nix}${pin}</div>
-      ${chip}
-      <div class="swap">
-        <div class="side give">
-          <div class="side-h">${t('Vous donnez')}</div>
-          ${tilesHtml(a.give)}
-          ${sideTotalHtml(a.give, a, false)}
-        </div>
-        <div class="swap-mid">⇄</div>
-        <div class="side get">
-          <div class="side-h">${t(outbound ? 'Vous demandez' : 'Vous recevez')}</div>
-          ${tilesHtml(a.get)}
-          ${sideTotalHtml(a.get, a, true)}
-        </div>
+  return `<article class="${cls}" data-tone="${tracked ? 'tracked' : tone}">
+    <div class="tc-body" data-zoom="${c.tradeId}">
+      ${head}
+      ${counter}
+      <div class="tc-swap">
+        ${sideHtml(t('Vous donnez'), a.give, a, false)}
+        <div class="tc-mid">⇄</div>
+        ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true)}
       </div>
-      ${barHtml(a)}
+      ${balanceHtml(a)}
       ${flagsHtml(a)}
     </div>
     ${showDetail && nb
-      ? `<button class="more-btn" data-expand="${c.tradeId}">${open ? '▲ ' + t('Masquer le détail') : '▼ ' + t('Détail des {n} objets', { n: nb })}</button>`
+      ? `<button class="tc-more${open ? ' open' : ''}" data-expand="${c.tradeId}"><span>${open ? t('Masquer le détail') : t('Détail des {n} objets', { n: nb })}</span><i>▾</i></button>`
       : ''}
     ${showDetail && open ? detailHtml(a, outbound) : ''}
   </article>`;
+}
+
+/** Emplacement d'une carte pas encore évaluée : sa silhouette, qui scintille. */
+const skeletonHtml = (id) => `<div class="tc-skel" data-id="${id}"><i class="a"></i><i class="l1"></i><i class="l2"></i><i class="b"></i></div>`;
+
+/* ======================== en tête de chaque liste ======================== */
+
+const LIST_FILTERS = {
+  inbound: [['all', 'Tous'], ['win', 'Gagnants'], ['loss', 'Perdants'], ['unknown', 'Sans cote']],
+  outbound: [['all', 'Tous'], ['tracked', 'Suivis'], ['win', 'Gagnants'], ['loss', 'Perdants']],
+  completed: [['all', 'Tous'], ['win', 'Gagnants'], ['loss', 'Perdants']]
+};
+
+/** Un trade pas encore évalué ne passe que « Tous » (et « Suivis », qui ne dépend pas de la cote). */
+function matchesFilter(kind, item, key = listFilter[kind]) {
+  if (key === 'all') return true;
+  if (key === 'tracked') return !!data.state?.tracked?.[item.tradeId];
+  const a = cards[kind].get(item.tradeId)?.analysis;
+  if (!a) return false;
+  if (key === 'unknown') return !!a.incomplete;
+  return !a.incomplete && toneOf(a.pctMain, 3) === key;
+}
+
+function chipsHtml(kind, snap) {
+  const chips = LIST_FILTERS[kind].map(([key, label]) => {
+    const n = snap.filter(item => matchesFilter(kind, item, key)).length;
+    if (!n && key !== 'all' && key !== listFilter[kind]) return '';
+    return `<button class="${key === listFilter[kind] ? 'on' : ''}" data-lfilter="${key}">${t(label)} <small>${n}</small></button>`;
+  }).join('');
+  return `<div class="lchips">${chips}</div>`;
+}
+
+/** Combien, et ce que ça vaut, d'un coup d'œil. */
+function summaryHtml(kind, snap) {
+  const loaded = snap.map(x => cards[kind].get(x.tradeId)).filter(c => c?.analysis);
+  const rated = loaded.filter(c => !c.analysis.incomplete);
+  const wins = rated.filter(c => toneOf(c.analysis.pctMain, 3) === 'win').length;
+  const losses = rated.filter(c => toneOf(c.analysis.pctMain, 3) === 'loss').length;
+  const blind = loaded.length - rated.length;
+  const count = kind === 'inbound' ? (data.state?.inboundCount ?? snap.length) : snap.length;
+  const label = { inbound: t('En attente'), outbound: t('Envoyés'), completed: t('Terminés récemment') }[kind];
+
+  let aside = '';
+  if (kind === 'completed' && rated.length) {
+    const net = rated.reduce((s, c) => s + c.analysis.deltaMain, 0);
+    aside = `<div class="ls-aside"><span>${t('Bilan')}</span><b class="${toneOf(net)}">${fmtSigned(net)}</b>
+      <small>${plural(rated.length, '{n} trade terminé', '{n} trades terminés')}</small></div>`;
+  } else if (kind === 'outbound') {
+    const tracked = Object.keys(data.state?.tracked || {}).length;
+    aside = `<div class="ls-aside"><span>${t('Suivis')}</span><b class="${tracked ? 'warn' : ''}">${tracked}</b>
+      <small>${t('📌 pour être prévenu')}</small></div>`;
+  } else {
+    const best = [...rated].sort((x, y) => y.analysis.pctMain - x.analysis.pctMain)[0];
+    if (best && best.analysis.pctMain > 0) {
+      aside = `<div class="ls-aside"><span>${t('Meilleur')}</span><b class="win">${fmtPct(best.analysis.pctMain)}</b>
+        <small>${partnerName(best)}</small></div>`;
+    }
+  }
+
+  const stats = [
+    wins ? `<span class="win">▲ ${plural(wins, '{n} gagnant', '{n} gagnants')}</span>` : '',
+    losses ? `<span class="loss">▼ ${plural(losses, '{n} perdant', '{n} perdants')}</span>` : '',
+    blind ? `<span class="face">❔ ${plural(blind, '{n} sans cote', '{n} sans cote')}</span>` : '',
+    loaded.length < snap.length ? `<span>${t('Évaluation…')}</span>` : ''
+  ].filter(Boolean).join('');
+
+  return `<section class="ls">
+    <div class="ls-main">
+      <div class="ls-l">${label}</div>
+      <div class="ls-n">${count}</div>
+      <div class="ls-stats">${stats}</div>
+    </div>
+    ${aside}
+  </section>`;
+}
+
+const EMPTY = {
+  inbound: ['📥', 'Aucun trade en attente', "Vous serez notifié dès qu'un nouveau trade arrive."],
+  outbound: ['📤', 'Aucun trade envoyé', "Vos propositions apparaîtront ici. Épinglez-en une (📌) pour être averti dès qu'elle est acceptée, refusée ou contrée."],
+  completed: ['✅', 'Aucun trade terminé récemment', ''],
+  history: ['🗒️', 'Journal vide', 'Chaque événement détecté (notifié ou filtré) apparaîtra ici.']
+};
+
+function emptyHtml(kind) {
+  const [icon, title, text] = EMPTY[kind];
+  return `<div class="empty"><div class="empty-ic">${icon}</div><b>${t(title)}</b>${text ? `<span>${t(text)}</span>` : ''}</div>`;
 }
 
 /* =========================== zoom sur un trade =========================== */
@@ -359,8 +473,6 @@ function findCard(tradeId) {
 }
 
 function zoomSideHtml(title, side, a, incoming) {
-  const basis = a.basis;
-  const main = basis === 'rap' ? side.rap : basis === 'prudent' ? side.prudent : side.value;
   const blind = side.itemCount > 0 && side.unknownCount === side.itemCount && !side.robux;
   const rbx = side.robux > 0
     ? `<div class="z-rbx">R$ ${fmtNum(incoming ? side.robuxNet : side.robux)}${incoming && side.robuxNet !== side.robux ? ` <s>${t('net de 30 %')}</s>` : ''}</div>`
@@ -368,7 +480,7 @@ function zoomSideHtml(title, side, a, incoming) {
   return `<section class="z-side">
     <div class="z-side-h">
       <span>${title}</span>
-      <span class="z-tot">${blind ? '—' : fmtFull(main)}<small>RAP ${fmtNum(side.rap)}</small></span>
+      <span class="z-tot">${blind ? '—' : fmtFull(mainOf(side, a))}<small>RAP ${fmtNum(side.rap)}</small></span>
     </div>
     ${side.items.map(i => detailRow(i, true)).join('') || `<div class="z-empty">—</div>`}
     ${rbx}
@@ -378,7 +490,7 @@ function zoomSideHtml(title, side, a, incoming) {
 function zoomHtml(c, kind) {
   const a = c.analysis;
   const outbound = kind === 'outbound';
-  const tone = a?.incomplete ? 'unknown' : a ? toneOf(a.pctMain, 3) : 'even';
+  const tone = cardTone(a);
   const expires = c.expiration ? timeUntil(c.expiration) : '';
 
   // Refuser un trade reçu et annuler un trade envoyé sont le MÊME appel côté
@@ -388,15 +500,23 @@ function zoomHtml(c, kind) {
     && (!c.status || c.status === 'Open' || c.status === 'Unknown');
   const declineLabel = outbound ? 'Annuler le trade' : 'Refuser le trade';
 
-  return `<div class="zoom-card" role="dialog" aria-modal="true">
+  return `<div class="zoom-card w-sheet" role="dialog" aria-modal="true">
     <header class="z-head">
-      ${headHtml(c)}
-      ${a ? `<span class="badge ${tone}">${c.verdict?.icon || ''} ${escapeHtml(t(c.verdict?.label || ''))}</span>` : ''}
+      <div class="head">
+        <span class="av-ring ${tone}">${avatarHtml(c)}</span>
+        <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div>
+          <div class="t">#${c.tradeId} · ${timeAgo(c.created)}</div></div>
+      </div>
       <button class="z-close" title="${t('Fermer')}">✕</button>
     </header>
     <div class="z-body">
-      ${a ? barHtml(a, true) : ''}
-      ${expires ? `<div class="z-exp">⏳ ${t('Expire {ago}', { ago: expires })}</div>` : ''}
+      ${a ? `<section class="z-hero" data-tone="${tone}">
+        <div class="z-verdict">
+          <span class="tc-pill ${tone}">${c.verdict?.icon || ''} ${escapeHtml(t(c.verdict?.label || ''))}</span>
+          ${expires ? `<span class="z-exp">⏳ ${t('Expire {ago}', { ago: expires })}</span>` : ''}
+        </div>
+        ${balanceHtml(a, { big: true })}
+      </section>` : `<div class="z-empty">${t('Détail indisponible pour ce trade.')}</div>`}
       ${a ? zoomSideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true) : ''}
       ${a ? zoomSideHtml(t('Vous donnez'), a.give, a, false) : ''}
       ${a ? flagsHtml(a) : ''}
@@ -538,39 +658,125 @@ async function quickDecline(btn, tradeId, kind) {
 
 /* =============================== journal ================================ */
 
-function historyHtml(h) {
-  // Une reevaluation n'est pas un trade : ni partenaire ni numero, mais un
-  // objet, ses deux cotes et l'impact sur le compte.
-  if (h.kind === 'revalued') {
-    return `<div class="log">
-    <span class="k">${h.pct >= 0 ? '📈' : '📉'}</span>
-    <span class="m"><span class="p">${escapeHtml(h.name)}</span>${h.count > 1 ? ` <span class="s">×${h.count}</span>` : ''} <span class="${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>
-      <div class="s">${t('cote {a} → {b} · impact {c}', { a: fmtNum(h.from), b: fmtNum(h.to), c: fmtSigned(h.delta) })}</div></span>
-    <span class="s">${timeAgo(h.at)}</span>
-  </div>`;
-  }
-  const icon = KIND_ICON[h.kind] || '•';
-  const pct = (h.pct === null || h.pct === undefined) ? ''
-    : ` <span class="${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>`;
-  const nums = (h.get !== null && h.get !== undefined && h.give !== null && h.give !== undefined)
-    ? `<div class="s">${t('{a} reçu vs {b} donné', { a: fmtNum(h.get), b: fmtNum(h.give) })}</div>` : '';
-  const unk = h.unknown
-    ? `<div class="s" style="color:var(--face)">❔ ${t('{n} objet(s) sans cote', { n: h.unknown })}</div>`
-    : nums;
-  const link = h.counterTo ? `<div class="s">${t('↩ réponse au trade #{id}', { id: h.counterTo })}</div>` : unk;
-  return `<div class="log ${h.notified ? '' : 'muted'}">
-    <span class="k">${icon}</span>
-    <span class="m"><span class="p">${escapeHtml(h.partner)}</span> <span class="s">#${h.tradeId}</span>${pct}
-      ${h.skipped ? `<div class="s">${escapeHtml(t('filtré : {why}', { why: t(h.skipped) }))}</div>` : link}</span>
-    <span class="s">${timeAgo(h.at)}</span>
-  </div>`;
+const JOURNAL_FILTERS = [
+  ['all', 'Tous', () => true],
+  ['inbound', 'Reçus', (h) => h.kind === 'inbound' || h.kind === 'counter'],
+  ['done', 'Terminés', (h) => h.kind === 'completed' || h.kind === 'outbound_accepted'],
+  ['outbound', 'Envoyés', (h) => ['outbound_declined', 'outbound_countered', 'outbound_expired', 'trade_error', 'declined_by_me'].includes(h.kind)],
+  ['revalued', 'Réévaluations', (h) => h.kind === 'revalued'],
+  ['muted', 'Filtrés', (h) => !!h.skipped && h.kind !== 'declined_by_me']
+];
+
+/** « Aujourd'hui », « Hier », puis la date en toutes lettres. */
+function dayLabel(at) {
+  const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(new Date(at))) / 864e5);
+  if (days === 0) return t("Aujourd'hui");
+  if (days === 1) return t('Hier');
+  return new Date(at).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-const EMPTY = () => ({
-  inbound: `<b>${t('Aucun trade en attente')}</b>${t("Vous serez notifié dès qu'un nouveau trade arrive.")}`,
-  outbound: `<b>${t('Aucun trade envoyé')}</b>${t("Vos propositions apparaîtront ici. Épinglez-en une (📌) pour être averti dès qu'elle est acceptée, refusée ou contrée.")}`,
-  completed: `<b>${t('Aucun trade terminé récemment')}</b>`
-});
+const clock = (at) => new Date(at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+
+function journalRow(h) {
+  const info = KIND_INFO[h.kind] || { label: '', tone: 'even' };
+  let icon = KIND_ICON[h.kind] || '•';
+  let title, sub = '', pill = '';
+
+  if (h.kind === 'revalued') {
+    // Une réévaluation n'est pas un trade : ni partenaire ni numéro, mais un
+    // objet, ses deux cotes et l'impact sur le compte.
+    icon = h.pct >= 0 ? '📈' : '📉';
+    title = `${escapeHtml(h.name)}${h.count > 1 ? ` <span class="jr-x">×${h.count}</span>` : ''}`;
+    sub = t('cote {a} → {b} · impact {c}', { a: fmtNum(h.from), b: fmtNum(h.to), c: fmtSigned(h.delta) });
+  } else {
+    title = `${escapeHtml(h.partner)} <span class="jr-x">#${h.tradeId}</span>`;
+    if (h.kind === 'declined_by_me') sub = escapeHtml(t(h.skipped || ''));
+    else if (h.skipped) sub = escapeHtml(t('filtré : {why}', { why: t(h.skipped) }));
+    else if (h.counterTo) sub = t('↩ réponse au trade #{id}', { id: h.counterTo });
+    else if (h.unknown) sub = `<span class="face">❔ ${t('{n} objet(s) sans cote', { n: h.unknown })}</span>`;
+    else if (h.get != null && h.give != null) sub = t('{a} reçu vs {b} donné', { a: fmtNum(h.get), b: fmtNum(h.give) });
+  }
+  if (h.pct != null) pill = `<span class="jr-pill ${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>`;
+
+  const url = h.kind !== 'revalued' && h.tradeId ? tradeUrl(h.tradeId) : '';
+  const tag = url ? 'button' : 'div';
+  const muted = !h.notified && h.kind !== 'revalued' ? ' muted' : '';
+  return `<${tag} class="jr${muted}"${url ? ` data-url="${escapeHtml(url)}"` : ''}>
+    <span class="jr-ic" data-tone="${info.tone}">${icon}</span>
+    <span class="jr-m">
+      <span class="jr-k">${info.label ? t(info.label) : ''}</span>
+      <span class="jr-t">${title}</span>
+      ${sub ? `<span class="jr-s">${sub}</span>` : ''}
+    </span>
+    <span class="jr-r">${pill}<span class="jr-time">${clock(h.at)}</span></span>
+  </${tag}>`;
+}
+
+/** Les dernières 24 heures, résumées. */
+function journalSummaryHtml(hist) {
+  const since = Date.now() - 864e5;
+  const recent = hist.filter(h => h.at >= since);
+  const alerts = recent.filter(h => h.notified).length;
+  const muted = recent.filter(h => h.skipped && h.kind !== 'declined_by_me').length;
+  const revals = recent.filter(h => h.kind === 'revalued').length;
+  const done = recent.filter(h => (h.kind === 'completed' || h.kind === 'outbound_accepted') && h.get != null && h.give != null);
+  const net = done.reduce((s, h) => s + (h.get - h.give), 0);
+  const stats = [
+    muted ? `<span>${plural(muted, '{n} filtrée', '{n} filtrées')}</span>` : '',
+    revals ? `<span class="face">${plural(revals, '{n} réévaluation', '{n} réévaluations')}</span>` : ''
+  ].filter(Boolean).join('');
+  return `<section class="ls">
+    <div class="ls-main">
+      <div class="ls-l">${t('Alertes · 24 h')}</div>
+      <div class="ls-n">${alerts}</div>
+      <div class="ls-stats">${stats}</div>
+    </div>
+    ${done.length ? `<div class="ls-aside"><span>${t('Bilan')}</span><b class="${toneOf(net)}">${fmtSigned(net)}</b>
+      <small>${plural(done.length, '{n} trade terminé', '{n} trades terminés')}</small></div>` : ''}
+  </section>`;
+}
+
+function renderJournal(entering) {
+  const hist = data.history || [];
+  if (!hist.length) {
+    listEl.innerHTML = emptyHtml('history');
+    if (entering) cascade(listEl.children);
+    return;
+  }
+  const current = JOURNAL_FILTERS.find(f => f[0] === listFilter.history) || JOURNAL_FILTERS[0];
+  const chips = JOURNAL_FILTERS.map(([key, label, test]) => {
+    const n = hist.filter(test).length;
+    if (!n && key !== 'all' && key !== listFilter.history) return '';
+    return `<button class="${key === listFilter.history ? 'on' : ''}" data-lfilter="${key}">${t(label)} <small>${n}</small></button>`;
+  }).join('');
+
+  // Du plus récent au plus ancien, quoi qu'il arrive : les jours se regroupent
+  // sur cet ordre.
+  let body = '', day = '';
+  for (const h of hist.filter(current[2]).sort((a, b) => b.at - a.at)) {
+    const label = dayLabel(h.at);
+    if (label !== day) {
+      body += `${day ? '</section>' : ''}<section class="jr-day"><div class="jr-dh">${escapeHtml(label)}</div>`;
+      day = label;
+    }
+    body += journalRow(h);
+  }
+  if (day) body += '</section>';
+
+  listEl.innerHTML = journalSummaryHtml(hist)
+    + `<div class="lchips">${chips}</div>`
+    + (body || `<div class="ls-none">${t('Aucun événement dans cette catégorie.')}</div>`);
+  if (entering) cascade(listEl.children, 8);
+
+  listEl.querySelectorAll('button[data-lfilter]').forEach(el => el.addEventListener('click', () => {
+    listFilter.history = el.dataset.lfilter;
+    renderList();
+  }));
+  listEl.querySelectorAll('.jr[data-url]').forEach(el => el.addEventListener('click', () => {
+    B.tabs.create({ url: el.dataset.url });
+  }));
+}
 
 /* ============================= portefeuille ============================= */
 
@@ -1394,7 +1600,7 @@ function renderStats() {
 /* =============================== la liste =============================== */
 
 /**
- * Le rafraîchissement de fond redessine la liste toutes les 15 s. Sans ça, le
+ * Le rafraîchissement de fond redessine la liste toutes les 30 s. Sans ça, le
  * défilement remonterait en haut au milieu d'une lecture.
  */
 function keepScroll(draw) {
@@ -1403,59 +1609,58 @@ function keepScroll(draw) {
   if (top) listEl.scrollTop = top;
 }
 
+/**
+ * Entrée dans un onglet : tout arrive en cascade. Redessin de fond : rien ne
+ * bouge, sauf une carte qui vient d'être évaluée et remplace sa silhouette.
+ */
 function renderList() {
+  const entering = listEl.dataset.tab !== tab;
+  listEl.dataset.tab = tab;
   if (tab === 'stats') { keepScroll(renderStats); return; }
-  if (tab === 'history') {
-    keepScroll(() => {
-      listEl.innerHTML = data.history?.length
-        ? data.history.map(historyHtml).join('')
-        : `<div class="empty"><b>${t('Journal vide')}</b>${t('Chaque événement détecté (notifié ou filtré) apparaîtra ici.')}</div>`;
-    });
-    return;
-  }
+  if (tab === 'history') { keepScroll(() => renderJournal(entering)); return; }
 
   const snap = data.state?.snapshot?.[tab] || [];
   if (!snap.length) {
-    listEl.innerHTML = `<div class="empty">${EMPTY()[tab]}</div>`;
+    listEl.innerHTML = emptyHtml(tab);
+    if (entering) cascade(listEl.children);
     return;
   }
 
   const outbound = tab === 'outbound';
   const top = listEl.scrollTop;
-  listEl.innerHTML = snap.map(item => {
+  const rows = snap.filter(item => matchesFilter(tab, item)).map(item => {
     const c = cards[tab].get(item.tradeId);
-    if (c) return cardHtml({ ...item, ...c }, { outbound });
+    if (c) {
+      const key = tab + ':' + item.tradeId;
+      const enter = !entering && !shownCards.has(key) && !REDUCED_MOTION;
+      shownCards.add(key);
+      return cardHtml({ ...item, ...c }, { outbound, enter });
+    }
     // Détail illisible : on affiche quand même le trade avec ce qu'on sait.
     // Un échec d'évaluation ne doit jamais escamoter une ligne de la liste.
     const err = failures[tab].get(item.tradeId);
     if (err) return cardHtml({ ...item, analysis: null, url: tradeUrl(item.tradeId), error: err }, { outbound });
-    return `<div class="skeleton" data-id="${item.tradeId}"></div>`;
-  }).join('');
+    return skeletonHtml(item.tradeId);
+  });
 
+  listEl.innerHTML = summaryHtml(tab, snap) + chipsHtml(tab, snap)
+    + (rows.length ? rows.join('') : `<div class="ls-none">${t('Aucun trade dans cette catégorie.')}</div>`);
   if (top) listEl.scrollTop = top;
+  if (entering) cascade(listEl.children, 8);
   bindList();
 }
 
 /**
  * Vignette introuvable malgré tous les replis : un emplacement neutre vaut mieux
- * qu'une image cassée — et il doit avoir la taille de l'emplacement qu'il
- * remplace, sinon la ligne saute.
+ * qu'une image cassée — et il garde la forme de l'image qu'il remplace, sinon
+ * la ligne saute.
  */
 function bindImages(root) {
   root.querySelectorAll('img[src]').forEach(img => {
     img.addEventListener('error', () => {
       const ph = document.createElement('div');
-      if (img.classList.contains('av')) ph.className = 'av';
-      else if (img.classList.contains('w-img')) {
-        ph.className = 'w-img ph';
-        ph.textContent = '▫';
-      } else if (img.closest('.det-row') || img.closest('.rec-row')) {
-        ph.className = 'ph';
-        ph.textContent = '🎭';
-      } else {
-        ph.className = 'tile';
-        ph.textContent = '▫';
-      }
+      ph.className = (img.className ? img.className + ' ' : '') + 'ph';
+      ph.textContent = img.dataset.icon ?? (img.closest('.rec-row') ? '🎭' : '▫');
       ph.title = img.title;
       img.replaceWith(ph);
     }, { once: true });
@@ -1463,13 +1668,19 @@ function bindImages(root) {
 }
 
 function bindList() {
-  listEl.querySelectorAll('.body[data-zoom]').forEach(el => {
+  listEl.querySelectorAll('.tc-body[data-zoom]').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
       openZoom(Number(el.dataset.zoom));
     });
   });
   bindImages(listEl);
+  listEl.querySelectorAll('button[data-lfilter]').forEach(el => {
+    el.addEventListener('click', () => {
+      listFilter[tab] = el.dataset.lfilter;
+      renderList();
+    });
+  });
   listEl.querySelectorAll('button[data-expand]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1533,7 +1744,7 @@ async function hydrate() {
       for (const f of res?.failed || []) failures[current].set(f.tradeId, f.error);
       if (res?.links) data.state.links = res.links;
       if (res?.tracked) data.state.tracked = res.tracked;
-      if (tab === current) renderList();
+      if (tab === current && !zoomed) renderList();
     }
   } finally {
     hydrating = false;
@@ -1557,6 +1768,7 @@ async function load({ refresh = false } = {}) {
   if (domLang === null) {
     domLang = lang;
     translateDom(document);
+    moveTabIndicator();
   } else if (domLang !== lang) {
     location.reload();
     return;
@@ -1578,11 +1790,26 @@ async function load({ refresh = false } = {}) {
 
 /* ============================== événements ============================== */
 
+/**
+ * La pastille de l'onglet actif glisse d'un onglet à l'autre. Première pose
+ * sans transition : elle ne doit pas traverser la barre à l'ouverture.
+ */
+function moveTabIndicator() {
+  const ind = document.querySelector('.tab-ind');
+  const active = document.querySelector('.tab.active');
+  if (!ind || !active) return;
+  ind.style.width = active.offsetWidth + 'px';
+  ind.style.transform = `translateX(${active.offsetLeft}px)`;
+  if (!ind.classList.contains('ready')) requestAnimationFrame(() => ind.classList.add('ready'));
+}
+document.fonts?.ready?.then(moveTabIndicator);
+
 document.querySelectorAll('.tab').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     el.classList.add('active');
     tab = el.dataset.tab;
+    moveTabIndicator();
     listEl.scrollTop = 0;
     renderList();
     hydrate();
@@ -1590,9 +1817,10 @@ document.querySelectorAll('.tab').forEach(el => {
 });
 
 $('#btn-refresh').addEventListener('click', async (e) => {
-  e.target.textContent = '…';
-  await load({ refresh: true });
-  e.target.textContent = '⟳';
+  const btn = e.currentTarget;
+  if (btn.classList.contains('spin')) return;
+  btn.classList.add('spin');
+  try { await load({ refresh: true }); } finally { btn.classList.remove('spin'); }
 });
 
 $('#btn-toggle').addEventListener('click', async () => {
@@ -1611,12 +1839,11 @@ load();
  * Le service worker écrit le journal et l'état dans `storage.local` ; le popup
  * l'apprend par `onChanged` et se redessine aussitôt — un événement notifié
  * apparaît dans le journal en même temps que la notification, pas jusqu'à
- * 15 s plus tard. Les écritures arrivent en rafale à la fin d'un cycle : on
+ * 30 s plus tard. Les écritures arrivent en rafale à la fin d'un cycle : on
  * les regroupe (200 ms) pour ne redessiner qu'une fois.
  *
- * Le balayage de fond reste, comme filet, deux fois moins souvent qu'avant.
- * Le zoom n'est jamais redessiné sous les doigts : tant qu'il est ouvert, la
- * liste ne bouge pas.
+ * Le balayage de fond reste, comme filet. Le zoom n'est jamais redessiné sous
+ * les doigts : tant qu'il est ouvert, la liste ne bouge pas.
  */
 let refreshTimer = null;
 function refreshSoon() {
