@@ -1,6 +1,6 @@
 # Privacy Policy — RoNote
 
-**Last updated: 9 September 2026 · Version 2.9.2**
+**Last updated: 10 September 2026 · Version 2.10.0**
 
 *[Version française](PRIVACY.fr.md)*
 
@@ -21,7 +21,7 @@ While you are signed in to Roblox, RoNote reads, from within your browser:
 - **the items in those trades** — names, IDs, thumbnails, values;
 - **the public profile of the other player** — username, display name, avatar;
 - **your own username and Roblox ID**, so it knows which account it is looking at;
-- **your inventory**, if you use the Portfolio tab.
+- **your inventory**, if you use the Portfolio tab or the revaluation alerts.
 
 ## Where that data is stored
 

@@ -1,7 +1,7 @@
 # RoNote — Alertes de trades Roblox
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.9.2-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.10.0-brightgreen.svg)](CHANGELOG.md)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
 ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un
@@ -22,6 +22,7 @@ Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
 - **Analyse de valeur** de chaque trade : value, RAP, Robux comptés **nets** des 30 % de taxe
 - **Détection des pièges** : objets *projected*, cotes spéculatives, visages et objets de bundle sans cote
 - **Onglet Bénéfice** : l'évolution de la valeur de ton compte dans le temps
+- **Alerte de réévaluation** : prévenu quand Rolimon's révise la cote d'un objet que tu possèdes
 - **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses
 - **Français et anglais**, détectés automatiquement
 - **Refuser ou annuler** un trade en deux clics volontaires, depuis le détail
@@ -106,7 +107,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 93 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 96 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le vrai popup, branché sur un faux service worker |
 
 Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes : c'est ce qui
@@ -121,7 +122,7 @@ permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque c
 ## Contribuer
 
 Les issues et les pull requests sont les bienvenues. Avant d'ouvrir une PR, fais
-tourner `python tools/check.py` et les 93 tests du navigateur.
+tourner `python tools/check.py` et les 96 tests du navigateur.
 
 ## Licence
 

@@ -12,7 +12,7 @@ Retour au [README](../README.md).
 |---|---|
 | Compte développeur | 5 $ une fois, sur <https://chrome.google.com/webstore/devconsole> |
 | Vérification | Google demande une adresse e-mail vérifiée et une identité |
-| Paquet à téléverser | `dist/ronote-chrome-v2.9.2.zip`, produit par `python tools/build.py` |
+| Paquet à téléverser | `dist/ronote-chrome-v2.10.0.zip`, produit par `python tools/build.py` |
 | URL de confidentialité | `https://cpu-alt.github.io/RoNote/privacy.html` (en ligne) |
 
 > **Choisis « Unlisted » au premier envoi.** L'installation se fait par lien, les mises
@@ -44,6 +44,7 @@ WHAT YOU GET
 • Desktop notifications, with a different sound per event type
 • Detailed value analysis, item by item
 • Portfolio tab: how your account value moves over time
+• Revaluation alerts: know when Rolimon's revises the value of an item you own
 • Filters: value threshold, ignored players, quiet hours
 • English and French, detected automatically
 • Decline or cancel a trade in two deliberate clicks

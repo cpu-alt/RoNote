@@ -3,6 +3,34 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.10.0 — prévenu quand un objet que tu possèdes est réévalué
+
+**Nouveau : l'alerte de réévaluation.** Rolimon's révise ses cotes régulièrement,
+parfois de plusieurs dizaines de pourcents d'un coup. RoNote te prévient désormais
+quand la cote d'un objet de ton inventaire bouge d'au moins 10 % — seuil réglable,
+à la hausse comme à la baisse :
+
+- une seule notification par vérification, du plus gros impact au plus petit, avec
+  l'ancienne et la nouvelle cote et l'effet sur la valeur de ton compte ;
+- une ligne par objet dans le journal, et une sonnerie à part (**Pièces** par
+  défaut) ;
+- un visage possédé en bundle n'alerte qu'une fois, même quand Rolimon's publie sa
+  révision sous ses deux identifiants ;
+- aucune avalanche à l'activation : les révisions déjà connues sont ignorées.
+
+**Firefox, prêt pour addons.mozilla.org.** Identifiant définitif
+(`ronote@cpu-alt.github.io`) et déclaration « aucune donnée collectée », obligatoire
+pour toute nouvelle extension depuis novembre 2025. Guide : `docs/publication-firefox.md`.
+
+**Sous le capot.**
+
+- `hook.js`, le seul script de contenu sans test, est testé avec `relay.js` : le
+  jeton CSRF ne vise que l'origine de la page, et le relais refuse tout le reste.
+  `check.py` refuse désormais tout `postMessage` vers « * » ;
+- les restes de l'ancien panneau sur la page Roblox (retiré en 2.8.0) sont partis :
+  traductions orphelines, un paramètre jamais utilisé, des passages de doc ;
+- l'export CSV du journal gagne les colonnes des réévaluations.
+
 ## v2.9.2 — le nom de l'extension suit la langue du navigateur
 
 Le Chrome Web Store tire le titre et le résumé **du paquet**, pas de la fiche :

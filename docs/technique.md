@@ -792,7 +792,7 @@ tous les chiffres.
 python tools/serve.py
 ```
 
-puis <http://127.0.0.1:8777/tools/selftest.html> — **93 tests, sans rien installer.**
+puis <http://127.0.0.1:8777/tools/selftest.html> — **96 tests, sans rien installer.**
 
 Les faire tourner dans un navigateur n'est pas un pis-aller : c'est le seul moyen de
 vérifier d'un coup la **syntaxe**, les **imports** et le **comportement**, sur le
@@ -827,7 +827,8 @@ Les suites Node restent disponibles si Node est installé :
 
 ```bash
 npm test    # anti-doublon (17) + envois et contre-offres (33)
-            # + scripts de contenu dans un espace global partagé (8)
+            # + scripts de contenu et pont page ↔ extension (17)
+            # + réévaluation des objets possédés (20)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un
@@ -862,7 +863,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 93 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 96 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le popup, en vrai (`?lang=en` pour l'anglais) |
 
 `preview.html` ne remaquette rien : il charge **le vrai** `popup.html` /
@@ -910,7 +911,7 @@ src/
 tools/
   build.py / check.py      build et vérifications, sans Node
   serve.py                 serveur statique pour les deux pages ci-dessous
-  selftest.html/.js        93 tests, dans un vrai navigateur
+  selftest.html/.js        96 tests, dans un vrai navigateur
   preview.html/.js         le vrai popup, branché sur un faux service worker
   fixtures/                vraies réponses d'API (catalogues, inventaire réel)
   *.mjs                    équivalents Node historiques
