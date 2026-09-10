@@ -45,6 +45,17 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
 - les cartes arrivent en cascade à l'ouverture d'un onglet, et une à une à mesure
   qu'elles sont évaluées — jamais au rafraîchissement de fond.
 
+**Les onglets s'ouvrent plus vite.**
+
+- un trade déjà vu n'est plus redemandé à Roblox toutes les 10 minutes : son
+  contenu ne change jamais, il est gardé 7 jours et seule son analyse est refaite
+  quand les cotes bougent — sans réseau ;
+- les trades encore inconnus se chargent trois à la fois au lieu d'un par un ;
+- en ouvrant le popup, les deux autres listes se préparent en arrière-plan : changer
+  d'onglet montre des cartes prêtes ;
+- l'ouverture lit tout en parallèle, et le rafraîchissement de fond ne redessine
+  plus un onglet (et ses vignettes) quand rien n'a changé.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant

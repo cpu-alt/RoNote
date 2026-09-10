@@ -79,6 +79,18 @@ export function chunk(arr, size) {
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+/** Traite `list` avec au plus `limit` taches en meme temps, dans l'ordre de depart. */
+export async function eachLimit(list, limit, fn) {
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      await fn(list[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, list.length)) }, worker));
+}
+
 /**
  * fetch avec delai maximal. Sans lui, un appel que Roblox ou Rolimon's ne
  * terminait jamais gardait le cycle de verification ouvert indefiniment — et

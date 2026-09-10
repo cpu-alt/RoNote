@@ -524,6 +524,21 @@ try {
   check('ecart signe', utils.fmtSigned(-1500), '−1.5k');
   check('heures silencieuses a cheval sur minuit',
     utils.inQuietHours({ enabled: true, start: '23:00', end: '08:00' }, new Date(2026, 0, 1, 2, 0)), true);
+
+  // Le popup charge ses trades trois par trois : jamais plus, et aucun oublie.
+  {
+    let running = 0, peak = 0;
+    const done = [];
+    await utils.eachLimit([1, 2, 3, 4, 5, 6, 7], 3, async (n) => {
+      running++;
+      peak = Math.max(peak, running);
+      await new Promise(r => setTimeout(r, 5));
+      done.push(n);
+      running--;
+    });
+    check('chargement en parallele : jamais plus de 3 a la fois', peak, 3);
+    check('chargement en parallele : chaque trade traite une fois', done.sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7]);
+  }
 } catch (e) {
   fail++;
   const pre = document.createElement('pre');

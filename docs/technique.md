@@ -339,6 +339,16 @@ seulement compté. Le service worker prépare la liste (`portfolioItems`, module
 testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
 10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
 
+**Chargement des listes.** Le contenu d'un trade ne change jamais : le service
+worker garde son détail brut 7 jours avec sa fiche. Tant que la table des cotes et les
+réglages de calcul (base, taxe sur les Robux) sont les mêmes, la fiche sert telle
+quelle ; s'ils ont changé, l'analyse est refaite sur le détail gardé, sans redemander
+le trade à Roblox. Le popup demande ses trades par lots de six, que le service worker
+évalue trois par trois ; la liste affichée passe en premier, les deux autres se
+préchargent derrière. Au réveil du service worker, la vérification et le popup se
+partagent une seule lecture de la table des cotes. Enfin, un redessin de fond qui ne
+changerait rien (même liste, mêmes cartes, même minute) est sauté.
+
 Les préférences d'affichage (période, value ou RAP, montants masqués, vue, tri, filtre)
 restent dans le popup (`localStorage`) : elles ne changent rien à la surveillance.
 
@@ -821,7 +831,7 @@ tous les chiffres.
 python tools/serve.py
 ```
 
-puis <http://127.0.0.1:8777/tools/selftest.html> — **96 tests, sans rien installer.**
+puis <http://127.0.0.1:8777/tools/selftest.html> — **98 tests, sans rien installer.**
 
 Les faire tourner dans un navigateur n'est pas un pis-aller : c'est le seul moyen de
 vérifier d'un coup la **syntaxe**, les **imports** et le **comportement**, sur le
@@ -893,7 +903,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 96 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 98 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le popup, en vrai (`?lang=en` pour l'anglais) |
 
 `preview.html` ne remaquette rien : il charge **le vrai** `popup.html` /
@@ -941,7 +951,7 @@ src/
 tools/
   build.py / check.py      build et vérifications, sans Node
   serve.py                 serveur statique pour les deux pages ci-dessous
-  selftest.html/.js        96 tests, dans un vrai navigateur
+  selftest.html/.js        98 tests, dans un vrai navigateur
   preview.html/.js         le vrai popup, branché sur un faux service worker
   fixtures/                vraies réponses d'API (catalogues, inventaire réel)
   *.mjs                    équivalents Node historiques

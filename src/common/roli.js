@@ -229,7 +229,14 @@ async function fetchJson(url) {
   return r.json();
 }
 
-let mem = null;   // { ts, table } — evite de relire 300 Ko a chaque appel
+let mem = null;       // { ts, table } — evite de relire 300 Ko a chaque appel
+let pending = null;   // chargement en cours, partage par les appels simultanes
+
+const emptyCatalog = (ratio = 1.6) => ({
+  assets: {}, bundles: {}, faceOf: {}, bundleOf: {},
+  ts: 0, stale: false, veryStale: false, changes: {},
+  basis: 'rap', ratio, count: 0, ready: false
+});
 
 /**
  * Contexte d'evaluation, servi depuis le cache tant qu'il est frais.
@@ -242,17 +249,20 @@ let mem = null;   // { ts, table } — evite de relire 300 Ko a chaque appel
 export async function getCatalog(settings) {
   const ratio = Number(settings?.speculativeRatio) || 1.6;
   const basis = settings?.valueBasis || 'value';
+  if (settings && settings.useRolimons === false) return emptyCatalog(ratio);
 
-  const empty = {
-    assets: {}, bundles: {}, faceOf: {}, bundleOf: {},
-    ts: 0, stale: false, veryStale: false, changes: {},
-    basis: 'rap', ratio, count: 0, ready: false
-  };
-  if (settings && settings.useRolimons === false) return empty;
+  if (mem && Date.now() - mem.ts < TTL) return { ...mem.table, basis, ratio };
 
+  // Au reveil du service worker, la verification et le popup demandent la
+  // table au meme instant : une seule lecture de 300 Ko, un seul telechargement.
+  if (!pending) pending = loadCatalog().finally(() => { pending = null; });
+  const table = await pending;
+  // Sans table, le calcul retombe sur le RAP : la base choisie n'a plus de sens.
+  return table.ready ? { ...table, basis, ratio } : { ...table, ratio };
+}
+
+async function loadCatalog() {
   const now = Date.now();
-  if (mem && now - mem.ts < TTL) return { ...mem.table, basis, ratio };
-
   const got = await B.storage.local.get([KEY, KEY_CHANGES]);
   const cached = got[KEY];
   let changes = pruneChanges(got[KEY_CHANGES]);
@@ -264,7 +274,7 @@ export async function getCatalog(settings) {
   const wrap = (t, ts, stale) => ({
     assets: t.assets, bundles: t.bundles, faceOf: t.faceOf, bundleOf: t.bundleOf,
     ts, stale, veryStale: stale && (now - ts) > VERY_STALE,
-    changes, basis, ratio,
+    changes,
     count: Object.keys(t.assets).length + Object.keys(t.bundles).length,
     ready: true
   });
@@ -305,7 +315,7 @@ export async function getCatalog(settings) {
   } catch (e) {
     console.debug("[RoNote] Rolimon's indisponible:", e?.message || e);
     if (usable) return wrap(cached, cached.ts, true);
-    return { ...empty, stale: true, veryStale: true };
+    return { ...emptyCatalog(), stale: true, veryStale: true };
   }
 }
 

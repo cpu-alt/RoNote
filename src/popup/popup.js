@@ -1423,6 +1423,7 @@ function reconciliationHtml(rep) {
 
 let walletFetching = false;
 let walletAutoTried = false;
+let walletSig = '';   // dernier rendu de l'onglet, pour sauter les redessins inutiles
 
 async function recomputePortfolio(btn = null) {
   if (walletFetching) return;
@@ -1466,6 +1467,15 @@ function renderStats() {
   // Entrée dans l'onglet : tout s'anime. Redessin de fond : rien ne bouge.
   const mode = REDUCED_MOTION ? null : (listEl.querySelector('.w-hero') ? walletAnimate : 'all');
   walletAnimate = null;
+
+  // Redessin de fond sans rien de neuf : l'onglet reste tel quel, avec ses
+  // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
+  const sig = JSON.stringify([
+    rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r,
+    st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k]), Math.floor(Date.now() / 60000)
+  ]);
+  if (listEl.querySelector('.w-hero') && sig === walletSig) return;
+  walletSig = sig;
 
   const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
   const since = range.days ? Date.now() - range.days * 864e5 : 0;
@@ -1603,13 +1613,33 @@ function keepScroll(draw) {
  * Entrée dans un onglet : tout arrive en cascade. Redessin de fond : rien ne
  * bouge, sauf une carte qui vient d'être évaluée et remplace sa silhouette.
  */
+/** Tout ce qui change le rendu de la liste affichée, en une chaîne. */
+let lastListSig = '';
+function listSignature(snap) {
+  const minute = Math.floor(Date.now() / 60000);   // les « il y a 3 min » avancent
+  if (tab === 'history') {
+    return JSON.stringify([tab, listFilter.history, minute, data.history?.length || 0, data.history?.[0]?.at || 0]);
+  }
+  return JSON.stringify([
+    tab, listFilter[tab], minute, data.settings?.showItemDetails, data.state?.inboundCount,
+    Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
+    snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)])
+  ]);
+}
+
 function renderList() {
   const entering = listEl.dataset.tab !== tab;
   listEl.dataset.tab = tab;
-  if (tab === 'stats') { keepScroll(renderStats); return; }
-  if (tab === 'history') { keepScroll(() => renderJournal(entering)); return; }
+  if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
 
+  // Le rafraîchissement de fond repasse toutes les 10 à 30 s. Rien de neuf :
+  // on garde la liste telle quelle au lieu de recréer cartes et vignettes.
   const snap = data.state?.snapshot?.[tab] || [];
+  const sig = listSignature(snap);
+  if (!entering && sig === lastListSig) return;
+  lastListSig = sig;
+
+  if (tab === 'history') { keepScroll(() => renderJournal(entering)); return; }
   if (!snap.length) {
     listEl.innerHTML = emptyHtml(tab);
     if (entering) cascade(listEl.children);
@@ -1624,7 +1654,10 @@ function renderList() {
       const key = tab + ':' + item.tradeId;
       const enter = !entering && !shownCards.has(key) && !REDUCED_MOTION;
       shownCards.add(key);
-      return cardHtml({ ...item, ...c }, { outbound, enter });
+      // La fiche vient du cache ; le statut et l'expiration, eux, viennent de la
+      // liste, relue à chaque vérification.
+      return cardHtml({ ...item, ...c, status: item.status || c.status, expiration: item.expiration || c.expiration },
+        { outbound, enter });
     }
     // Détail illisible : on affiche quand même le trade avec ce qu'on sait.
     // Un échec d'évaluation ne doit jamais escamoter une ligne de la liste.
@@ -1711,33 +1744,42 @@ function bindList() {
 
 /* =============================== données ================================ */
 
-let hydrating = false;
+const hydrating = new Set();   // listes en cours de chargement
 
 /**
- * Charge le détail des trades visibles, par lots, en réaffichant entre chaque :
- * la liste se remplit progressivement au lieu d'attendre le dernier.
+ * Charge le détail des trades d'une liste, par lots, en réaffichant entre
+ * chaque : la liste se remplit progressivement au lieu d'attendre le dernier.
  */
-async function hydrate() {
-  if (tab === 'history' || tab === 'stats' || hydrating) return;
-  const current = tab;
-  const snap = data.state?.snapshot?.[current] || [];
+async function hydrate(kind = tab) {
+  if (!cards[kind] || hydrating.has(kind)) return;
+  const snap = data.state?.snapshot?.[kind] || [];
   const todo = snap.map(x => x.tradeId)
-    .filter(id => !cards[current].has(id) && !failures[current].has(id));
+    .filter(id => !cards[kind].has(id) && !failures[kind].has(id));
   if (!todo.length) return;
 
-  hydrating = true;
+  hydrating.add(kind);
   try {
     for (let i = 0; i < todo.length; i += 6) {
-      if (tab !== current) break;                 // l'utilisateur a changé d'onglet
-      const res = await send({ type: 'ronote:hydrate', ids: todo.slice(i, i + 6), kind: current });
-      for (const c of res?.cards || []) cards[current].set(c.tradeId, c);
-      for (const f of res?.failed || []) failures[current].set(f.tradeId, f.error);
+      const res = await send({ type: 'ronote:hydrate', ids: todo.slice(i, i + 6), kind });
+      for (const c of res?.cards || []) cards[kind].set(c.tradeId, c);
+      for (const f of res?.failed || []) failures[kind].set(f.tradeId, f.error);
       if (res?.links) data.state.links = res.links;
       if (res?.tracked) data.state.tracked = res.tracked;
-      if (tab === current && !zoomed) renderList();
+      if (tab === kind && !zoomed) renderList();
     }
   } finally {
-    hydrating = false;
+    hydrating.delete(kind);
+  }
+}
+
+/**
+ * La liste affichée d'abord, puis les deux autres en arrière-plan : changer
+ * d'onglet montre alors des cartes prêtes au lieu de silhouettes.
+ */
+async function hydrateAll() {
+  await hydrate(tab);
+  for (const kind of ['inbound', 'outbound', 'completed']) {
+    if (kind !== tab) await hydrate(kind);
   }
 }
 
@@ -1775,7 +1817,7 @@ async function load({ refresh = false } = {}) {
   }
   renderHeader();
   renderList();
-  hydrate();
+  hydrateAll();
 }
 
 /* ============================== événements ============================== */

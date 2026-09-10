@@ -15,7 +15,7 @@ import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
-import { inQuietHours } from '../common/utils.js';
+import { eachLimit, inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -26,8 +26,9 @@ import {
 } from './notifier.js';
 
 const ALARM = 'ronote:poll';
-const DETAIL_TTL = 10 * 60 * 1000;
-const DETAIL_CAP = 250;
+const DETAIL_KEEP = 7 * 24 * 60 * 60 * 1000;   // le contenu d'un trade ne change jamais
+const DETAIL_CAP = 150;
+const HYDRATE_PARALLEL = 3;   // trades evalues en meme temps pour le popup
 const ME_TTL = 15 * 60 * 1000;   // on ne redemande pas l'identite a chaque tour
 const LINKS_CAP = 120;
 const PAGE_LIMIT = 25;
@@ -191,16 +192,51 @@ async function getCapturedTrade(tradeId) {
 
 /* ============================== cartes ================================= */
 
-const memDetails = new Map(); // tradeId -> {at, card}
-let detailsDirty = false;    // evite de reecrire ~250 fiches a chaque tour
+/**
+ * LE CACHE DES TRADES.
+ *
+ * Le contenu d'un trade ne change jamais : ce qu'on donne et ce qu'on recoit
+ * est fixe a sa creation. Seule l'ANALYSE depend de l'exterieur — la table des
+ * cotes et deux reglages. On garde donc le detail brut 7 jours avec la fiche :
+ *   - memes cotes, memes reglages  -> la fiche sert telle quelle ;
+ *   - cotes revisees               -> l'analyse est refaite sur le detail garde,
+ *                                     sans redemander le trade a Roblox.
+ * L'ancienne regle (tout jeter apres 10 minutes) faisait recharger chaque trade
+ * a chaque ouverture du popup, un appel reseau par carte.
+ */
+const memDetails = new Map(); // tradeId -> {at, sig, detail, card}
+let detailsDirty = false;    // evite de reecrire le cache a chaque tour
+let detailsLoading = null;   // lecture en cours : deux demandes simultanees ne la doublent pas
+let detailsSaveTimer = null;
 
 async function loadDetailCache() {
   if (memDetails.size) return;
-  const { details } = await B.storage.local.get('details');
-  for (const [id, rec] of Object.entries(details || {})) memDetails.set(Number(id), rec);
+  if (!detailsLoading) {
+    detailsLoading = B.storage.local.get('details').then(({ details }) => {
+      const now = Date.now();
+      for (const [id, rec] of Object.entries(details || {})) {
+        if (now - (rec?.at || 0) < DETAIL_KEEP && !memDetails.has(Number(id))) memDetails.set(Number(id), rec);
+      }
+    }).finally(() => { detailsLoading = null; });
+  }
+  await detailsLoading;
+}
+
+/** Ce dont depend l'analyse d'un trade : la table des cotes et deux reglages. */
+const analysisSig = (cat, settings) =>
+  [cat?.ts || 0, cat?.ratio || 0, settings?.valueBasis || 'value', settings?.robuxTax !== false].join('|');
+
+/**
+ * Le cache pese quelques centaines de Ko : pendant que le popup charge ses
+ * listes lot par lot, on l'ecrit une fois a la fin plutot qu'apres chaque lot.
+ */
+function saveDetailCacheSoon() {
+  clearTimeout(detailsSaveTimer);
+  detailsSaveTimer = setTimeout(() => { saveDetailCache(); }, 1500);
 }
 
 async function saveDetailCache() {
+  clearTimeout(detailsSaveTimer);
   if (!detailsDirty) return;
   detailsDirty = false;
   const entries = [...memDetails.entries()]
@@ -213,7 +249,7 @@ async function saveDetailCache() {
 }
 
 /** Fiche complete a partir d'un detail deja recupere (aucun appel superflu). */
-async function makeCard(detail, kind, myId, cat, settings) {
+async function makeCard(detail, kind, myId, cat, settings, prev = null) {
   // 1) Assets qu'aucune table ne connait : depuis la bascule des visages en
   //    bundles, l'objet echange peut n'etre que le CONTENU d'un bundle. On
   //    fait le pont assetId -> bundleId via le catalogue Roblox.
@@ -248,7 +284,8 @@ async function makeCard(detail, kind, myId, cat, settings) {
   // Vignettes et portrait en parallele : ce sont des conforts, ils ne doivent
   // jamais faire perdre la carte ni retarder les deux autres appels.
   const [headshot, thumbs] = await Promise.all([
-    partner.id ? safe(() => api.getUserHeadshot(partner.id), null) : null,
+    // Portrait deja connu (fiche precedente du meme trade) : pas de nouvel appel.
+    partner.id ? (prev?.headshot || safe(() => api.getUserHeadshot(partner.id), null)) : null,
     safe(() => resolveThumbs(items.map(thumbKeysFor)), [])
   ]);
   items.forEach((it, i) => { it.thumb = thumbs?.[i] || null; });
@@ -265,7 +302,7 @@ async function makeCard(detail, kind, myId, cat, settings) {
     verdict: verdict(analysis),
     url: api.TRADE_URL(detail.id)
   };
-  memDetails.set(card.tradeId, { at: Date.now(), card });
+  memDetails.set(card.tradeId, { at: Date.now(), sig: analysisSig(cat, settings), detail, card });
   detailsDirty = true;
   return card;
 }
@@ -276,20 +313,30 @@ async function step(label, fn) {
   catch (e) { throw new Error(`${label}: ${e?.message || e}`); }
 }
 
-/** Ce que la liste des trades sait deja : la v2 ne renvoie aucune date. */
+/** Ce que les listes de trades savent deja de chacun : la v2 ne renvoie aucune date. */
+function snapshotHints(state) {
+  const hints = new Map();
+  for (const k of ['inbound', 'outbound', 'completed']) {
+    for (const t of state.snapshot?.[k] || []) {
+      const id = Number(t.tradeId);
+      if (!hints.has(id)) hints.set(id, { tradeId: id, created: t.created, expiration: t.expiration, status: t.status, partner: t.partner });
+    }
+  }
+  return hints;
+}
+
 async function tradeHint(tradeId) {
-  const st = await getState();
-  const t = ['inbound', 'outbound', 'completed']
-    .flatMap(k => st.snapshot?.[k] || [])
-    .find(x => Number(x.tradeId) === Number(tradeId));
-  return t ? { tradeId: Number(tradeId), created: t.created, expiration: t.expiration, status: t.status, partner: t.partner } : null;
+  return snapshotHints(await getState()).get(Number(tradeId)) || null;
 }
 
 async function buildCard(tradeId, kind, myId, cat, settings, { force = false, hint = null } = {}) {
   await loadDetailCache();
   const cached = memDetails.get(Number(tradeId));
-  if (!force && cached && (Date.now() - cached.at) < DETAIL_TTL && cached.card?.analysis) {
-    return { ...cached.card, kind };
+  if (!force && cached?.card?.analysis) {
+    if (cached.sig === analysisSig(cat, settings)) return { ...cached.card, kind };
+    if (cached.detail) {
+      return step('analyse', () => makeCard(cached.detail, kind, myId, cat, settings, cached.card));
+    }
   }
   const meta = hint || await tradeHint(tradeId);
   let detail;
@@ -878,12 +925,14 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 async function handleMessage(msg) {
   switch (msg.type) {
     case 'ronote:get': {
-      const [settings, state, history] = await Promise.all([getSettings(), getState(), getHistory()]);
-      const streams = await getStreams();
+      // Tout d'un coup : le popup attend cette reponse pour afficher quoi que ce soit.
+      const [settings, state, history, streams, portfolio, report] = await Promise.all([
+        getSettings(), getState(), getHistory(), getStreams(), getPortfolio(), getPortfolioReport()
+      ]);
       return {
         settings, state, history: history.slice(0, 100),
-        portfolio: await getPortfolio(),
-        report: await getPortfolioReport(),
+        portfolio,
+        report,
         counts: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.seen?.length || 0])),
         newest: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.newest || 0])),
         belowMark: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.belowMark || 0]))
@@ -898,19 +947,23 @@ async function handleMessage(msg) {
       const state = await getState();
       if (!state.userId) return { cards: [] };
       const cat = await getCatalog(settings);
+      const hints = snapshotHints(state);   // lu une fois, pas une fois par trade
       const cards = [];
       const failed = [];
-      for (const id of (msg.ids || []).slice(0, SNAPSHOT_LIMIT)) {
+      // Trois trades a la fois : on n'attend plus chaque carte l'une apres
+      // l'autre, sans pour autant se faire limiter par Roblox.
+      await eachLimit((msg.ids || []).slice(0, SNAPSHOT_LIMIT), HYDRATE_PARALLEL, async (id) => {
         try {
-          cards.push(await buildCard(id, msg.kind || 'inbound', state.userId, cat, settings));
+          cards.push(await buildCard(id, msg.kind || 'inbound', state.userId, cat, settings,
+            { hint: hints.get(Number(id)) || null }));
         } catch (e) {
           // Un detail illisible ne doit JAMAIS faire disparaitre le trade de la
           // liste : on remonte l'echec, le popup affichera la carte en mode
           // degrade avec la raison.
           failed.push({ tradeId: Number(id), error: String(e?.message || e) });
         }
-      }
-      await saveDetailCache();
+      });
+      saveDetailCacheSoon();
       await flushThumbs();
       return { cards, failed, links: state.links, tracked: state.tracked };
     }

@@ -107,7 +107,7 @@ Puis, dans un navigateur :
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 96 tests |
+| <http://127.0.0.1:8777/tools/selftest.html> | les 98 tests |
 | <http://127.0.0.1:8777/tools/preview.html> | le vrai popup, branché sur un faux service worker |
 
 Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes : c'est ce qui
@@ -122,7 +122,7 @@ permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque c
 ## Contribuer
 
 Les issues et les pull requests sont les bienvenues. Avant d'ouvrir une PR, fais
-tourner `python tools/check.py` et les 96 tests du navigateur.
+tourner `python tools/check.py` et les 98 tests du navigateur.
 
 ## Licence
 
