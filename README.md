@@ -21,7 +21,7 @@ Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
 - **Notifications bureau fiables**, avec un son différent par type d'événement
 - **Analyse de valeur** de chaque trade : value, RAP, Robux comptés **nets** des 30 % de taxe
 - **Détection des pièges** : objets *projected*, cotes spéculatives, visages et objets de bundle sans cote
-- **Onglet Bénéfice** : l'évolution de la valeur de ton compte dans le temps
+- **Onglet Portefeuille** : la valeur de ton compte et sa courbe, puis chacun de tes collectibles avec sa cote, sa demande et sa tendance (recherche, tri, vue galerie, montants masquables)
 - **Alerte de réévaluation** : prévenu quand Rolimon's révise la cote d'un objet que tu possèdes
 - **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses
 - **Français et anglais**, détectés automatiquement

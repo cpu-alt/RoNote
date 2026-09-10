@@ -21,7 +21,7 @@ Quand tu es connecté à Roblox, RoNote lit, depuis ton navigateur :
 - **les objets de ces trades** — noms, identifiants, vignettes, valeurs ;
 - **le profil public du joueur en face** — pseudo, nom d'affichage, avatar ;
 - **ton propre pseudo et ton identifiant Roblox**, pour savoir de quel compte il s'agit ;
-- **ton inventaire**, si tu utilises l'onglet Bénéfice ou l'alerte de réévaluation.
+- **ton inventaire**, si tu utilises l'onglet Portefeuille ou l'alerte de réévaluation.
 
 ## Où ces données sont stockées
 

@@ -32,7 +32,7 @@
  */
 import * as api from './api.js';
 import { readEntry } from './roli.js';
-import { holdingsOf } from './revalue.js';
+import { holdingsOf, revisionFor } from './revalue.js';
 
 /** Ce que Rolimon's compte, ce que le joueur possede, et l'ecart entre les deux. */
 export async function buildPortfolio(userId, cat) {
@@ -46,7 +46,8 @@ export async function buildPortfolio(userId, cat) {
     ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
     value: 0, rap: 0, rank: 0,
     ownedFaces: 0, countedItems: 0, holds: 0,
-    holdings: null
+    holdings: null,
+    items: [], unrated: 0
   };
   if (!base.userId) return { ...base, reason: 'utilisateur inconnu' };
 
@@ -88,6 +89,9 @@ export async function buildPortfolio(userId, cat) {
   // reconciliation reste partielle ; `null` seulement si aucune source n'a
   // repondu, pour ne pas confondre « rien possede » et « rien su ».
   out.holdings = counted || owned ? holdingsOf(counted, owned, cat) : null;
+
+  // Les memes objets, prets a afficher : la liste de l'onglet Portefeuille.
+  Object.assign(out, portfolioItems(out.holdings, cat));
 
   // Sans l'une des deux sources, la reconciliation n'a pas de sens : on rend
   // les chiffres de Rolimon's tels quels plutot qu'une correction a moitie faite.
@@ -182,25 +186,80 @@ export function emptyReport(userId) {
     ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
     value: 0, rap: 0, rank: 0,
     ownedFaces: 0, countedItems: 0, holds: 0,
-    holdings: null
+    holdings: null,
+    items: [], unrated: 0
   };
 }
 
-/** Ce qu'il faut demander a thumbs.js pour illustrer la reconciliation. */
+/**
+ * Les objets du portefeuille, une ligne par objet : ce que l'onglet
+ * Portefeuille liste, trie et filtre. Construit sur `holdings`, donc sur
+ * l'inventaire REEL — visages possedes compris, fantomes exclus.
+ *
+ * Un objet que le catalogue public de Rolimon's ne cote pas (certains UGC
+ * limiteds) n'a ni nom ni cote a montrer : il est compte dans `unrated`.
+ *
+ * @param holdings  rendu de holdingsOf  { 'a:<assetId>': n, 'b:<bundleId>': n }
+ * @param cat       catalogue (roli.js), revisions de cote comprises
+ * @returns {{ items: object[], unrated: number }}  items du plus gros total au plus petit
+ */
+export function portfolioItems(holdings, cat) {
+  const assets = cat?.assets || {};
+  const bundles = cat?.bundles || {};
+  const faceOf = cat?.faceOf || {};
+  const bundleOf = cat?.bundleOf || {};
+  const items = [];
+  let unrated = 0;
+
+  for (const [key, n] of Object.entries(holdings || {})) {
+    const count = Number(n) || 0;
+    if (count <= 0) continue;
+    const bundle = key.startsWith('b:');
+    const id = key.slice(2);
+    // Ancien asset du visage : c'est son image plate et sa page Rolimon's.
+    const face = bundle ? (faceOf[id] || '') : (bundleOf[id] ? id : '');
+    const e = bundle
+      ? readEntry(bundles[id]) || (face ? readEntry(assets[face]) : null)
+      : readEntry(assets[id]);
+    if (!e) { unrated += count; continue; }
+
+    items.push({
+      key, kind: bundle ? 'bundle' : 'asset', id: Number(id),
+      faceAssetId: Number(face) || 0, isFace: !!face,
+      name: e.name, acronym: e.acronym,
+      value: e.value, rap: e.rap, noValue: e.noValue,
+      demand: e.demand, trend: e.trend, projected: e.projected, rare: e.rare,
+      count, total: e.value * count, totalRap: e.rap * count,
+      change: revisionFor(cat?.changes, key, cat)
+    });
+  }
+
+  items.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  return { items, unrated };
+}
+
+/** Toutes les lignes illustrees du rapport, dans un ordre fixe. */
+const reportLines = (report) =>
+  [...(report?.ghosts || []), ...(report?.extras || []), ...(report?.items || [])];
+
+/**
+ * Ce qu'il faut demander a thumbs.js pour illustrer le rapport. Pour un visage,
+ * l'ancienne image plate passe avant la tete 3D du bundle (voir thumbs.js).
+ */
 export function portfolioThumbKeys(report) {
-  const lines = [...(report?.ghosts || []), ...(report?.extras || [])];
-  return lines.map(l => {
+  return reportLines(report).map(l => {
     const keys = [];
     if (l.legacyAssetId) keys.push('a:' + l.legacyAssetId);
+    if (l.faceAssetId) keys.push('a:' + l.faceAssetId);
     if (l.bundleId) keys.push('b:' + l.bundleId);
     if (l.assetId && l.assetId !== l.legacyAssetId) keys.push('a:' + l.assetId);
-    return keys;
+    if (l.key) keys.push(l.key);
+    return [...new Set(keys)];
   });
 }
 
 /** Recolle les URL rendues par `resolveThumbs` sur les lignes du rapport. */
 export function attachPortfolioThumbs(report, urls) {
-  const lines = [...(report?.ghosts || []), ...(report?.extras || [])];
-  lines.forEach((l, i) => { l.thumb = urls[i] || null; });
+  reportLines(report).forEach((l, i) => { l.thumb = urls[i] || null; });
   return report;
 }

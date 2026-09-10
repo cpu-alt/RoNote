@@ -1,7 +1,8 @@
 import { B } from '../common/shim.js';
 import {
-  fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml
+  fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml, clamp
 } from '../common/utils.js';
+import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
 import { t, p as plural, setLang, translateDom } from '../common/i18n.js';
 
 const $ = (s) => document.querySelector(s);
@@ -571,7 +572,7 @@ const EMPTY = () => ({
   completed: `<b>${t('Aucun trade terminé récemment')}</b>`
 });
 
-/* ============================== bénéfice ================================ */
+/* ============================= portefeuille ============================= */
 
 const RANGES = [
   { key: '1w', label: '1s', days: 7 },
@@ -581,34 +582,346 @@ const RANGES = [
   { key: '1y', label: '1a', days: 365 },
   { key: 'all', label: 'Tout', days: 0 }
 ];
-let statsRange = '1m';
 
-/** Deux séries sur la même échelle : la value au premier plan, le RAP derrière. */
-function historyChart(pts) {
-  const W = 380, H = 130, PT = 8, PB = 16, PX = 2;
-  const all = pts.flatMap(p => [p.v, p.r]);
-  const min = Math.min(...all), max = Math.max(...all);
-  const span = (max - min) || 1;
-  const px = (i) => PX + (i / Math.max(1, pts.length - 1)) * (W - PX * 2);
-  const py = (v) => PT + (1 - (v - min) / span) * (H - PT - PB);
-  const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${px(i).toFixed(1)},${py(p[key]).toFixed(1)}`).join('');
-  const base = (H - PB).toFixed(1);
+const SORTS = [
+  { key: 'value', label: 'Plus grosse value' },
+  { key: 'rap', label: 'Plus gros RAP' },
+  { key: 'change', label: 'Réévaluation 7 j' },
+  { key: 'count', label: 'Quantité' },
+  { key: 'name', label: 'Nom (A → Z)' }
+];
 
-  const grid = [0, 0.5, 1].map(f =>
-    `<line x1="0" y1="${(PT + f * (H - PT - PB)).toFixed(1)}" x2="${W}" y2="${(PT + f * (H - PT - PB)).toFixed(1)}" class="grid"/>`
-  ).join('');
+const FILTERS = [
+  { key: 'all', label: 'Tous', test: () => true },
+  { key: 'face', label: 'Visages', test: (i) => i.isFace },
+  { key: 'rare', label: 'Rares', test: (i) => i.rare },
+  { key: 'proj', label: 'Projetés', test: (i) => i.projected },
+  { key: 'moved', label: 'Réévalués', test: (i) => !!i.change }
+];
 
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img"
-      aria-label="Value / RAP">
-    <defs><linearGradient id="vg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#4d9fff" stop-opacity=".28"/>
-      <stop offset="100%" stop-color="#4d9fff" stop-opacity="0"/></linearGradient></defs>
-    ${grid}
-    <path d="${path('v')}L${px(pts.length - 1).toFixed(1)},${base}L${px(0).toFixed(1)},${base}Z" fill="url(#vg)"/>
-    <path d="${path('r')}" fill="none" stroke="#2fd070" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="${path('v')}" fill="none" stroke="#4d9fff" stroke-width="2" stroke-linejoin="round"/>
+const TREND_ICON = ['↘', '↯', '→', '↗', '↕'];
+const SLICE_COLORS = ['#4d9fff', '#2fd070', '#c792ea', '#ffb02e', '#ff7a85', '#3a4458'];
+
+/**
+ * Préférences d'affichage du portefeuille. Elles ne regardent que ce popup :
+ * localStorage suffit. Stockage bloqué ou vidé, on repart des valeurs par
+ * défaut sans rien casser. La recherche, elle, ne survit pas à la fermeture.
+ */
+const WALLET_KEY = 'ronote:wallet';
+const WALLET_PREFS = ['range', 'metric', 'hidden', 'view', 'sort', 'filter'];
+const wallet = { range: '1m', metric: 'v', hidden: false, view: 'list', sort: 'value', filter: 'all', query: '' };
+try {
+  const saved = JSON.parse(localStorage.getItem(WALLET_KEY) || '{}');
+  for (const k of WALLET_PREFS) if (k in saved) wallet[k] = saved[k];
+} catch { /* valeurs par défaut */ }
+
+function saveWallet() {
+  try {
+    localStorage.setItem(WALLET_KEY, JSON.stringify(Object.fromEntries(WALLET_PREFS.map(k => [k, wallet[k]]))));
+  } catch { /* la préférence dure le temps du popup */ }
+}
+
+/**
+ * Le mode discret masque les montants, jamais les pourcentages : on garde la
+ * tendance sous les yeux sans exposer le solde (partage d'écran, stream).
+ */
+const amount = (n) => (wallet.hidden ? '••••••' : fmtFull(n));
+const amountShort = (n) => (wallet.hidden ? '•••' : fmtNum(n));
+const amountSigned = (n, full = false) => (wallet.hidden ? '•••' : fmtSigned(n, full));
+const sharePct = (p) => (p >= 10 ? String(Math.round(p)) : p.toFixed(1)) + '%';
+const pillText = (delta, pct) => `${delta > 0 ? '▲' : delta < 0 ? '▼' : '•'} ${amountSigned(delta, true)} · ${fmtPct(pct)}`;
+
+/* ------------------------------ le graphique ----------------------------- */
+
+const CHART = { W: 400, H: 120, PT: 12, PB: 6, MAX: 180 };
+
+/** Au-delà de ~180 points la courbe n'y gagne rien : on échantillonne, premier et dernier compris. */
+function downsample(pts) {
+  if (pts.length <= CHART.MAX) return pts;
+  const step = (pts.length - 1) / (CHART.MAX - 1);
+  return Array.from({ length: CHART.MAX }, (_, i) => pts[Math.round(i * step)]);
+}
+
+/** Hauteur d'un relevé, en fraction de la hauteur du graphique (0 = en haut). */
+const chartY = (v, min, span) =>
+  (CHART.PT + (1 - (v - min) / span) * (CHART.H - CHART.PT - CHART.PB)) / CHART.H;
+
+/** Une seule série, lissée, remplie d'un dégradé à la couleur de la tendance. */
+function walletChart(pts, key, tone) {
+  const vals = pts.map(p => p[key]);
+  const min = Math.min(...vals);
+  const span = (Math.max(...vals) - min) || 1;
+  const xy = pts.map((p, i) => [(i / (pts.length - 1)) * CHART.W, chartY(p[key], min, span) * CHART.H]);
+  const f = (n) => n.toFixed(1);
+
+  // Catmull-Rom converti en Bézier : la courbe passe par chaque relevé, sans angle.
+  let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
+  for (let i = 0; i < xy.length - 1; i++) {
+    const p0 = xy[i - 1] || xy[i], p1 = xy[i], p2 = xy[i + 1], p3 = xy[i + 2] || xy[i + 1];
+    d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} `
+      + `${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`;
+  }
+  const color = tone === 'loss' ? '#ff5f66' : tone === 'win' ? '#2fd070' : '#4d9fff';
+  return `<svg class="w-chart" viewBox="0 0 ${CHART.W} ${CHART.H}" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="wg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".32"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d}L${CHART.W},${CHART.H}L0,${CHART.H}Z" fill="url(#wg)"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
   </svg>`;
 }
+
+/**
+ * Survol du graphique : le solde affiché devient celui du jour pointé, comme
+ * dans une appli de portefeuille. Hors du graphique, tout revient au présent.
+ */
+function bindChart(pts, key) {
+  const plot = document.getElementById('w-plot');
+  if (!plot) return;
+  const cursor = plot.querySelector('.w-cursor');
+  const dot = plot.querySelector('.w-dot');
+  const amountEl = document.getElementById('w-amount');
+  const pillEl = document.getElementById('w-pill');
+  const whenEl = document.getElementById('w-when');
+  const present = { amount: amountEl.textContent, pill: pillEl.textContent, cls: pillEl.className, when: whenEl.textContent };
+  const vals = pts.map(p => p[key]);
+  const min = Math.min(...vals);
+  const span = (Math.max(...vals) - min) || 1;
+  const base = pts[0][key];
+
+  plot.addEventListener('pointermove', (e) => {
+    const box = plot.getBoundingClientRect();
+    const idx = Math.round(clamp((e.clientX - box.left) / box.width, 0, 1) * (pts.length - 1));
+    const p = pts[idx];
+    const delta = p[key] - base;
+    cursor.hidden = dot.hidden = false;
+    cursor.style.left = dot.style.left = (idx / (pts.length - 1)) * 100 + '%';
+    dot.style.top = chartY(p[key], min, span) * 100 + '%';
+    amountEl.textContent = amount(p[key]);
+    pillEl.textContent = pillText(delta, base ? (delta / base) * 100 : 0);
+    pillEl.className = 'w-pill ' + toneOf(delta);
+    whenEl.textContent = fmtDate(p.at);
+  });
+  plot.addEventListener('pointerleave', () => {
+    cursor.hidden = dot.hidden = true;
+    amountEl.textContent = present.amount;
+    pillEl.textContent = present.pill;
+    pillEl.className = present.cls;
+    whenEl.textContent = present.when;
+  });
+}
+
+/* -------------------------------- le solde ------------------------------- */
+
+function heroHtml({ key, now, delta, pct, pts, range }) {
+  const tone = toneOf(delta);
+  return `<section class="w-hero" data-tone="${tone}">
+    <div class="w-top">
+      <div class="w-seg">
+        <button class="${key === 'v' ? 'on' : ''}" data-metric="v">Value</button>
+        <button class="${key === 'r' ? 'on' : ''}" data-metric="r">RAP</button>
+      </div>
+      <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
+    </div>
+    <div class="w-label">${key === 'v' ? t('Value réelle') : t('RAP du compte')}</div>
+    <div class="w-amount" id="w-amount">${amount(now)}</div>
+    <div class="w-change">
+      <span class="w-pill ${tone}" id="w-pill">${pillText(delta, pct)}</span>
+      <span class="w-when" id="w-when">${t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") })}</span>
+    </div>
+    ${pts.length > 1
+      ? `<div class="w-plot" id="w-plot">${walletChart(pts, key, tone)}<div class="w-cursor" hidden></div><div class="w-dot" hidden></div></div>`
+      : `<div class="w-nochart">${t('Pas encore assez de points sur cette période.')}</div>`}
+    <div class="w-ranges">${RANGES.map(r =>
+      `<button class="${r.key === range.key ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
+  </section>`;
+}
+
+/* ------------------------------ la répartition --------------------------- */
+
+function allocationHtml(items) {
+  const rated = items.filter(i => i.total > 0).sort((a, b) => b.total - a.total);
+  const sum = rated.reduce((s, i) => s + i.total, 0);
+  if (!sum) return '';
+  const top = rated.slice(0, 5);
+  const rest = sum - top.reduce((s, i) => s + i.total, 0);
+  const slices = top.map((i, n) => ({ name: i.name, total: i.total, color: SLICE_COLORS[n] }));
+  if (rest > 0) slices.push({ name: t('Autres ({n})', { n: rated.length - top.length }), total: rest, color: SLICE_COLORS[5] });
+
+  return `<section class="panel">
+    <div class="panel-h"><span>${t('Répartition')}</span><span>${t('top 5 · par value')}</span></div>
+    <div class="w-alloc">${slices.map(s =>
+      `<i style="flex:${s.total};background:${s.color}" title="${escapeHtml(s.name)}"></i>`).join('')}</div>
+    <div class="w-legend">${slices.map(s =>
+      `<div><i style="background:${s.color}"></i><span>${escapeHtml(s.name)}</span><b>${sharePct((s.total / sum) * 100)}</b></div>`).join('')}</div>
+  </section>`;
+}
+
+/* ------------------------------ les objets ------------------------------- */
+
+function thumbHtml(i) {
+  return i.thumb
+    ? `<img class="w-img" src="${escapeHtml(i.thumb)}" alt="" loading="lazy">`
+    : `<div class="w-img ph">${i.isFace ? '🎭' : '▫'}</div>`;
+}
+
+function itemBadges(i) {
+  return [
+    i.rare ? `<span class="w-tag rare" title="${t('RARE')}">★</span>` : '',
+    i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">⚠</span>` : '',
+    i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">🎭</span>` : ''
+  ].join('');
+}
+
+function itemSub(i) {
+  return [
+    i.acronym ? escapeHtml(i.acronym) : '',
+    i.demand >= 0 && DEMAND_LABEL[i.demand] ? t('demande {v}', { v: t(DEMAND_LABEL[i.demand]).toLowerCase() }) : '',
+    i.trend >= 0 && TREND_LABEL[i.trend] ? `${TREND_ICON[i.trend]} ${t(TREND_LABEL[i.trend]).toLowerCase()}` : ''
+  ].filter(Boolean).join(' · ');
+}
+
+function itemRowHtml(i, sum) {
+  const ch = i.change;
+  const aside = ch
+    ? `<span class="${toneOf(ch.pct)}">${ch.pct >= 0 ? '↗' : '↘'} ${fmtPct(ch.pct)}</span>`
+    : `<span>${sum ? sharePct((i.total / sum) * 100) : ''}</span>`;
+  return `<button class="w-item" data-item="${escapeHtml(i.key)}">
+    <span class="w-thumb">${thumbHtml(i)}${i.count > 1 ? `<em>×${i.count}</em>` : ''}</span>
+    <span class="w-name"><span class="w-nl"><b>${escapeHtml(i.name)}</b>${itemBadges(i)}</span><small>${itemSub(i)}</small></span>
+    <span class="w-val"><b>${amount(i.total)}</b>${aside}</span>
+  </button>`;
+}
+
+function itemCardHtml(i) {
+  const ch = i.change;
+  return `<button class="w-card" data-item="${escapeHtml(i.key)}">
+    <span class="w-cthumb">${thumbHtml(i)}${i.count > 1 ? `<em>×${i.count}</em>` : ''}<span class="w-cbadges">${itemBadges(i)}</span></span>
+    <b>${escapeHtml(i.name)}</b>
+    <span class="w-cval">${amountShort(i.total)}${ch ? ` <span class="${toneOf(ch.pct)}">${fmtPct(ch.pct)}</span>` : ''}</span>
+  </button>`;
+}
+
+function visibleItems(items) {
+  const filter = FILTERS.find(f => f.key === wallet.filter) || FILTERS[0];
+  const q = wallet.query.trim().toLowerCase();
+  const pct = (i) => (i.change ? i.change.pct : -1e9);
+  const order = {
+    value: (a, b) => b.total - a.total,
+    rap: (a, b) => b.totalRap - a.totalRap,
+    change: (a, b) => pct(b) - pct(a) || b.total - a.total,
+    count: (a, b) => b.count - a.count || b.total - a.total,
+    name: (a, b) => a.name.localeCompare(b.name)
+  }[wallet.sort] || ((a, b) => b.total - a.total);
+  return items
+    .filter(i => filter.test(i) && (!q || i.name.toLowerCase().includes(q) || (i.acronym || '').toLowerCase().includes(q)))
+    .sort(order);
+}
+
+/** Seule la liste est redessinée pendant la frappe : le champ garde son curseur. */
+function renderItems() {
+  const box = document.getElementById('w-items');
+  const items = data.report?.items;
+  if (!box || !Array.isArray(items)) return;
+  const sum = items.reduce((s, i) => s + i.total, 0);
+  const list = visibleItems(items);
+  box.className = wallet.view === 'grid' ? 'w-grid' : 'w-list';
+  const none = wallet.query.trim()
+    ? t('Aucun objet ne correspond à « {q} ».', { q: escapeHtml(wallet.query.trim()) })
+    : t('Aucun objet dans cette catégorie.');
+  box.innerHTML = list.length
+    ? list.map(i => (wallet.view === 'grid' ? itemCardHtml(i) : itemRowHtml(i, sum))).join('')
+    : `<div class="w-none">${none}</div>`;
+  bindImages(box);
+}
+
+function collectionHtml(rep, items, owned) {
+  const head = `<div class="panel-h"><span>${t('Mes collectibles')}</span><span>${owned ? plural(owned, '{n} objet', '{n} objets') : ''}</span></div>`;
+  if (!items) {
+    return `<section class="panel">${head}<div class="w-none">${walletFetching
+      ? t('Chargement de tes objets…')
+      : escapeHtml(t('Liste des objets indisponible — {why}.', { why: t(rep?.reason || 'sources incomplètes') }))}</div></section>`;
+  }
+  const chips = FILTERS.map(f => {
+    const n = items.filter(f.test).length;
+    if (!n && f.key !== 'all' && f.key !== wallet.filter) return '';
+    return `<button class="${f.key === wallet.filter ? 'on' : ''}" data-filter="${f.key}">${t(f.label)} <small>${n}</small></button>`;
+  }).join('');
+
+  return `<section class="panel">
+    ${head}
+    <div class="w-tools">
+      <input id="w-search" type="search" placeholder="${escapeHtml(t('Rechercher un objet'))}" value="${escapeHtml(wallet.query)}" autocomplete="off" spellcheck="false">
+      <select id="w-sort" title="${escapeHtml(t('Trier'))}">${SORTS.map(s =>
+        `<option value="${s.key}"${s.key === wallet.sort ? ' selected' : ''}>${t(s.label)}</option>`).join('')}</select>
+      <button class="w-view" data-view title="${wallet.view === 'grid' ? t('Vue liste') : t('Vue galerie')}">${wallet.view === 'grid' ? '☰' : '▦'}</button>
+    </div>
+    <div class="w-chips">${chips}</div>
+    <div id="w-items"></div>
+    ${rep?.unrated ? `<div class="note">${plural(rep.unrated, "+ {n} objet que Rolimon's ne cote pas publiquement", "+ {n} objets que Rolimon's ne cote pas publiquement")}</div>` : ''}
+  </section>`;
+}
+
+/* ---------------------------- fiche d'un objet --------------------------- */
+
+function openItemSheet(key) {
+  const items = data.report?.items || [];
+  const i = items.find(x => x.key === key);
+  if (!i) return;
+  const sum = items.reduce((s, x) => s + x.total, 0);
+  const roliId = i.kind === 'asset' ? i.id : i.faceAssetId;
+  const links = [
+    roliId ? { label: "Rolimon's ↗", url: `https://www.rolimons.com/item/${roliId}` } : null,
+    { label: 'Roblox ↗', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
+  ].filter(Boolean);
+  const ch = i.change;
+  const fact = (label, value) => `<div class="w-fact"><span>${label}</span><b>${value}</b></div>`;
+  const kind = i.isFace ? t('visage') : i.kind === 'bundle' ? t('bundle') : '';
+
+  document.getElementById('zoom')?.remove();
+  zoomed = 'item:' + key;   // le rafraîchissement de fond attend la fermeture
+
+  const wrap = document.createElement('div');
+  wrap.className = 'zoom';
+  wrap.id = 'zoom';
+  wrap.innerHTML = `<div class="zoom-card w-sheet" role="dialog" aria-modal="true">
+    <header class="z-head">
+      <div class="w-sh-head">
+        <span class="w-sh-thumb">${thumbHtml(i)}</span>
+        <div class="w-sh-name"><b>${escapeHtml(i.name)}</b>
+          <small>${[i.acronym ? escapeHtml(i.acronym) : '', kind].filter(Boolean).join(' · ')} ${itemBadges(i)}</small></div>
+      </div>
+      <button class="z-close" title="${t('Fermer')}">✕</button>
+    </header>
+    <div class="z-body">
+      <div class="w-sh-amount">${amount(i.total)}</div>
+      <div class="w-sh-sub">${i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')}${sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''}</div>
+      <div class="w-facts">
+        ${fact('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
+        ${fact('RAP', amount(i.rap))}
+        ${fact(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : '—')}
+        ${fact(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${TREND_ICON[i.trend]} ${t(TREND_LABEL[i.trend])}` : '—')}
+      </div>
+      ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ch.pct >= 0 ? '📈' : '📉'} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
+      ${i.projected ? `<div class="w-warn">⚠ ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
+    </div>
+    <footer class="z-foot">${links.map(l =>
+      `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label}</button>`).join('')}</footer>
+  </div>`;
+  document.body.appendChild(wrap);
+  bindImages(wrap);
+
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
+  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
+  wrap.querySelectorAll('button[data-url]').forEach(b => {
+    b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
+  });
+  document.addEventListener('keydown', onZoomKey);
+}
+
+/* ---------------------------- réconciliation ----------------------------- */
+
+let reconOpen = false;
 
 function reconRow(l, sign) {
   const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="">` : `<div class="ph">🎭</div>`;
@@ -621,39 +934,56 @@ function reconRow(l, sign) {
   return `<a class="rec-row" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
     ${img}
     <div class="rec-n">${escapeHtml(l.name)}${l.count > 1 ? ` ×${l.count}` : ''}<small>${why}</small></div>
-    <div class="rec-v ${sign < 0 ? 'loss' : 'win'}">${sign < 0 ? '−' : '+'}${fmtFull(l.total)}</div>
+    <div class="rec-v ${sign < 0 ? 'loss' : 'win'}">${sign < 0 ? '−' : '+'}${amount(l.total)}</div>
   </a>`;
 }
 
+/** Repliée par défaut : c'est une explication, pas ce qu'on vient regarder. */
 function reconciliationHtml(rep) {
-  const title = t('Réconciliation des visages');
-  if (!rep || (!rep.ghosts?.length && !rep.extras?.length)) {
-    return `<section class="panel">
-      <div class="panel-h"><span>${title}</span></div>
-      <div class="note">${rep?.ok
-        ? t("Rien à corriger : ce que Rolimon's compte correspond exactement aux bundles que tu possèdes.")
-        : escapeHtml(t('Correction indisponible — {why}.', { why: rep?.reason || t('sources incomplètes') }))}</div>
-    </section>`;
-  }
-  const g = rep.ghosts || [], e = rep.extras || [];
-  return `<section class="panel">
-    <div class="panel-h"><span>${title}</span><span>${plural(g.length + e.length, '{n} écart', '{n} écarts')}</span></div>
-    <div class="recon-sum">
-      <div class="recon-box">
-        <div class="l">${t('Retiré')}</div>
-        <div class="v loss">−${fmtFull(rep.ghostValue)}</div>
-        <div class="n">${plural(g.length, '{n} visage fantôme', '{n} visages fantômes')}</div>
+  const g = rep?.ghosts || [], e = rep?.extras || [];
+  const n = g.length + e.length;
+  const body = !n
+    ? `<div class="note">${rep?.ok
+      ? t("Rien à corriger : ce que Rolimon's compte correspond exactement aux bundles que tu possèdes.")
+      : escapeHtml(t('Correction indisponible — {why}.', { why: rep?.reason || t('sources incomplètes') }))}</div>`
+    : `<div class="recon-sum">
+        <div class="recon-box">
+          <div class="l">${t('Retiré')}</div>
+          <div class="v loss">−${amount(rep.ghostValue)}</div>
+          <div class="n">${plural(g.length, '{n} visage fantôme', '{n} visages fantômes')}</div>
+        </div>
+        <div class="recon-box">
+          <div class="l">${t('Ajouté')}</div>
+          <div class="v win">+${amount(rep.extraValue)}</div>
+          <div class="n">${plural(e.length, '{n} visage possédé', '{n} visages possédés')}</div>
+        </div>
       </div>
-      <div class="recon-box">
-        <div class="l">${t('Ajouté')}</div>
-        <div class="v win">+${fmtFull(rep.extraValue)}</div>
-        <div class="n">${plural(e.length, '{n} visage possédé', '{n} visages possédés')}</div>
-      </div>
-    </div>
-    ${g.map(l => reconRow(l, -1)).join('')}
-    ${e.map(l => reconRow(l, +1)).join('')}
-    <div class="note">${t("Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire — Rolimon's continue de le compter. Un visage reçu arrive en bundle — Rolimon's ne le voit pas. RoNote compare, visage par visage, ce que Rolimon's compte et les bundles que tu possèdes réellement.")}</div>
-  </section>`;
+      ${g.map(l => reconRow(l, -1)).join('')}
+      ${e.map(l => reconRow(l, +1)).join('')}
+      <div class="note">${t("Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire — Rolimon's continue de le compter. Un visage reçu arrive en bundle — Rolimon's ne le voit pas. RoNote compare, visage par visage, ce que Rolimon's compte et les bundles que tu possèdes réellement.")}</div>`;
+  return `<details class="panel w-fold" id="w-recon"${reconOpen ? ' open' : ''}>
+    <summary class="panel-h"><span>${t('Réconciliation des visages')}</span><span>${n ? plural(n, '{n} écart', '{n} écarts') : '✓'}</span></summary>
+    ${body}
+  </details>`;
+}
+
+/* -------------------------------- l'onglet ------------------------------- */
+
+let walletFetching = false;
+let walletAutoTried = false;
+
+async function recomputePortfolio(btn = null) {
+  if (walletFetching) return;
+  walletFetching = true;
+  if (btn) btn.textContent = t('Calcul…');
+  try {
+    const res = await send({ type: 'ronote:portfolio' });
+    if (res?.state) data.state = res.state;
+    if (res?.portfolio) data.portfolio = res.portfolio;
+    if (res?.report) data.report = res.report;
+  } catch { /* le prochain passage du service worker s'en chargera */ }
+  walletFetching = false;
+  if (tab === 'stats' && !zoomed) keepScroll(renderStats);
 }
 
 function renderStats() {
@@ -676,73 +1006,80 @@ function renderStats() {
     return;
   }
 
-  const range = RANGES.find(r => r.key === statsRange) || RANGES[1];
+  // Rapport écrit par une version sans liste d'objets : on la demande une
+  // fois, plutôt que d'attendre le prochain calcul du service worker (10 min).
+  const items = Array.isArray(rep?.items) ? rep.items : null;
+  if (!items && !walletAutoTried) { walletAutoTried = true; recomputePortfolio(); }
+
+  const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
   const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const pts = all.filter(p => p.at >= since);
+  const key = wallet.metric === 'r' ? 'r' : 'v';
+  const inRange = all.filter(p => p.at >= since);
+  const pts = downsample(inRange);
 
   // Le relevé du moment prime sur le dernier point historique, et il est
   // CORRIGÉ : c'est la valeur réelle du compte, pas celle de Rolimon's.
   const cur = last || all[all.length - 1] || { v: 0, r: 0 };
-  const head = pts[0] || all[0];
-  const dV = head ? cur.v - head.v : 0;
-  const dR = head ? cur.r - head.r : 0;
-  const pV = head && head.v ? (dV / head.v) * 100 : 0;
-  const pR = head && head.r ? (dR / head.r) * 100 : 0;
+  const head = inRange[0] || all[0];
+  const now = cur[key] || 0;
+  const delta = head ? now - head[key] : 0;
+  const pct = head && head[key] ? (delta / head[key]) * 100 : 0;
 
   const corrected = rep?.corrected && (rep.ghosts?.length || rep.extras?.length);
   const gap = corrected ? cur.v - (cur.rawV ?? rep.rolimons?.value ?? cur.v) : 0;
+  const moved = (items || []).filter(i => i.change);
+  const movedImpact = moved.reduce((s, i) => s + (i.change.to - i.change.from) * i.count, 0);
+  const owned = items ? items.reduce((s, i) => s + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0);
+
+  // Un redessin de fond ne doit pas voler le curseur de la recherche.
+  const search = document.activeElement?.id === 'w-search' ? document.activeElement : null;
+  const caret = search ? [search.selectionStart, search.selectionEnd] : null;
 
   listEl.innerHTML = `
-    <section class="panel">
-      <div class="hero">
-        <div>
-          <div class="hero-l">${t('Value réelle')}</div>
-          <div class="hero-v">${fmtFull(cur.v)}</div>
-        </div>
-        <div class="hero-d ${toneOf(dV)}">${fmtSigned(dV, true)} (${fmtPct(pV)})
-          <small>${t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") })}</small></div>
-      </div>
-      ${corrected ? `<div class="note">${t("Rolimon's affiche {v} — RoNote corrige de {d} pour les visages passés en bundles.", { v: `<b>${fmtFull(cur.rawV ?? rep.rolimons.value)}</b>`, d: `<b class="${toneOf(gap)}">${fmtSigned(gap, true)}</b>` })}</div>` : ''}
-      <div class="tiles-grid">
-        <div class="stat"><div class="stat-l">RAP</div><div class="stat-v">${fmtFull(cur.r)}</div>
-          <div class="stat-s ${toneOf(dR)}">${fmtSigned(dR)} (${fmtPct(pR)})</div></div>
-        <div class="stat"><div class="stat-l">${t('Rang')}</div><div class="stat-v">${st.portfolioRank ? '#' + fmtFull(st.portfolioRank) : '—'}</div></div>
-        <div class="stat"><div class="stat-l">${t('Objets')}</div><div class="stat-v">${st.collectibles ? fmtFull(st.collectibles) : '—'}</div>
-          ${rep?.ownedFaces ? `<div class="stat-s" style="color:var(--face)">${plural(rep.ownedFaces, '+{n} visage', '+{n} visages')}</div>` : ''}</div>
-      </div>
+    ${heroHtml({ key, now, delta, pct, pts, range })}
+    <section class="w-tiles">
+      <div class="w-tile"><span>${key === 'v' ? 'RAP' : 'Value'}</span><b>${amountShort(cur[key === 'v' ? 'r' : 'v'])}</b></div>
+      <div class="w-tile"><span>${t('Rang')}</span><b>${st.portfolioRank ? '#' + fmtFull(st.portfolioRank) : '—'}</b></div>
+      <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : '—'}</b></div>
+      <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
+        <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : '—'}</b></div>
     </section>
-
-    <div class="ranges">${RANGES.map(r =>
-      `<button class="range ${r.key === statsRange ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
-
-    <section class="panel">
-      ${pts.length > 1 ? historyChart(pts) : `<div class="note">${t('Pas encore assez de points sur cette période.')}</div>`}
-      ${pts.length > 1 ? `<div class="axis">
-        <span>${fmtDate(pts[0].at)}</span>
-        <span class="legend"><i class="dv"></i>Value <i class="dr"></i>RAP</span>
-        <span>${fmtDate(pts[pts.length - 1].at)}</span>
-      </div>` : ''}
-      <div class="note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>
-      ${lien}
-    </section>
-
+    ${corrected ? `<div class="w-note">${t("Rolimon's affiche {v} — RoNote corrige de {d} pour les visages passés en bundles.", { v: `<b>${amount(cur.rawV ?? rep.rolimons.value)}</b>`, d: `<b class="${toneOf(gap)}">${amountSigned(gap, true)}</b>` })}</div>` : ''}
+    ${items ? allocationHtml(items) : ''}
+    ${collectionHtml(rep, items, owned)}
     ${reconciliationHtml(rep)}
-
-    <button class="range" id="btn-recompute" style="flex:none">${t('Recalculer maintenant')}</button>`;
+    <div class="w-foot">
+      ${lien}
+      <span>${rep?.at ? t('calculé {ago}', { ago: timeAgo(rep.at) }) : ''}</span>
+      <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
+    </div>
+    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
 
   bindImages(listEl);
-  listEl.querySelectorAll('button[data-range]').forEach(el => {
-    el.addEventListener('click', () => { statsRange = el.dataset.range; renderStats(); });
+  renderItems();
+  bindChart(pts, key);
+  if (caret) {
+    const s = document.getElementById('w-search');
+    s?.focus();
+    s?.setSelectionRange(...caret);
+  }
+
+  const redraw = () => keepScroll(renderStats);
+  const pref = (k, v) => { wallet[k] = v; saveWallet(); redraw(); };
+  listEl.querySelectorAll('[data-metric]').forEach(el => el.addEventListener('click', () => pref('metric', el.dataset.metric)));
+  listEl.querySelectorAll('[data-range]').forEach(el => el.addEventListener('click', () => pref('range', el.dataset.range)));
+  listEl.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => pref('filter', el.dataset.filter)));
+  listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden));
+  listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid'));
+  listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems(); });
+  listEl.querySelector('#w-search')?.addEventListener('input', (e) => { wallet.query = e.target.value; renderItems(); });
+  listEl.querySelector('#w-items')?.addEventListener('click', (e) => {
+    const row = e.target.closest('[data-item]');
+    if (row) openItemSheet(row.dataset.item);
   });
+  listEl.querySelector('#w-recon')?.addEventListener('toggle', (e) => { reconOpen = e.target.open; });
   const recompute = listEl.querySelector('#btn-recompute');
-  recompute?.addEventListener('click', async () => {
-    recompute.textContent = t('Calcul…');
-    const res = await send({ type: 'ronote:portfolio' });
-    if (res?.state) data.state = res.state;
-    if (res?.portfolio) data.portfolio = res.portfolio;
-    if (res?.report) data.report = res.report;
-    renderStats();
-  });
+  recompute?.addEventListener('click', () => recomputePortfolio(recompute));
 }
 
 /* =============================== la liste =============================== */
@@ -800,7 +1137,10 @@ function bindImages(root) {
     img.addEventListener('error', () => {
       const ph = document.createElement('div');
       if (img.classList.contains('av')) ph.className = 'av';
-      else if (img.closest('.det-row') || img.closest('.rec-row')) {
+      else if (img.classList.contains('w-img')) {
+        ph.className = 'w-img ph';
+        ph.textContent = '▫';
+      } else if (img.closest('.det-row') || img.closest('.rec-row')) {
         ph.className = 'ph';
         ph.textContent = '🎭';
       } else {

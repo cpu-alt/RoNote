@@ -69,6 +69,23 @@ export function newestRevision(changes) {
 }
 
 /**
+ * La revision connue d'un objet detenu : sous sa propre cle, sinon sous celle
+ * de son jumeau (un visage peut etre revise sous l'id de son bundle comme sous
+ * son ancien asset). `null` si rien n'a bouge.
+ */
+export function revisionFor(changes, key, cat) {
+  const all = changes || {};
+  if (all[key]) return all[key];
+  const sep = key.indexOf(':');
+  const prefix = key.slice(0, sep);
+  const id = key.slice(sep + 1);
+  const twin = prefix === 'b'
+    ? (cat?.faceOf?.[id] ? 'a:' + cat.faceOf[id] : null)
+    : (cat?.bundleOf?.[id] ? 'b:' + cat.bundleOf[id] : null);
+  return (twin && all[twin]) || null;
+}
+
+/**
  * Les revisions qui concernent un objet possede, posterieures au repere.
  *
  * @param changes   revisions de roli.js  { cle: {from, to, pct, at} }
@@ -80,8 +97,6 @@ export function newestRevision(changes) {
  */
 export function detectRevaluations(changes, holdings, cat, { since = 0, minPct = 10 } = {}) {
   const all = changes || {};
-  const faceOf = cat?.faceOf || {};
-  const bundleOf = cat?.bundleOf || {};
   const mark = Number(since) || 0;
   const threshold = Math.max(0, Number(minPct) || 0);
 
@@ -95,10 +110,7 @@ export function detectRevaluations(changes, holdings, cat, { since = 0, minPct =
     const id = key.slice(sep + 1);
     if (count <= 0 || !id) continue;
 
-    const twin = prefix === 'b'
-      ? (faceOf[id] ? 'a:' + faceOf[id] : null)
-      : (bundleOf[id] ? 'b:' + bundleOf[id] : null);
-    const change = all[key] || (twin ? all[twin] : null);
+    const change = revisionFor(all, key, cat);
     if (!change || !((Number(change.at) || 0) > mark)) continue;
     if (!Number.isFinite(change.pct) || Math.abs(change.pct) < threshold) continue;
 

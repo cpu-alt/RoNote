@@ -254,7 +254,7 @@ sans aucun appel supplémentaire. Il sert à trois endroits :
 - **la vignette** : l'image plate de l'ancien visage passe devant le rendu de tête
   du bundle — c'est celle que tout le monde reconnaît, et celle qu'affiche
   Rolimon's ;
-- **le portefeuille** (voir *Onglet Bénéfice*).
+- **le portefeuille** (voir *Onglet Portefeuille*).
 
 ### Résolution d'un objet, dans l'ordre
 
@@ -319,7 +319,27 @@ que sur un objet **projected** le RAP est justement le chiffre qui a été gonfl
 
 ---
 
-## Onglet Bénéfice
+## Onglet Portefeuille
+
+Pensé comme une appli de portefeuille : le solde d'abord, sa courbe, puis ce qui le
+compose.
+
+| Bloc | Ce qu'il montre |
+|---|---|
+| **Solde** | La value réelle (corrigée, voir plus bas) ou le RAP, au choix, et sa variation sur la période. Survoler la courbe affiche le solde du jour pointé. 👁 masque les montants — jamais les pourcentages — pour un partage d'écran. |
+| **Tuiles** | L'autre chiffre (RAP ou value), le rang Rolimon's, le nombre d'objets, et l'effet des réévaluations des 7 derniers jours sur tes objets. |
+| **Répartition** | Le poids de tes 5 plus gros objets parmi ce que tu possèdes de coté. |
+| **Mes collectibles** | Chaque objet avec vignette, quantité, cote, demande, tendance, et les marques rare ★, projected ⚠ et visage 🎭. Recherche, tri, filtres, vue liste ou galerie ; un clic ouvre sa fiche, avec les liens Rolimon's et Roblox. |
+
+La liste repose sur l'inventaire **réel** (`holdings`, le même que l'alerte de
+réévaluation) : un visage possédé y figure une fois, sous son bundle, et un visage
+fantôme n'y figure pas. Un objet que le catalogue public de Rolimon's ne cote pas est
+seulement compté. Le service worker prépare la liste (`portfolioItems`, module pur,
+testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
+10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
+
+Les préférences d'affichage (période, value ou RAP, montants masqués, vue, tri, filtre)
+restent dans le popup (`localStorage`) : elles ne changent rien à la surveillance.
 
 ### La valeur que Rolimon's affiche est fausse, dans les deux sens
 
@@ -738,7 +758,7 @@ Deux raisons faisaient traîner le journal, les deux ont été reprises :
 
 ### Popup
 Cinq onglets : **Reçus**, **Envoyés** (avec les épingles de suivi), **Terminés**,
-**Bénéfice**, **Journal**.
+**Portefeuille**, **Journal**.
 
 Chaque carte est construite autour de la **value** : les deux côtés de l'échange avec
 les vignettes, le total de chacun en clair et son RAP en gris juste dessous, puis
@@ -768,7 +788,7 @@ tous les chiffres.
   cote spéculative
 - **Robux nets de taxe** (30 % prélevés par Roblox sur les Robux reçus)
 - **Détail des objets** dépliable sous chaque trade
-- **Correction des visages passés en bundles** dans l'onglet Bénéfice
+- **Correction des visages passés en bundles** dans l'onglet Portefeuille
 - **Alerte quand un objet possédé est réévalué**, avec son seuil
 - **Filtres** : trades gagnants uniquement, gain min en %, valeur min reçue, items
   projected, joueurs ignorés
@@ -833,6 +853,7 @@ Les suites Node restent disponibles si Node est installé :
 npm test    # anti-doublon (26) + envois et contre-offres (33)
             # + scripts de contenu et pont page ↔ extension (17)
             # + réévaluation des objets possédés (20)
+            # + objets du portefeuille (16)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un

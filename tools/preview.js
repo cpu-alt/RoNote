@@ -113,16 +113,28 @@ const lite = (c) => ({ tradeId: c.tradeId, partner: c.partner, created: c.create
 /* ------------------------------ portefeuille --------------------------- */
 
 const portfolioMod = await import('../src/common/portfolio.js');
+const revalueMod = await import('../src/common/revalue.js');
+const ownedFaces = fxPortfolio.bundles.filter(b => b.bundleType === 'DynamicHead');
 const report = portfolioMod.reconcile(
   { ...portfolioMod.emptyReport(ME), rolimons: fxPortfolio.playerinfo, rank: fxPortfolio.playerinfo.rank },
   fxPortfolio.playerinfo,
   { counts: fxPortfolio.playerassets, holds: [] },
-  fxPortfolio.bundles.filter(b => b.bundleType === 'DynamicHead'),
+  ownedFaces,
   cat
 );
-for (const l of [...report.ghosts, ...report.extras]) {
-  l.thumb = thumbs[String(l.legacyAssetId)] || null;
+report.at = Date.now() - 4 * 60000;
+report.holdings = revalueMod.holdingsOf({ counts: fxPortfolio.playerassets }, ownedFaces, cat);
+
+// Deux révisions récentes sur des objets possédés : la tuile « 7 j », les
+// pourcentages de la liste et le filtre « Réévalués » ont de quoi s'afficher.
+{
+  const [a, , b] = portfolioMod.portfolioItems(report.holdings, cat).items;
+  cat.changes[a.key] = { from: Math.round(a.value / 1.15), to: a.value, pct: 15, at: Date.now() - 5 * 3600e3 };
+  cat.changes[b.key] = { from: Math.round(b.value / 0.92), to: b.value, pct: -8, at: Date.now() - 26 * 3600e3 };
 }
+Object.assign(report, portfolioMod.portfolioItems(report.holdings, cat));
+portfolioMod.attachPortfolioThumbs(report,
+  portfolioMod.portfolioThumbKeys(report).map(keys => keys.map(k => thumbs[k.slice(2)]).find(Boolean) || null));
 
 const series = [];
 for (let i = 120; i >= 0; i--) {
@@ -204,6 +216,21 @@ const mockChrome = {
 };
 globalThis.__ronoteMock = mockChrome;
 
+/* ------------------------- états pour les captures --------------------- */
+
+// Captures sans clic (Chrome headless) :
+//   ?tab=stats&view=grid&metric=r&hidden=1&scroll=320&item=1&lang=en
+// Les préférences du portefeuille vivent dans localStorage, que le popup lit
+// à son chargement : on les pose avant d'écrire la page. Sans paramètre,
+// l'aperçu repart donc toujours des valeurs par défaut.
+const shot = new URLSearchParams(location.search);
+{
+  const prefs = {};
+  for (const k of ['view', 'metric', 'range', 'sort', 'filter']) if (shot.get(k)) prefs[k] = shot.get(k);
+  if (shot.has('hidden')) prefs.hidden = shot.get('hidden') === '1';
+  try { localStorage.setItem('ronote:wallet', JSON.stringify(prefs)); } catch { /* aperçu sans stockage */ }
+}
+
 /* ------------------------------ montage -------------------------------- */
 
 const base = new URL('../src/popup/', location.href).href;
@@ -227,3 +254,15 @@ document.querySelectorAll('button[data-tab]').forEach(b => {
     el?.click();
   });
 });
+
+if (shot.get('tab')) {
+  const pdoc = frame.contentDocument;
+  const until = async (test) => {
+    for (let i = 0; i < 120 && !test(); i++) await new Promise(r => setTimeout(r, 50));
+  };
+  // popup.js est un module : il ne s'exécute qu'une fois ses imports chargés.
+  await until(() => pdoc.getElementById('acct')?.textContent.startsWith('@'));
+  pdoc.querySelector(`.tab[data-tab="${shot.get('tab')}"]`)?.click();
+  if (shot.get('scroll')) pdoc.getElementById('list').scrollTop = Number(shot.get('scroll'));
+  if (shot.get('item')) pdoc.querySelector('[data-item]')?.click();
+}

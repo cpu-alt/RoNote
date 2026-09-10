@@ -309,49 +309,226 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .log .up { color: var(--win); font-weight: 650; }
 .log .down { color: var(--loss); font-weight: 650; }
 
-/* =============================== bénéfice =============================== */
+/* ============================= portefeuille =============================
+   L'onglet se lit comme une appli de portefeuille : le solde d'abord, sa
+   courbe, puis ce qui le compose — objet par objet.
+   ======================================================================== */
 
 .panel {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r-lg); padding: 12px;
 }
-.panel + .panel { margin-top: 0; }
 .panel-h {
   display: flex; align-items: baseline; justify-content: space-between;
   font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
   color: var(--faint); margin-bottom: 8px;
 }
 
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
-.hero-v { font-size: 30px; font-weight: 750; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
-.hero-l { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
-.hero-d { text-align: right; font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.hero-d small { display: block; color: var(--faint); font-weight: 400; font-size: 10px; }
-
-.tiles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 11px; }
-.stat { background: var(--surface-2); border-radius: var(--r-md); padding: 7px 9px; }
-.stat-l { font-size: 9.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
-.stat-v { font-size: 14px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.stat-s { font-size: 10px; font-weight: 600; margin-top: 1px; }
-
-.ranges { display: flex; gap: 4px; }
-.range {
-  flex: 1; padding: 5px 0; border-radius: var(--r-sm); cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line); color: var(--dim);
-  font-size: 11px; font-weight: 650;
+.note { font-size: 10.5px; color: var(--faint); line-height: 1.5; margin-top: 8px; }
+.link {
+  display: inline-block; font-size: 11px; font-weight: 650;
+  color: var(--accent); text-decoration: none;
 }
-.range:hover { color: var(--fg); }
-.range.on { background: #14243a; border-color: var(--accent); color: var(--fg); }
+.link:hover { text-decoration: underline; }
 
-.chart { width: 100%; height: 130px; display: block; }
-.chart .grid { stroke: #1f2735; stroke-width: 1; }
-.axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--faint); margin-top: 3px; }
-.legend { display: inline-flex; align-items: center; gap: 5px; }
-.legend i { width: 9px; height: 2px; border-radius: 2px; display: inline-block; }
-.legend .dv { background: var(--accent); }
-.legend .dr { background: var(--win); }
+/* ------------------------------- le solde ------------------------------ */
+
+.w-hero {
+  position: relative; overflow: hidden;
+  padding: 11px 12px 9px; border-radius: 16px;
+  border: 1px solid #2a3552;
+  background:
+    radial-gradient(120% 90% at 100% 0%, #3552a855, transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, #7b3fe42e, transparent 60%),
+    linear-gradient(160deg, #182038, #0f1422);
+  box-shadow: 0 10px 28px #0007, inset 0 1px 0 #ffffff0f;
+}
+.w-hero[data-tone="win"]  { border-color: #22523b; }
+.w-hero[data-tone="loss"] { border-color: #55272c; }
+
+.w-top { display: flex; align-items: center; justify-content: space-between; }
+.w-seg {
+  display: inline-flex; padding: 2px; border-radius: 9px;
+  background: #0a0e1a99; border: 1px solid #ffffff12;
+}
+.w-seg button {
+  border: 0; background: none; padding: 3px 11px; border-radius: 7px; cursor: pointer;
+  font-size: 11px; font-weight: 700; color: var(--dim);
+}
+.w-seg button.on { background: #ffffff17; color: var(--fg); }
+.w-eye {
+  width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
+  border: 1px solid #ffffff12; background: #0a0e1a99; font-size: 13px; line-height: 1;
+}
+.w-eye:hover { border-color: #ffffff33; }
+
+.w-label {
+  margin-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: #9fb0cf;
+}
+.w-amount {
+  font-size: 34px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.w-change { display: flex; align-items: center; gap: 7px; margin-top: 5px; }
+.w-pill {
+  padding: 2px 8px; border-radius: 20px; background: #ffffff12;
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.w-pill.win  { background: #2fd07024; }
+.w-pill.loss { background: #ff5f6624; }
+.w-when { font-size: 10.5px; color: var(--faint); }
+
+.w-plot { position: relative; height: 104px; margin: 8px -12px 0; cursor: crosshair; touch-action: none; }
+.w-chart { display: block; width: 100%; height: 100%; }
+.w-cursor { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff45; pointer-events: none; }
+.w-dot {
+  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 3px #ffffff33; pointer-events: none;
+}
+.w-nochart { margin: 12px 0 4px; font-size: 10.5px; color: var(--faint); }
+
+.w-ranges { display: flex; gap: 2px; margin-top: 4px; }
+.w-ranges button {
+  flex: 1; padding: 4px 0; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  font-size: 10.5px; font-weight: 700; color: var(--faint);
+}
+.w-ranges button:hover { color: var(--fg); }
+.w-ranges button.on { background: #ffffff14; color: var(--fg); }
+
+/* ------------------------------- les tuiles ----------------------------- */
+
+.w-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.w-tile {
+  min-width: 0; padding: 7px 8px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.w-tile span {
+  display: block; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.w-tile b {
+  display: block; margin-top: 2px; font-size: 13px; font-weight: 750;
+  font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.w-note { padding: 0 3px; font-size: 10.5px; color: var(--faint); line-height: 1.5; }
+
+/* ----------------------------- la répartition --------------------------- */
+
+.w-alloc { display: flex; gap: 2px; height: 10px; border-radius: 6px; overflow: hidden; }
+.w-alloc i { min-width: 3px; }
+.w-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 9px; }
+.w-legend div { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11px; }
+.w-legend i { flex: none; width: 8px; height: 8px; border-radius: 3px; }
+.w-legend span { flex: 1; min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-legend b { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------- les objets ----------------------------- */
+
+.w-tools { display: flex; gap: 6px; }
+.w-tools input, .w-tools select {
+  height: 30px; border-radius: var(--r-md); border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--fg); font: inherit; font-size: 11.5px;
+}
+.w-tools input { flex: 1; min-width: 0; padding: 0 10px; }
+.w-tools select { max-width: 130px; padding: 0 6px; cursor: pointer; }
+.w-tools input:focus, .w-tools select:focus { outline: none; border-color: var(--accent); }
+.w-view {
+  flex: none; width: 30px; height: 30px; border-radius: var(--r-md); cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); font-size: 13px; line-height: 1;
+}
+.w-view:hover { border-color: #33405a; }
+
+.w-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 4px; }
+.w-chips button {
+  padding: 3px 9px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--dim);
+  font-size: 10.5px; font-weight: 650;
+}
+.w-chips button small { margin-left: 2px; color: var(--faint); font-size: 10px; font-weight: 600; }
+.w-chips button.on { background: #14243a; border-color: var(--accent); color: var(--fg); }
+
+.w-list { display: flex; flex-direction: column; }
+.w-item {
+  display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center;
+  width: 100%; padding: 7px 5px; border: 0; border-top: 1px solid var(--line-soft);
+  background: none; text-align: left; cursor: pointer;
+}
+.w-item:first-child { border-top: 0; }
+.w-item:hover { background: var(--surface-2); border-radius: var(--r-md); }
+
+.w-thumb, .w-cthumb, .w-sh-thumb { position: relative; display: block; }
+.w-img {
+  display: block; width: 40px; height: 40px; border-radius: 10px; object-fit: cover;
+  background: #ffffff12; border: 1px solid var(--line);
+}
+.w-img.ph { display: grid; place-items: center; font-size: 15px; color: var(--faint); background: var(--surface-2); }
+.w-thumb em, .w-cthumb em {
+  position: absolute; right: -4px; bottom: -4px; padding: 1px 4px; border-radius: 6px;
+  background: var(--accent); color: #04101f; font-size: 9.5px; font-weight: 800; font-style: normal;
+}
+
+.w-name { min-width: 0; }
+.w-nl { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.w-nl b { min-width: 0; font-size: 12px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-name small { display: block; font-size: 10px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-tag { flex: none; font-size: 10px; line-height: 1; }
+.w-tag.rare { color: #ffd34d; }
+.w-tag.proj { color: var(--warn); }
+
+.w-val { text-align: right; font-variant-numeric: tabular-nums; }
+.w-val b { display: block; font-size: 12.5px; font-weight: 750; }
+.w-val span { display: block; font-size: 10.5px; font-weight: 650; color: var(--faint); }
+.w-val span.win  { color: var(--win); }
+.w-val span.loss { color: var(--loss); }
+
+.w-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 4px; }
+.w-card {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
+  text-align: left; cursor: pointer;
+}
+.w-card:hover { border-color: #33405a; }
+.w-cthumb .w-img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 9px; }
+.w-cthumb .w-img.ph { font-size: 22px; }
+.w-cthumb em { right: 4px; bottom: 4px; }
+.w-cbadges { position: absolute; left: 5px; top: 4px; display: flex; gap: 2px; }
+.w-card > b { font-size: 11px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-cval { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.w-cval span { font-size: 10px; }
+.w-none { padding: 18px 8px; text-align: center; color: var(--faint); font-size: 11.5px; }
+
+/* ---------------------------- fiche d'un objet -------------------------- */
+
+/* Une fiche courte n'a pas à couvrir tout le popup : elle monte du bas, à la
+   hauteur de son contenu, comme la feuille d'une appli mobile. */
+.zoom-card.w-sheet { align-self: flex-end; max-height: 100%; }
+
+.w-sh-head { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.w-sh-thumb .w-img { width: 52px; height: 52px; border-radius: 12px; }
+.w-sh-name { min-width: 0; }
+.w-sh-name b { display: block; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-sh-name small { font-size: 10.5px; color: var(--faint); }
+.w-sh-amount { font-size: 30px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.w-sh-sub { font-size: 11px; color: var(--dim); }
+.w-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.w-fact { padding: 8px 9px; border-radius: var(--r-md); background: var(--surface-2); }
+.w-fact span {
+  display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--faint);
+}
+.w-fact b { display: block; margin-top: 2px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.w-fact small { font-size: 9.5px; font-weight: 500; color: var(--faint); }
+.w-rev { margin-top: 10px; padding: 8px 10px; border-radius: var(--r-md); background: var(--surface-2); font-size: 11.5px; font-weight: 600; }
+.w-warn { margin-top: 8px; padding: 8px 10px; border-radius: var(--r-md); background: #33280f; color: var(--warn); font-size: 11px; }
 
 /* --------------------------- réconciliation ---------------------------- */
+
+.w-fold > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
+.w-fold > summary::-webkit-details-marker { display: none; }
+.w-fold > summary span:last-child::after { content: ' ▸'; }
+.w-fold[open] > summary { margin-bottom: 8px; }
+.w-fold[open] > summary span:last-child::after { content: ' ▾'; }
 
 .recon-sum {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
@@ -375,12 +552,16 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .rec-n small { display: block; font-weight: 400; color: var(--faint); font-size: 10px; }
 .rec-v { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.note { font-size: 10.5px; color: var(--faint); line-height: 1.5; margin-top: 8px; }
-.link {
-  display: inline-block; margin-top: 9px; font-size: 11px; font-weight: 650;
-  color: var(--accent); text-decoration: none;
+/* ------------------------------- le pied -------------------------------- */
+
+.w-foot { display: flex; align-items: center; gap: 8px; padding: 0 3px; }
+.w-foot span { flex: 1; text-align: right; font-size: 10.5px; color: var(--faint); }
+.w-btn {
+  flex: none; padding: 5px 10px; border-radius: var(--r-sm); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); color: var(--dim);
+  font-size: 11px; font-weight: 650;
 }
-.link:hover { text-decoration: underline; }
+.w-btn:hover { color: var(--fg); border-color: #33405a; }
 
 /* ========================== zoom sur un trade ============================
    Le popup fait 420 x 600 : pas la place d'une vraie fenetre. Le zoom couvre

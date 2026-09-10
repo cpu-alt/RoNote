@@ -43,7 +43,7 @@ Every trade is evaluated item by item: value, RAP, and Robux counted net of the 
 WHAT YOU GET
 • Desktop notifications, with a different sound per event type
 • Detailed value analysis, item by item
-• Portfolio tab: how your account value moves over time
+• Portfolio tab: your account value and its chart, plus every collectible with its value, demand and trend
 • Revaluation alerts: know when Rolimon's revises the value of an item you own
 • Filters: value threshold, ignored players, quiet hours
 • English and French, detected automatically

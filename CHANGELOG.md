@@ -3,6 +3,26 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## Prochaine version (en cours) — l'onglet Portefeuille refait
+
+**L'onglet Bénéfice devient Portefeuille**, pensé comme une appli de portefeuille :
+
+- **le solde en grand**, value réelle ou RAP au choix, avec sa variation sur la
+  période ; en survolant la courbe, le solde du jour pointé s'affiche ;
+- **👁 masque les montants** (jamais les pourcentages), pratique en partage d'écran ;
+- quatre tuiles : l'autre chiffre, le rang, le nombre d'objets et l'effet des
+  **réévaluations des 7 derniers jours** ;
+- **la répartition** : le poids de tes 5 plus gros objets ;
+- **Mes collectibles** : chaque objet avec vignette, quantité, cote, demande,
+  tendance, et les marques rare, projected et visage. Recherche, tri, filtres
+  (visages, rares, projetés, réévalués), vue liste ou galerie ; un clic ouvre la
+  fiche de l'objet avec ses liens Rolimon's et Roblox ;
+- la réconciliation des visages reste là, repliée.
+
+La liste suit l'inventaire réel : un visage possédé n'y figure qu'une fois, un
+visage fantôme jamais. Elle est préparée par le service worker avec le reste du
+portefeuille : ouvrir l'onglet ne déclenche aucun appel.
+
 ## v2.10.0 — les alertes de trades reçus réparées, et l'alerte de réévaluation
 
 **Corrigé : les trades reçus ne déclenchaient presque plus d'alerte.** Roblox
