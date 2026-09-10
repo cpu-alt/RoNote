@@ -298,6 +298,8 @@ if (shot.get('tab')) {
   // popup.js est un module : il ne s'exécute qu'une fois ses imports chargés.
   await until(() => pdoc.getElementById('acct')?.textContent.startsWith('@'));
   pdoc.querySelector(`.tab[data-tab="${shot.get('tab')}"]`)?.click();
+  // Le défilement attend que la liste ait du contenu : sinon il retombe à zéro.
+  await until(() => pdoc.querySelector('#list .tc-swap, #list .w-hero, #list .jr, #list .empty'));
   if (shot.get('scroll')) pdoc.getElementById('list').scrollTop = Number(shot.get('scroll'));
   // `scrub=0.6` : simule le survol du graphique à 60 % de sa largeur.
   if (shot.get('scrub')) {
@@ -312,7 +314,10 @@ if (shot.get('tab')) {
   // `trade=1` : ouvre le zoom du premier trade évalué ; `detail=1` : déplie son détail.
   if (shot.get('trade') || shot.get('detail')) {
     await until(() => pdoc.querySelector('.tc-body[data-zoom] .tc-swap'));
-    if (shot.get('detail')) pdoc.querySelector('button[data-expand]')?.click();
-    else pdoc.querySelector('.tc-body[data-zoom]')?.click();
+    // `trade=2` ouvre le deuxième trade de la liste, `detail=2` déplie le sien.
+    const nth = (sel, key) => pdoc.querySelectorAll(sel)[Math.max(1, Number(shot.get(key)) || 1) - 1];
+    await until(() => pdoc.querySelectorAll('.tc-body[data-zoom] .tc-swap').length >= Number(shot.get('trade') || shot.get('detail')));
+    if (shot.get('detail')) nth('button[data-expand]', 'detail')?.click();
+    else nth('.tc-body[data-zoom]', 'trade')?.click();
   }
 }

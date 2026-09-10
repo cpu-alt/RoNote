@@ -137,6 +137,16 @@ const itemClasses = (i) => [
 
 const itemIcon = (i) => (i.isFace ? '🎭' : i.unknown ? '❔' : '▫');
 
+/**
+ * Objet « projected » : son RAP a été gonflé par des rachats entre complices.
+ * Un petit triangle ambré le signale partout où l'objet apparaît — discret,
+ * mais visible sans avoir à survoler quoi que ce soit.
+ */
+const PROJ_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .9 11.4 10.6H.6Z" fill="currentColor"/>'
+  + '<path d="M6 4.3v3.1M6 9v.05" stroke="#1d1405" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const projBadge = () =>
+  `<i class="proj-ic" title="${escapeHtml(t('PROJECTED — RAP gonflé artificiellement'))}">${PROJ_ICON}</i>`;
+
 /** Étiquettes courtes d'un objet, pour les listes détaillées. */
 function itemTags(i) {
   return [
@@ -168,9 +178,10 @@ function tilesHtml(side) {
   const shown = side.items.slice(0, cut).map(i => {
     const cls = itemClasses(i);
     const title = escapeHtml(itemTitle(i));
-    return i.thumb
+    const tile = i.thumb
       ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}">`
       : `<div class="tc-tile ph ${cls}" title="${title}">${itemIcon(i)}</div>`;
+    return i.projected ? `<span class="tc-tw">${tile}${projBadge()}</span>` : tile;
   }).join('');
   const rest = side.items.slice(cut);
   const more = rest.length
@@ -248,7 +259,7 @@ function flagsHtml(a) {
     chips.push(`<span class="chip face" title="${escapeHtml(names)}">🎭 ${plural(a.faceCount, '{n} visage', '{n} visages')}</span>`);
   }
   if (a.projectedIncoming) {
-    chips.push(`<span class="chip proj" title="${escapeHtml(t("Le RAP de cet objet a été gonflé par des rachats entre complices : s'y fier est le piège classique."))}">⚠ ${t('Projected')}</span>`);
+    chips.push(`<span class="chip proj" title="${escapeHtml(t("Le RAP de cet objet a été gonflé par des rachats entre complices : s'y fier est le piège classique."))}"><i class="proj-ic">${PROJ_ICON}</i> ${t('Projected')}</span>`);
   }
   if (a.robuxTaxed) {
     chips.push(`<span class="chip tax" title="${escapeHtml(t('Roblox prélève 30 % sur les Robux reçus dans un trade. Le total ci-dessus compte le net.'))}">💸 ${t('−{n} R$ de taxe', { n: fmtNum(a.robuxLost) })}</span>`);
@@ -275,7 +286,7 @@ function detailRow(i, big = false) {
 
   return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}">
     ${img}
-    <div class="det-n"><b>${escapeHtml(i.name)}</b><span>${escapeHtml(itemTags(i))}</span></div>
+    <div class="det-n"><b>${i.projected ? projBadge() + ' ' : ''}${escapeHtml(i.name)}</b><span>${escapeHtml(itemTags(i))}</span></div>
     <div class="det-v">${right}</div>
   </a>`;
 }
@@ -1151,7 +1162,7 @@ function thumbHtml(i) {
 function itemBadges(i) {
   return [
     i.rare ? `<span class="w-tag rare" title="${t('RARE')}">★</span>` : '',
-    i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">⚠</span>` : '',
+    i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">${PROJ_ICON}</span>` : '',
     i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">🎭</span>` : ''
   ].join('');
 }
@@ -1336,7 +1347,7 @@ function openItemSheet(key) {
         ${fact(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${TREND_ICON[i.trend]} ${t(TREND_LABEL[i.trend])}` : '—')}
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ch.pct >= 0 ? '📈' : '📉'} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
-      ${i.projected ? `<div class="w-warn">⚠ ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
+      ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
     </div>
     <footer class="z-foot">${links.map(l =>
       `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label}</button>`).join('')}</footer>

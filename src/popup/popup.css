@@ -344,6 +344,22 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .tc-tile.unk   { border-color: var(--face); border-style: dashed; }
 .tc-tile.moved { outline: 1px dashed #79c0ff; outline-offset: -3px; }
 
+/* Objet « projected » : un petit triangle ambré. Dans le coin de la vignette
+   d'une carte, devant le nom dans les listes. */
+.proj-ic {
+  display: inline-block; width: 11px; height: 11px; flex: none;
+  color: var(--warn); vertical-align: -1px;
+  filter: drop-shadow(0 0 3px #ffb02e59);
+}
+.proj-ic svg, .w-tag.proj svg { display: block; width: 100%; height: 100%; }
+.tc-tw { position: relative; flex: none; display: block; }
+.tc-tw .proj-ic {
+  position: absolute; top: -4px; right: -4px; width: 15px; height: 15px; padding: 2px;
+  border-radius: 50%; background: #241a08; border: 1px solid #ffb02e8c;
+  filter: none; pointer-events: none;
+}
+.chip .proj-ic { width: 10px; height: 10px; filter: none; }
+
 .tc-amt { margin-top: 7px; font-size: 15px; font-weight: 800; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .tc-blind { color: var(--face); }
 .tc-sub { min-height: 15px; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -771,7 +787,7 @@ button.jr:active { transform: scale(.985); }
 .w-name small { display: block; font-size: 10px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .w-tag { flex: none; font-size: 10px; line-height: 1; }
 .w-tag.rare { color: #ffd34d; }
-.w-tag.proj { color: var(--warn); }
+.w-tag.proj { width: 11px; height: 11px; color: var(--warn); filter: drop-shadow(0 0 3px #ffb02e59); }
 
 .w-val { text-align: right; font-variant-numeric: tabular-nums; }
 .w-val b { display: block; font-size: 12.5px; font-weight: 750; }
