@@ -208,6 +208,20 @@ for f in js_files:
 ok(f"{len(js_files)} fichiers JS : imports relatifs resolus")
 ok(f"{named} imports nommes resolus vers un export reel")
 
+# ------------------------------------------------------------- postMessage
+# Le pont page <-> extension transporte le jeton CSRF : un `postMessage` vers
+# « * » le livrerait a n'importe quelle origine (corrige en v2.9.1). On refuse
+# qu'il revienne, dans n'importe quel fichier.
+WILDCARD_POST = re.compile(r"""postMessage\s*\([^;]*,\s*['"]\*['"]\s*\)""")
+wild = 0
+for f in js_files:
+    for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+        if WILDCARD_POST.search(line):
+            wild += 1
+            fail(f"{f.relative_to(ROOT)}:{n} : postMessage vers « * » — viser location.origin")
+if not wild:
+    ok("aucun postMessage vers « * »")
+
 # --------------------------------------------------------------------- HTML
 HTML_REF = re.compile(r'(?:src|href)="([^"#:]+)"')
 for h in walk(".html"):
