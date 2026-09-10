@@ -45,7 +45,6 @@ function render() {
   $('#valueBasis').disabled = !settings.useRolimons;
   $('#speculativeRatio').disabled = !settings.useRolimons;
   $('#reconcilePortfolio').disabled = !settings.trackPortfolio;
-  // Les pastilles font partie du panneau : sans lui, rien n'est injecte.
   $('#speculativeRatio').value = settings.speculativeRatio ?? 1.6;
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of NUMS) { const el = $('#' + k); if (el) el.value = settings[k] ?? 0; }

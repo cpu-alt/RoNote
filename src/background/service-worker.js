@@ -210,7 +210,7 @@ async function saveDetailCache() {
 }
 
 /** Fiche complete a partir d'un detail deja recupere (aucun appel superflu). */
-async function makeCard(detail, kind, myId, cat, settings, { light = false } = {}) {
+async function makeCard(detail, kind, myId, cat, settings) {
   // 1) Assets qu'aucune table ne connait : depuis la bascule des visages en
   //    bundles, l'objet echange peut n'etre que le CONTENU d'un bundle. On
   //    fait le pont assetId -> bundleId via le catalogue Roblox.
@@ -244,12 +244,7 @@ async function makeCard(detail, kind, myId, cat, settings, { light = false } = {
 
   // Vignettes et portrait en parallele : ce sont des conforts, ils ne doivent
   // jamais faire perdre la carte ni retarder les deux autres appels.
-  //
-  // En mode LEGER on ne les demande meme pas : le panneau de la page se pose
-  // sur les vignettes que Roblox affiche deja. Les telecharger, c'est deux
-  // allers-retours reseau pour rien — et c'est du temps pendant lequel l'ecart
-  // ne s'affiche pas.
-  const [headshot, thumbs] = light ? [null, []] : await Promise.all([
+  const [headshot, thumbs] = await Promise.all([
     partner.id ? safe(() => api.getUserHeadshot(partner.id), null) : null,
     safe(() => resolveThumbs(items.map(thumbKeysFor)), [])
   ]);
@@ -267,12 +262,8 @@ async function makeCard(detail, kind, myId, cat, settings, { light = false } = {
     verdict: verdict(analysis),
     url: api.TRADE_URL(detail.id)
   };
-  // Une carte legere n'a pas de vignettes : la mettre en cache la servirait
-  // telle quelle au popup, qui, lui, les attend.
-  if (!light) {
-    memDetails.set(card.tradeId, { at: Date.now(), card });
-    detailsDirty = true;
-  }
+  memDetails.set(card.tradeId, { at: Date.now(), card });
+  detailsDirty = true;
   return card;
 }
 

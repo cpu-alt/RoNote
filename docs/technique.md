@@ -56,9 +56,8 @@ colonnes obtenues ne cite deux propriétaires : ce cas-là, c'est le trade entie
 pris pour une colonne et un inventaire pris pour l'autre. Si le découpage ne
 donne pas exactement deux colonnes, la lecture s'abstient plutôt que de deviner.
 
-Cette lecture est dans `content/tradedom.js`, partagée avec le panneau injecté
-dans la page (voir *Le panneau sur la page Roblox*) : deux lecteurs qui
-divergeraient, ce sont deux totaux qui divergent.
+Cette lecture est dans `content/tradedom.js`, dont `content/scrape.js` se sert en
+repli : un seul lecteur de page, donc un seul total possible.
 
 Ordre des replis, du plus fidèle au plus approximatif :
 1. l'API (`v1` puis `v2`, avec jeton CSRF et relais par onglet) ;
@@ -727,13 +726,12 @@ tous les chiffres.
 - Intervalle de vérification (10 s → 5 min)
 - Choix des flux surveillés et des événements à notifier
 - Suivi auto de tes contre-offres / de tous tes envois / des envois non suivis
-- **4 sonneries générées en WebAudio** (aucun fichier son embarqué) + volume + test
+- **Un son par famille d'événement**, parmi **6 sonneries générées en WebAudio**
+  (aucun fichier son embarqué) + volume + écoute
 - **Base de calcul** : value Rolimon's (défaut), prudente, ou RAP seul + seuil de
   cote spéculative
 - **Robux nets de taxe** (30 % prélevés par Roblox sur les Robux reçus)
 - **Détail des objets** dépliable sous chaque trade
-- **Panneau sur la page Roblox** et **pastilles sur les objets** (voir *Le panneau
-  sur la page Roblox*)
 - **Correction des visages passés en bundles** dans l'onglet Bénéfice
 - **Filtres** : trades gagnants uniquement, gain min en %, valeur min reçue, items
   projected, joueurs ignorés
@@ -792,12 +790,11 @@ identifiées par leur propriétaire, l'inventaire ouvert qui doit faire renoncer
 la mise en page sans aucun profil qui doit quand même marcher, et le nom d'un
 objet qui ne doit jamais absorber ce que RoNote a écrit dessous.
 
-Les deux suites Node héritées restent disponibles si Node est installé :
+Les suites Node restent disponibles si Node est installé :
 
 ```bash
-npm test    # anti-doublon (17) + envois et contre-offres (33) + panneau (60)
-            # + mise en forme identique des deux côtés (518)
-            # + scripts de contenu dans un espace global partagé (11)
+npm test    # anti-doublon (17) + envois et contre-offres (33)
+            # + scripts de contenu dans un espace global partagé (8)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un
@@ -805,13 +802,6 @@ caractère invisible ne se voit ni à la relecture, ni dans un diff, ni dans un
 message d'erreur : il a suffi d'un échappement raté dans une expression
 régulière — devenu un vrai *backspace* — pour qu'elle ne corresponde plus
 jamais à rien, sans un mot.
-
-La troisième suite (`tools/test-appraise.mjs`) rejoue le trade de la capture
-d'écran, objet par objet : elle vérifie que l'écart de RAP vaut bien 9 017 et
-qu'il **s'affiche avec tous ses chiffres**, que le pourcentage garde sa
-décimale, qu'un montant abrégé n'entre jamais dans un total, qu'un détail
-appartenant à un autre trade est écarté, et qu'un pseudo tronqué retrouve son
-trade — sauf quand deux trades concernent le même joueur, auquel cas on renonce.
 
 ---
 

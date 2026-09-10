@@ -401,69 +401,24 @@ const EN = {
   'Objets non cotés (visages, objets de bundle, nouveautés) : RoNote récupère le RAP officiel auprès de Roblox. Si l\'objet reste sans cote, il est signalé': 'Unvalued items (faces, bundle items, brand-new items): RoNote fetches the official RAP from Roblox. If the item still has no value, it is flagged',
   '❔ sans cote': '❔ no value',
   'et exclu des totaux — jamais compté comme 0 — et la notification n\'est jamais supprimée par un filtre dans ce cas.': 'and excluded from the totals — never counted as 0 — and the notification is never dropped by a filter in that case.',
-  /* --- panneau sur la page Roblox (options) ---------------------------- */
-  'Sur la page Roblox': 'On the Roblox page',
-  'Gain / perte sur la page': 'Gain / loss on the page',
-  "Sur roblox.com/trades, l'écart s'affiche entre les deux listes d'objets : value et RAP, nombre complet, pourcentage et barre centrée. Si la mise en page ne s'y prête pas, il repart dans un panneau flottant, déplaçable et repliable.":
-    'On roblox.com/trades, the gap is shown between the two item lists: value and RAP, full number, percentage and a centred bar. Where the layout will not take it, it falls back to a floating panel you can move and fold.',
-  'Cote et pastille sur chaque objet': 'Value and badge on every item',
-  'Sous chaque objet du trade : sa value et son RAP. Et sur la vignette, la pastille qui compte — ⚠ projected en tête, puis ❔ sans cote, 📈 cote spéculative, 🔁 cote révisée, 🎭 visage.':
-    'Under every item in the trade: its value and its RAP. And on the thumbnail, the badge that matters — ⚠ projected first, then ❔ unvalued, 📈 speculative value, 🔁 revised value, 🎭 face.',
-  "Les chiffres du panneau sont exactement ceux du popup : identifiants lus dans les liens de la page, RAP et Robux pris dans la réponse de Roblox, cotes prises chez Rolimon's. Aucun nombre n'est relu à l'écran — c'est ce qui fait qu'un écart de 9 017 de RAP s'affiche « +9 017 » et jamais « +9 ».":
-    "The panel's figures are exactly the popup's: ids read from the page links, RAP and Robux taken from Roblox's own response, values taken from Rolimon's. No number is ever read back off the screen — which is why a RAP gap of 9,017 shows as “+9,017” and never as “+9”.",
 
-  /* --- panneau sur la page Roblox (le panneau lui-meme) ---------------- */
+  /* --- popup : zoom, refus, infobulle d'un objet ------------------------ */
   '{n} objet': '{n} item',
   '{n} objets': '{n} items',
-  'Écart non calculable': 'Gap not computable',
-  'sur les objets cotés :': 'on the valued items:',
-  'Colonnes supposées': 'Columns assumed',
-  "RoNote n'a pas pu identifier laquelle des deux colonnes est la vôtre : il a pris celle de gauche. Ouvre le trade depuis la liste pour lever le doute.":
-    'RoNote could not tell which of the two columns is yours: it assumed the left one. Open the trade from the list to remove the doubt.',
-  "RoNote n'est pas connecté à Roblox : impossible de savoir quelle colonne est la vôtre. La colonne de gauche est supposée être la vôtre.":
-    'RoNote is not signed in to Roblox: there is no way to tell which column is yours. The left column is assumed to be yours.',
-  '{n} objet non affiché': '{n} item not shown',
-  '{n} objets non affichés': '{n} items not shown',
-  "Le trade contient plus d'objets que la page n'en montre. Ils sont comptés dans les totaux.":
-    'The trade holds more items than the page shows. They are counted in the totals.',
-  'Robux non comptés': 'Robux not counted',
-  "Le montant en Robux affiché sur la page n'est pas lisible de façon sûre : il est exclu des totaux plutôt que compté de travers.":
-    'The Robux amount shown on the page cannot be read safely: it is left out of the totals rather than counted wrong.',
-  'Trade non identifié': 'Trade not identified',
-  'Revenir au détail du trade': 'Back to the trade details',
-  'Cote révisée': 'Value revised',
   'Total value': 'Total value',
-  'sur la {b}': 'on {b}',
-  '{label} : {delta} ({pct})': '{label}: {delta} ({pct})',
-  'base du verdict': 'basis of the verdict',
   'Annuler ce trade': 'Cancel this trade',
   'Refuser ce trade': 'Decline this trade',
   'Confirmer ?': 'Confirm?',
   'Demande': 'Demand',
   'Tendance': 'Trend',
-  "Fiche Rolimon's": "Rolimon's page",
   'RAP faute de cote': 'RAP, no value',
-  "Sur roblox.com/trades : l'écart entre les deux listes d'objets (value et RAP, nombre complet, pourcentage, barre centrée), le verdict de chaque trade sur la liste, et la value sous tout objet reconnu — jusque dans les inventaires quand tu composes un trade.":
-    'On roblox.com/trades: the difference between the two item lists (value and RAP, full number, percentage, centred bar), the verdict of every trade on the list, and the value under every recognised item — even in the inventories while you compose a trade.',
   'proj': 'proj',
   'spécu': 'spec',
   'révisé': 'revised',
   'Refuser': 'Decline',
   'Confirmer le refus': 'Confirm decline',
-  'Refus en cours…': 'Declining…',
   'Trade refusé': 'Trade declined',
-  'Échec — {why}': 'Failed — {why}',
-  "Ouvrir {name} sur Rolimon's": "Open {name} on Rolimon's",
-  "RoNote n'est pas encore connecté à ton compte Roblox. Ouvre un onglet roblox.com, attends quelques secondes, puis reviens.":
-    'RoNote is not connected to your Roblox account yet. Open a roblox.com tab, wait a few seconds, then come back.',
-  "RoNote n'a pas encore vu ce trade. Il apparaîtra après la prochaine vérification.":
-    "RoNote has not seen this trade yet. It will show up after the next check.",
-  'Plusieurs trades ouverts avec ce joueur : impossible de savoir lequel est affiché.':
-    'Several open trades with this player: no way to tell which one is on screen.',
   'Évaluation impossible — {why}': 'Cannot evaluate — {why}',
-  'Verdict calculé sur la base {b}, réglable dans les réglages de RoNote.':
-    'Verdict computed on the {b} basis, adjustable in RoNote settings.',
-  'Replier / déplier': 'Collapse / expand',
 
   'Filtres': 'Filters',
   '(s\'appliquent uniquement aux trades reçus)': '(apply to inbound trades only)',
