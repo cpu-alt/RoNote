@@ -583,6 +583,27 @@ const RANGES = [
   { key: 'all', label: 'Tout', days: 0 }
 ];
 
+/** Les courbes du compte, dans l'ordre où elles s'empilent. */
+const WALLET_SERIES = {
+  v: { label: 'Value', color: '#4d9fff', money: true },
+  r: { label: 'RAP', color: '#2fd070', money: true },
+  n: { label: 'Collectibles', color: '#c792ea', money: false }
+};
+const HERO_LABEL = { v: 'Value réelle', r: 'RAP du compte', n: 'Nombre de collectibles' };
+
+/** Les courbes d'un objet, toutes en Robux. */
+const ITEM_SERIES = {
+  v: { label: 'Value', color: '#4d9fff', money: true },
+  r: { label: 'RAP', color: '#2fd070', money: true },
+  p: { label: 'Meilleur prix', color: '#ffb02e', money: true }
+};
+const ITEM_RANGES = [
+  { key: '1m', label: '1m', days: 30 },
+  { key: '3m', label: '3m', days: 90 },
+  { key: '1y', label: '1a', days: 365 },
+  { key: 'all', label: 'Tout', days: 0 }
+];
+
 const SORTS = [
   { key: 'value', label: 'Plus grosse value' },
   { key: 'rap', label: 'Plus gros RAP' },
@@ -601,6 +622,19 @@ const FILTERS = [
 
 const TREND_ICON = ['↘', '↯', '→', '↗', '↕'];
 const SLICE_COLORS = ['#4d9fff', '#2fd070', '#c792ea', '#ffb02e', '#ff7a85', '#3a4458'];
+const REDUCED_MOTION = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+/** Séries valides, dans l'ordre de référence — jamais aucune. */
+function orderedSeries(keys, defs) {
+  const list = Object.keys(defs).filter(k => Array.isArray(keys) && keys.includes(k));
+  return list.length ? list : [Object.keys(defs)[0]];
+}
+
+/** Ajoute ou retire une courbe ; la dernière affichée ne se retire pas. */
+function toggleSeries(keys, key, defs) {
+  const next = keys.includes(key) ? keys.filter(k => k !== key) : [...keys, key];
+  return next.length ? orderedSeries(next, defs) : keys;
+}
 
 /**
  * Préférences d'affichage du portefeuille. Elles ne regardent que ce popup :
@@ -608,12 +642,15 @@ const SLICE_COLORS = ['#4d9fff', '#2fd070', '#c792ea', '#ffb02e', '#ff7a85', '#3
  * défaut sans rien casser. La recherche, elle, ne survit pas à la fermeture.
  */
 const WALLET_KEY = 'ronote:wallet';
-const WALLET_PREFS = ['range', 'metric', 'hidden', 'view', 'sort', 'filter'];
-const wallet = { range: '1m', metric: 'v', hidden: false, view: 'list', sort: 'value', filter: 'all', query: '' };
+const WALLET_PREFS = ['range', 'series', 'hidden', 'view', 'sort', 'filter'];
+const wallet = { range: '1m', series: ['v'], hidden: false, view: 'list', sort: 'value', filter: 'all', query: '' };
 try {
   const saved = JSON.parse(localStorage.getItem(WALLET_KEY) || '{}');
   for (const k of WALLET_PREFS) if (k in saved) wallet[k] = saved[k];
+  // Préférence d'avant les courbes superposables : une seule, value ou RAP.
+  if (!('series' in saved) && saved.metric === 'r') wallet.series = ['r'];
 } catch { /* valeurs par défaut */ }
+wallet.series = orderedSeries(wallet.series, WALLET_SERIES);
 
 function saveWallet() {
   try {
@@ -629,112 +666,262 @@ const amount = (n) => (wallet.hidden ? '••••••' : fmtFull(n));
 const amountShort = (n) => (wallet.hidden ? '•••' : fmtNum(n));
 const amountSigned = (n, full = false) => (wallet.hidden ? '•••' : fmtSigned(n, full));
 const sharePct = (p) => (p >= 10 ? String(Math.round(p)) : p.toFixed(1)) + '%';
-const pillText = (delta, pct) => `${delta > 0 ? '▲' : delta < 0 ? '▼' : '•'} ${amountSigned(delta, true)} · ${fmtPct(pct)}`;
 
-/* ------------------------------ le graphique ----------------------------- */
+const seriesText = (def, n) => (def.money ? amount(n) : fmtFull(n));
+const seriesShort = (def, n) => (def.money ? amountShort(n) : fmtNum(n));
+const seriesSigned = (def, n) => (def.money ? amountSigned(n, true) : fmtSigned(n, true));
+const pillText = (def, delta, pct) =>
+  `${delta > 0 ? '▲' : delta < 0 ? '▼' : '•'} ${seriesSigned(def, delta)} · ${fmtPct(pct)}`;
 
-const CHART = { W: 400, H: 120, PT: 12, PB: 6, MAX: 180 };
+/* ------------------------------- le mouvement ---------------------------- */
 
-/** Au-delà de ~180 points la courbe n'y gagne rien : on échantillonne, premier et dernier compris. */
+/**
+ * Ce qui s'anime au prochain rendu. Le rafraîchissement de fond redessine
+ * l'onglet toutes les 30 s : rejouer les animations à chaque fois serait
+ * insupportable. On n'anime donc qu'à l'entrée dans l'onglet ('all'), à un
+ * changement de courbe ou de période ('chart'), ou de tri et de vue ('items').
+ */
+let walletAnimate = 'all';
+let heroFrame = 0;
+
+/** Le solde défile jusqu'à sa valeur, comme un compteur. */
+function countUp(el, from, to, format, ms = 800) {
+  cancelAnimationFrame(heroFrame);
+  if (!el) return;
+  if (REDUCED_MOTION || wallet.hidden || from === to || !Number.isFinite(from)) { el.textContent = format(to); return; }
+  const start = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - start) / ms);
+    el.textContent = format(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) heroFrame = requestAnimationFrame(step);
+  };
+  heroFrame = requestAnimationFrame(step);
+}
+
+/** Entrée en cascade : chaque bloc arrive un peu après le précédent. */
+function cascade(elements, max = 20) {
+  [...elements].slice(0, max).forEach((el, n) => {
+    el.style.setProperty('--i', n);
+    el.classList.add('w-in');
+  });
+}
+
+/* ------------------------------ les courbes ------------------------------ */
+
+const CHART = { W: 400, H: 130, PT: 24, PB: 20, PR: 14, MAX: 220 };
+const plotX = (fx) => fx * (CHART.W - CHART.PR);
+const plotPct = (fx) => (plotX(fx) / CHART.W) * 100;
+const chartY = (v, min, span) =>
+  (CHART.PT + (1 - (v - min) / span) * (CHART.H - CHART.PT - CHART.PB)) / CHART.H;
+
+/** Au-delà de ~220 points la courbe n'y gagne rien : on échantillonne, premier et dernier compris. */
 function downsample(pts) {
   if (pts.length <= CHART.MAX) return pts;
   const step = (pts.length - 1) / (CHART.MAX - 1);
   return Array.from({ length: CHART.MAX }, (_, i) => pts[Math.round(i * step)]);
 }
 
-/** Hauteur d'un relevé, en fraction de la hauteur du graphique (0 = en haut). */
-const chartY = (v, min, span) =>
-  (CHART.PT + (1 - (v - min) / span) * (CHART.H - CHART.PT - CHART.PB)) / CHART.H;
-
-/** Une seule série, lissée, remplie d'un dégradé à la couleur de la tendance. */
-function walletChart(pts, key, tone) {
-  const vals = pts.map(p => p[key]);
-  const min = Math.min(...vals);
-  const span = (Math.max(...vals) - min) || 1;
-  const xy = pts.map((p, i) => [(i / (pts.length - 1)) * CHART.W, chartY(p[key], min, span) * CHART.H]);
-  const f = (n) => n.toFixed(1);
-
-  // Catmull-Rom converti en Bézier : la courbe passe par chaque relevé, sans angle.
-  let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
-  for (let i = 0; i < xy.length - 1; i++) {
-    const p0 = xy[i - 1] || xy[i], p1 = xy[i], p2 = xy[i + 1], p3 = xy[i + 2] || xy[i + 1];
-    d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} `
-      + `${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`;
+function nearestIndex(pts, at) {
+  let lo = 0, hi = pts.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (pts[mid].at < at) lo = mid; else hi = mid;
   }
-  const color = tone === 'loss' ? '#ff5f66' : tone === 'win' ? '#2fd070' : '#4d9fff';
-  return `<svg class="w-chart" viewBox="0 0 ${CHART.W} ${CHART.H}" preserveAspectRatio="none" aria-hidden="true">
-    <defs><linearGradient id="wg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="${color}" stop-opacity=".32"/>
-      <stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
-    <path d="${d}L${CHART.W},${CHART.H}L0,${CHART.H}Z" fill="url(#wg)"/>
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-  </svg>`;
+  return at - pts[lo].at <= pts[hi].at - at ? lo : hi;
 }
 
 /**
- * Survol du graphique : le solde affiché devient celui du jour pointé, comme
- * dans une appli de portefeuille. Hors du graphique, tout revient au présent.
+ * Les courbes, prêtes à tracer, placées dans le temps réel (pas au rang du
+ * relevé : un historique résumé sur les années anciennes ne doit pas les
+ * étirer). Des courbes de même unité partagent l'axe ; dès qu'on mêle Robux
+ * et nombre d'objets, chacune passe en variation depuis le début de la
+ * période — la seule façon honnête de les empiler.
  */
-function bindChart(pts, key) {
-  const plot = document.getElementById('w-plot');
-  if (!plot) return;
+function chartModel(pts, keys, defs) {
+  const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
+  const xs = pts.map(p => (t1 > t0 ? (p.at - t0) / (t1 - t0) : 0));
+  const percent = keys.length > 1 && new Set(keys.map(k => defs[k].money)).size > 1;
+  const lines = keys.map(key => {
+    const base = pts.find(p => p[key] > 0)?.[key] || 0;
+    const vals = pts.map(p => (percent ? (base ? (((p[key] || 0) - base) / base) * 100 : 0) : (p[key] || 0)));
+    return { key, base, vals };
+  });
+  const all = lines.flatMap(l => l.vals);
+  let min = Math.min(...all), max = Math.max(...all);
+  if (percent) { min = Math.min(min, 0); max = Math.max(max, 0); }
+  return { xs, lines, percent, min, span: (max - min) || 1 };
+}
+
+/**
+ * Courbe lisse qui ne dépasse jamais les relevés (cubique monotone,
+ * Fritsch-Carlson) : une révision de cote reste une marche franche, pas une
+ * vague qui inventerait un creux avant la hausse.
+ */
+function smoothPath(xy) {
+  const f = (n) => n.toFixed(1);
+  const n = xy.length;
+  if (n < 3) return 'M' + xy.map(p => `${f(p[0])},${f(p[1])}`).join('L');
+  const dx = [], m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = (xy[i + 1][0] - xy[i][0]) || 1e-6;
+    m[i] = (xy[i + 1][1] - xy[i][1]) / dx[i];
+  }
+  const tan = [m[0]];
+  for (let i = 1; i < n - 1; i++) tan[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  tan[n - 1] = m[n - 2];
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { tan[i] = 0; tan[i + 1] = 0; continue; }
+    const a = tan[i] / m[i], b = tan[i + 1] / m[i], s = a * a + b * b;
+    if (s > 9) { const k = 3 / Math.sqrt(s); tan[i] = k * a * m[i]; tan[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${f(xy[i][0] + h)},${f(xy[i][1] + tan[i] * h)} ${f(xy[i + 1][0] - h)},${f(xy[i + 1][1] - tan[i + 1] * h)} ${f(xy[i + 1][0])},${f(xy[i + 1][1])}`;
+  }
+  return d;
+}
+
+/**
+ * Le graphique : courbes lissées et remplies, point du moment qui pulse,
+ * plus haut et plus bas de la période, révisions de cote. Le survol est
+ * branché ensuite par mountChart.
+ */
+function chartHtml({ id, pts, keys, defs, animate = false, markers = [] }) {
+  if (pts.length < 2) return `<div class="w-nochart">${t('Pas encore assez de points sur cette période.')}</div>`;
+  const { W, H } = CHART;
+  const m = chartModel(pts, keys, defs);
+  const yPct = (v) => chartY(v, m.min, m.span) * 100;
+
+  let gradients = '';
+  const areas = [], lines = [], ends = [];
+  m.lines.forEach((l, n) => {
+    const def = defs[l.key];
+    const d = smoothPath(l.vals.map((v, i) => [plotX(m.xs[i]), chartY(v, m.min, m.span) * H]));
+    const gid = `${id}-g${n}`;
+    const solo = m.lines.length === 1;
+    gradients += `<linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="${def.color}" stop-opacity="${solo ? 0.36 : 0.15}"/>
+      <stop offset="100%" stop-color="${def.color}" stop-opacity="0"/></linearGradient>`;
+    // Le remplissage court jusqu'au bord, à plat depuis le dernier relevé :
+    // sans ça, il s'arrêtait net sous le point du moment, en arête verticale.
+    const lastY = (chartY(l.vals[l.vals.length - 1], m.min, m.span) * H).toFixed(1);
+    areas.push(`<path d="${d}L${W},${lastY}L${W},${H}L0,${H}Z" fill="url(#${gid})"/>`);
+    lines.push(`<path class="w-line" d="${d}" fill="none" stroke="${def.color}" stroke-width="${n ? 1.7 : 2.3}"
+      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 5px ${def.color}55)"/>`);
+    ends.push(`<i class="w-end" style="left:${plotPct(1)}%;top:${yPct(l.vals[l.vals.length - 1])}%;--c:${def.color}"></i>`);
+  });
+
+  const zeroY = (chartY(0, m.min, m.span) * H).toFixed(1);
+  const zero = m.percent ? `<line class="w-zero" x1="0" x2="${W}" y1="${zeroY}" y2="${zeroY}" vector-effect="non-scaling-stroke"/>` : '';
+
+  // Plus haut et plus bas : seulement pour une courbe seule, sinon illisible.
+  let extremes = '';
+  if (m.lines.length === 1) {
+    const vals = m.lines[0].vals;
+    let hi = 0, lo = 0;
+    vals.forEach((v, i) => { if (v > vals[hi]) hi = i; if (v < vals[lo]) lo = i; });
+    if (vals[hi] !== vals[lo]) {
+      const tag = (i, cls) => `<span class="w-ext ${cls}" style="left:${clamp(plotPct(m.xs[i]), 10, 88)}%;top:${yPct(vals[i])}%">${seriesShort(defs[keys[0]], vals[i])}</span>`;
+      extremes = tag(hi, 'hi') + tag(lo, 'lo');
+    }
+  }
+
+  // Révisions de la cote, posées sur la courbe de la value. Un objet ancien en
+  // compte des dizaines par an : seules les 10 plus fortes de la période.
+  const vLine = !m.percent ? m.lines.find(l => l.key === 'v') : null;
+  const swing = (c) => Math.abs(c.to - c.from) / (c.from || c.to || 1);
+  const marks = vLine
+    ? markers.filter(c => c.at >= pts[0].at && c.at <= pts[pts.length - 1].at)
+      .sort((a, b) => swing(b) - swing(a)).slice(0, 10).map(c => {
+      const i = nearestIndex(pts, c.at);
+      return `<i class="w-mark ${c.to >= c.from ? 'up' : 'down'}" style="left:${plotPct(m.xs[i])}%;top:${yPct(vLine.vals[i])}%"></i>`;
+    }).join('')
+    : '';
+
+  return `<div class="w-plot${animate && !REDUCED_MOTION ? ' reveal' : ''}" id="${id}">
+    <svg class="w-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>${gradients}</defs>${zero}${areas.reverse().join('')}${lines.reverse().join('')}
+    </svg>
+    ${marks}${extremes}${ends.join('')}
+    <div class="w-cursor" hidden></div>
+    ${keys.map(k => `<i class="w-cdot" style="--c:${defs[k].color}" hidden></i>`).join('')}
+    <div class="w-tip" hidden></div>
+  </div>`;
+}
+
+/** Sous un graphique à plusieurs courbes : la variation de chacune sur la période. */
+function legendHtml(pts, keys, defs) {
+  if (keys.length < 2 || pts.length < 2) return '';
+  const m = chartModel(pts, keys, defs);
+  const items = keys.map(k => {
+    const def = defs[k];
+    const base = pts.find(p => p[k] > 0)?.[k] || 0;
+    const last = pts[pts.length - 1][k] || 0;
+    const pct = base ? ((last - base) / base) * 100 : 0;
+    return `<span><i style="background:${def.color}"></i>${t(def.label)} <em class="${toneOf(pct)}">${fmtPct(pct)}</em></span>`;
+  }).join('');
+  return `<div class="w-leg">${items}${m.percent ? `<small>${t('en % depuis le début de la période')}</small>` : ''}</div>`;
+}
+
+/**
+ * Le survol : curseur, un point par courbe, infobulle avec la valeur de
+ * chacune au jour pointé. Tout suit la souris image par image.
+ */
+function mountChart({ id, pts, keys, defs, onScrub = null }) {
+  const plot = document.getElementById(id);
+  if (!plot || pts.length < 2) return;
+  const m = chartModel(pts, keys, defs);
   const cursor = plot.querySelector('.w-cursor');
-  const dot = plot.querySelector('.w-dot');
-  const amountEl = document.getElementById('w-amount');
-  const pillEl = document.getElementById('w-pill');
-  const whenEl = document.getElementById('w-when');
-  const present = { amount: amountEl.textContent, pill: pillEl.textContent, cls: pillEl.className, when: whenEl.textContent };
-  const vals = pts.map(p => p[key]);
-  const min = Math.min(...vals);
-  const span = (Math.max(...vals) - min) || 1;
-  const base = pts[0][key];
+  const tip = plot.querySelector('.w-tip');
+  const dots = [...plot.querySelectorAll('.w-cdot')];
+  const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
+  let frame = 0;
+
+  const show = (clientX) => {
+    const box = plot.getBoundingClientRect();
+    const fx = clamp((clientX - box.left) / (box.width * (CHART.W - CHART.PR) / CHART.W), 0, 1);
+    const i = nearestIndex(pts, t0 + fx * (t1 - t0));
+    const x = plotPct(m.xs[i]);
+    plot.classList.add('scrub');
+    cursor.hidden = tip.hidden = false;
+    cursor.style.left = x + '%';
+    dots.forEach((dot, n) => {
+      dot.hidden = false;
+      dot.style.left = x + '%';
+      dot.style.top = chartY(m.lines[n].vals[i], m.min, m.span) * 100 + '%';
+    });
+    tip.innerHTML = `<b>${fmtDate(pts[i].at)}</b>` + keys.map((k, n) => {
+      const def = defs[k];
+      const pct = m.percent ? `<em>${fmtPct(m.lines[n].vals[i])}</em>` : '';
+      return `<span><i style="background:${def.color}"></i>${t(def.label)}<strong>${seriesText(def, pts[i][k] || 0)}</strong>${pct}</span>`;
+    }).join('');
+    tip.style.left = clamp(x, 21, 79) + '%';
+    // L'infobulle ne doit pas cacher le point survolé : quand la courbe passe
+    // sous elle, elle descend en bas du graphique.
+    const highest = Math.min(...m.lines.map(l => chartY(l.vals[i], m.min, m.span)));
+    const low = highest < (tip.offsetHeight + 8) / plot.clientHeight;
+    tip.style.top = low ? 'auto' : '0';
+    tip.style.bottom = low ? '0' : 'auto';
+    onScrub?.(i);
+  };
 
   plot.addEventListener('pointermove', (e) => {
-    const box = plot.getBoundingClientRect();
-    const idx = Math.round(clamp((e.clientX - box.left) / box.width, 0, 1) * (pts.length - 1));
-    const p = pts[idx];
-    const delta = p[key] - base;
-    cursor.hidden = dot.hidden = false;
-    cursor.style.left = dot.style.left = (idx / (pts.length - 1)) * 100 + '%';
-    dot.style.top = chartY(p[key], min, span) * 100 + '%';
-    amountEl.textContent = amount(p[key]);
-    pillEl.textContent = pillText(delta, base ? (delta / base) * 100 : 0);
-    pillEl.className = 'w-pill ' + toneOf(delta);
-    whenEl.textContent = fmtDate(p.at);
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => show(e.clientX));
   });
   plot.addEventListener('pointerleave', () => {
-    cursor.hidden = dot.hidden = true;
-    amountEl.textContent = present.amount;
-    pillEl.textContent = present.pill;
-    pillEl.className = present.cls;
-    whenEl.textContent = present.when;
+    cancelAnimationFrame(frame);
+    plot.classList.remove('scrub');
+    cursor.hidden = tip.hidden = true;
+    dots.forEach(dot => { dot.hidden = true; });
+    onScrub?.(null);
   });
 }
 
-/* -------------------------------- le solde ------------------------------- */
-
-function heroHtml({ key, now, delta, pct, pts, range }) {
-  const tone = toneOf(delta);
-  return `<section class="w-hero" data-tone="${tone}">
-    <div class="w-top">
-      <div class="w-seg">
-        <button class="${key === 'v' ? 'on' : ''}" data-metric="v">Value</button>
-        <button class="${key === 'r' ? 'on' : ''}" data-metric="r">RAP</button>
-      </div>
-      <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
-    </div>
-    <div class="w-label">${key === 'v' ? t('Value réelle') : t('RAP du compte')}</div>
-    <div class="w-amount" id="w-amount">${amount(now)}</div>
-    <div class="w-change">
-      <span class="w-pill ${tone}" id="w-pill">${pillText(delta, pct)}</span>
-      <span class="w-when" id="w-when">${t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") })}</span>
-    </div>
-    ${pts.length > 1
-      ? `<div class="w-plot" id="w-plot">${walletChart(pts, key, tone)}<div class="w-cursor" hidden></div><div class="w-dot" hidden></div></div>`
-      : `<div class="w-nochart">${t('Pas encore assez de points sur cette période.')}</div>`}
-    <div class="w-ranges">${RANGES.map(r =>
-      `<button class="${r.key === range.key ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
-  </section>`;
+function seriesChips(defs, keys, attr) {
+  return `<div class="w-series">${Object.entries(defs).map(([k, d]) =>
+    `<button class="${keys.includes(k) ? 'on' : ''}" ${attr}="${k}" style="--c:${d.color}"><i></i>${t(d.label)}</button>`).join('')}</div>`;
 }
 
 /* ------------------------------ la répartition --------------------------- */
@@ -819,7 +1006,7 @@ function visibleItems(items) {
 }
 
 /** Seule la liste est redessinée pendant la frappe : le champ garde son curseur. */
-function renderItems() {
+function renderItems({ animate = false } = {}) {
   const box = document.getElementById('w-items');
   const items = data.report?.items;
   if (!box || !Array.isArray(items)) return;
@@ -833,6 +1020,7 @@ function renderItems() {
     ? list.map(i => (wallet.view === 'grid' ? itemCardHtml(i) : itemRowHtml(i, sum))).join('')
     : `<div class="w-none">${none}</div>`;
   bindImages(box);
+  if (animate && !REDUCED_MOTION) cascade(box.children, wallet.view === 'grid' ? 12 : 16);
 }
 
 function collectionHtml(rep, items, owned) {
@@ -864,6 +1052,53 @@ function collectionHtml(rep, items, owned) {
 
 /* ---------------------------- fiche d'un objet --------------------------- */
 
+/** La fiche ouverte : son historique arrive après coup, depuis le service worker. */
+const sheet = { key: null, roliId: 0, data: null, changes: [], error: '', series: ['v', 'r'], range: '1y' };
+
+function renderSheetChart(animate = false) {
+  const box = document.getElementById('w-sh-chart');
+  if (!box) return;
+  if (!sheet.roliId) {
+    box.innerHTML = `<div class="w-none">${t("Rolimon's ne publie pas d'historique pour ce bundle.")}</div>`;
+    return;
+  }
+  if (sheet.error) {
+    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible — {why}.', { why: sheet.error }))}</div>`;
+    return;
+  }
+  if (!sheet.data) {
+    box.innerHTML = `<div class="w-skel"></div>`;
+    return;
+  }
+
+  const range = ITEM_RANGES.find(r => r.key === sheet.range) || ITEM_RANGES[2];
+  const since = range.days ? Date.now() - range.days * 864e5 : 0;
+  const pts = downsample(sheet.data.filter(p => p.at >= since));
+  const avail = Object.fromEntries(Object.entries(ITEM_SERIES).filter(([k]) => sheet.data.some(p => p[k] > 0)));
+  if (!Object.keys(avail).length) {
+    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible — {why}.', { why: t('réponse vide') }))}</div>`;
+    return;
+  }
+  const keys = orderedSeries(sheet.series, avail);
+
+  box.innerHTML = `
+    ${seriesChips(avail, keys, 'data-sseries')}
+    ${chartHtml({ id: 'w-sh-plot', pts, keys, defs: ITEM_SERIES, animate, markers: sheet.changes })}
+    ${legendHtml(pts, keys, ITEM_SERIES)}
+    <div class="w-ranges">${ITEM_RANGES.map(r =>
+      `<button class="${r.key === range.key ? 'on' : ''}" data-srange="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
+  mountChart({ id: 'w-sh-plot', pts, keys, defs: ITEM_SERIES });
+
+  box.querySelectorAll('[data-sseries]').forEach(el => el.addEventListener('click', () => {
+    sheet.series = toggleSeries(keys, el.dataset.sseries, avail);
+    renderSheetChart(true);
+  }));
+  box.querySelectorAll('[data-srange]').forEach(el => el.addEventListener('click', () => {
+    sheet.range = el.dataset.srange;
+    renderSheetChart(true);
+  }));
+}
+
 function openItemSheet(key) {
   const items = data.report?.items || [];
   const i = items.find(x => x.key === key);
@@ -880,6 +1115,7 @@ function openItemSheet(key) {
 
   document.getElementById('zoom')?.remove();
   zoomed = 'item:' + key;   // le rafraîchissement de fond attend la fermeture
+  Object.assign(sheet, { key, roliId, data: null, changes: [], error: '' });
 
   const wrap = document.createElement('div');
   wrap.className = 'zoom';
@@ -896,6 +1132,7 @@ function openItemSheet(key) {
     <div class="z-body">
       <div class="w-sh-amount">${amount(i.total)}</div>
       <div class="w-sh-sub">${i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')}${sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''}</div>
+      <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
         ${fact('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
         ${fact('RAP', amount(i.rap))}
@@ -910,6 +1147,7 @@ function openItemSheet(key) {
   </div>`;
   document.body.appendChild(wrap);
   bindImages(wrap);
+  renderSheetChart();
 
   wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
   wrap.querySelector('.z-close').addEventListener('click', closeZoom);
@@ -917,6 +1155,24 @@ function openItemSheet(key) {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
   });
   document.addEventListener('keydown', onZoomKey);
+
+  if (!roliId) return;
+  const still = () => zoomed === 'item:' + key;
+  send({ type: 'ronote:item-history', itemId: roliId }).then((res) => {
+    if (!still()) return;
+    const h = res?.history;
+    if (h?.t?.length) {
+      sheet.data = h.t.map((at, n) => ({ at, v: h.v[n], r: h.r[n], p: h.p[n] }));
+      sheet.changes = (h.changes || []).map(([at, from, to]) => ({ at, from, to }));
+    } else {
+      sheet.error = res?.error || t('réponse vide');
+    }
+    renderSheetChart(true);
+  }, () => {
+    if (!still()) return;
+    sheet.error = t('réponse vide');
+    renderSheetChart();
+  });
 }
 
 /* ---------------------------- réconciliation ----------------------------- */
@@ -1011,34 +1267,60 @@ function renderStats() {
   const items = Array.isArray(rep?.items) ? rep.items : null;
   if (!items && !walletAutoTried) { walletAutoTried = true; recomputePortfolio(); }
 
+  // Entrée dans l'onglet : tout s'anime. Redessin de fond : rien ne bouge.
+  const mode = REDUCED_MOTION ? null : (listEl.querySelector('.w-hero') ? walletAnimate : 'all');
+  walletAnimate = null;
+
   const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
   const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const key = wallet.metric === 'r' ? 'r' : 'v';
   const inRange = all.filter(p => p.at >= since);
   const pts = downsample(inRange);
+  const keys = wallet.series;
+  const primary = keys[0];
+  const pdef = WALLET_SERIES[primary];
 
   // Le relevé du moment prime sur le dernier point historique, et il est
   // CORRIGÉ : c'est la valeur réelle du compte, pas celle de Rolimon's.
   const cur = last || all[all.length - 1] || { v: 0, r: 0 };
-  const head = inRange[0] || all[0];
-  const now = cur[key] || 0;
-  const delta = head ? now - head[key] : 0;
-  const pct = head && head[key] ? (delta / head[key]) * 100 : 0;
+  const nowOf = { v: cur.v || 0, r: cur.r || 0, n: all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0) };
+  const head = inRange[0] || all[0] || {};
+  const now = nowOf[primary];
+  const start = Number.isFinite(head[primary]) ? head[primary] : now;
+  const delta = now - start;
+  const pct = start ? (delta / start) * 100 : 0;
+  const tone = toneOf(delta);
+  const whenText = t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") });
 
   const corrected = rep?.corrected && (rep.ghosts?.length || rep.extras?.length);
   const gap = corrected ? cur.v - (cur.rawV ?? rep.rolimons?.value ?? cur.v) : 0;
   const moved = (items || []).filter(i => i.change);
   const movedImpact = moved.reduce((s, i) => s + (i.change.to - i.change.from) * i.count, 0);
   const owned = items ? items.reduce((s, i) => s + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0);
+  const other = primary === 'r' ? 'v' : 'r';
 
   // Un redessin de fond ne doit pas voler le curseur de la recherche.
   const search = document.activeElement?.id === 'w-search' ? document.activeElement : null;
   const caret = search ? [search.selectionStart, search.selectionEnd] : null;
 
   listEl.innerHTML = `
-    ${heroHtml({ key, now, delta, pct, pts, range })}
+    <section class="w-hero" data-tone="${tone}">
+      <div class="w-top">
+        ${seriesChips(WALLET_SERIES, keys, 'data-series')}
+        <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
+      </div>
+      <div class="w-label">${t(HERO_LABEL[primary])}</div>
+      <div class="w-amount" id="w-amount">${seriesText(pdef, now)}</div>
+      <div class="w-change">
+        <span class="w-pill ${tone}" id="w-pill">${pillText(pdef, delta, pct)}</span>
+        <span class="w-when" id="w-when">${whenText}</span>
+      </div>
+      ${chartHtml({ id: 'w-plot', pts, keys, defs: WALLET_SERIES, animate: mode === 'all' || mode === 'chart' })}
+      ${legendHtml(pts, keys, WALLET_SERIES)}
+      <div class="w-ranges">${RANGES.map(r =>
+        `<button class="${r.key === range.key ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
+    </section>
     <section class="w-tiles">
-      <div class="w-tile"><span>${key === 'v' ? 'RAP' : 'Value'}</span><b>${amountShort(cur[key === 'v' ? 'r' : 'v'])}</b></div>
+      <div class="w-tile"><span>${WALLET_SERIES[other].label}</span><b>${amountShort(cur[other])}</b></div>
       <div class="w-tile"><span>${t('Rang')}</span><b>${st.portfolioRank ? '#' + fmtFull(st.portfolioRank) : '—'}</b></div>
       <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : '—'}</b></div>
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
@@ -1056,22 +1338,49 @@ function renderStats() {
     <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
 
   bindImages(listEl);
-  renderItems();
-  bindChart(pts, key);
+  renderItems({ animate: mode === 'all' || mode === 'items' });
+  if (mode === 'all') cascade(listEl.children, 8);
+
+  const amountEl = document.getElementById('w-amount');
+  const pillEl = document.getElementById('w-pill');
+  const whenEl = document.getElementById('w-when');
+  mountChart({
+    id: 'w-plot', pts, keys, defs: WALLET_SERIES,
+    // Survol : le solde affiché devient celui du jour pointé.
+    onScrub: (i) => {
+      cancelAnimationFrame(heroFrame);
+      if (i === null) {
+        amountEl.textContent = seriesText(pdef, now);
+        pillEl.textContent = pillText(pdef, delta, pct);
+        pillEl.className = `w-pill ${tone}`;
+        whenEl.textContent = whenText;
+        return;
+      }
+      const base = pts[0][primary] || 0;
+      const value = pts[i][primary] || 0;
+      amountEl.textContent = seriesText(pdef, value);
+      pillEl.textContent = pillText(pdef, value - base, base ? ((value - base) / base) * 100 : 0);
+      pillEl.className = 'w-pill ' + toneOf(value - base);
+      whenEl.textContent = fmtDate(pts[i].at);
+    }
+  });
+  if (mode === 'all' || mode === 'chart') countUp(amountEl, start, now, (x) => seriesText(pdef, x));
+
   if (caret) {
     const s = document.getElementById('w-search');
     s?.focus();
     s?.setSelectionRange(...caret);
   }
 
-  const redraw = () => keepScroll(renderStats);
-  const pref = (k, v) => { wallet[k] = v; saveWallet(); redraw(); };
-  listEl.querySelectorAll('[data-metric]').forEach(el => el.addEventListener('click', () => pref('metric', el.dataset.metric)));
-  listEl.querySelectorAll('[data-range]').forEach(el => el.addEventListener('click', () => pref('range', el.dataset.range)));
-  listEl.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => pref('filter', el.dataset.filter)));
-  listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden));
-  listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid'));
-  listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems(); });
+  const redraw = (anim) => { walletAnimate = anim; keepScroll(renderStats); };
+  const pref = (k, v, anim) => { wallet[k] = v; saveWallet(); redraw(anim); };
+  listEl.querySelectorAll('[data-series]').forEach(el => el.addEventListener('click', () =>
+    pref('series', toggleSeries(wallet.series, el.dataset.series, WALLET_SERIES), 'chart')));
+  listEl.querySelectorAll('[data-range]').forEach(el => el.addEventListener('click', () => pref('range', el.dataset.range, 'chart')));
+  listEl.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => pref('filter', el.dataset.filter, 'items')));
+  listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden, null));
+  listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid', 'items'));
+  listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems({ animate: true }); });
   listEl.querySelector('#w-search')?.addEventListener('input', (e) => { wallet.query = e.target.value; renderItems(); });
   listEl.querySelector('#w-items')?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-item]');

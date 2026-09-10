@@ -513,6 +513,8 @@ async function stepCompleted(ctx) {
 
 const PORTFOLIO_TTL = 10 * 60 * 1000;   // reconciliation : 4 appels reseau
 const HISTORY_TTL = 30 * 60 * 1000;     // la serie Rolimon's ne bouge qu'une fois par jour
+const ITEM_HISTORY_TTL = 6 * 60 * 60 * 1000;   // historique d'un objet (page de 1,7 Mo)
+const ITEM_HISTORY_CAP = 20;                   // objets dont l'historique reste en cache
 
 /**
  * Les chiffres du compte : ceux de Rolimon's, la correction des visages, et
@@ -912,6 +914,34 @@ async function handleMessage(msg) {
       await flushThumbs();
       return { cards, failed, links: state.links, tracked: state.tracked };
     }
+    /**
+     * Historique d'un objet, pour sa fiche dans l'onglet Portefeuille. Demande
+     * seulement a l'ouverture de la fiche, et garde 6 h : la page Rolimon's
+     * pese jusqu'a 1,7 Mo.
+     */
+    case 'ronote:item-history': {
+      const id = Number(msg.itemId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      setLang(settings.lang);
+      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
+      const { itemHistory } = await B.storage.local.get('itemHistory');
+      const cache = itemHistory || {};
+      const hit = cache[id];
+      if (hit && Date.now() - hit.at < ITEM_HISTORY_TTL) return { history: hit.data };
+      try {
+        const data = await api.getItemHistory(id);
+        const kept = Object.entries({ ...cache, [id]: { at: Date.now(), data } })
+          .sort((a, b) => b[1].at - a[1].at)
+          .slice(0, ITEM_HISTORY_CAP);
+        await B.storage.local.set({ itemHistory: Object.fromEntries(kept) });
+        return { history: data };
+      } catch (e) {
+        // Rolimon's injoignable : un historique un peu ancien vaut mieux que rien.
+        return hit ? { history: hit.data, stale: true } : { error: String(e?.message || e) };
+      }
+    }
+
     case 'ronote:portfolio': {
       const settings = await getSettings();
       const state = await getState();

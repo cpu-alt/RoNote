@@ -42,7 +42,7 @@ RoNote contacts exactly two domains, both declared in its manifest:
 | Domain | Why | What is sent |
 |---|---|---|
 | `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
-| `*.rolimons.com` | Download the public item value table | **Nothing about you** — it is a plain download of the public catalogue, identical for every user |
+| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile | For the value table and item histories, **nothing about you** — the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
@@ -79,7 +79,7 @@ or cancelling only destroys an offer.
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
-| `*.rolimons.com` | The public value table |
+| `*.rolimons.com` | The public value table, public item histories and, with portfolio tracking, your public Rolimon's profile |
 
 ## Children and minimum age
 

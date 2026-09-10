@@ -140,7 +140,10 @@ const series = [];
 for (let i = 120; i >= 0; i--) {
   const t = Date.now() - i * 864e5;
   const wave = Math.sin(i / 9) * 42000 + Math.sin(i / 3) * 12000;
-  series.push({ at: t, v: 1720000 + (120 - i) * 980 + wave, r: 1690000 + (120 - i) * 820 + wave * .7, n: 198 });
+  series.push({
+    at: t, v: 1720000 + (120 - i) * 980 + wave, r: 1690000 + (120 - i) * 820 + wave * .7,
+    n: Math.round(184 + (120 - i) * 0.12 + Math.sin(i / 11) * 3)
+  });
 }
 
 const STATE = {
@@ -170,6 +173,34 @@ const HISTORY = [
   { at: Date.now() - 2600 * 60000, kind: 'completed', tradeId: CARDS.completed[0].tradeId, partner: 'Shedletsky', pct: 240.4, give: 4000, get: 13601, notified: true }
 ];
 
+/**
+ * Historique d'objet simulé, au format du service worker : trois ans de
+ * relevés, plus denses sur la période récente, avec des révisions de cote.
+ * Pseudo-aléatoire mais stable : le même objet donne toujours la même courbe.
+ */
+function demoItemHistory(itemId) {
+  const item = report.items.find(i => i.id === itemId || i.faceAssetId === itemId);
+  const target = item?.value || 10000;
+  const now = Date.now(), day = 864e5, span = 3 * 365 * day;
+  let seed = (itemId % 9973) + 1;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const out = { t: [], v: [], r: [], p: [], changes: [] };
+  let value = Math.round(target * 0.55), rap = value * 0.9;
+  for (let at = now - span; at <= now;) {
+    const age = now - at;
+    const progress = 1 - age / span;
+    if (rnd() < (age < 7 * day ? 0.004 : age < 90 * day ? 0.03 : 0.08)) {
+      const next = Math.round(target * (0.55 + 0.45 * progress) * (0.93 + rnd() * 0.14));
+      if (next !== value) { out.changes.push([at, value, next]); value = next; }
+    }
+    rap += (value * (0.9 + rnd() * 0.12) - rap) * 0.3;
+    out.t.push(at); out.v.push(value); out.r.push(Math.round(rap)); out.p.push(Math.round(rap * (1.03 + rnd() * 0.08)));
+    at += age < 7 * day ? 2 * 3600e3 : age < 90 * day ? day : age < 365 * day ? 3 * day : 14 * day;
+  }
+  if (value !== target) { out.changes.push([now, value, target]); out.v[out.v.length - 1] = target; }
+  return out;
+}
+
 /* --------------------------- faux service worker ----------------------- */
 
 const log = document.getElementById('log');
@@ -187,6 +218,9 @@ const mockRuntime = {
       }
       case 'ronote:portfolio':
         return { state: STATE, portfolio: series, report };
+      case 'ronote:item-history':
+        await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
+        return { history: demoItemHistory(Number(msg.itemId)) };
       case 'ronote:settings':
         Object.assign(SETTINGS, msg.patch || {});
         return { settings: SETTINGS };
@@ -226,7 +260,8 @@ globalThis.__ronoteMock = mockChrome;
 const shot = new URLSearchParams(location.search);
 {
   const prefs = {};
-  for (const k of ['view', 'metric', 'range', 'sort', 'filter']) if (shot.get(k)) prefs[k] = shot.get(k);
+  for (const k of ['view', 'range', 'sort', 'filter']) if (shot.get(k)) prefs[k] = shot.get(k);
+  if (shot.get('series')) prefs.series = shot.get('series').split(',');
   if (shot.has('hidden')) prefs.hidden = shot.get('hidden') === '1';
   try { localStorage.setItem('ronote:wallet', JSON.stringify(prefs)); } catch { /* aperçu sans stockage */ }
 }
@@ -264,5 +299,14 @@ if (shot.get('tab')) {
   await until(() => pdoc.getElementById('acct')?.textContent.startsWith('@'));
   pdoc.querySelector(`.tab[data-tab="${shot.get('tab')}"]`)?.click();
   if (shot.get('scroll')) pdoc.getElementById('list').scrollTop = Number(shot.get('scroll'));
+  // `scrub=0.6` : simule le survol du graphique à 60 % de sa largeur.
+  if (shot.get('scrub')) {
+    await until(() => pdoc.getElementById('w-plot'));
+    const plot = pdoc.getElementById('w-plot');
+    const box = plot.getBoundingClientRect();
+    plot.dispatchEvent(new frame.contentWindow.PointerEvent('pointermove', {
+      clientX: box.left + box.width * Number(shot.get('scrub')), bubbles: true
+    }));
+  }
   if (shot.get('item')) pdoc.querySelector('[data-item]')?.click();
 }

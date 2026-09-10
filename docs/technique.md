@@ -326,10 +326,11 @@ compose.
 
 | Bloc | Ce qu'il montre |
 |---|---|
-| **Solde** | La value réelle (corrigée, voir plus bas) ou le RAP, au choix, et sa variation sur la période. Survoler la courbe affiche le solde du jour pointé. 👁 masque les montants — jamais les pourcentages — pour un partage d'écran. |
+| **Solde** | Value réelle, RAP et nombre de collectibles, **superposables**. Deux courbes de même unité (value et RAP) partagent l'axe ; dès que le nombre d'objets s'y ajoute, chacune passe en variation depuis le début de la période — la seule façon honnête d'empiler des unités différentes. Survoler la courbe affiche le jour pointé ; 👁 masque les montants, jamais les pourcentages. |
 | **Tuiles** | L'autre chiffre (RAP ou value), le rang Rolimon's, le nombre d'objets, et l'effet des réévaluations des 7 derniers jours sur tes objets. |
 | **Répartition** | Le poids de tes 5 plus gros objets parmi ce que tu possèdes de coté. |
 | **Mes collectibles** | Chaque objet avec vignette, quantité, cote, demande, tendance, et les marques rare ★, projected ⚠ et visage 🎭. Recherche, tri, filtres, vue liste ou galerie ; un clic ouvre sa fiche, avec les liens Rolimon's et Roblox. |
+| **Fiche d'un objet** | Sa courbe — value, RAP et meilleur prix, superposables — de 1 mois à tout l'historique, chaque révision de cote marquée d'un point. |
 
 La liste repose sur l'inventaire **réel** (`holdings`, le même que l'alerte de
 réévaluation) : un visage possédé y figure une fois, sous son bundle, et un visage
@@ -340,6 +341,10 @@ testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — 
 
 Les préférences d'affichage (période, value ou RAP, montants masqués, vue, tri, filtre)
 restent dans le popup (`localStorage`) : elles ne changent rien à la surveillance.
+
+Les courbes sont lissées par une cubique **monotone** (Fritsch-Carlson) : elles passent par chaque relevé sans jamais le dépasser, si bien qu'une révision de cote reste une marche franche au lieu d'une vague qui inventerait un creux. Elles sont placées dans le temps réel, pas au rang du relevé. Les animations (entrée en cascade, tracé, compteur du solde) ne se jouent qu'à l'entrée dans l'onglet ou sur un choix de l'utilisateur, jamais au rafraîchissement de fond, et se coupent si le système demande moins d'animations.
+
+L'historique d'un objet vient de sa page publique Rolimon's (`history_data` et `value_changes`), lue seulement à l'ouverture de sa fiche. La page pèse jusqu'à 1,7 Mo pour 11 000 relevés : RoNote n'en garde que le dernier relevé de chaque seau — 2 h sur 7 jours, 1 jour sur 3 mois, 3 jours sur un an, 14 jours au-delà — et le met en cache 6 heures, pour les 20 derniers objets ouverts.
 
 ### La valeur que Rolimon's affiche est fausse, dans les deux sens
 
@@ -853,7 +858,7 @@ Les suites Node restent disponibles si Node est installé :
 npm test    # anti-doublon (26) + envois et contre-offres (33)
             # + scripts de contenu et pont page ↔ extension (17)
             # + réévaluation des objets possédés (20)
-            # + objets du portefeuille (16)
+            # + objets du portefeuille et historique d'un objet (21)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un

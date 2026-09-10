@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseItems, mergeSources } from '../src/common/roli.js';
 import { holdingsOf } from '../src/common/revalue.js';
 import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport } from '../src/common/portfolio.js';
+import { parseItemHistory } from '../src/common/api.js';
 
 let passed = 0, failed = 0;
 function check(label, got, expected) {
@@ -70,6 +71,40 @@ const rep = { ghosts: [{ legacyAssetId: 7, bundleId: 8 }], extras: [], items: r.
 attachPortfolioThumbs(rep, ['g', 'i1', 'i2', null]);
 check('vignettes recollées dans l\'ordre : réconciliation puis objets',
   [rep.ghosts[0].thumb, ...rep.items.map(i => i.thumb)], ['g', 'i1', 'i2', null]);
+
+/* ---------------------------------------------------------------------- */
+console.log('\nHistorique d\'un objet (page Rolimon\'s)');
+{
+  const now = Date.parse('2026-09-10T12:00:00Z');
+  const DAY = 864e5, H = 3600e3;
+  const D = Math.floor(now / DAY) * DAY;                              // minuit du jour
+  const old = Math.floor((D - 400 * DAY) / (14 * DAY)) * 14 * DAY;    // début d'un seau de 14 jours
+  const H2 = Math.floor(now / (2 * H)) * 2 * H;                       // début d'un seau de 2 heures
+  const s = (ms) => ms / 1000;
+  const history = {
+    num_points: 6,
+    timestamp: [old + H, old + 2 * H, D - 30 * DAY + H, D - 30 * DAY + 5 * H, H2 - 2 * H + 60e3, H2 + 60e3].map(s),
+    rap: [10, 11, 20, 21, 30, 31],
+    best_price: [12, 13, 22, 23, 32, 33]
+  };
+  const changes = [
+    [s(old - DAY), 1, null, 1000],
+    [s(D - 30 * DAY), 1, 1000, 1500],
+    [s(D - 10 * DAY), 3, '2', '0'],          // tendance : pas la value
+    [s(H2), 1, 1500, 1200]
+  ];
+  const html = `<script>var item_id = 1;\nvar history_data = ${JSON.stringify(history)};\nvar value_changes = ${JSON.stringify(changes)};\n</script>`;
+  const h = parseItemHistory(html, now);
+  check('un point par seau, le dernier relevé du seau',
+    h.t, [old + 2 * H, D - 30 * DAY + 5 * H, H2 - 2 * H + 60e3, H2 + 60e3]);
+  check('RAP et meilleur prix du même relevé', [h.r, h.p], [[11, 21, 30, 31], [13, 23, 32, 33]]);
+  check('value à chaque date : la dernière révision antérieure', h.v, [1000, 1500, 1500, 1200]);
+  check('seules les révisions de value, dans la période tracée',
+    h.changes, [[D - 30 * DAY, 1000, 1500], [H2, 1500, 1200]]);
+  let err = '';
+  try { parseItemHistory('<html>rien</html>', now); } catch (e) { err = e.message; }
+  check('page sans historique : erreur explicite', err.includes('historique'), true);
+}
 
 console.log(`\n${passed} réussis, ${failed} échoués`);
 process.exit(failed ? 1 : 0);

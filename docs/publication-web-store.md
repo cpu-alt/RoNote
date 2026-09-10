@@ -53,7 +53,7 @@ WHAT RONOTE WILL NOT DO
 RoNote never accepts a trade, never creates one, and never counters one. Those actions transfer items: a misplaced click would be irreversible. Declining or cancelling only destroys an offer — that is the only write RoNote allows itself.
 
 PRIVACY
-No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's for the public value table — which receives nothing about you.
+No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's: the public value table and item histories, the same for everyone, and your public Rolimon's profile, looked up by your Roblox user ID, for the portfolio.
 
 The code is open and verifiable: https://github.com/cpu-alt/RoNote
 
@@ -88,7 +88,7 @@ rallongent la revue.
 | `offscreen` | Play the alert sound. A Chrome service worker cannot produce audio; the offscreen document is the API Chrome provides for exactly this. |
 | `declarativeNetRequestWithHostAccess` | Roblox rejects (403) authenticated requests whose `Origin` header is not its own. A session rule rewrites `Origin` and `Referer` **only for requests issued by the extension itself** (`tabIds: [-1]`, outside any tab), and only towards `roblox.com`. The user's own browsing is never modified. |
 | Host access `*.roblox.com` | Read trades, items, thumbnails and public profiles from the Roblox APIs — the extension's data source. |
-| Host access `*.rolimons.com` | Download the public item value table, identical for every user. No user data is transmitted. This source can be disabled in the settings. |
+| Host access `*.rolimons.com` | Download the public item value table and public item price histories, identical for every user. For portfolio tracking, look up the user's public Rolimon's profile by their Roblox user ID, which is already public; nothing else is transmitted. This source can be disabled in the settings. |
 
 **Are you using remote code?** → **No**. All scripts ship inside the package; the
 extension neither loads nor evaluates any external code.

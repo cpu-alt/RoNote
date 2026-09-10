@@ -43,7 +43,7 @@ RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
 | `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
-| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets | **Rien te concernant** — c'est un simple téléchargement du catalogue public, identique pour tous les utilisateurs |
+| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public | Pour la table et les historiques, **rien te concernant** — les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil |
 
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
 RAP fourni par Roblox et ne contacte plus que Roblox.
@@ -81,7 +81,7 @@ irréversible. Refuser ou annuler ne fait que détruire une offre.
 | `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
-| `*.rolimons.com` | La table publique des valeurs |
+| `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets et, avec le suivi du portefeuille, ton profil Rolimon's public |
 
 ## Enfants et âge minimum
 

@@ -310,8 +310,10 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .log .down { color: var(--loss); font-weight: 650; }
 
 /* ============================= portefeuille =============================
-   L'onglet se lit comme une appli de portefeuille : le solde d'abord, sa
-   courbe, puis ce qui le compose — objet par objet.
+   L'onglet se lit comme une appli de portefeuille : le solde d'abord, ses
+   courbes, puis ce qui le compose — objet par objet. Tout ce qui bouge le
+   fait à l'entrée dans l'onglet ou sur un choix de l'utilisateur, jamais au
+   rafraîchissement de fond.
    ======================================================================== */
 
 .panel {
@@ -331,70 +333,176 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 }
 .link:hover { text-decoration: underline; }
 
+/* ------------------------------ le mouvement ---------------------------- */
+
+@keyframes w-up     { from { opacity: 0; transform: translateY(12px); } }
+@keyframes w-fade   { from { opacity: 0; } }
+@keyframes w-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes w-pop    { from { opacity: 0; transform: scale(.3); } }
+@keyframes w-grow   { from { transform: scaleX(0); } }
+@keyframes w-ping   { from { transform: scale(1); opacity: .6; } to { transform: scale(2.8); opacity: 0; } }
+@keyframes w-shine  { to { background-position: -200% 0; } }
+@keyframes w-sheet  { from { transform: translateY(48px); opacity: 0; } }
+
+.w-in {
+  animation: w-up .55s cubic-bezier(.2, .8, .2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.w-in .w-alloc { transform-origin: left; animation: w-grow 1s .2s cubic-bezier(.2, .8, .2, 1) both; }
+
+.w-plot.reveal .w-chart { animation: w-reveal 1s cubic-bezier(.22, .8, .24, 1) both; }
+.w-plot.reveal .w-end,
+.w-plot.reveal .w-mark { animation: w-pop .45s .8s cubic-bezier(.2, .9, .3, 1.4) both; }
+.w-plot.reveal .w-ext  { animation: w-fade .4s .85s both; }
+.w-plot.reveal + .w-leg { animation: w-fade .4s .5s both; }
+
 /* ------------------------------- le solde ------------------------------ */
 
 .w-hero {
   position: relative; overflow: hidden;
-  padding: 11px 12px 9px; border-radius: 16px;
+  padding: 11px 12px 9px; border-radius: 18px;
   border: 1px solid #2a3552;
   background:
-    radial-gradient(120% 90% at 100% 0%, #3552a855, transparent 60%),
-    radial-gradient(90% 80% at 0% 100%, #7b3fe42e, transparent 60%),
-    linear-gradient(160deg, #182038, #0f1422);
-  box-shadow: 0 10px 28px #0007, inset 0 1px 0 #ffffff0f;
+    radial-gradient(120% 90% at 100% 0%, #3552a860, transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, #7b3fe430, transparent 60%),
+    linear-gradient(160deg, #182038, #0e1321);
+  box-shadow: 0 12px 32px #0008, inset 0 1px 0 #ffffff12;
+  transition: border-color .4s;
 }
 .w-hero[data-tone="win"]  { border-color: #22523b; }
 .w-hero[data-tone="loss"] { border-color: #55272c; }
 
-.w-top { display: flex; align-items: center; justify-content: space-between; }
-.w-seg {
-  display: inline-flex; padding: 2px; border-radius: 9px;
-  background: #0a0e1a99; border: 1px solid #ffffff12;
+.w-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.w-series { display: flex; flex-wrap: wrap; gap: 4px; }
+.w-series button {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 7px; border-radius: 20px; cursor: pointer;
+  border: 1px solid #ffffff14; background: #0a0e1a80; color: var(--faint);
+  font-size: 10.5px; font-weight: 700;
+  transition: color .2s, background .2s, border-color .2s, transform .12s;
 }
-.w-seg button {
-  border: 0; background: none; padding: 3px 11px; border-radius: 7px; cursor: pointer;
-  font-size: 11px; font-weight: 700; color: var(--dim);
+.w-series button i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--c); opacity: .35;
+  transition: opacity .2s, box-shadow .2s;
 }
-.w-seg button.on { background: #ffffff17; color: var(--fg); }
+.w-series button:hover { color: var(--fg); }
+.w-series button:active { transform: scale(.94); }
+.w-series button.on {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+  background: color-mix(in srgb, var(--c) 17%, #0a0e1a);
+}
+.w-series button.on i { opacity: 1; box-shadow: 0 0 8px var(--c); }
+
 .w-eye {
-  width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
-  border: 1px solid #ffffff12; background: #0a0e1a99; font-size: 13px; line-height: 1;
+  flex: none; width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
+  border: 1px solid #ffffff14; background: #0a0e1a80; font-size: 13px; line-height: 1;
+  transition: border-color .2s, transform .12s;
 }
-.w-eye:hover { border-color: #ffffff33; }
+.w-eye:hover { border-color: #ffffff38; }
+.w-eye:active { transform: scale(.9); }
 
 .w-label {
   margin-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: .6px;
   text-transform: uppercase; color: #9fb0cf;
 }
 .w-amount {
-  font-size: 34px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.1;
+  font-size: 34px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.12;
   font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff, #c3d2f0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.w-change { display: flex; align-items: center; gap: 7px; margin-top: 5px; }
+.w-change { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
 .w-pill {
   padding: 2px 8px; border-radius: 20px; background: #ffffff12;
   font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  transition: background .2s, color .2s;
 }
-.w-pill.win  { background: #2fd07024; }
-.w-pill.loss { background: #ff5f6624; }
-.w-when { font-size: 10.5px; color: var(--faint); }
+.w-pill.win  { background: #2fd07026; }
+.w-pill.loss { background: #ff5f6626; }
+.w-when { font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
 
-.w-plot { position: relative; height: 104px; margin: 8px -12px 0; cursor: crosshair; touch-action: none; }
-.w-chart { display: block; width: 100%; height: 100%; }
-.w-cursor { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff45; pointer-events: none; }
-.w-dot {
-  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
-  background: #fff; box-shadow: 0 0 0 3px #ffffff33; pointer-events: none;
+/* ------------------------------ le graphique ---------------------------- */
+
+.w-plot { position: relative; height: 132px; margin: 4px -12px 0; cursor: crosshair; touch-action: none; }
+.w-chart { display: block; width: 100%; height: 100%; overflow: visible; }
+.w-zero { stroke: #ffffff30; stroke-width: 1; stroke-dasharray: 3 4; }
+
+.w-end {
+  position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+  background: var(--c); box-shadow: 0 0 10px var(--c); pointer-events: none; transition: opacity .2s;
 }
-.w-nochart { margin: 12px 0 4px; font-size: 10.5px; color: var(--faint); }
+.w-end::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--c);
+  animation: w-ping 2.2s cubic-bezier(0, 0, .2, 1) infinite;
+}
+.w-ext {
+  position: absolute; transform: translate(-50%, -165%); pointer-events: none;
+  font-size: 9.5px; font-weight: 700; color: #b7c4dd; white-space: nowrap;
+  font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px #000c; transition: opacity .2s;
+}
+.w-ext.lo { transform: translate(-50%, 60%); color: var(--faint); }
+.w-plot.scrub .w-ext, .w-plot.scrub .w-end { opacity: 0; }
 
-.w-ranges { display: flex; gap: 2px; margin-top: 4px; }
+.w-mark {
+  position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  border: 1.5px solid #0e1321; pointer-events: none;
+}
+.w-mark.up   { background: var(--win); }
+.w-mark.down { background: var(--loss); }
+
+.w-cursor {
+  position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none;
+  background: linear-gradient(#ffffff00, #ffffff5c 25%, #ffffff5c 75%, #ffffff00);
+  transition: left .07s ease-out;
+}
+.w-cdot {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+  background: var(--c); border: 2px solid #0d1220; pointer-events: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent), 0 0 12px var(--c);
+  transition: left .07s ease-out, top .07s ease-out;
+}
+.w-tip {
+  position: absolute; top: 0; z-index: 2; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 2px; min-width: 132px; padding: 6px 8px;
+  border-radius: 10px; border: 1px solid #ffffff1f; pointer-events: none;
+  background: #0a0f1eeb; backdrop-filter: blur(6px); box-shadow: 0 8px 22px #0009;
+  font-size: 10.5px; transition: left .07s ease-out;
+}
+.w-tip[hidden] { display: none; }
+.w-tip b { font-size: 10px; font-weight: 700; color: var(--faint); }
+.w-tip span { display: flex; align-items: center; gap: 5px; color: var(--dim); white-space: nowrap; }
+.w-tip i { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+.w-tip strong { margin-left: auto; padding-left: 10px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.w-tip em { font-style: normal; font-size: 9.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.w-leg {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px 12px; margin-top: 3px;
+  font-size: 10.5px; color: var(--dim);
+}
+.w-leg span { display: inline-flex; align-items: center; gap: 5px; }
+.w-leg i { width: 7px; height: 7px; border-radius: 50%; }
+.w-leg em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.w-leg small { margin-left: auto; font-size: 9.5px; color: var(--faint); }
+
+.w-nochart { margin: 14px 0 6px; font-size: 10.5px; color: var(--faint); }
+
+.w-ranges { display: flex; gap: 2px; margin-top: 5px; }
 .w-ranges button {
   flex: 1; padding: 4px 0; border: 0; border-radius: 8px; background: none; cursor: pointer;
   font-size: 10.5px; font-weight: 700; color: var(--faint);
+  transition: background .2s, color .2s, transform .12s;
 }
 .w-ranges button:hover { color: var(--fg); }
-.w-ranges button.on { background: #ffffff14; color: var(--fg); }
+.w-ranges button:active { transform: scale(.92); }
+.w-ranges button.on { background: #ffffff16; color: var(--fg); }
+
+.w-skel {
+  height: 168px; border-radius: 12px;
+  background: linear-gradient(90deg, #141a2a, #1f2842, #141a2a);
+  background-size: 200% 100%; animation: w-shine 1.2s linear infinite;
+}
 
 /* ------------------------------- les tuiles ----------------------------- */
 
@@ -429,22 +537,29 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .w-tools input, .w-tools select {
   height: 30px; border-radius: var(--r-md); border: 1px solid var(--line);
   background: var(--surface-2); color: var(--fg); font: inherit; font-size: 11.5px;
+  transition: border-color .2s, box-shadow .2s;
 }
 .w-tools input { flex: 1; min-width: 0; padding: 0 10px; }
 .w-tools select { max-width: 130px; padding: 0 6px; cursor: pointer; }
-.w-tools input:focus, .w-tools select:focus { outline: none; border-color: var(--accent); }
+.w-tools input:focus, .w-tools select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #4d9fff26;
+}
 .w-view {
   flex: none; width: 30px; height: 30px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); font-size: 13px; line-height: 1;
+  transition: border-color .2s, transform .12s;
 }
 .w-view:hover { border-color: #33405a; }
+.w-view:active { transform: scale(.9); }
 
 .w-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 4px; }
 .w-chips button {
   padding: 3px 9px; border-radius: 20px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--dim);
   font-size: 10.5px; font-weight: 650;
+  transition: background .2s, border-color .2s, color .2s, transform .12s;
 }
+.w-chips button:active { transform: scale(.94); }
 .w-chips button small { margin-left: 2px; color: var(--faint); font-size: 10px; font-weight: 600; }
 .w-chips button.on { background: #14243a; border-color: var(--accent); color: var(--fg); }
 
@@ -452,10 +567,12 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .w-item {
   display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center;
   width: 100%; padding: 7px 5px; border: 0; border-top: 1px solid var(--line-soft);
-  background: none; text-align: left; cursor: pointer;
+  border-radius: var(--r-md); background: none; text-align: left; cursor: pointer;
+  transition: background .18s, transform .12s;
 }
-.w-item:first-child { border-top: 0; }
-.w-item:hover { background: var(--surface-2); border-radius: var(--r-md); }
+.w-item:first-child { border-top-color: transparent; }
+.w-item:hover { background: var(--surface-2); }
+.w-item:active { transform: scale(.985); }
 
 .w-thumb, .w-cthumb, .w-sh-thumb { position: relative; display: block; }
 .w-img {
@@ -487,8 +604,10 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
   display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px;
   border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
   text-align: left; cursor: pointer;
+  transition: border-color .2s, transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s;
 }
-.w-card:hover { border-color: #33405a; }
+.w-card:hover { border-color: #33405a; transform: translateY(-2px); box-shadow: 0 10px 20px #0007; }
+.w-card:active { transform: scale(.97); }
 .w-cthumb .w-img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 9px; }
 .w-cthumb .w-img.ph { font-size: 22px; }
 .w-cthumb em { right: 4px; bottom: 4px; }
@@ -500,9 +619,9 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 
 /* ---------------------------- fiche d'un objet -------------------------- */
 
-/* Une fiche courte n'a pas à couvrir tout le popup : elle monte du bas, à la
-   hauteur de son contenu, comme la feuille d'une appli mobile. */
-.zoom-card.w-sheet { align-self: flex-end; max-height: 100%; }
+/* Une fiche n'a pas à couvrir tout le popup : elle monte du bas, à la hauteur
+   de son contenu, comme la feuille d'une appli mobile. */
+.zoom-card.w-sheet { align-self: flex-end; max-height: 100%; animation: w-sheet .36s cubic-bezier(.2, .8, .2, 1); }
 
 .w-sh-head { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
 .w-sh-thumb .w-img { width: 52px; height: 52px; border-radius: 12px; }
@@ -511,7 +630,14 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .w-sh-name small { font-size: 10.5px; color: var(--faint); }
 .w-sh-amount { font-size: 30px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
 .w-sh-sub { font-size: 11px; color: var(--dim); }
-.w-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.w-sh-chart {
+  margin-top: 10px; padding: 9px 12px 7px; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 100% 0%, #3552a833, transparent 60%), linear-gradient(160deg, #161d31, #111626);
+}
+.w-sh-chart .w-plot { margin-top: 6px; }
+.w-sh-chart > .w-none { padding: 26px 8px; }
+.w-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
 .w-fact { padding: 8px 9px; border-radius: var(--r-md); background: var(--surface-2); }
 .w-fact span {
   display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
@@ -529,6 +655,7 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .w-fold > summary span:last-child::after { content: ' ▸'; }
 .w-fold[open] > summary { margin-bottom: 8px; }
 .w-fold[open] > summary span:last-child::after { content: ' ▾'; }
+.w-fold[open] > :not(summary) { animation: w-fade .3s both; }
 
 .recon-sum {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
@@ -559,9 +686,17 @@ button.icon.off { color: var(--warn); border-color: #4d3a13; }
 .w-btn {
   flex: none; padding: 5px 10px; border-radius: var(--r-sm); cursor: pointer;
   background: var(--surface); border: 1px solid var(--line); color: var(--dim);
-  font-size: 11px; font-weight: 650;
+  font-size: 11px; font-weight: 650; transition: color .2s, border-color .2s, transform .12s;
 }
 .w-btn:hover { color: var(--fg); border-color: #33405a; }
+.w-btn:active { transform: scale(.95); }
+
+@media (prefers-reduced-motion: reduce) {
+  .w-in, .w-in .w-alloc, .w-plot.reveal .w-chart, .w-plot.reveal .w-end, .w-plot.reveal .w-mark,
+  .w-plot.reveal .w-ext, .w-plot.reveal + .w-leg, .w-end::after, .zoom-card.w-sheet, .w-skel,
+  .w-fold[open] > :not(summary) { animation: none !important; }
+  .w-cursor, .w-cdot, .w-tip { transition: none !important; }
+}
 
 /* ========================== zoom sur un trade ============================
    Le popup fait 420 x 600 : pas la place d'une vraie fenetre. Le zoom couvre

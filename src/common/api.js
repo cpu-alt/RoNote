@@ -716,6 +716,82 @@ export async function getPlayerHistory(userId) {
   return points;
 }
 
+/**
+ * Seaux de l'historique d'un objet : plus un releve est ancien, plus il est
+ * resume.  [age maximal, largeur d'un seau]
+ */
+const ITEM_BUCKETS = [
+  [7 * 864e5, 2 * 3600e3],
+  [90 * 864e5, 864e5],
+  [365 * 864e5, 3 * 864e5],
+  [Infinity, 14 * 864e5]
+];
+
+/**
+ * Historique d'un objet, tel que sa page Rolimon's le trace.
+ *
+ * Pas d'endpoint JSON ici non plus : la page embarque `history_data` (RAP et
+ * meilleur prix, un releve toutes les 30 min sur la periode recente) et
+ * `value_changes`, chaque evenement de la fiche sous la forme
+ * [date, type, avant, apres] — le type 1 est la value. La value a une date
+ * donnee est donc la derniere revision anterieure.
+ *
+ * La page pese jusqu'a 1,7 Mo pour 11 000 releves : on ne garde que le dernier
+ * releve de chaque seau, quelques centaines de points en tout.
+ *
+ * @returns {{ t: number[], v: number[], r: number[], p: number[], changes: Array<[number, number, number]> }}
+ */
+export function parseItemHistory(html, now = Date.now()) {
+  const grab = (re) => {
+    const m = re.exec(html);
+    if (!m) return null;
+    try { return JSON.parse(m[1]); } catch { return null; }
+  };
+  const hist = grab(/var\s+history_data\s*=\s*(\{[^\n]*?\});/);
+  if (!Array.isArray(hist?.timestamp) || !hist.timestamp.length) {
+    throw new ApiError("historique de l'objet introuvable dans la page Rolimon's", 0);
+  }
+  const changes = (grab(/var\s+value_changes\s*=\s*(\[[^\n]*?\]);/) || [])
+    .filter(c => Array.isArray(c) && c[1] === 1 && Number(c[3]) > 0)
+    .map(c => ({ at: Number(c[0]) * 1000, from: Number(c[2]) || 0, to: Number(c[3]) }))
+    .sort((a, b) => a.at - b.at);
+
+  const out = { t: [], v: [], r: [], p: [], changes: [] };
+  let next = 0;
+  let value = changes[0]?.from || 0;
+  let lastBucket = '';
+  for (let i = 0; i < hist.timestamp.length; i++) {
+    const at = Number(hist.timestamp[i]) * 1000;
+    if (!at) continue;
+    while (next < changes.length && changes[next].at <= at) value = changes[next++].to;
+    const width = ITEM_BUCKETS.find(([maxAge]) => now - at < maxAge)[1];
+    const bucket = width + ':' + Math.floor(at / width);
+    if (bucket !== lastBucket) {
+      out.t.push(0); out.v.push(0); out.r.push(0); out.p.push(0);
+      lastBucket = bucket;
+    }
+    const n = out.t.length - 1;
+    out.t[n] = at;
+    out.v[n] = value;
+    out.r[n] = Number(hist.rap?.[i]) || 0;
+    out.p[n] = Number(hist.best_price?.[i]) || 0;
+  }
+  // Une revision posterieure au dernier releve fait deja la cote du moment.
+  while (next < changes.length) value = changes[next++].to;
+  if (out.v.length) out.v[out.v.length - 1] = value;
+  out.changes = changes.filter(c => c.at >= out.t[0]).slice(-80).map(c => [c.at, c.from, c.to]);
+  return out;
+}
+
+/** Historique d'un objet, lu sur sa page publique Rolimon's (voir parseItemHistory). */
+export async function getItemHistory(itemId) {
+  const id = Number(itemId);
+  if (!id) throw new ApiError("identifiant d'objet invalide", 0);
+  const r = await fetchWithTimeout(`https://www.rolimons.com/item/${id}`, { headers: { Accept: 'text/html' } }, 30000);
+  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status);
+  return parseItemHistory(await r.text());
+}
+
 /* ================================ liens ================================= */
 
 export const TRADE_URL  = (id) => `https://www.roblox.com/trades?tradeId=${id}`;

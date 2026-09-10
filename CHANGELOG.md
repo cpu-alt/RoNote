@@ -7,8 +7,10 @@ l'utilisateur, pas la liste des commits.
 
 **L'onglet Bénéfice devient Portefeuille**, pensé comme une appli de portefeuille :
 
-- **le solde en grand**, value réelle ou RAP au choix, avec sa variation sur la
-  période ; en survolant la courbe, le solde du jour pointé s'affiche ;
+- **le solde en grand**, avec sa variation sur la période ;
+- **des courbes superposables** : value, RAP et nombre de collectibles, seules ou
+  empilées sur le même graphique. Au survol, une infobulle donne la valeur de
+  chacune au jour pointé ; le plus haut et le plus bas de la période sont marqués ;
 - **👁 masque les montants** (jamais les pourcentages), pratique en partage d'écran ;
 - quatre tuiles : l'autre chiffre, le rang, le nombre d'objets et l'effet des
   **réévaluations des 7 derniers jours** ;
@@ -16,12 +18,22 @@ l'utilisateur, pas la liste des commits.
 - **Mes collectibles** : chaque objet avec vignette, quantité, cote, demande,
   tendance, et les marques rare, projected et visage. Recherche, tri, filtres
   (visages, rares, projetés, réévalués), vue liste ou galerie ; un clic ouvre la
-  fiche de l'objet avec ses liens Rolimon's et Roblox ;
-- la réconciliation des visages reste là, repliée.
+  fiche de l'objet, **avec sa propre courbe** (value, RAP, meilleur prix, chaque
+  révision de cote marquée) et ses liens Rolimon's et Roblox ;
+- la réconciliation des visages reste là, repliée ;
+- **tout est fluide** : entrée en cascade, courbes qui se tracent, solde qui défile
+  jusqu'à sa valeur, fiche qui monte du bas. Rien ne bouge au rafraîchissement de
+  fond, et tout se coupe si le système demande moins d'animations.
 
 La liste suit l'inventaire réel : un visage possédé n'y figure qu'une fois, un
 visage fantôme jamais. Elle est préparée par le service worker avec le reste du
-portefeuille : ouvrir l'onglet ne déclenche aucun appel.
+portefeuille : ouvrir l'onglet ne déclenche aucun appel. Seule l'ouverture de la
+fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
+
+**Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
+rien te concernant. C'est vrai pour la table des valeurs et les historiques
+d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant
+Roblox (public) : c'est désormais écrit.
 
 ## v2.10.0 — les alertes de trades reçus réparées, et l'alerte de réévaluation
 
