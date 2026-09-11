@@ -10,9 +10,9 @@ export const SEEN_CAP = 2000;
 
 /* ------------------------------- reglages ------------------------------ */
 
-export async function getSettings() {
-  const { [KEY_SETTINGS]: s } = await B.storage.local.get(KEY_SETTINGS);
-  const stored = s || {};
+/** Reglages stockes, completes des valeurs par defaut et des migrations. */
+export function withDefaults(s) {
+  const stored = { ...(s || {}) };
 
   // Migration v1 -> v2 : `watchDeclined` est devenu le suivi des envoyes.
   if (stored.watchDeclined !== undefined && stored.watchOutbound === undefined) {
@@ -38,6 +38,11 @@ export async function getSettings() {
   };
 }
 
+export async function getSettings() {
+  const { [KEY_SETTINGS]: s } = await B.storage.local.get(KEY_SETTINGS);
+  return withDefaults(s);
+}
+
 export async function saveSettings(patch) {
   const cur = await getSettings();
   const next = { ...cur, ...patch };
@@ -54,37 +59,37 @@ export async function saveSettings(patch) {
  * state = petit objet volatil, reecrit a chaque verification :
  *   userId, userName, meCheckedAt, inboundCount, lastPollAt, lastOkAt,
  *   lastError, backoffUntil, tickCount,
- *   tracked      : { [tradeId]: {at, partner, auto, counterTo, round, offer} }
+ *   tracked      : { [tradeId]: {at, partner, auto, counterTo, round, checkedAt} }
  *   counterHints : { [partnerId]: {fromOutbound, at, round, notified} }
  *   myCounters   : { [partnerId]: {fromInbound, at, round} }
  *   links        : { [tradeId]: {counterTo, round, at} }
- *   notifMap, snapshot
+ *   snapshot
  *
  * Les ensembles d'ids (gros, quasi immuables) vivent dans une cle separee :
- * on evite ainsi de reecrire des milliers d'ids toutes les 30 secondes.
+ * on evite ainsi de reecrire des milliers d'ids toutes les 30 secondes. La
+ * table des clics sur les notifications aussi (voir notifier.js).
  */
-export async function getState() {
-  const { [KEY_STATE]: st } = await B.storage.local.get(KEY_STATE);
+export function withStateDefaults(st) {
   return {
     userId: null, userName: null, meCheckedAt: 0,
     inboundCount: 0, tickCount: 0,
     lastPollAt: 0, lastOkAt: 0, lastError: null, backoffUntil: 0,
     tracked: {}, counterHints: {}, myCounters: {}, links: {},
-    notifMap: {},
     snapshot: { inbound: [], completed: [], outbound: [], at: 0 },
     ...(st || {})
   };
 }
 
-export async function setState(state) {
-  const { streams, ...rest } = state;   // les flux ont leur propre cle
-  await B.storage.local.set({ [KEY_STATE]: rest });
-  return state;
+export async function getState() {
+  const { [KEY_STATE]: st } = await B.storage.local.get(KEY_STATE);
+  return withStateDefaults(st);
 }
 
-export async function patchState(patch) {
-  const st = await getState();
-  return setState({ ...st, ...patch });
+export async function setState(state) {
+  // Les flux ont leur propre cle ; `notifMap` y vivait avant d'avoir la sienne.
+  const { streams, notifMap, ...rest } = state;
+  await B.storage.local.set({ [KEY_STATE]: rest });
+  return state;
 }
 
 /* -------------------------------- flux --------------------------------- */
@@ -94,24 +99,29 @@ let streamsSignature = null;
 /**
  * Signature bon marche des flux. Comparer un JSON complet (des milliers d'ids)
  * a chaque verification coutait plus cher que l'ecriture qu'on cherchait a
- * eviter : le sommet de la fenetre et le compteur suffisent a savoir si
- * quelque chose a bouge.
+ * eviter. Le haut de la fenetre suffit : un id ajoute y entre toujours, meme
+ * quand la liste, pleine, garde la meme longueur.
  */
+const SIGNATURE_IDS = 120;
+
 function signatureOf(streams) {
   return Object.keys(streams).sort().map(k => {
     const s = streams[k] || {};
-    return `${k}:${s.newest || 0}:${s.belowMark || 0}:${s.seen?.length || 0}:${s.seen?.[0] || 0}:${s.seededAt || 0}`;
+    return `${k}:${s.newest || 0}:${s.belowMark || 0}:${s.seen?.length || 0}:${s.seededAt || 0}:`
+      + (s.seen || []).slice(0, SIGNATURE_IDS).join(',');
   }).join('|');
 }
 
 export async function getStreams() {
-  const got = await B.storage.local.get([KEY_STREAMS, KEY_STATE]);
-  let streams = got[KEY_STREAMS];
+  let { [KEY_STREAMS]: streams } = await B.storage.local.get(KEY_STREAMS);
 
   // Migration v1 -> v2 : les flux etaient stockes dans `state.streams`.
-  if (!streams && got[KEY_STATE]?.streams) {
-    streams = got[KEY_STATE].streams;
-    await B.storage.local.set({ [KEY_STREAMS]: streams });
+  if (!streams) {
+    const { [KEY_STATE]: st } = await B.storage.local.get(KEY_STATE);
+    if (st?.streams) {
+      streams = st.streams;
+      await B.storage.local.set({ [KEY_STREAMS]: streams });
+    }
   }
   streams = streams || {};
   streamsSignature = signatureOf(streams);

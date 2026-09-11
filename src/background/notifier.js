@@ -1,14 +1,59 @@
 import { B, HAS_OFFSCREEN, IS_FIREFOX, safe } from '../common/shim.js';
 import { playToneInPage } from '../common/tones.js';
 import { SOUND_GROUPS, soundGroupOf } from '../common/defaults.js';
-import { fmtNum, fmtPct, fmtSigned, inQuietHours, sleep } from '../common/utils.js';
+import { fmtNum, fmtPct, fmtSigned, inQuietHours, sleep, serialQueue } from '../common/utils.js';
 import { verdict } from '../common/analysis.js';
-import { getState, setState } from '../common/state.js';
 import { TRADE_URL, TAB_URL, ASSET_URL, BUNDLE_URL } from '../common/api.js';
 import { BASIS_SHORT } from '../common/roli.js';
 import { t, p as plural } from '../common/i18n.js';
 
 const FALLBACK_ICON = B.runtime.getURL('icons/icon128.png');
+
+/* ------------------------ ce qu'ouvre un clic ------------------------- */
+
+/**
+ * La destination de chaque notification, pour le clic et ses boutons.
+ *
+ * Elle a sa propre cle de stockage. Elle vivait dans `state`, que la
+ * verification relit au debut et reecrit a la fin : les entrees ajoutees entre
+ * les deux par les notifications de ce meme passage etaient ecrasees, et le
+ * clic n'ouvrait plus rien. Une file d'attente evite aussi que deux
+ * notifications simultanees se volent leur entree.
+ */
+const NOTIF_KEY = 'notifMap';
+const NOTIF_KEEP = 24 * 60 * 60 * 1000;
+const notifQueue = serialQueue();
+
+function editNotifMap(fn) {
+  return notifQueue(async () => {
+    const { [NOTIF_KEY]: stored } = await B.storage.local.get(NOTIF_KEY);
+    const map = stored && typeof stored === 'object' ? stored : {};
+    if (fn(map) === false) return;
+    await B.storage.local.set({ [NOTIF_KEY]: map });
+  });
+}
+
+function rememberNotif(id, rec) {
+  return editNotifMap((map) => {
+    const now = Date.now();
+    map[id] = { ...rec, at: now };
+    for (const [k, v] of Object.entries(map)) {
+      if (now - (v?.at || 0) > NOTIF_KEEP) delete map[k];
+    }
+  });
+}
+
+export async function notifTarget(id) {
+  const { [NOTIF_KEY]: map } = await B.storage.local.get(NOTIF_KEY);
+  return map?.[id] || null;
+}
+
+export function forgetNotif(id) {
+  return editNotifMap((map) => {
+    if (!map[id]) return false;
+    delete map[id];
+  });
+}
 
 /* ------------------------------- son ---------------------------------- */
 
@@ -275,18 +320,11 @@ export async function notifyTrade(card, settings) {
     buttons
   });
 
-  const st = await getState();
-  st.notifMap = st.notifMap || {};
-  st.notifMap[id] = {
+  await rememberNotif(id, {
     url: card.url || TRADE_URL(card.tradeId),
     userId: card.partner?.id ?? null,
-    userName: partner,
-    at: Date.now()
-  };
-  for (const [k, v2] of Object.entries(st.notifMap)) {
-    if (Date.now() - (v2.at || 0) > 864e5) delete st.notifMap[k];  // purge > 24 h
-  }
-  await setState(st);
+    userName: partner
+  });
   return id;
 }
 
@@ -309,10 +347,7 @@ export async function notifySummary(kind, count, settings) {
     requireInteraction: false,
     priority: 1
   });
-  const st = await getState();
-  st.notifMap = st.notifMap || {};
-  st.notifMap[id] = { url: TAB_URL(SUMMARY_TAB[kind] || 'Inbound'), at: Date.now() };
-  await setState(st);
+  await rememberNotif(id, { url: TAB_URL(SUMMARY_TAB[kind] || 'Inbound') });
 }
 
 /**
@@ -346,10 +381,7 @@ export async function notifyRevaluations(hits, settings) {
     priority: 1
   });
 
-  const st = await getState();
-  st.notifMap = st.notifMap || {};
-  st.notifMap[id] = { url: top.kind === 'bundle' ? BUNDLE_URL(top.id) : ASSET_URL(top.id), at: Date.now() };
-  await setState(st);
+  await rememberNotif(id, { url: top.kind === 'bundle' ? BUNDLE_URL(top.id) : ASSET_URL(top.id) });
   return id;
 }
 
@@ -361,9 +393,16 @@ export async function notifySystem(title, message, tag = 'sys') {
 
 /* ------------------------------- badge --------------------------------- */
 
+let lastBadge = '';   // pastille posee en dernier, pour cette vie du worker
+
 export async function setBadge(count, settings, error = false) {
   if (!B.action?.setBadgeText) return;
-  await safe(() => B.action.setBadgeText({ text: error ? '!' : (settings.badge && count > 0 ? String(count > 99 ? '99+' : count) : '') }));
-  await safe(() => B.action.setBadgeBackgroundColor({ color: error ? '#b3261e' : '#00a2ff' }));
+  const text = error ? '!' : (settings.badge && count > 0 ? String(count > 99 ? '99+' : count) : '');
+  const color = error ? '#b3261e' : '#00a2ff';
+  // Appelee a chaque verification : inchangee, elle ne coute plus trois appels.
+  if (text + color === lastBadge) return;
+  lastBadge = text + color;
+  await safe(() => B.action.setBadgeText({ text }));
+  await safe(() => B.action.setBadgeBackgroundColor({ color }));
   if (B.action.setBadgeTextColor) await safe(() => B.action.setBadgeTextColor({ color: '#ffffff' }));
 }

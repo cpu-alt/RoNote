@@ -111,6 +111,29 @@ Rien n'est demandé au réseau : l'accueil lit ce que le popup a déjà.
 ancienne, en français ou en anglais, la version installée marquée. Après une mise
 à jour, un bandeau de l'accueil y mène, une fois.
 
+**Plus léger en arrière-plan, et deux bugs corrigés.**
+
+- **Corrigé :** un clic sur une notification pouvait ne rien ouvrir. Sa destination
+  était écrasée par la vérification en cours ; elle a maintenant sa propre place.
+- **Corrigé :** le cache des trades déjà vus pouvait être effacé au réveil de
+  l'extension, et chaque carte redemandée à Roblox à l'ouverture suivante.
+- Un refus, un suivi ou une remise à zéro faits pendant une vérification ne sont
+  plus écrasés par elle.
+- **Beaucoup moins d'appels à Roblox et Rolimon's :**
+  - le suivi des trades envoyés vérifie quelques trades par passage, à tour de rôle,
+    et abandonne un suivi introuvable depuis un mois ;
+  - le relais par un onglet Roblox est gardé pour les vrais échecs ;
+  - une limite de débit arrête la vérification tout de suite au lieu de la prolonger ;
+  - Rolimon's en panne est réessayé de plus en plus espacé (5 à 30 min) ;
+  - la page d'historique n'est relue que quand un nouveau relevé existe ;
+  - une erreur passagère n'est plus retenue comme « objet sans cote » pendant des jours.
+- Le popup ne redemande plus tout au service worker à chaque vérification, et
+  « il y a 3 min » avance sans reconstruire la liste. La page de réglages ne réveille
+  plus l'extension toutes les 20 s, et ne remet plus à zéro un champ en cours de saisie.
+- Les scripts ne tournent plus que sur www.roblox.com, et seulement sur la page
+  des trades pour la lecture de l'écran. Les permissions Rolimon's se limitent aux
+  deux adresses réellement utilisées.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant

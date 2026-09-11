@@ -32,15 +32,20 @@ export function normStatus(raw) {
 
 /** Description de chaque issue possible d'un trade envoye. */
 export const OUTCOMES = {
-  Completed:            { kind: 'outbound_accepted',  icon: '✅', title: 'Trade accepté',              opt: 'accepted' },
-  Declined:             { kind: 'outbound_declined',  icon: '❌', title: 'Trade refusé',               opt: 'declined' },
-  Countered:            { kind: 'outbound_countered', icon: '🔄', title: 'Trade contré',               opt: 'countered' },
-  Expired:              { kind: 'outbound_expired',   icon: '⏳', title: 'Trade expiré',               opt: 'expired'  },
-  RejectedDueToError:   { kind: 'trade_error',        icon: '⚠️', title: 'Rejeté suite à une erreur',  opt: 'error'    },
-  InterventionRequired: { kind: 'trade_error',        icon: '⚠️', title: 'Bloqué (intervention Roblox)', opt: 'error'  }
+  Completed:            { kind: 'outbound_accepted',  title: 'Trade accepté',              opt: 'accepted' },
+  Declined:             { kind: 'outbound_declined',  title: 'Trade refusé',               opt: 'declined' },
+  Countered:            { kind: 'outbound_countered', title: 'Trade contré',               opt: 'countered' },
+  Expired:              { kind: 'outbound_expired',   title: 'Trade expiré',               opt: 'expired'  },
+  RejectedDueToError:   { kind: 'trade_error',        title: 'Rejeté suite à une erreur',  opt: 'error'    },
+  InterventionRequired: { kind: 'trade_error',        title: 'Bloqué (intervention Roblox)', opt: 'error'  }
 };
 
 export const isFinal = (status) => !OPEN_STATUSES.has(status);
+
+/** Details de trades suivis demandes au plus par passage. */
+export const TRACK_CHECKS = 6;
+/** Un suivi introuvable depuis un mois ne se resoudra plus : on l'abandonne. */
+export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Determine le sort des trades suivis qui ne sont plus dans la liste Outbound.
@@ -49,20 +54,38 @@ export const isFinal = (status) => !OPEN_STATUSES.has(status);
  * page est limitee a N entrees). On confirme systematiquement via le detail du
  * trade, et un statut encore ouvert laisse le suivi en place.
  *
- * @param tracked     { [tradeId]: meta }
+ * Chaque detail est un appel a Roblox : au plus `max` par passage, ceux
+ * verifies depuis le plus longtemps d'abord (`checkedAt`, ecrit sur le suivi).
+ * Avec des centaines d'envois ouverts, verifier tout a chaque passage menait
+ * droit a la limite de debit. Une limite atteinte arrete la boucle et remonte :
+ * insister ne ferait que la prolonger.
+ *
+ * @param tracked     { [tradeId]: meta } — modifie en place (checkedAt, abandons)
  * @param openIds     Set des ids encore presents dans Outbound
  * @param fetchDetail (id) => Promise<detail>
  * @returns [{ tradeId, status, detail, meta }]
  */
-export async function resolveTracked(tracked, openIds, fetchDetail) {
-  const out = [];
+export async function resolveTracked(tracked, openIds, fetchDetail,
+  { max = TRACK_CHECKS, maxAge = TRACK_MAX_AGE, now = Date.now() } = {}) {
+  const due = [];
   for (const key of Object.keys(tracked || {})) {
     const id = Number(key);
     if (!Number.isFinite(id) || openIds.has(id)) continue;
+    const meta = tracked[key];
+    if (meta?.at && now - meta.at > maxAge) { delete tracked[key]; continue; }
+    due.push(key);
+  }
+  due.sort((a, b) => (tracked[a]?.checkedAt || 0) - (tracked[b]?.checkedAt || 0));
+
+  const out = [];
+  for (const key of due.slice(0, max)) {
+    const id = Number(key);
+    if (tracked[key] && typeof tracked[key] === 'object') tracked[key].checkedAt = now;
     let detail;
     try {
       detail = await fetchDetail(id);
-    } catch {
+    } catch (e) {
+      if (e?.status === 429) throw e;
       continue; // erreur reseau : on retentera au prochain passage
     }
     const status = normStatus(detail?.status);

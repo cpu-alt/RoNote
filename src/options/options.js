@@ -41,6 +41,14 @@ function render() {
   if (domLang === null) { domLang = lang; translateDom(document); }
   else if (domLang !== lang) { location.reload(); return; }
 
+  // La page se redessine aussi quand le service worker ecrit : un nombre ou
+  // une heure en cours de saisie ne doit pas etre remis a l'ancienne valeur.
+  const focused = document.activeElement;
+  const typing = focused?.matches?.('input[type=number], input[type=text], input[type=time]') ? focused.value : null;
+  try { fill(); } finally { if (typing !== null) focused.value = typing; }
+}
+
+function fill() {
   $('#lang').value = settings.lang || 'auto';
   $('#valueBasis').value = settings.valueBasis || 'value';
   // Sans cotes communautaires, il n'y a qu'un seul chiffre possible : le RAP.
@@ -311,4 +319,17 @@ fillSounds();
 wire();
 wireNav();
 load();
-setInterval(load, 20000);
+
+/**
+ * La page se met a jour quand le stockage change, pas toutes les 20 s : la
+ * relecture periodique reveillait le service worker tant que l'onglet restait
+ * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
+ */
+let reloadTimer = null;
+B.storage?.onChanged?.addListener((changes, area) => {
+  if (area !== 'local' || !(changes.settings || changes.state || changes.streams)) return;
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(load, 300);
+});
+// Les « il y a 3 min » du diagnostic avancent sans rien relire.
+setInterval(() => { if (!document.hidden && state) renderDiag(); }, 30000);

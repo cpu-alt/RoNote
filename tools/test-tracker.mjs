@@ -51,6 +51,33 @@ console.log('\nRésolution des trades suivis');
   const res = await resolveTracked({ 20: {} }, new Set(), async () => { throw new Error('réseau'); });
   check('erreur réseau : on ne conclut rien, on retentera', res, []);
 }
+{
+  // Des dizaines de suivis hors page : quelques appels par passage, chacun son tour.
+  const now = 1_800_000_000_000;
+  const tracked = {};
+  for (let id = 1; id <= 10; id++) tracked[id] = { at: now - 3600e3, checkedAt: id <= 4 ? now - 1000 : 0 };
+  const asked = [];
+  await resolveTracked(tracked, new Set(), async (id) => { asked.push(id); return { status: 'Open' }; }, { max: 3, now });
+  check('au plus `max` détails demandés par passage', asked.length, 3);
+  check('les suivis jamais vérifiés passent en premier', asked.every(id => id > 4), true);
+  check('chaque suivi vérifié est horodaté', asked.every(id => tracked[id].checkedAt === now), true);
+}
+{
+  const now = 1_800_000_000_000;
+  const tracked = { 30: { at: now - 40 * 864e5 }, 31: { at: now - 864e5 } };
+  await resolveTracked(tracked, new Set(), async () => ({ status: 'Open' }), { now });
+  check('un suivi introuvable depuis plus d\'un mois est abandonné', Object.keys(tracked), ['31']);
+}
+{
+  const limited = Object.assign(new Error('HTTP 429'), { status: 429 });
+  let calls = 0;
+  let thrown = null;
+  try {
+    await resolveTracked({ 40: {}, 41: {}, 42: {} }, new Set(), async () => { calls++; throw limited; });
+  } catch (e) { thrown = e; }
+  check('limite de débit : la boucle s\'arrête au premier refus', calls, 1);
+  check('limite de débit : l\'erreur remonte pour mettre la vérification en pause', thrown?.status, 429);
+}
 
 console.log('\nDirection d\'un trade (sans appel réseau)');
 {

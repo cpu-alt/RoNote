@@ -26,9 +26,14 @@ window.addEventListener('message', (e) => {
   } catch { /* extension rechargee : le message est simplement perdu */ }
 });
 
-// Lit aussi le jeton present dans la page au chargement.
-try {
-  const meta = document.querySelector('meta[name="csrf-token"]');
-  if (meta?.content) B.runtime.sendMessage({ type: 'ronote:csrf', token: meta.content });
-} catch { /* ignore */ }
+// Lit aussi le jeton present dans la page. Ce script demarre avant que le
+// <head> soit lu : la balise n'existe qu'une fois le document analyse.
+const readMeta = () => {
+  try {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta?.content) B.runtime.sendMessage({ type: 'ronote:csrf', token: meta.content });
+  } catch { /* ignore */ }
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', readMeta, { once: true });
+else readMeta();
 })();

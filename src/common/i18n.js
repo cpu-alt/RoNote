@@ -97,7 +97,6 @@ const EN = {
   'Expiré': 'Expired',
   'Rejeté (erreur)': 'Rejected (error)',
   'Intervention Roblox': 'Roblox intervention',
-  'Annulé': 'Cancelled',
 
   /* --- pastilles ------------------------------------------------------- */
   'Value {a} vs RAP {b}': 'Value {a} vs RAP {b}',
@@ -176,13 +175,11 @@ const EN = {
   'Confirmer l\'annulation': 'Confirm cancellation',
   'Confirmer le refus': 'Confirm decline',
   'Annulation…': 'Cancelling…',
-  'Trade annulé': 'Trade cancelled',
   'Trade refusé': 'Trade declined',
   'Échec : {why}': 'Failed: {why}',
   'Total': 'Total',
   'Écart': 'Difference',
   'Reçu': 'Received',
-  'Donné': 'Given',
   'Expire {ago}': 'Expires {ago}',
   'Cliquer une seconde fois pour confirmer. Action définitive côté Roblox.':
     'Click again to confirm. This is final on Roblox.',
@@ -437,10 +434,8 @@ const EN = {
   'Écouter': 'Preview',
   'Aucun son n\'est parti : vérifie le volume et que le navigateur n\'est pas coupé.':
     'No sound went out: check the volume and that the browser is not muted.',
-  'Sonnerie': 'Chime',
   'Volume': 'Volume',
   'Test': 'Test',
-  'Envoie une notification et joue le son sélectionné.': 'Sends a notification and plays the selected sound.',
   'Envoie une notification et joue le son des trades reçus.': 'Sends a notification and plays the incoming-trade sound.',
   'Tester': 'Test it',
   'Carillon': 'Chime',

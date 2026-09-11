@@ -14,7 +14,8 @@
   ],
   "host_permissions": [
     "https://*.roblox.com/*",
-    "https://*.rolimons.com/*"
+    "https://api.rolimons.com/*",
+    "https://www.rolimons.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -44,7 +45,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.roblox.com/*"
+        "https://www.roblox.com/*"
       ],
       "js": [
         "content/hook.js"
@@ -55,7 +56,7 @@
     },
     {
       "matches": [
-        "*://*.roblox.com/*"
+        "https://www.roblox.com/*"
       ],
       "js": [
         "content/relay.js"
@@ -65,7 +66,7 @@
     },
     {
       "matches": [
-        "*://*.roblox.com/*"
+        "https://www.roblox.com/*"
       ],
       "js": [
         "content/tradedom.js",

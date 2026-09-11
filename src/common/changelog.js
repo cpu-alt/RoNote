@@ -31,6 +31,8 @@ export const RELEASES = [
         'Every tab and the settings page redesigned in the same style, with icons drawn for RoNote instead of emojis.'),
       item("Les onglets s'ouvrent plus vite : un trade déjà vu n'est plus redemandé à Roblox.",
         'Tabs open faster: a trade already seen is no longer fetched again from Roblox.'),
+      item("Plus léger en arrière-plan : beaucoup moins d'appels à Roblox et Rolimon's. Corrigé : un clic sur une notification pouvait ne rien ouvrir.",
+        "Lighter in the background: far fewer calls to Roblox and Rolimon's. Fixed: clicking a notification could open nothing."),
       item('Cette liste des nouveautés, dans les réglages.', 'This list of what is new, in the settings.')
     ]
   },

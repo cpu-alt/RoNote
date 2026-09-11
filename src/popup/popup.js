@@ -6,6 +6,7 @@ import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
 import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
+import { withDefaults, withStateDefaults } from '../common/state.js';
 
 const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
@@ -53,6 +54,14 @@ const STATUS_LABEL = {
 };
 
 const BASIS_SHORT = { value: 'Value', rap: 'RAP', prudent: 'Prudent' };
+
+/**
+ * Durées relatives qui avancent seules : le minuteur de fin de fichier réécrit
+ * leur texte, sans reconstruire la liste qui les contient.
+ */
+const msOf = (at) => (typeof at === 'number' ? at : Date.parse(at) || 0);
+const agoHtml = (at) => `<span data-ago="${msOf(at)}">${timeAgo(msOf(at))}</span>`;
+const untilHtml = (at) => `<span data-until="${msOf(at)}">${timeUntil(msOf(at))}</span>`;
 
 /* ================================ entête ================================ */
 
@@ -189,7 +198,7 @@ function tilesHtml(side) {
     const cls = itemClasses(i);
     const title = escapeHtml(itemTitle(i));
     const tile = i.thumb
-      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}">`
+      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}" decoding="async">`
       : `<div class="tc-tile ph ${cls}" title="${title}">${ic(itemIcon(i))}</div>`;
     return i.projected ? `<span class="tc-tw">${tile}${projBadge()}</span>` : tile;
   }).join('');
@@ -334,7 +343,7 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
   // Pas de numéro de trade ici : ses 16 chiffres mangeaient le statut. Il
   // reste dans le zoom.
   const meta = [
-    timeAgo(c.created),
+    c.created ? agoHtml(c.created) : '',
     outbound && c.status && STATUS_LABEL[c.status] ? `<span class="tc-status">${t(STATUS_LABEL[c.status])}</span>` : '',
     tracked ? `<span class="tc-status on">${ic('pin')} ${t('suivi')}</span>` : ''
   ].filter(Boolean).join(' · ');
@@ -1073,9 +1082,14 @@ function selectTab(name) {
   document.querySelector(`.tab[data-tab="${name}"]`)?.click();
 }
 
+/**
+ * Ce qui change l'accueil. Pas l'heure : les durées avancent seules (voir la
+ * fin du fichier). Le jour, si : les tuiles comptent « aujourd'hui ».
+ */
 function homeSignature() {
-  return JSON.stringify(['home', Math.floor(Date.now() / 60000), data.history?.length || 0, data.history?.[0]?.at || 0,
-    data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size, cards.outbound.size,
+  return JSON.stringify(['home', new Date().toDateString(), data.history?.length || 0, data.history?.[0]?.at || 0,
+    data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size,
+    (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
     data.state?.portfolioLast?.v, data.portfolio?.length || 0, wallet.hidden, newsPending()]);
 }
 
@@ -1166,7 +1180,7 @@ function renderHome(entering) {
     expiring ? `<button class="h-todo" data-zoomid="${expiring.c.tradeId}">
         <span class="jr-ic" data-tone="warn">${ic('clock')}</span>
         <span class="jr-m"><span class="jr-t">${t('Offre de {who}', { who: partnerName(expiring.c) })}</span>
-          <span class="jr-s">${t('Expire {ago}', { ago: timeUntil(expiring.exp) })}</span></span>
+          <span class="jr-s">${t('Expire {ago}', { ago: untilHtml(expiring.exp) })}</span></span>
         ${expiring.c.analysis && !expiring.c.analysis.incomplete
           ? `<span class="jr-pill ${toneOf(expiring.c.analysis.pctMain, 3)}">${fmtPct(expiring.c.analysis.pctMain)}</span>` : go}
       </button>` : '',
@@ -1703,7 +1717,7 @@ function allocationHtml(items) {
 
 function thumbHtml(i) {
   return i.thumb
-    ? `<img class="w-img" src="${escapeHtml(i.thumb)}" alt="" loading="lazy">`
+    ? `<img class="w-img" src="${escapeHtml(i.thumb)}" alt="" loading="lazy" decoding="async">`
     : `<div class="w-img ph">${ic(i.isFace ? 'face' : 'box')}</div>`;
 }
 
@@ -2030,7 +2044,7 @@ function renderStats() {
   // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
   const sig = JSON.stringify([
     rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r,
-    st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k]), Math.floor(Date.now() / 60000)
+    st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k])
   ]);
   if (listEl.querySelector('.w-hero') && sig === walletSig) return;
   walletSig = sig;
@@ -2096,7 +2110,7 @@ function renderStats() {
     ${reconciliationHtml(rep)}
     <div class="w-foot">
       ${lien}
-      <span>${rep?.at ? t('calculé {ago}', { ago: timeAgo(rep.at) }) : ''}</span>
+      <span>${rep?.at ? t('calculé {ago}', { ago: agoHtml(rep.at) }) : ''}</span>
       <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
     </div>
     <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
@@ -2145,7 +2159,13 @@ function renderStats() {
   listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden, null));
   listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid', 'items'));
   listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems({ animate: true }); });
-  listEl.querySelector('#w-search')?.addEventListener('input', (e) => { wallet.query = e.target.value; renderItems(); });
+  // La frappe rapide ne refiltre et ne redessine qu'une fois la main levée.
+  let searchTimer = null;
+  listEl.querySelector('#w-search')?.addEventListener('input', (e) => {
+    wallet.query = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderItems, 120);
+  });
   listEl.querySelector('#w-items')?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-item]');
     if (row) openItemSheet(row.dataset.item);
@@ -2174,12 +2194,13 @@ function keepScroll(draw) {
 /** Tout ce qui change le rendu de la liste affichée, en une chaîne. */
 let lastListSig = '';
 function listSignature(snap) {
-  const minute = Math.floor(Date.now() / 60000);   // les « il y a 3 min » avancent
+  // Pas l'heure : les « il y a 3 min » avancent seuls, sans reconstruire la
+  // liste (voir la fin du fichier). Le journal range ses lignes par jour.
   if (tab === 'history') {
-    return JSON.stringify([tab, listFilter.history, minute, data.history?.length || 0, data.history?.[0]?.at || 0]);
+    return JSON.stringify([tab, listFilter.history, new Date().toDateString(), data.history?.length || 0, data.history?.[0]?.at || 0]);
   }
   return JSON.stringify([
-    tab, listFilter[tab], minute, data.settings?.showItemDetails, data.state?.inboundCount,
+    tab, listFilter[tab], data.settings?.showItemDetails, data.state?.inboundCount,
     Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
     snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)])
   ]);
@@ -2357,17 +2378,13 @@ async function hydrateAll() {
 
 let domLang = null;   // langue déjà appliquée au gabarit HTML
 
-async function load({ refresh = false } = {}) {
-  const res = await send({ type: refresh ? 'ronote:refresh' : 'ronote:get' });
-  if (res?.settings) data.settings = res.settings;
-  if (res?.state) data.state = res.state;
-  if (res?.history) data.history = res.history;
-  if (res?.portfolio) data.portfolio = res.portfolio;
-  if (res?.report !== undefined) data.report = res.report;
-
-  // Le gabarit est écrit en français : `translateDom` remplace en place, donc
-  // il n'est jouable qu'une fois. Si la langue change en cours de route (réglage
-  // modifié dans l'autre onglet), on repart d'une page neuve.
+/**
+ * Le gabarit est écrit en français : `translateDom` remplace en place, donc
+ * il n'est jouable qu'une fois. Si la langue change en cours de route (réglage
+ * modifié dans l'autre onglet), on repart d'une page neuve.
+ * @returns false si la page se recharge
+ */
+function applyLang() {
   const lang = setLang(data.settings?.lang);
   if (domLang === null) {
     domLang = lang;
@@ -2375,15 +2392,23 @@ async function load({ refresh = false } = {}) {
     moveTabIndicator();
   } else if (domLang !== lang) {
     location.reload();
-    return;
+    return false;
   }
+  return true;
+}
+
+async function load({ refresh = false } = {}) {
+  // `lite` : le popup n'affiche pas les compteurs des flux, inutile de relire
+  // leurs milliers d'identifiants. La vérification manuelle rend tout d'un coup.
+  const res = await send({ type: refresh ? 'ronote:refresh' : 'ronote:get', lite: true });
+  if (res?.settings) data.settings = res.settings;
+  if (res?.state) data.state = res.state;
+  if (res?.history) data.history = res.history;
+  if (res?.portfolio) data.portfolio = res.portfolio;
+  if (res?.report !== undefined) data.report = res.report;
+  if (!applyLang()) return;
 
   if (refresh) {
-    const g = await send({ type: 'ronote:get' });
-    data.history = g?.history || data.history;
-    data.state = g?.state || data.state;
-    data.report = g?.report ?? data.report;
-    data.portfolio = g?.portfolio || data.portfolio;
     for (const m of Object.values(cards)) m.clear();
     for (const m of Object.values(failures)) m.clear();
   }
@@ -2446,16 +2471,45 @@ load();
  * 30 s plus tard. Les écritures arrivent en rafale à la fin d'un cycle : on
  * les regroupe (200 ms) pour ne redessiner qu'une fois.
  *
- * Le balayage de fond reste, comme filet. Le zoom n'est jamais redessiné sous
- * les doigts : tant qu'il est ouvert, la liste ne bouge pas.
+ * Les nouvelles valeurs voyagent avec l'événement : on les prend telles
+ * quelles. Redemander tout au service worker à chaque vérification relisait
+ * aussi les flux et la série complète du portefeuille, toutes les 30 s.
+ *
+ * Le zoom n'est jamais redessiné sous les doigts : tant qu'il est ouvert, les
+ * changements attendent.
  */
+const STORED = ['settings', 'state', 'history', 'portfolio', 'portfolioReport'];
+const pendingChanges = {};
 let refreshTimer = null;
-function refreshSoon() {
-  clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(() => { if (!zoomed) load(); }, 200);
+
+function applyChanges() {
+  if (zoomed) { refreshTimer = setTimeout(applyChanges, 1000); return; }
+  const got = { ...pendingChanges };
+  for (const k of Object.keys(got)) delete pendingChanges[k];
+  if ('settings' in got) data.settings = withDefaults(got.settings);
+  if ('state' in got) data.state = withStateDefaults(got.state);
+  if ('history' in got) data.history = (Array.isArray(got.history) ? got.history : []).slice(0, 100);
+  if ('portfolio' in got) data.portfolio = Array.isArray(got.portfolio) ? got.portfolio : [];
+  if ('portfolioReport' in got) data.report = got.portfolioReport && typeof got.portfolioReport === 'object' ? got.portfolioReport : null;
+  if (!applyLang()) return;
+  renderHeader();
+  renderList();
+  hydrateAll();
 }
+
 B.storage?.onChanged?.addListener((changes, area) => {
   if (area !== 'local') return;
-  if (changes.history || changes.state || changes.portfolioReport || changes.settings) refreshSoon();
+  const keys = STORED.filter(k => changes[k]);
+  if (!keys.length) return;
+  for (const k of keys) pendingChanges[k] = changes[k].newValue;
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(applyChanges, 200);
 });
-setInterval(() => { if (!zoomed) load(); }, 30000);
+
+// Les « il y a 3 min » avancent seuls : leur texte change, la liste ne se
+// redessine pas pour autant.
+setInterval(() => {
+  for (const el of document.querySelectorAll('[data-ago]')) el.textContent = timeAgo(Number(el.dataset.ago));
+  for (const el of document.querySelectorAll('[data-until]')) el.textContent = timeUntil(Number(el.dataset.until));
+  if (data.state) renderHeader();
+}, 30000);

@@ -1,7 +1,5 @@
 import { t, locale } from './i18n.js';
 
-export const nowMs = () => Date.now();
-
 /**
  * LES NOMBRES S'ECRIVENT COMME ROBLOX LES ECRIT : 1,836,950 — virgule pour
  * les milliers, point pour la decimale, quelle que soit la langue. Le format
@@ -9,13 +7,17 @@ export const nowMs = () => Date.now();
  * doubles selon la police, et jurait avec les nombres de la page juste a cote.
  */
 const NUM_LOCALE = 'en-US';
-const nf = (n, max) => Number(n).toLocaleString(NUM_LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: max });
+// Un `toLocaleString` avec options recree son formateur a chaque appel : les
+// cartes en formatent des dizaines par rendu, on garde donc les deux utiles.
+const FORMATS = [0, 1].map(max => new Intl.NumberFormat(NUM_LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: max }));
+const FULL = new Intl.NumberFormat(NUM_LOCALE);
+const nf = (n, max) => FORMATS[max].format(Number(n));
 /**
  * Nombre compact : 1,5k · 24k · 2,4M. Le separateur decimal est celui de la
  * langue — un « 1.5k » au milieu de nombres ecrits « 1 500 » se voit.
  */
 export function fmtNum(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return '\u2014';
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
   const a = Math.abs(n);
   if (a >= 1_000_000) return nf(n / 1_000_000, a >= 10_000_000 ? 0 : 1) + 'M';
   if (a >= 1_000)     return nf(n / 1_000, a >= 10_000 ? 0 : 1) + 'k';
@@ -28,10 +30,10 @@ export function fmtNum(n) {
  * rien. Meme signe moins que fmtSigned (« − », pas « - »).
  */
 export function fmtPct(p) {
-  if (p === null || p === undefined || !Number.isFinite(p)) return '\u2014';
+  if (p === null || p === undefined || !Number.isFinite(p)) return '—';
   const a = Math.abs(p);
   const body = nf(a, a >= 100 ? 0 : 1);
-  return (p < 0 ? '\u2212' : p > 0 ? '+' : '') + body + '%';
+  return (p < 0 ? '−' : p > 0 ? '+' : '') + body + '%';
 }
 
 export function timeAgo(iso) {
@@ -92,6 +94,20 @@ export async function eachLimit(list, limit, fn) {
 }
 
 /**
+ * File d'attente : les taches passees a la fonction rendue s'executent l'une
+ * apres l'autre, meme lancees en meme temps. Deux « lire, modifier, ecrire »
+ * sur la meme cle de stockage ne s'ecrasent plus.
+ */
+export function serialQueue() {
+  let tail = Promise.resolve();
+  return (fn) => {
+    const run = tail.then(fn);
+    tail = run.catch(() => {});
+    return run;
+  };
+}
+
+/**
  * fetch avec delai maximal. Sans lui, un appel que Roblox ou Rolimon's ne
  * terminait jamais gardait le cycle de verification ouvert indefiniment — et
  * son verrou avec : plus aucune notification jusqu'au redemarrage du worker.
@@ -115,7 +131,7 @@ export function escapeHtml(s) {
 /** Nombre complet, separateurs francais : 1 836 950. */
 export function fmtFull(n) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return '—';
-  return Math.round(Number(n)).toLocaleString(NUM_LOCALE);
+  return FULL.format(Math.round(Number(n)));
 }
 
 /** Ecart signe, toujours avec son signe : +12,4k / -3 200. */
@@ -132,6 +148,3 @@ export const toneOf = (n, dead = 0) =>
   (n > dead ? 'win' : n < -dead ? 'loss' : 'even');
 
 export const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
-
-/** Vrai si deux valeurs serialisables sont identiques (evite un rendu inutile). */
-export const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);

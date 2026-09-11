@@ -8,7 +8,7 @@
  * ==========================================================================
  */
 import { B } from './shim.js';
-import { chunk, fetchWithTimeout } from './utils.js';
+import { chunk, eachLimit, fetchWithTimeout } from './utils.js';
 
 const TRADES    = 'https://trades.roblox.com/v1';
 const TRADES_V2 = 'https://trades.roblox.com/v2';
@@ -16,12 +16,14 @@ const USERS     = 'https://users.roblox.com/v1';
 const THUMBS    = 'https://thumbnails.roblox.com/v1';
 const ECONOMY   = 'https://economy.roblox.com/v1';
 const CATALOG   = 'https://catalog.roblox.com/v1';
-const INVENTORY = 'https://inventory.roblox.com/v1';
 const ROLIMONS  = 'https://api.rolimons.com/players/v1';
 
 /** Plafonds imposes par Roblox : les depasser fait echouer TOUT le lot. */
 export const ASSET_THUMB_BATCH  = 100;
 export const BUNDLE_THUMB_BATCH = 30;
+
+/** Onglets ou rejouer une requete : ceux du site, la ou la session est ouverte. */
+const ROBLOX_TABS = 'https://www.roblox.com/*';
 
 let csrfToken = '';
 
@@ -46,31 +48,36 @@ export class ApiError extends Error {
  * Repli : si le fetch depuis le service worker n'emporte pas le cookie
  * .ROBLOSECURITY (politiques cookies, conteneurs Firefox...), on relaie la
  * requete depuis un onglet roblox.com deja ouvert, ou l'appel est first-party.
+ *
+ * `func` s'execute DANS l'onglet et ne voit rien de ce fichier. Un onglet qui
+ * repond sans succes passe la main au suivant, sauf avec `firstAnswer` : pour
+ * une ecriture, Roblox donnerait la meme reponse depuis n'importe quel onglet.
  */
-async function relayFetch(url) {
+async function relayInTabs(url, func, { firstAnswer = false } = {}) {
   if (!B.tabs?.query || !B.scripting?.executeScript) return { note: 'relais indisponible' };
   let tabs = [];
-  try { tabs = await B.tabs.query({ url: '*://*.roblox.com/*' }); } catch { return { note: 'relais refusé' }; }
+  try { tabs = await B.tabs.query({ url: ROBLOX_TABS }); } catch { return { note: 'relais refusé' }; }
   if (!tabs.length) return { note: 'aucun onglet roblox.com ouvert pour le relais' };
   for (const tab of tabs) {
     if (!tab.id || tab.discarded) continue;
     try {
-      const [inj] = await B.scripting.executeScript({
-        target: { tabId: tab.id },
-        args: [url],
-        func: async (u) => {
-          try {
-            const r = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' } });
-            return { ok: r.ok, status: r.status, body: await r.text() };
-          } catch (e) {
-            return { ok: false, status: 0, body: String(e) };
-          }
-        }
-      });
+      const [inj] = await B.scripting.executeScript({ target: { tabId: tab.id }, args: [url], func });
       if (inj?.result?.ok) return inj.result;
+      if (firstAnswer && inj?.result) return { ...inj.result, note: `HTTP ${inj.result.status}` };
     } catch { /* onglet inaccessible, on essaie le suivant */ }
   }
   return { note: 'relais tenté sans succès' };
+}
+
+function relayFetch(url) {
+  return relayInTabs(url, async (u) => {
+    try {
+      const r = await fetch(u, { credentials: 'include', headers: { Accept: 'application/json' } });
+      return { ok: r.ok, status: r.status, body: await r.text() };
+    } catch (e) {
+      return { ok: false, status: 0, body: String(e) };
+    }
+  });
 }
 
 async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf = true, relayAnyError = false } = {}) {
@@ -103,11 +110,12 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   }
 
   const status = res?.status ?? 0;
-  // `relayAnyError` : pour les appels critiques (detail d'un trade), on tente le
-  // relais quelle que soit l'erreur. Rejouee depuis un onglet roblox.com, la
-  // requete est first-party et passe la ou celle du service worker echoue.
+  // `relayAnyError` : pour les appels critiques, on tente le relais quelle que
+  // soit l'erreur. Rejouee depuis un onglet roblox.com, la requete est
+  // first-party et passe la ou celle du service worker echoue. Jamais sur une
+  // limite de debit : rejouer depuis chaque onglet ouvert la prolongerait.
   let relayNote = '';
-  if (allowRelay && (relayAnyError || status === 0 || status === 401 || status === 403)) {
+  if (allowRelay && status !== 429 && (relayAnyError || status === 0 || status === 401 || status === 403)) {
     const relayed = await relayFetch(url);
     if (relayed?.body) {
       try { return JSON.parse(relayed.body); } catch { /* corps illisible */ }
@@ -291,25 +299,50 @@ const robuxTotal = (d) => (d?.offers || []).reduce((s, o) => s + (o.robux || 0),
  * On bascule AUSSI quand v1 repond mais rend un trade vide : un trade sans le
  * moindre objet ni Robux n'existe pas, c'est le signe que v1 a silencieusement
  * laisse tomber ce qu'il ne sait pas decrire.
+ *
+ * Les deux versions en direct d'abord, le relais par un onglet ensuite. Un
+ * relais injecte un script dans chaque onglet Roblox ouvert : relayer le refus
+ * de v1 avant meme d'essayer v2 coutait ces injections pour chaque trade a
+ * bundle. Seule une version qui a echoue en direct est relayee — un v1 qui
+ * repond vide repondrait vide depuis l'onglet aussi.
  */
 export async function getTrade(id, hint = null) {
-  let firstErr = null;
   let v1Result = null;
+  const errors = new Map();   // version -> erreur de l'appel direct
 
-  try {
-    const d = normalizeTradeDetail(await apiGet(`${TRADES}/trades/${id}`, { relayAnyError: true }), hint);
+  const accept = (base, raw) => {
+    const d = normalizeTradeDetail(raw, hint);
     if (itemCount(d) || robuxTotal(d)) return d;
-    v1Result = d;
-  } catch (e) {
-    firstErr = e;
+    if (base === TRADES) v1Result = v1Result || d;
+    return null;
+  };
+
+  for (const base of [TRADES, TRADES_V2]) {
+    try {
+      const d = accept(base, await apiGet(`${base}/trades/${id}`, { allowRelay: false }));
+      if (d) return d;
+    } catch (e) {
+      if (e?.isRate) throw e;   // limite atteinte : insister la prolongerait
+      errors.set(base, e);
+    }
   }
 
-  try {
-    return normalizeTradeDetail(await apiGet(`${TRADES_V2}/trades/${id}`, { relayAnyError: true }), hint);
-  } catch (e) {
-    if (v1Result) return v1Result;     // v2 muet : on rend ce que v1 a donne
-    throw firstErr || e;
+  // v1 refuse par construction les trades a bundle : v2 passe alors en premier.
+  const order = errors.get(TRADES)?.status === 403 ? [TRADES_V2, TRADES] : [TRADES, TRADES_V2];
+  let relayNote = '';
+  for (const base of order) {
+    if (!errors.has(base)) continue;
+    const relayed = await relayFetch(`${base}/trades/${id}`);
+    if (!relayed?.body) { relayNote = relayed?.note || relayNote; continue; }
+    try {
+      const d = accept(base, JSON.parse(relayed.body));
+      if (d) return d;
+    } catch { /* corps illisible */ }
   }
+
+  if (v1Result) return v1Result;     // v2 muet : on rend ce que v1 a donne
+  const first = errors.get(TRADES) || errors.get(TRADES_V2);
+  throw relayNote ? new ApiError(`${first.message} — ${relayNote}`, first.status, first.retryAfter) : first;
 }
 
 /**
@@ -360,46 +393,29 @@ export async function probeTradeDetail(id) {
  * first-party : elle a le cookie, le bon `Origin`, et peut aller chercher elle
  * meme un jeton CSRF frais. C'est le chemin le plus fiable pour une ECRITURE.
  */
-async function relayPost(url) {
-  if (!B.tabs?.query || !B.scripting?.executeScript) return { note: 'relais indisponible' };
-  let tabs = [];
-  try { tabs = await B.tabs.query({ url: '*://*.roblox.com/*' }); } catch { return { note: 'relais refusé' }; }
-  if (!tabs.length) return { note: 'aucun onglet roblox.com ouvert' };
-
-  for (const tab of tabs) {
-    if (!tab.id || tab.discarded) continue;
+function relayPost(url) {
+  return relayInTabs(url, async (u) => {
+    const send = (token) => fetch(u, {
+      method: 'POST',
+      credentials: 'include',
+      headers: token
+        ? { 'Content-Type': 'application/json', 'x-csrf-token': token }
+        : { 'Content-Type': 'application/json' },
+      body: '{}'
+    });
     try {
-      const [inj] = await B.scripting.executeScript({
-        target: { tabId: tab.id },
-        args: [url],
-        func: async (u) => {
-          const send = (token) => fetch(u, {
-            method: 'POST',
-            credentials: 'include',
-            headers: token
-              ? { 'Content-Type': 'application/json', 'x-csrf-token': token }
-              : { 'Content-Type': 'application/json' },
-            body: '{}'
-          });
-          try {
-            // Roblox refuse le premier envoi et joint un jeton frais : c'est
-            // le protocole normal, pas une erreur.
-            let r = await send('');
-            if (r.status === 403) {
-              const token = r.headers.get('x-csrf-token');
-              if (token) r = await send(token);
-            }
-            return { ok: r.ok, status: r.status, body: await r.text() };
-          } catch (e) {
-            return { ok: false, status: 0, body: String(e) };
-          }
-        }
-      });
-      if (inj?.result?.ok) return inj.result;
-      if (inj?.result) return { ...inj.result, note: `HTTP ${inj.result.status}` };
-    } catch { /* onglet inaccessible, on essaie le suivant */ }
-  }
-  return { note: 'relais tenté sans succès' };
+      // Roblox refuse le premier envoi et joint un jeton frais : c'est
+      // le protocole normal, pas une erreur.
+      let r = await send('');
+      if (r.status === 403) {
+        const token = r.headers.get('x-csrf-token');
+        if (token) r = await send(token);
+      }
+      return { ok: r.ok, status: r.status, body: await r.text() };
+    } catch (e) {
+      return { ok: false, status: 0, body: String(e) };
+    }
+  }, { firstAnswer: true });
 }
 
 async function apiPost(url) {
@@ -446,109 +462,102 @@ export function declineTrade(tradeId) {
   return apiPost(`${TRADES}/trades/${id}/decline`);
 }
 
-/* ------------------------- cotes de secours ----------------------------- */
+/* ------------------ petites recherches mises en cache ------------------- */
 
-const RESALE_TTL = 12 * 60 * 60 * 1000;
-const RESALE_CAP = 800;
-const RESALE_MAX_PER_CALL = 24;
-let resaleCache = null;
+const LOOKUP_PARALLEL = 4;             // appels simultanes, par recherche
+const LOOKUP_RETRY = 30 * 60 * 1000;   // une erreur passagere se retente apres
+
+/**
+ * Une reponse par identifiant, gardee en stockage : le RAP de secours d'un
+ * objet, le bundle d'un asset. Les deux ont la meme mecanique.
+ *
+ * Seule une vraie reponse de Roblox (vide, 400, 404) dit « rien ici » : elle
+ * est gardee le temps du cache. Une autre erreur n'apprend rien et se retente
+ * apres 30 min — la garder aussi longtemps laissait des objets sans cote
+ * pendant des jours, un mois pour les bundles. Une limite de debit arrete la
+ * recherche sans rien memoriser.
+ *
+ * @param field  champ stocke ({[field]: valeur, at}), celui des versions precedentes
+ */
+function cachedLookup({ key, field, ttl, cap, perCall, fetchOne }) {
+  let cache = null;
+  let loading = null;
+  return async function lookup(ids) {
+    if (!cache) {
+      loading = loading || B.storage.local.get(key).then(got => got?.[key] || {});
+      cache = await loading;
+    }
+    const out = {};
+    const now = Date.now();
+    const todo = [];
+    for (const id of new Set((ids || []).map(Number).filter(Boolean))) {
+      const hit = cache[String(id)];
+      if (hit && now - hit.at < ttl) {
+        if (hit[field] > 0) out[String(id)] = hit[field];
+      } else if (todo.length < perCall) {
+        todo.push(id);
+      }
+    }
+    if (!todo.length) return out;
+
+    let changed = false;
+    let limited = false;
+    await eachLimit(todo, LOOKUP_PARALLEL, async (id) => {
+      if (limited) return;
+      let value = 0;
+      let at = now;
+      try {
+        value = await fetchOne(id);
+      } catch (e) {
+        if (e?.status === 429) { limited = true; return; }
+        if (e?.status !== 400 && e?.status !== 404) at = now - ttl + LOOKUP_RETRY;
+      }
+      cache[String(id)] = { [field]: value, at };
+      changed = true;
+      if (value > 0) out[String(id)] = value;
+    });
+    if (!changed) return out;
+
+    const entries = Object.entries(cache);
+    if (entries.length > cap) {
+      cache = Object.fromEntries(entries.sort((a, b) => b[1].at - a[1].at).slice(0, cap));
+    }
+    await B.storage.local.set({ [key]: cache });
+    return out;
+  };
+}
 
 /**
  * RAP officiel d'un objet, via l'API economy. Filet de securite quand ni la
  * reponse du trade ni Rolimon's ne donnent de chiffre : c'est le cas des
  * nouveautes et de certains UGC limiteds.
- * Les echecs sont mis en cache aussi, pour ne pas rappeler l'API en boucle.
  * @returns { [assetId]: rap }  (seulement les RAP > 0)
  */
-export async function getResaleRaps(assetIds) {
-  if (!resaleCache) {
-    const { resale } = await B.storage.local.get('resale');
-    resaleCache = resale || {};
+export const getResaleRaps = cachedLookup({
+  key: 'resale', field: 'rap',
+  ttl: 12 * 60 * 60 * 1000, cap: 800, perCall: 24,
+  fetchOne: async (id) => {
+    const j = await apiGet(`${ECONOMY}/assets/${id}/resale-data`, { allowRelay: false, retryOn429: false });
+    return Number(j?.recentAveragePrice) || 0;
   }
-  const out = {};
-  const now = Date.now();
-  const todo = [];
-
-  for (const raw of new Set((assetIds || []).map(Number).filter(Boolean))) {
-    const hit = resaleCache[String(raw)];
-    if (hit && now - hit.at < RESALE_TTL) {
-      if (hit.rap > 0) out[String(raw)] = hit.rap;
-    } else if (todo.length < RESALE_MAX_PER_CALL) {
-      todo.push(raw);
-    }
-  }
-  if (!todo.length) return out;
-
-  // En parallele : une dizaine de petits GET independants, les enchainer
-  // faisait attendre l'utilisateur pour rien.
-  const results = await Promise.all(todo.map(async (raw) => {
-    try {
-      const j = await apiGet(`${ECONOMY}/assets/${raw}/resale-data`, { allowRelay: false });
-      return [raw, Number(j?.recentAveragePrice) || 0];
-    } catch { return [raw, 0]; }   // objet non revendable ou inconnu
-  }));
-
-  for (const [raw, rap] of results) {
-    resaleCache[String(raw)] = { rap, at: now };
-    if (rap > 0) out[String(raw)] = rap;
-  }
-  resaleCache = Object.fromEntries(
-    Object.entries(resaleCache).sort((a, b) => b[1].at - a[1].at).slice(0, RESALE_CAP)
-  );
-  await B.storage.local.set({ resale: resaleCache });
-  return out;
-}
-
-/* ------------------- assets appartenant a un bundle --------------------- */
-
-const BUNDLE_TTL = 30 * 24 * 60 * 60 * 1000;   // un asset ne change pas de bundle
-const BUNDLE_CAP = 1200;
-const BUNDLE_MAX_PER_CALL = 24;
-let bundleCache = null;
+});
 
 /**
  * assetId -> bundleId, via le catalogue.
  *
  * Sert quand un trade designe un objet par un asset qui n'est que le CONTENU
  * d'un bundle (la tete d'un visage DynamicHead, par exemple) : la cote et la
- * vignette qui comptent sont celles du bundle.
+ * vignette qui comptent sont celles du bundle. Un asset ne change pas de
+ * bundle : la reponse se garde 30 jours.
  */
-export async function resolveBundleIds(assetIds) {
-  if (!bundleCache) {
-    const { bundleOf } = await B.storage.local.get('bundleOf');
-    bundleCache = bundleOf || {};
+export const resolveBundleIds = cachedLookup({
+  key: 'bundleOf', field: 'b',
+  ttl: 30 * 24 * 60 * 60 * 1000, cap: 1200, perCall: 24,
+  fetchOne: async (id) => {
+    const j = await apiGet(`${CATALOG}/assets/${id}/bundles?limit=10`, { allowRelay: false, retryOn429: false });
+    return Number(j?.data?.[0]?.id) || 0;
   }
-  const out = {};
-  const now = Date.now();
-  const todo = [];
-
-  for (const raw of new Set((assetIds || []).map(Number).filter(Boolean))) {
-    const hit = bundleCache[String(raw)];
-    if (hit && now - hit.at < BUNDLE_TTL) {
-      if (hit.b) out[String(raw)] = hit.b;
-    } else if (todo.length < BUNDLE_MAX_PER_CALL) {
-      todo.push(raw);
-    }
-  }
-  if (!todo.length) return out;
-
-  const results = await Promise.all(todo.map(async (raw) => {
-    try {
-      const j = await apiGet(`${CATALOG}/assets/${raw}/bundles?limit=10`, { allowRelay: false });
-      return [raw, Number(j?.data?.[0]?.id) || 0];
-    } catch { return [raw, 0]; }      // asset hors bundle : on memorise l'absence
-  }));
-
-  for (const [raw, bundleId] of results) {
-    bundleCache[String(raw)] = { b: bundleId, at: now };
-    if (bundleId) out[String(raw)] = bundleId;
-  }
-  bundleCache = Object.fromEntries(
-    Object.entries(bundleCache).sort((a, b) => b[1].at - a[1].at).slice(0, BUNDLE_CAP)
-  );
-  await B.storage.local.set({ bundleOf: bundleCache });
-  return out;
-}
+});
 
 /* --------------------------- vignettes brutes --------------------------- */
 
@@ -570,18 +579,18 @@ function readThumbs(json, into) {
   return n;
 }
 
-/** @returns { [assetId]: url } — les identifiants non rendus sont absents. */
-export async function fetchAssetThumbs(assetIds, size = '150x150') {
+/**
+ * Vignettes par lots. Un lot refuse en bloc ne doit pas emporter les autres :
+ * on retente objet par objet plutot que de rendre le trade entier sans image.
+ */
+async function fetchThumbBatches(ids, batch, urlOf) {
   const out = {};
-  for (const part of chunk([...new Set(assetIds.map(Number).filter(Boolean))], ASSET_THUMB_BATCH)) {
-    const q = new URLSearchParams({ assetIds: part.join(','), size, format: 'Png', isCircular: 'false' });
+  for (const part of chunk([...new Set(ids.map(Number).filter(Boolean))], batch)) {
     try {
-      readThumbs(await apiGet(`${THUMBS}/assets?${q}`, { allowRelay: false }), out);
+      readThumbs(await apiGet(urlOf(part), { allowRelay: false }), out);
     } catch {
-      // Un lot refuse en bloc ne doit pas emporter les autres : on retente
-      // objet par objet plutot que de rendre le trade entier sans image.
       if (part.length > 1) {
-        const solo = await Promise.all(part.map(id => fetchAssetThumbs([id], size).catch(() => ({}))));
+        const solo = await Promise.all(part.map(id => fetchThumbBatches([id], batch, urlOf).catch(() => ({}))));
         for (const s of solo) Object.assign(out, s);
       }
     }
@@ -589,21 +598,16 @@ export async function fetchAssetThumbs(assetIds, size = '150x150') {
   return out;
 }
 
+/** @returns { [assetId]: url } — les identifiants non rendus sont absents. */
+export function fetchAssetThumbs(assetIds, size = '150x150') {
+  return fetchThumbBatches(assetIds, ASSET_THUMB_BATCH, (part) =>
+    `${THUMBS}/assets?${new URLSearchParams({ assetIds: part.join(','), size, format: 'Png', isCircular: 'false' })}`);
+}
+
 /** @returns { [bundleId]: url } — lots de 30 maximum, plafond impose par Roblox. */
-export async function fetchBundleThumbs(bundleIds, size = '150x150') {
-  const out = {};
-  for (const part of chunk([...new Set(bundleIds.map(Number).filter(Boolean))], BUNDLE_THUMB_BATCH)) {
-    const q = new URLSearchParams({ bundleIds: part.join(','), size, format: 'Png' });
-    try {
-      readThumbs(await apiGet(`${THUMBS}/bundles/thumbnails?${q}`, { allowRelay: false }), out);
-    } catch {
-      if (part.length > 1) {
-        const solo = await Promise.all(part.map(id => fetchBundleThumbs([id], size).catch(() => ({}))));
-        for (const s of solo) Object.assign(out, s);
-      }
-    }
-  }
-  return out;
+export function fetchBundleThumbs(bundleIds, size = '150x150') {
+  return fetchThumbBatches(bundleIds, BUNDLE_THUMB_BATCH, (part) =>
+    `${THUMBS}/bundles/thumbnails?${new URLSearchParams({ bundleIds: part.join(','), size, format: 'Png' })}`);
 }
 
 const headshots = new Map();
@@ -641,11 +645,6 @@ export async function getUserProfile(userId) {
 }
 
 /* ============================= inventaire =============================== */
-
-/** Limiteds « classiques » : [{assetId, name, recentAveragePrice, serialNumber, …}] */
-export function getCollectibles(userId, maxPages = 12) {
-  return allPages(`${INVENTORY}/users/${userId}/assets/collectibles?limit=100&sortOrder=Asc`, { maxPages });
-}
 
 /**
  * Les bundles possedes. Depuis la conversion des visages en DynamicHead,
@@ -815,8 +814,5 @@ export async function getItemHistory(itemId) {
 
 export const TRADE_URL  = (id) => `https://www.roblox.com/trades?tradeId=${id}`;
 export const TAB_URL    = (tab) => `https://www.roblox.com/trades?tab=${tab}`;
-export const USER_URL   = (id) => `https://www.roblox.com/users/${id}/profile`;
 export const ASSET_URL  = (id) => `https://www.roblox.com/catalog/${id}`;
 export const BUNDLE_URL = (id) => `https://www.roblox.com/bundles/${id}`;
-export const ROLI_ITEM_URL   = (id) => `https://www.rolimons.com/item/${id}`;
-export const ROLI_PLAYER_URL = (id) => `https://www.rolimons.com/player/${id}`;

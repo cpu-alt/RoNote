@@ -51,7 +51,13 @@
   }
 
   let timer = null;
-  const schedule = () => { clearTimeout(timer); timer = setTimeout(publish, 400); };
+  // Les autres pages de Roblox (jeux, avatar) bougent sans arret : hors de la
+  // page des trades, une mutation ne coute plus rien.
+  const schedule = () => {
+    if (!onTradesPage()) return;
+    clearTimeout(timer);
+    timer = setTimeout(publish, 400);
+  };
 
   new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
   schedule();

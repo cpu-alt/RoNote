@@ -67,10 +67,11 @@ export async function flushThumbs({ force = false } = {}) {
   if (!force && now - lastWrite < WRITE_GAP) return;
   lastWrite = now;
   dirty = false;
-  const kept = Object.entries(cache)
-    .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
-    .slice(0, CAP);
-  cache = Object.fromEntries(kept);
+  // Trier des milliers d'entrees ne sert qu'a evincer les plus vieilles.
+  const entries = Object.entries(cache);
+  if (entries.length > CAP) {
+    cache = Object.fromEntries(entries.sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, CAP));
+  }
   await B.storage.local.set({ [KEY]: cache });
 }
 

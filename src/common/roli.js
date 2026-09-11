@@ -231,6 +231,10 @@ async function fetchJson(url) {
 
 let mem = null;       // { ts, table } — evite de relire 300 Ko a chaque appel
 let pending = null;   // chargement en cours, partage par les appels simultanes
+let failed = null;    // { table, retryAt, delay } — dernier echec de Rolimon's
+
+const RETRY_MIN = 5 * 60 * 1000;    // premier nouvel essai apres un echec
+const RETRY_MAX = 30 * 60 * 1000;   // puis de plus en plus espaces, jusqu'a 30 min
 
 const emptyCatalog = (ratio = 1.6) => ({
   assets: {}, bundles: {}, faceOf: {}, bundleOf: {},
@@ -252,6 +256,11 @@ export async function getCatalog(settings) {
   if (settings && settings.useRolimons === false) return emptyCatalog(ratio);
 
   if (mem && Date.now() - mem.ts < TTL) return { ...mem.table, basis, ratio };
+  // Rolimon's vient d'echouer : l'ancienne table sert jusqu'au prochain essai,
+  // au lieu de relire 300 Ko et de retelecharger les deux tables a chaque passage.
+  if (failed && Date.now() < failed.retryAt) {
+    return failed.table.ready ? { ...failed.table, basis, ratio } : { ...failed.table, ratio };
+  }
 
   // Au reveil du service worker, la verification et le popup demandent la
   // table au meme instant : une seule lecture de 300 Ko, un seul telechargement.
@@ -311,20 +320,15 @@ async function loadCatalog() {
     await B.storage.local.remove?.(['rolimons', 'rolimonsChanges']);
     const out = wrap(table, at, false);
     mem = { ts: at, table: out };
+    failed = null;
     return out;
   } catch (e) {
     console.debug("[RoNote] Rolimon's indisponible:", e?.message || e);
-    if (usable) return wrap(cached, cached.ts, true);
-    return { ...emptyCatalog(), stale: true, veryStale: true };
+    const table = usable ? wrap(cached, cached.ts, true) : { ...emptyCatalog(), stale: true, veryStale: true };
+    const delay = failed ? Math.min(RETRY_MAX, failed.delay * 2) : RETRY_MIN;
+    failed = { table, delay, retryAt: Date.now() + delay };
+    return table;
   }
 }
 
-/** Force le prochain `getCatalog` a repasser par le reseau. */
-export function invalidateCatalog() { mem = null; }
-
-export const BASIS_LABEL = {
-  value: "Value Rolimon's",
-  rap: 'RAP Roblox',
-  prudent: 'Base prudente (min des deux)'
-};
 export const BASIS_SHORT = { value: 'Value', rap: 'RAP', prudent: 'Prudent' };

@@ -2,7 +2,7 @@ import { B, safe } from '../common/shim.js';
 import * as api from '../common/api.js';
 import { ApiError } from '../common/api.js';
 import {
-  getSettings, saveSettings, getState, setState, getStreams, saveStreams, resetStreams,
+  getSettings, saveSettings, getState, setState, getStreams, saveStreams,
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
   getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
@@ -16,14 +16,15 @@ import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../co
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
-import { eachLimit, inQuietHours } from '../common/utils.js';
+import { eachLimit, inQuietHours, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
 } from './tracker.js';
 import {
-  notifyTrade, notifySummary, notifyRevaluations, notifySystem, playSound, playSoundsFor, setBadge
+  notifyTrade, notifySummary, notifyRevaluations, notifySystem, playSound, playSoundsFor, setBadge,
+  notifTarget, forgetNotif
 } from './notifier.js';
 
 const ALARM = 'ronote:poll';
@@ -128,19 +129,29 @@ function scheduleSoftTick(settings) {
 /* ==================== details fournis par la page ===================== */
 
 const CAPTURED_CAP = 60;
+const CAPTURED_FRESH = 10 * 60 * 1000;   // meme detail recu il y a moins de 10 min : rien a reecrire
+
+// Les messages de la page arrivent en rafale, et chacun lit, modifie puis
+// reecrit la meme cle : en file, aucun n'efface l'ajout du precedent.
+const pageWrites = serialQueue();
 
 /**
  * La page Roblox affiche sans probleme les trades que l'API refuse de nous
  * servir. On conserve donc ce qu'elle recupere : c'est la source la plus fiable
  * qui soit, puisque c'est exactement ce que l'utilisateur voit.
  */
-async function rememberCapturedTrade(tradeId, detail) {
+function rememberCapturedTrade(tradeId, detail) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
   if (!id || !detail) return;
-  const { captured } = await B.storage.local.get('captured');
-  const next = { ...(captured || {}), [id]: { at: Date.now(), detail } };
-  const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
-  await B.storage.local.set({ captured: Object.fromEntries(kept) });
+  return pageWrites(async () => {
+    const { captured } = await B.storage.local.get('captured');
+    const prev = captured?.[id];
+    // La page redemande souvent le trade qu'elle affiche.
+    if (prev && Date.now() - prev.at < CAPTURED_FRESH && JSON.stringify(prev.detail) === JSON.stringify(detail)) return;
+    const next = { ...(captured || {}), [id]: { at: Date.now(), detail } };
+    const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
+    await B.storage.local.set({ captured: Object.fromEntries(kept) });
+  });
 }
 
 /**
@@ -172,12 +183,14 @@ async function rememberScrapedTrade(trade, myId) {
     ],
     fromPage: true
   };
-  const { scraped } = await B.storage.local.get('scraped');
-  const next = { ...(scraped || {}) };
-  if (trade.tradeId) next['id:' + trade.tradeId] = { at: Date.now(), detail };
-  if (trade.handle) next['h:' + trade.handle.toLowerCase()] = { at: Date.now(), detail };
-  const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
-  await B.storage.local.set({ scraped: Object.fromEntries(kept) });
+  return pageWrites(async () => {
+    const { scraped } = await B.storage.local.get('scraped');
+    const next = { ...(scraped || {}) };
+    if (trade.tradeId) next['id:' + trade.tradeId] = { at: Date.now(), detail };
+    if (trade.handle) next['h:' + trade.handle.toLowerCase()] = { at: Date.now(), detail };
+    const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
+    await B.storage.local.set({ scraped: Object.fromEntries(kept) });
+  });
 }
 
 /** Retrouve un trade lu sur la page, par identifiant ou par partenaire. */
@@ -210,17 +223,25 @@ async function getCapturedTrade(tradeId) {
  */
 const memDetails = new Map(); // tradeId -> {at, sig, detail, card}
 let detailsDirty = false;    // evite de reecrire le cache a chaque tour
+let detailsLoaded = false;   // le cache stocke a ete fusionne en memoire
 let detailsLoading = null;   // lecture en cours : deux demandes simultanees ne la doublent pas
 let detailsSaveTimer = null;
 
+/**
+ * Lu une fois par vie du worker. Le test porte sur un drapeau, pas sur la
+ * taille de la memoire : une carte ajoutee avant la lecture (un trade suivi
+ * resolu au reveil) faisait croire le cache charge, et la sauvegarde suivante
+ * remplacait les 150 trades gardes par cette seule carte.
+ */
 async function loadDetailCache() {
-  if (memDetails.size) return;
+  if (detailsLoaded) return;
   if (!detailsLoading) {
     detailsLoading = B.storage.local.get('details').then(({ details }) => {
       const now = Date.now();
       for (const [id, rec] of Object.entries(details || {})) {
         if (now - (rec?.at || 0) < DETAIL_KEEP && !memDetails.has(Number(id))) memDetails.set(Number(id), rec);
       }
+      detailsLoaded = true;
     }).finally(() => { detailsLoading = null; });
   }
   await detailsLoading;
@@ -242,6 +263,8 @@ function saveDetailCacheSoon() {
 async function saveDetailCache() {
   clearTimeout(detailsSaveTimer);
   if (!detailsDirty) return;
+  // Jamais sans le cache stocke : ecrire la memoire seule l'effacerait.
+  await loadDetailCache();
   detailsDirty = false;
   const entries = [...memDetails.entries()]
     .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
@@ -507,15 +530,23 @@ async function stepOutbound(ctx) {
   }
 }
 
+const INBOUND_COUNT_TTL = 2 * 60 * 1000;
+
 /** 3) Onglet Inbound : nouveaux trades recus + rattachement des contre-offres. */
 async function stepInbound(ctx) {
   const r = await pollStream('inbound', ctx.streams, { pageLimit: PAGE_LIMIT });
   ctx.snapshot.inbound = r.all.slice(0, SNAPSHOT_LIMIT).map(liteTrade);
 
-  // Compteur exact sans appel supplementaire quand la page suffit.
-  ctx.state.inboundCount = r.all.length < PAGE_LIMIT
-    ? r.all.length
-    : await safe(() => api.getInboundCount(), ctx.state.inboundCount ?? r.all.length);
+  // Compteur exact sans appel supplementaire quand la page suffit. Au-dela,
+  // le total ne se redemande que si la page a change, ou toutes les 2 min.
+  const page = `${r.all.length}:${r.all[0]?.id}:${r.all[r.all.length - 1]?.id}`;
+  if (r.all.length < PAGE_LIMIT) {
+    ctx.state.inboundCount = r.all.length;
+  } else if (page !== ctx.state.inboundPage || Date.now() - (ctx.state.inboundCountAt || 0) > INBOUND_COUNT_TTL) {
+    ctx.state.inboundCount = await safe(() => api.getInboundCount(), ctx.state.inboundCount ?? r.all.length);
+    ctx.state.inboundCountAt = Date.now();
+  }
+  ctx.state.inboundPage = page;
 
   if (r.seeded) return;
 
@@ -571,6 +602,7 @@ const PLAYER_CAP = 30;                         // joueurs dont le profil reste e
 const PLAYER_HISTORY_TTL = 6 * 60 * 60 * 1000; // courbe d'inventaire d'un joueur (page Rolimon's)
 const PLAYER_HISTORY_CAP = 10;                 // joueurs dont la courbe reste en cache
 const PLAYER_HISTORY_POINTS = 400;             // releves gardes par courbe
+const PORTFOLIO_RETRY = 5 * 60 * 1000;         // apres un echec, sans attendre la fraicheur complete
 
 /**
  * Les chiffres du compte : ceux de Rolimon's, la correction des visages, et
@@ -617,17 +649,31 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
           rolimons: info, ghosts: [], extras: [],
           ghostValue: 0, extraValue: 0, value: info.value, rap: info.rap, rank: info.rank
         });
+      } else {
+        // Rien n'a repondu : nouvel essai dans 5 min. Sans repere, chaque
+        // passage relancait les quatre appels a Rolimon's et au catalogue.
+        state.portfolioAt = now - PORTFOLIO_TTL + PORTFOLIO_RETRY;
       }
     }
+    if (report?.chartScannedAt) state.chartScannedAt = report.chartScannedAt;
   }
 
-  // L'historique est une page HTML, pas une API : on l'economise.
-  if (force || now - (state.historyFetchedAt || 0) > HISTORY_TTL) {
+  // L'historique est une page HTML, pas une API : on l'economise. Rolimon's
+  // n'y ajoute qu'un releve par jour ; tant que son dernier releve connu est
+  // deja dans la serie gardee, relire la page ne rapporterait rien.
+  const due = force || now - (state.historyFetchedAt || 0) > HISTORY_TTL;
+  const upToDate = !force && state.chartScannedAt && state.historyLastAt >= state.chartScannedAt;
+  if (due && !upToDate) {
     const points = await safe(() => api.getPlayerHistory(state.userId), null);
     if (points?.length) {
       state.historyFetchedAt = now;
+      state.historyLastAt = points[points.length - 1].at;
       state.collectibles = points[points.length - 1].n;
       await savePortfolio(points);
+    } else {
+      // Page injoignable : nouvel essai dans 5 min. Page sans courbe : au
+      // prochain terme normal — la redemander plus tot ne la remplirait pas.
+      state.historyFetchedAt = points ? now : now - HISTORY_TTL + PORTFOLIO_RETRY;
     }
   }
 }
@@ -689,6 +735,67 @@ async function getMe(state) {
   return me;
 }
 
+/* ======================= ecritures concurrentes ======================== */
+
+/**
+ * UN PASSAGE TIENT SA COPIE PLUSIEURS SECONDES.
+ *
+ * La verification lit `state` et `streams` au debut, travaille (appels reseau,
+ * notifications), puis les reecrit. Un refus, un suivi ou une remise a zero
+ * demandes entre-temps depuis le popup etaient ecrases par cette ecriture :
+ * le suivi disparaissait, et un trade refuse depuis RoNote pouvait revenir en
+ * alerte.
+ *
+ * Toute modification venue d'un message passe donc par `editStore` : appliquee
+ * tout de suite au stockage et, si un passage tient sa copie, notee pour qu'il
+ * la rejoue avant d'ecrire. Les lectures et ecritures des deux cotes passent
+ * par la meme file : aucune ne s'intercale au milieu d'une autre.
+ */
+const storeQueue = serialQueue();
+let tickHolds = false;   // un passage a lu state/streams et va les ecrire
+const lateEdits = [];    // modifications a rejouer sur sa copie
+
+/** @param edit (state, streams, replay) => void — doit pouvoir etre rejouee */
+function editStore(edit) {
+  return storeQueue(async () => {
+    const [state, streams] = await Promise.all([getState(), getStreams()]);
+    edit(state, streams, false);
+    if (tickHolds) lateEdits.push(edit);
+    await setState(state);
+    await saveStreams(streams);
+    return state;
+  });
+}
+
+/** Lecture du passage : a partir d'ici, les modifications lui seront rejouees. */
+function holdStore() {
+  return storeQueue(async () => {
+    const got = await Promise.all([getState(), getStreams()]);
+    lateEdits.length = 0;
+    tickHolds = true;
+    return got;
+  });
+}
+
+/** Ecriture du passage, apres avoir rejoue ce qui a change pendant qu'il travaillait. */
+function commitStore(state, streams, { writeStreams = true } = {}) {
+  return storeQueue(async () => {
+    for (const edit of lateEdits.splice(0)) edit(state, streams, true);
+    await setState(state);
+    if (writeStreams) await saveStreams(streams);
+  });
+}
+
+function releaseStore() {
+  tickHolds = false;
+  lateEdits.length = 0;
+}
+
+/** Ce que refreshPortfolio ecrit dans `state`. */
+const PORTFOLIO_FIELDS = ['portfolioAt', 'portfolioPrivate', 'portfolioRank', 'portfolioLast',
+  'historyFetchedAt', 'historyLastAt', 'chartScannedAt', 'collectibles'];
+const portfolioSig = (state) => JSON.stringify(PORTFOLIO_FIELDS.map(k => state[k] ?? null));
+
 async function tick(reason = 'manual') {
   // Le verrou est horodate : un cycle qui n'en finit pas (appel reseau qui ne
   // repond jamais, worker suspendu en plein vol) ne doit pas bloquer tous les
@@ -702,14 +809,19 @@ async function tick(reason = 'manual') {
     setLang(settings.lang);
     if (!settings.enabled) return;
 
-    const state = await getState();
+    const [state, streams] = await holdStore();
 
     // Le reveil du worker et l'alarme peuvent se declencher coup sur coup.
     if (reason !== 'manual' && state.lastPollAt && Date.now() - state.lastPollAt < 3000) return;
+    // Un reveil n'est pas un rendez-vous : le jeton envoye par un onglet Roblox
+    // reveille le worker bien plus souvent que la cadence choisie. L'alarme,
+    // elle, reste a l'heure.
+    const cadence = (Number(settings.pollSeconds) || 30) * 1000;
+    if (reason === 'boot' && state.lastPollAt && Date.now() - state.lastPollAt < cadence * 0.8) return;
     state.lastPollAt = Date.now();
 
     if (state.backoffUntil && Date.now() < state.backoffUntil && reason !== 'manual') {
-      await setState(state);
+      await commitStore(state, streams, { writeStreams: false });
       return;
     }
 
@@ -718,21 +830,20 @@ async function tick(reason = 'manual') {
       me = await getMe(state);
     } catch (e) {
       state.meCheckedAt = 0;
-      await handleError(e, state, settings);
+      await handleError(e, state, streams, settings);
       return;
     }
 
-    const streams = await getStreams();
-
     if (state.userId && Number(state.userId) !== Number(me.id)) {
       // Changement de compte : on repart d'une photo vierge, sans notifier.
-      await resetStreams();
       for (const k of Object.keys(streams)) delete streams[k];
       state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
       await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null });
-      state.portfolioAt = 0; state.historyFetchedAt = 0; state.portfolioLast = null;
+      state.portfolioAt = 0; state.historyFetchedAt = 0; state.historyLastAt = 0; state.chartScannedAt = 0;
+      state.portfolioLast = null;
       state.revalSince = 0;
       memDetails.clear();
+      detailsLoaded = true;   // le cache stocke vient d'etre vide
       await clearThumbs();
     }
     state.userId = me.id;
@@ -775,7 +886,10 @@ async function tick(reason = 'manual') {
         if (before) streams[kind] = before; else delete streams[kind];
         ctx.events.length = nEvents;
         ctx.history.length = nHistory;
-        await handleError(e, state, settings);
+        await handleError(e, state, streams, settings);
+        // Limite de debit : les etapes suivantes appelleraient la meme API,
+        // chacune avec son attente, et la prolongeraient.
+        if (e instanceof ApiError && e.isRate) break;
       }
     }
 
@@ -804,20 +918,23 @@ async function tick(reason = 'manual') {
     state.valueCount = ctx.cat?.count ?? 0;
     state.lastOkAt = Date.now();
     if (ctx.history.length) await pushHistory(ctx.history.reverse(), settings.historyLimit);
-    await setState(state);
-    await saveStreams(streams);
+    await commitStore(state, streams);
     await setBadge(state.inboundCount, settings, false);
 
     // Portefeuille : chiffres du moment, reconciliation, historique Rolimon's.
+    // Le plus souvent rien n'est du : l'etat vient d'etre ecrit, inutile de
+    // le reecrire a l'identique.
     if (settings.useRolimons && settings.trackPortfolio) {
+      const before = portfolioSig(state);
       await refreshPortfolio(state, settings, ctx.cat);
-      await setState(state);
+      if (portfolioSig(state) !== before) await commitStore(state, streams, { writeStreams: false });
     }
     await saveDetailCache();
     await flushThumbs({ force: true });
   } catch (e) {
     console.error('[RoNote] tick:', e);
   } finally {
+    releaseStore();
     runningSince = 0;
     if (settings) scheduleSoftTick(settings);
   }
@@ -856,7 +973,7 @@ async function emit(ctx) {
 
 let authWarnedAt = 0;
 
-async function handleError(e, state, settings) {
+async function handleError(e, state, streams, settings) {
   const err = e instanceof ApiError ? e : new ApiError(String(e?.message || e), 0);
   state.lastError = { message: err.message, status: err.status, at: Date.now() };
 
@@ -875,7 +992,9 @@ async function handleError(e, state, settings) {
     const prev = state.backoffUntil && state.backoffUntil > Date.now() ? state.backoffUntil - Date.now() : 15000;
     state.backoffUntil = Date.now() + Math.min(5 * 60000, prev * 2);
   }
-  await setState(state);
+  // Appelee pendant un passage : ecrire aussi les flux enregistrerait des
+  // trades vus avant qu'ils soient notifies.
+  await commitStore(state, streams, { writeStreams: false });
   await setBadge(0, settings, true);
 }
 
@@ -892,16 +1011,14 @@ async function openUrl(url) {
 }
 
 B.notifications.onClicked.addListener(async (id) => {
-  const st = await getState();
-  const rec = st.notifMap?.[id];
+  const rec = await notifTarget(id);
   const settings = await getSettings();
   if (rec?.url && settings.openOnClick) await openUrl(rec.url);
   await safe(() => B.notifications.clear(id));
 });
 
 B.notifications.onButtonClicked?.addListener(async (id, idx) => {
-  const st = await getState();
-  const rec = st.notifMap?.[id];
+  const rec = await notifTarget(id);
   if (!rec) return;
   if (idx === 0 && rec.url) await openUrl(rec.url);
   if (idx === 1 && rec.userId) {
@@ -914,10 +1031,7 @@ B.notifications.onButtonClicked?.addListener(async (id, idx) => {
   await safe(() => B.notifications.clear(id));
 });
 
-B.notifications.onClosed?.addListener(async (id) => {
-  const st = await getState();
-  if (st.notifMap?.[id]) { delete st.notifMap[id]; await setState(st); }
-});
+B.notifications.onClosed?.addListener((id) => forgetNotif(id));
 
 /* ============================ messages ================================= */
 
@@ -931,25 +1045,37 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
+/**
+ * Tout ce qu'affichent le popup et les reglages, en une reponse : le popup
+ * l'attend pour afficher quoi que ce soit. `lite` : sans les compteurs des
+ * flux, que seuls les reglages montrent — inutile de relire des milliers d'ids.
+ */
+async function uiData({ lite = false } = {}) {
+  const [settings, state, history, stored, portfolio, report] = await Promise.all([
+    getSettings(), getState(), getHistory(),
+    lite ? null : B.storage.local.get('streams'),
+    getPortfolio(), getPortfolioReport()
+  ]);
+  const out = { settings, state, history: history.slice(0, 100), portfolio, report };
+  if (stored) {
+    const streams = stored.streams || {};
+    const per = (f) => Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, f(v)]));
+    out.counts = per(v => v?.seen?.length || 0);
+    out.newest = per(v => v?.newest || 0);
+    out.belowMark = per(v => v?.belowMark || 0);
+  }
+  return out;
+}
+
 async function handleMessage(msg) {
   switch (msg.type) {
-    case 'ronote:get': {
-      // Tout d'un coup : le popup attend cette reponse pour afficher quoi que ce soit.
-      const [settings, state, history, streams, portfolio, report] = await Promise.all([
-        getSettings(), getState(), getHistory(), getStreams(), getPortfolio(), getPortfolioReport()
-      ]);
-      return {
-        settings, state, history: history.slice(0, 100),
-        portfolio,
-        report,
-        counts: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.seen?.length || 0])),
-        newest: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.newest || 0])),
-        belowMark: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.belowMark || 0]))
-      };
-    }
+    case 'ronote:get':
+      return uiData(msg);
+
+    // La reponse porte tout : le popup n'a pas a redemander derriere.
     case 'ronote:refresh':
       await tick('manual');
-      return { settings: await getSettings(), state: await getState() };
+      return uiData(msg);
 
     case 'ronote:hydrate': {
       const settings = await getSettings();
@@ -1114,10 +1240,12 @@ async function handleMessage(msg) {
 
     case 'ronote:portfolio': {
       const settings = await getSettings();
-      const state = await getState();
-      if (!state.userId) return { error: 'non connecté' };
-      await refreshPortfolio(state, settings, await getCatalog(settings), { force: true });
-      await setState(state);
+      const fresh = await getState();
+      if (!fresh.userId) return { error: 'non connecté' };
+      // Calcule sur une copie et ne reporte que ses champs : une verification
+      // en cours garde tout le reste (voir editStore).
+      await refreshPortfolio(fresh, settings, await getCatalog(settings), { force: true });
+      const state = await editStore((st) => { for (const k of PORTFOLIO_FIELDS) st[k] = fresh[k]; });
       await flushThumbs({ force: true });
       return { state, portfolio: await getPortfolio(), report: await getPortfolioReport() };
     }
@@ -1131,29 +1259,25 @@ async function handleMessage(msg) {
       if (!id) return { error: 'identifiant de trade invalide' };
       try {
         const res = await api.declineTrade(id);
-        const state = await getState();
-        const streams = await getStreams();
+        const incoming = msg.kind === 'inbound' || msg.kind === 'counter';
 
         // Notre propre annulation va reapparaitre en « Declined » sur le flux
-        // Inactive : on la marque deja vue, sinon on s'alerte soi-meme.
-        markSeen(streams, 'inactive', [id]);
-        markSeen(streams, 'completed', [id]);
-        delete state.tracked[id];
-
-        for (const kind of ['inbound', 'outbound']) {
-          const list = state.snapshot?.[kind];
-          if (Array.isArray(list)) {
-            state.snapshot[kind] = list.filter(t => Number(t.tradeId) !== id);
+        // Inactive : on la marque deja vue, sinon on s'alerte soi-meme. Rejouee
+        // sur la copie d'une verification en cours, elle ne decompte pas deux fois.
+        const state = await editStore((st, streams, replay) => {
+          markSeen(streams, 'inactive', [id]);
+          markSeen(streams, 'completed', [id]);
+          delete st.tracked[id];
+          for (const kind of ['inbound', 'outbound']) {
+            const list = st.snapshot?.[kind];
+            if (Array.isArray(list)) st.snapshot[kind] = list.filter(t => Number(t.tradeId) !== id);
           }
-        }
-        if (state.inboundCount > 0 && (msg.kind === 'inbound' || msg.kind === 'counter')) {
-          state.inboundCount -= 1;
-        }
+          if (!replay && incoming && st.inboundCount > 0) st.inboundCount -= 1;
+        });
+
+        await loadDetailCache();   // sinon la lecture a venir ramenerait ce trade
         memDetails.delete(id);
         detailsDirty = true;
-
-        await setState(state);
-        await saveStreams(streams);
         await saveDetailCache();
         await setBadge(state.inboundCount, await getSettings(), false);
         await pushHistory([{
@@ -1168,11 +1292,11 @@ async function handleMessage(msg) {
     }
 
     case 'ronote:track': {
-      const state = await getState();
       const id = Number(msg.tradeId);
-      if (msg.on === false) delete state.tracked[id];
-      else state.tracked[id] = { at: Date.now(), partner: msg.partner || null, auto: false, counterTo: null, round: 1 };
-      await setState(state);
+      const state = await editStore((st) => {
+        if (msg.on === false) delete st.tracked[id];
+        else st.tracked[id] = { at: Date.now(), partner: msg.partner || null, auto: false, counterTo: null, round: 1 };
+      });
       return { tracked: state.tracked };
     }
     case 'ronote:settings': {
@@ -1197,10 +1321,10 @@ async function handleMessage(msg) {
       return { ok: await playSound(settings, String(msg.sound || ''), { force: true }) };
     }
     case 'ronote:reset-dedup': {
-      const state = await getState();
-      state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
-      await setState(state);
-      await resetStreams();
+      await editStore((st, streams) => {
+        st.tracked = {}; st.counterHints = {}; st.myCounters = {}; st.links = {};
+        for (const k of Object.keys(streams)) delete streams[k];
+      });
       await tick('manual');
       return { ok: true };
     }

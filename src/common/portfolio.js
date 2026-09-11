@@ -81,7 +81,10 @@ export async function buildPortfolio(userId, cat) {
     value: info.value,
     rap: info.rap,
     countedItems: counted ? Object.values(counted.counts).reduce((s, n) => s + n, 0) : 0,
-    holds: counted?.holds?.length || 0
+    holds: counted?.holds?.length || 0,
+    // Date du dernier releve de la courbe Rolimon's : la page qui la porte
+    // n'est relue que si ce releve est plus recent que la serie gardee.
+    chartScannedAt: counted?.scannedAt || 0
   };
 
   // Ce que le joueur detient, sous les cles des revisions de cote : c'est ce

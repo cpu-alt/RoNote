@@ -28,8 +28,13 @@
     } catch { /* donnee non clonable : on laisse tomber */ }
   };
 
+  // La page joint le meme jeton a chacune de ses requetes : seul un jeton
+  // nouveau vaut un message, sinon chaque requete reveillerait le service worker.
+  let lastToken = '';
   const sendToken = (token) => {
-    if (token) window.postMessage({ __ronote: 'csrf', token: String(token) }, location.origin);
+    if (!token || String(token) === lastToken) return;
+    lastToken = String(token);
+    window.postMessage({ __ronote: 'csrf', token: lastToken }, location.origin);
   };
 
   // --- fetch ---------------------------------------------------------
