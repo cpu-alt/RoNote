@@ -339,29 +339,16 @@ seulement compté. Le service worker prépare la liste (`portfolioItems`, module
 testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
 10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
 
-**La courbe, bundles comptés, rejouée trade par trade.** Rolimon's publie la valeur du
-compte jour après jour, mais sans les visages possédés en bundles et avec les visages
-fantômes. Le bouton 🎭 **Bundles** du solde (actif par défaut) corrige la courbe ET le
-chiffre du haut ensemble.
-
-La correction de chaque jour est **reconstruite** (`faces.js`, testé). Pour chaque bundle
-coté, l'écart « bundles possédés − exemplaires comptés par Rolimon's » est connu
-aujourd'hui (réconciliation) ; en remontant le temps, chaque trade terminé le défait
-(`écart avant = écart après − reçus + donnés`). Chaque jour, cet écart est multiplié par
-la cote du bundle **ce jour-là**, tirée de l'historique Rolimon's de l'ancien visage.
-Avant le tout premier mouvement de bundle, les visages n'étaient pas encore des
-bundles : l'écart est nul. Un bundle arrivé sans trade retrouvé (achat, cadeau) est
-compté depuis le premier mouvement et signalé.
-
-Les mouvements viennent de l'historique des trades terminés, parcouru **une fois** par le
-service worker (`facescan.js`) : du plus récent au plus ancien, douze trades par
-vérification espacés de 0,6 s, détail tiré du cache des cartes quand il y est, arrêt
-120 jours avant le premier mouvement de bundle (ou après 3 000 trades). Ensuite, seuls
-les nouveaux trades sont lus. La date d'un mouvement est la date de **création** du
-trade : Roblox ne dit pas quand il a été accepté. Pendant le parcours, la partie pas
-encore reconstruite reste en pointillés et l'avancement s'affiche sous la courbe. Les
-mesures quotidiennes de la réconciliation (`portfolioCorr`) complètent la reconstruction
-et priment le jour où elles ont été prises.
+**La courbe, bundles comptés.** Rolimon's publie la valeur du compte jour après jour,
+mais sans les visages possédés en bundles et avec les visages fantômes. Le bouton
+🎭 **Bundles** du solde (actif par défaut) corrige la courbe ET le chiffre du haut
+ensemble. À chaque calcul du portefeuille, le service worker enregistre la correction
+du jour (`portfolioCorr` : écart de value, de RAP et d'exemplaires, une mesure par jour,
+400 jours) ; la courbe corrigée est chaque relevé de Rolimon's plus la dernière
+correction mesurée ce jour-là (`correctedSeries`, testé). Avant la première mesure,
+RoNote ne sait pas quels bundles tu avais : la plus ancienne correction connue est
+appliquée et cette partie est tracée **en pointillés**, marquée « estimation » au
+survol. Bouton coupé, on retrouve la courbe brute de Rolimon's et sa value.
 
 **Chargement des listes.** Le contenu d'un trade ne change jamais : le service
 worker garde son détail brut 7 jours avec sa fiche. Tant que la table des cotes et les
@@ -893,7 +880,6 @@ npm test    # anti-doublon (26) + envois et contre-offres (33)
             # + scripts de contenu et pont page ↔ extension (17)
             # + réévaluation des objets possédés (20)
             # + objets du portefeuille, historique d'un objet et courbe corrigée (28)
-            # + visages dans le temps : mouvements, cotes du jour, rejeu (16)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un

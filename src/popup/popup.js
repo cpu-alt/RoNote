@@ -10,10 +10,7 @@ const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
 const send = (msg) => B.runtime.sendMessage(msg);
 
-let data = {
-  settings: null, state: null, history: [], portfolio: [], report: null,
-  corrections: [], corrSeries: [], faceScan: null
-};
+let data = { settings: null, state: null, history: [], portfolio: [], report: null, corrections: [] };
 let tab = 'inbound';
 const cards = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const failures = { inbound: new Map(), outbound: new Map(), completed: new Map() };
@@ -1443,27 +1440,6 @@ function reconciliationHtml(rep) {
 
 /* -------------------------------- l'onglet ------------------------------- */
 
-/** Sous la courbe corrigée : d'où vient chaque jour, et ce qui reste incertain. */
-function faceNoteHtml(scan, estimated, corrections, rep) {
-  if (scan && !scan.done) {
-    return `<div class="w-est">${t("Reconstruction de tes visages en cours : {n} trades parcourus, jusqu'au {date}. Les pointillés ne sont pas encore reconstruits.",
-      { n: fmtFull(scan.scanned), date: scan.oldestAt ? fmtDate(scan.oldestAt) : '…' })}</div>`;
-  }
-  if (scan?.done) {
-    const names = new Map([...(rep?.extras || []), ...(rep?.ghosts || [])].map(l => [String(l.bundleId), l.name]));
-    for (const i of rep?.items || []) if (i.kind === 'bundle') names.set(String(i.id), i.name);
-    const lost = Object.keys(scan.unexplained || {}).map(b => names.get(b) || '#' + b);
-    const found = t('Reconstruit trade par trade : {n} trades avec des bundles, chacun à sa cote du jour.', { n: fmtFull(scan.faceTrades) });
-    const note = lost.length && scan.firstMoveAt
-      ? ' ' + t('{names} : aucun trade retrouvé (achat ou cadeau ?), compté depuis le {date}.', { names: lost.join(', '), date: fmtDate(scan.firstMoveAt) })
-      : '';
-    return `<div class="w-est">${escapeHtml(found + note)}</div>`;
-  }
-  return estimated
-    ? `<div class="w-est">${t('Pointillés : estimation. Avant le {date}, RoNote ne mesurait pas encore tes bundles : la plus ancienne correction connue est appliquée.', { date: fmtDate(corrections[0].at) })}</div>`
-    : '';
-}
-
 let walletFetching = false;
 let walletAutoTried = false;
 let walletSig = '';   // dernier rendu de l'onglet, pour sauter les redessins inutiles
@@ -1478,8 +1454,6 @@ async function recomputePortfolio(btn = null) {
     if (res?.portfolio) data.portfolio = res.portfolio;
     if (res?.report) data.report = res.report;
     if (res?.corrections) data.corrections = res.corrections;
-    if (res?.corrSeries) data.corrSeries = res.corrSeries;
-    if (res?.faceScan !== undefined) data.faceScan = res.faceScan;
   } catch { /* le prochain passage du service worker s'en chargera */ }
   walletFetching = false;
   if (tab === 'stats' && !zoomed) keepScroll(renderStats);
@@ -1518,7 +1492,6 @@ function renderStats() {
   // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
   const sig = JSON.stringify([
     rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r, data.corrections?.length || 0,
-    data.corrSeries?.length || 0, data.faceScan?.scanned || 0, !!data.faceScan?.done,
     st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k]), Math.floor(Date.now() / 60000)
   ]);
   if (listEl.querySelector('.w-hero') && sig === walletSig) return;
@@ -1526,10 +1499,7 @@ function renderStats() {
 
   // Bundles comptés ou non : la même règle pour la courbe ET le chiffre du
   // haut, sinon les deux se contredisent (courbe brute, solde corrigé).
-  // Chaque jour a sa correction, rejouée trade par trade (faces.js). Les
-  // mesures prises par le service worker complètent et priment le jour même.
-  const measured = data.corrections?.length ? data.corrections : [correctionOf(rep)].filter(Boolean);
-  const corrections = [...(data.corrSeries || []), ...measured].sort((a, b) => a.at - b.at);
+  const corrections = data.corrections?.length ? data.corrections : [correctionOf(rep)].filter(Boolean);
   const withBundles = wallet.bundles && corrections.length > 0;
   const cur = last || all[all.length - 1] || { v: 0, r: 0 };
   const lastN = all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0);
@@ -1588,7 +1558,7 @@ function renderStats() {
       </div>
       ${chartHtml({ id: 'w-plot', pts, keys, defs: WALLET_SERIES, animate: mode === 'all' || mode === 'chart' })}
       ${legendHtml(pts, keys, WALLET_SERIES)}
-      ${withBundles ? faceNoteHtml(data.faceScan, estimated, corrections, rep) : ''}
+      ${estimated ? `<div class="w-est">${t('Pointillés : estimation. Avant le {date}, RoNote ne mesurait pas encore tes bundles : la plus ancienne correction connue est appliquée.', { date: fmtDate(corrections[0].at) })}</div>` : ''}
       <div class="w-ranges">${RANGES.map(r =>
         `<button class="${r.key === range.key ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
     </section>
@@ -1863,8 +1833,6 @@ async function load({ refresh = false } = {}) {
   if (res?.portfolio) data.portfolio = res.portfolio;
   if (res?.report !== undefined) data.report = res.report;
   if (res?.corrections) data.corrections = res.corrections;
-  if (res?.corrSeries) data.corrSeries = res.corrSeries;
-  if (res?.faceScan !== undefined) data.faceScan = res.faceScan;
 
   // Le gabarit est écrit en français : `translateDom` remplace en place, donc
   // il n'est jouable qu'une fois. Si la langue change en cours de route (réglage
@@ -1886,8 +1854,6 @@ async function load({ refresh = false } = {}) {
     data.report = g?.report ?? data.report;
     data.portfolio = g?.portfolio || data.portfolio;
     data.corrections = g?.corrections || data.corrections;
-    data.corrSeries = g?.corrSeries || data.corrSeries;
-    data.faceScan = g?.faceScan ?? data.faceScan;
     for (const m of Object.values(cards)) m.clear();
     for (const m of Object.values(failures)) m.clear();
   }

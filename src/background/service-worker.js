@@ -4,7 +4,7 @@ import { ApiError } from '../common/api.js';
 import {
   getSettings, saveSettings, getState, setState, getStreams, saveStreams, resetStreams,
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
-  getPortfolioReport, savePortfolioReport, getPortfolioCorrections, recordPortfolioCorrection, getFaceSummary
+  getPortfolioReport, savePortfolioReport, getPortfolioCorrections, recordPortfolioCorrection
 } from '../common/state.js';
 import { getCatalog } from '../common/roli.js';
 import { setLang, t, currentLang, dictFor } from '../common/i18n.js';
@@ -17,7 +17,6 @@ import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
 import { eachLimit, inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { stepFaceScan } from './facescan.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -725,8 +724,7 @@ async function tick(reason = 'manual') {
       await resetStreams();
       for (const k of Object.keys(streams)) delete streams[k];
       state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
-      await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null, portfolioCorr: [],
-        faceScan: null, faceLedger: {}, faceHistory: {}, portfolioCorrSeries: [] });
+      await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null, portfolioCorr: [] });
       state.portfolioAt = 0; state.historyFetchedAt = 0; state.portfolioLast = null;
       state.revalSince = 0;
       memDetails.clear();
@@ -809,11 +807,6 @@ async function tick(reason = 'manual') {
     if (settings.useRolimons && settings.trackPortfolio) {
       await refreshPortfolio(state, settings, ctx.cat);
       await setState(state);
-      // Les visages dans le temps : un petit pas de reconstruction par passage.
-      await safe(() => stepFaceScan({
-        settings, state, cat: ctx.cat,
-        lookup: (id) => memDetails.get(Number(id))?.detail || null
-      }));
     }
     await saveDetailCache();
     await flushThumbs({ force: true });
@@ -937,17 +930,15 @@ async function handleMessage(msg) {
   switch (msg.type) {
     case 'ronote:get': {
       // Tout d'un coup : le popup attend cette reponse pour afficher quoi que ce soit.
-      const [settings, state, history, streams, portfolio, report, corrections, face] = await Promise.all([
+      const [settings, state, history, streams, portfolio, report, corrections] = await Promise.all([
         getSettings(), getState(), getHistory(), getStreams(), getPortfolio(), getPortfolioReport(),
-        getPortfolioCorrections(), getFaceSummary()
+        getPortfolioCorrections()
       ]);
       return {
         settings, state, history: history.slice(0, 100),
         portfolio,
         report,
         corrections,
-        corrSeries: face.series,
-        faceScan: face.scan,
         counts: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.seen?.length || 0])),
         newest: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.newest || 0])),
         belowMark: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.belowMark || 0]))
@@ -1019,8 +1010,7 @@ async function handleMessage(msg) {
       await flushThumbs({ force: true });
       return {
         state, portfolio: await getPortfolio(), report: await getPortfolioReport(),
-        corrections: await getPortfolioCorrections(),
-        ...(await getFaceSummary().then(f => ({ corrSeries: f.series, faceScan: f.scan })))
+        corrections: await getPortfolioCorrections()
       };
     }
     /**
