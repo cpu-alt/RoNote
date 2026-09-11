@@ -3,13 +3,14 @@ import {
   fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml, clamp
 } from '../common/utils.js';
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
+import { correctionOf, correctedSeries } from '../common/portfolio.js';
 import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
 
 const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
 const send = (msg) => B.runtime.sendMessage(msg);
 
-let data = { settings: null, state: null, history: [], portfolio: [], report: null };
+let data = { settings: null, state: null, history: [], portfolio: [], report: null, corrections: [] };
 let tab = 'inbound';
 const cards = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const failures = { inbound: new Map(), outbound: new Map(), completed: new Map() };
@@ -849,8 +850,8 @@ function toggleSeries(keys, key, defs) {
  * défaut sans rien casser. La recherche, elle, ne survit pas à la fermeture.
  */
 const WALLET_KEY = 'ronote:wallet';
-const WALLET_PREFS = ['range', 'series', 'hidden', 'view', 'sort', 'filter'];
-const wallet = { range: '1m', series: ['v'], hidden: false, view: 'list', sort: 'value', filter: 'all', query: '' };
+const WALLET_PREFS = ['range', 'series', 'bundles', 'hidden', 'view', 'sort', 'filter'];
+const wallet = { range: '1m', series: ['v'], bundles: true, hidden: false, view: 'list', sort: 'value', filter: 'all', query: '' };
 try {
   const saved = JSON.parse(localStorage.getItem(WALLET_KEY) || '{}');
   for (const k of WALLET_PREFS) if (k in saved) wallet[k] = saved[k];
@@ -1002,9 +1003,12 @@ function chartHtml({ id, pts, keys, defs, animate = false, markers = [] }) {
 
   let gradients = '';
   const areas = [], lines = [], ends = [];
+  // Dernier relevé estimé : jusque-là, la courbe se trace en pointillés.
+  const cut = pts.reduce((k, p, i) => (p.est ? i : k), -1);
   m.lines.forEach((l, n) => {
     const def = defs[l.key];
-    const d = smoothPath(l.vals.map((v, i) => [plotX(m.xs[i]), chartY(v, m.min, m.span) * H]));
+    const xy = l.vals.map((v, i) => [plotX(m.xs[i]), chartY(v, m.min, m.span) * H]);
+    const d = smoothPath(xy);
     const gid = `${id}-g${n}`;
     const solo = m.lines.length === 1;
     gradients += `<linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
@@ -1014,8 +1018,12 @@ function chartHtml({ id, pts, keys, defs, animate = false, markers = [] }) {
     // sans ça, il s'arrêtait net sous le point du moment, en arête verticale.
     const lastY = (chartY(l.vals[l.vals.length - 1], m.min, m.span) * H).toFixed(1);
     areas.push(`<path d="${d}L${W},${lastY}L${W},${H}L0,${H}Z" fill="url(#${gid})"/>`);
-    lines.push(`<path class="w-line" d="${d}" fill="none" stroke="${def.color}" stroke-width="${n ? 1.7 : 2.3}"
-      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 5px ${def.color}55)"/>`);
+    const stroke = (path, dashed) => `<path class="w-line" d="${path}" fill="none" stroke="${def.color}" stroke-width="${n ? 1.7 : 2.3}"
+      ${dashed ? 'stroke-dasharray="5 5" opacity=".7"' : ''} stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"
+      style="filter:drop-shadow(0 0 5px ${def.color}55)"/>`;
+    lines.push(cut > 0
+      ? stroke(smoothPath(xy.slice(0, cut + 1)), true) + (cut < xy.length - 1 ? stroke(smoothPath(xy.slice(cut)), false) : '')
+      : stroke(d, false));
     ends.push(`<i class="w-end" style="left:${plotPct(1)}%;top:${yPct(l.vals[l.vals.length - 1])}%;--c:${def.color}"></i>`);
   });
 
@@ -1098,7 +1106,7 @@ function mountChart({ id, pts, keys, defs, onScrub = null }) {
       dot.style.left = x + '%';
       dot.style.top = chartY(m.lines[n].vals[i], m.min, m.span) * 100 + '%';
     });
-    tip.innerHTML = `<b>${fmtDate(pts[i].at)}</b>` + keys.map((k, n) => {
+    tip.innerHTML = `<b>${fmtDate(pts[i].at)}${pts[i].est ? ' · ' + t('estimation') : ''}</b>` + keys.map((k, n) => {
       const def = defs[k];
       const pct = m.percent ? `<em>${fmtPct(m.lines[n].vals[i])}</em>` : '';
       return `<span><i style="background:${def.color}"></i>${t(def.label)}<strong>${seriesText(def, pts[i][k] || 0)}</strong>${pct}</span>`;
@@ -1445,6 +1453,7 @@ async function recomputePortfolio(btn = null) {
     if (res?.state) data.state = res.state;
     if (res?.portfolio) data.portfolio = res.portfolio;
     if (res?.report) data.report = res.report;
+    if (res?.corrections) data.corrections = res.corrections;
   } catch { /* le prochain passage du service worker s'en chargera */ }
   walletFetching = false;
   if (tab === 'stats' && !zoomed) keepScroll(renderStats);
@@ -1482,25 +1491,37 @@ function renderStats() {
   // Redessin de fond sans rien de neuf : l'onglet reste tel quel, avec ses
   // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
   const sig = JSON.stringify([
-    rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r,
+    rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r, data.corrections?.length || 0,
     st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k]), Math.floor(Date.now() / 60000)
   ]);
   if (listEl.querySelector('.w-hero') && sig === walletSig) return;
   walletSig = sig;
 
+  // Bundles comptés ou non : la même règle pour la courbe ET le chiffre du
+  // haut, sinon les deux se contredisent (courbe brute, solde corrigé).
+  const corrections = data.corrections?.length ? data.corrections : [correctionOf(rep)].filter(Boolean);
+  const withBundles = wallet.bundles && corrections.length > 0;
+  const cur = last || all[all.length - 1] || { v: 0, r: 0 };
+  const lastN = all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0);
+  const nowOf = withBundles
+    ? { v: cur.v || 0, r: cur.r || 0, n: lastN + (corrections[corrections.length - 1].dn || 0) }
+    : { v: cur.rawV ?? cur.v ?? 0, r: cur.rawR ?? cur.r ?? 0, n: lastN };
+  // La courbe se termine sur le relevé du moment, pas sur le dernier relevé
+  // quotidien de Rolimon's : elle rejoint le chiffre affiché en haut.
+  let series = withBundles ? correctedSeries(all, corrections) : all;
+  if (last && series.length && Date.now() - series[series.length - 1].at > 3600e3) {
+    series = [...series, { at: Date.now(), ...nowOf, est: false }];
+  }
+
   const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
   const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const inRange = all.filter(p => p.at >= since);
+  const inRange = series.filter(p => p.at >= since);
   const pts = downsample(inRange);
   const keys = wallet.series;
   const primary = keys[0];
   const pdef = WALLET_SERIES[primary];
-
-  // Le relevé du moment prime sur le dernier point historique, et il est
-  // CORRIGÉ : c'est la valeur réelle du compte, pas celle de Rolimon's.
-  const cur = last || all[all.length - 1] || { v: 0, r: 0 };
-  const nowOf = { v: cur.v || 0, r: cur.r || 0, n: all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0) };
-  const head = inRange[0] || all[0] || {};
+  const head = inRange[0] || series[0] || {};
+  const estimated = withBundles && pts.some(p => p.est);
   const now = nowOf[primary];
   const start = Number.isFinite(head[primary]) ? head[primary] : now;
   const delta = now - start;
@@ -1523,9 +1544,13 @@ function renderStats() {
     <section class="w-hero" data-tone="${tone}">
       <div class="w-top">
         ${seriesChips(WALLET_SERIES, keys, 'data-series')}
-        <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
+        <div class="w-top-r">
+          ${corrections.length ? `<span class="w-series"><button class="${withBundles ? 'on' : ''}" data-bundles style="--c:#c792ea"
+            title="${escapeHtml(t('Compter les visages possédés en bundles et retirer les visages fantômes, comme le chiffre corrigé'))}"><i></i>🎭 Bundles</button></span>` : ''}
+          <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
+        </div>
       </div>
-      <div class="w-label">${t(HERO_LABEL[primary])}</div>
+      <div class="w-label">${t(primary === 'v' && !withBundles ? "Value Rolimon's" : HERO_LABEL[primary])}</div>
       <div class="w-amount" id="w-amount">${seriesText(pdef, now)}</div>
       <div class="w-change">
         <span class="w-pill ${tone}" id="w-pill">${pillText(pdef, delta, pct)}</span>
@@ -1533,11 +1558,12 @@ function renderStats() {
       </div>
       ${chartHtml({ id: 'w-plot', pts, keys, defs: WALLET_SERIES, animate: mode === 'all' || mode === 'chart' })}
       ${legendHtml(pts, keys, WALLET_SERIES)}
+      ${estimated ? `<div class="w-est">${t('Pointillés : estimation. Avant le {date}, RoNote ne mesurait pas encore tes bundles : la plus ancienne correction connue est appliquée.', { date: fmtDate(corrections[0].at) })}</div>` : ''}
       <div class="w-ranges">${RANGES.map(r =>
         `<button class="${r.key === range.key ? 'on' : ''}" data-range="${r.key}">${t(r.label)}</button>`).join('')}</div>
     </section>
     <section class="w-tiles">
-      <div class="w-tile"><span>${WALLET_SERIES[other].label}</span><b>${amountShort(cur[other])}</b></div>
+      <div class="w-tile"><span>${WALLET_SERIES[other].label}</span><b>${amountShort(nowOf[other])}</b></div>
       <div class="w-tile"><span>${t('Rang')}</span><b>${st.portfolioRank ? '#' + fmtFull(st.portfolioRank) : '—'}</b></div>
       <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : '—'}</b></div>
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
@@ -1552,7 +1578,9 @@ function renderStats() {
       <span>${rep?.at ? t('calculé {ago}', { ago: timeAgo(rep.at) }) : ''}</span>
       <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
     </div>
-    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
+    <div class="w-note">${withBundles
+      ? t("Courbe corrigée : les relevés de Rolimon's, plus la correction des bundles que RoNote mesure chaque jour.")
+      : t("Courbe brute de Rolimon's : sans les visages passés en bundles, avec les visages fantômes.")}</div>`;
 
   bindImages(listEl);
   renderItems({ animate: mode === 'all' || mode === 'items' });
@@ -1596,6 +1624,7 @@ function renderStats() {
   listEl.querySelectorAll('[data-range]').forEach(el => el.addEventListener('click', () => pref('range', el.dataset.range, 'chart')));
   listEl.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => pref('filter', el.dataset.filter, 'items')));
   listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden, null));
+  listEl.querySelector('[data-bundles]')?.addEventListener('click', () => pref('bundles', !wallet.bundles, 'chart'));
   listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid', 'items'));
   listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems({ animate: true }); });
   listEl.querySelector('#w-search')?.addEventListener('input', (e) => { wallet.query = e.target.value; renderItems(); });
@@ -1803,6 +1832,7 @@ async function load({ refresh = false } = {}) {
   if (res?.history) data.history = res.history;
   if (res?.portfolio) data.portfolio = res.portfolio;
   if (res?.report !== undefined) data.report = res.report;
+  if (res?.corrections) data.corrections = res.corrections;
 
   // Le gabarit est écrit en français : `translateDom` remplace en place, donc
   // il n'est jouable qu'une fois. Si la langue change en cours de route (réglage
@@ -1823,6 +1853,7 @@ async function load({ refresh = false } = {}) {
     data.state = g?.state || data.state;
     data.report = g?.report ?? data.report;
     data.portfolio = g?.portfolio || data.portfolio;
+    data.corrections = g?.corrections || data.corrections;
     for (const m of Object.values(cards)) m.clear();
     for (const m of Object.values(failures)) m.clear();
   }

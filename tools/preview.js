@@ -136,6 +136,14 @@ Object.assign(report, portfolioMod.portfolioItems(report.holdings, cat));
 portfolioMod.attachPortfolioThumbs(report,
   portfolioMod.portfolioThumbKeys(report).map(keys => keys.map(k => thumbs[k.slice(2)]).find(Boolean) || null));
 
+// Trois semaines de corrections mesurées : la courbe corrigée est pleine
+// sur cette période, en pointillés avant.
+const corrections = Array.from({ length: 21 }, (_, i) => ({
+  at: Date.now() - (20 - i) * 864e5,
+  dv: Math.round(report.delta * (0.7 + i * 0.015)), dr: Math.round(report.delta * (0.6 + i * 0.012)),
+  dn: report.extras.length - report.ghosts.length
+}));
+
 const series = [];
 for (let i = 120; i >= 0; i--) {
   const t = Date.now() - i * 864e5;
@@ -211,13 +219,13 @@ const mockRuntime = {
     switch (msg.type) {
       case 'ronote:get':
       case 'ronote:refresh':
-        return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report };
+        return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report, corrections };
       case 'ronote:hydrate': {
         const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed];
         return { cards: all.filter(c => msg.ids.includes(c.tradeId)), failed: [], links: {}, tracked: STATE.tracked };
       }
       case 'ronote:portfolio':
-        return { state: STATE, portfolio: series, report };
+        return { state: STATE, portfolio: series, report, corrections };
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };
@@ -263,6 +271,7 @@ const shot = new URLSearchParams(location.search);
   for (const k of ['view', 'range', 'sort', 'filter']) if (shot.get(k)) prefs[k] = shot.get(k);
   if (shot.get('series')) prefs.series = shot.get('series').split(',');
   if (shot.has('hidden')) prefs.hidden = shot.get('hidden') === '1';
+  if (shot.has('bundles')) prefs.bundles = shot.get('bundles') === '1';
   try { localStorage.setItem('ronote:wallet', JSON.stringify(prefs)); } catch { /* aperçu sans stockage */ }
 }
 

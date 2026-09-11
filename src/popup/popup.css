@@ -598,6 +598,8 @@ button.jr:active { transform: scale(.985); }
 }
 .w-eye:hover { border-color: #ffffff38; }
 .w-eye:active { transform: scale(.9); }
+.w-top-r { display: flex; align-items: center; gap: 6px; flex: none; }
+.w-est { margin-top: 3px; font-size: 10px; line-height: 1.45; color: var(--faint); }
 
 .w-label {
   margin-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: .6px;
