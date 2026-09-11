@@ -66,10 +66,14 @@ body {
   color: var(--dim); text-decoration: none; font-size: 13px; font-weight: 600;
   transition: background .2s, color .2s, border-color .2s, box-shadow .2s;
 }
-.nav a::before {
-  content: attr(data-icon); flex: none; display: grid; place-items: center;
-  width: 26px; height: 26px; border-radius: 8px; background: #ffffff08; font-size: 13px;
+.nav a > i {
+  flex: none; display: grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 8px; background: #ffffff08; color: #9fb0cf;
+  transition: background .2s, color .2s;
 }
+.nav a > i .ic { width: 15px; height: 15px; }
+.nav a:hover > i { color: var(--fg); }
+.nav a.on > i { background: #4d9fff26; color: var(--accent); }
 .nav a:hover { color: var(--fg); background: #ffffff06; }
 .nav a.on {
   color: var(--fg); border-color: #33466e;
@@ -129,11 +133,12 @@ section.card h2 {
   display: flex; align-items: center; gap: 10px; margin: 12px 0 6px;
   font-size: 13px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
 }
-section.card h2::before {
-  content: attr(data-icon); flex: none; display: grid; place-items: center;
-  width: 30px; height: 30px; border-radius: 10px; font-size: 14px;
+section.card h2 > i {
+  flex: none; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 10px; color: #9fc3ff;
   background: linear-gradient(145deg, #22304f, #161d31); border: 1px solid #2c3a5c;
 }
+section.card h2 > i .ic { width: 16px; height: 16px; }
 section.card h2 .hint {
   margin: 0; padding: 0; border: 0; background: none;
   font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--faint);
@@ -226,10 +231,12 @@ button[data-play] { width: 36px; padding: 0; color: var(--accent); }
   border: 1px solid var(--line); background: var(--surface-2); font-size: 12.5px;
 }
 .chip button {
+  display: grid; place-items: center; padding: 0;
   width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer;
   background: #ffffff0a; color: var(--dim); font-size: 14px; line-height: 1;
   transition: background .2s, color .2s;
 }
+.chip button .ic { width: 12px; height: 12px; stroke-width: 2.4; }
 .chip button:hover { background: #3a1c1e; color: var(--loss); }
 
 /* -------------------------------- notes --------------------------------- */
@@ -255,7 +262,7 @@ footer {
 }
 footer b { color: var(--dim); }
 
-/* « Enregistré ✓ » : un petit message qui glisse en bas à droite. */
+/* « Enregistré » : un petit message qui glisse en bas à droite. */
 .saved {
   position: fixed; right: 24px; bottom: 24px; z-index: 10;
   padding: 9px 16px; border-radius: 20px;
@@ -277,7 +284,7 @@ footer b { color: var(--dim); }
   .brand { display: none; }
   .nav { flex-direction: row; gap: 4px; overflow-x: auto; scrollbar-width: none; }
   .nav a { white-space: nowrap; padding: 5px 10px 5px 6px; }
-  .nav a::before { width: 22px; height: 22px; }
+  .nav a > i { width: 22px; height: 22px; }
   .row { flex-wrap: wrap; }
   .checks { justify-content: flex-start; }
 }
@@ -287,3 +294,18 @@ footer b { color: var(--dim); }
   section.card { animation: none; }
   *, *::before { transition: none !important; }
 }
+
+/* ================================ icônes ================================ */
+
+.ic {
+  display: inline-block; flex: none; width: 1em; height: 1em; vertical-align: -0.14em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.checks label > i { display: inline-flex; color: var(--dim); transition: color .2s; }
+.checks label > i .ic { width: 14px; height: 14px; }
+.checks label:has(input:checked) > i { color: var(--accent); }
+button[data-play] i { display: inline-flex; }
+button[data-play] .ic { width: 14px; height: 14px; }
+.row small .ic, p.hint .ic { width: 12px; height: 12px; vertical-align: -2px; color: var(--fg); }
+.saved { display: inline-flex; align-items: center; gap: 6px; }
+.saved .ic { width: 14px; height: 14px; stroke-width: 2.4; }

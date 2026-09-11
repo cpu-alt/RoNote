@@ -4,10 +4,12 @@ import {
 } from '../common/utils.js';
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
 import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
+import { ic, fillIcons } from '../common/icons.js';
 
 const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
 const send = (msg) => B.runtime.sendMessage(msg);
+fillIcons(document);   // les icônes écrites en dur dans popup.html
 
 let data = { settings: null, state: null, history: [], portfolio: [], report: null };
 let tab = 'inbound';
@@ -23,9 +25,9 @@ const listFilter = { inbound: 'all', outbound: 'all', completed: 'all', history:
 const tradeUrl = (id) => `https://www.roblox.com/trades?tradeId=${id}`;
 
 const KIND_ICON = {
-  inbound: '📥', counter: '🔄', completed: '✅', outbound: '📤',
-  outbound_accepted: '🎉', outbound_declined: '❌', outbound_countered: '🔄',
-  outbound_expired: '⏳', trade_error: '⚠️', declined_by_me: '🚫'
+  inbound: 'inbox', counter: 'counter', completed: 'check-circle', outbound: 'send',
+  outbound_accepted: 'party', outbound_declined: 'x-circle', outbound_countered: 'counter',
+  outbound_expired: 'clock', trade_error: 'alert', declined_by_me: 'ban'
 };
 
 /** Ce que raconte chaque ligne du journal, et sa couleur. */
@@ -66,7 +68,7 @@ function renderHeader() {
   $('#cnt-tracked').classList.toggle('zero', !trackedCount);
 
   const btn = $('#btn-toggle');
-  btn.textContent = settings?.enabled ? '⏸' : '▶';
+  btn.innerHTML = ic(settings?.enabled ? 'pause' : 'play');
   btn.classList.toggle('off', !settings?.enabled);
 
   const dot = $('#dot'), txt = $('#status-text');
@@ -89,9 +91,9 @@ function renderHeader() {
   const cotes = $('#status-cotes');
   if (state?.valueCount) {
     const ago = state.valueTs ? timeAgo(state.valueTs) : '';
-    cotes.textContent = state.valueStale
-      ? '⏳ ' + t('cotes {ago}', { ago })
-      : t('{n} cotes · {ago}', { n: fmtNum(state.valueCount), ago });
+    cotes.innerHTML = state.valueStale
+      ? ic('clock') + ' ' + escapeHtml(t('cotes {ago}', { ago }))
+      : escapeHtml(t('{n} cotes · {ago}', { n: fmtNum(state.valueCount), ago }));
     cotes.style.color = state.valueStale ? 'var(--warn)' : '';
   } else {
     cotes.textContent = '';
@@ -135,7 +137,7 @@ const itemClasses = (i) => [
   i.speculative ? 'spec' : '', i.projected ? 'proj' : '', i.moved ? 'moved' : ''
 ].filter(Boolean).join(' ');
 
-const itemIcon = (i) => (i.isFace ? '🎭' : i.unknown ? '❔' : '▫');
+const itemIcon = (i) => (i.isFace ? 'face' : i.unknown ? 'help' : 'box');
 
 /**
  * Objet « projected » : son RAP a été gonflé par des rachats entre complices.
@@ -162,6 +164,9 @@ function itemTags(i) {
 
 /** Le chiffre qui compte, selon la base choisie dans les réglages. */
 const mainOf = (side, a) => (a.basis === 'rap' ? side.rap : a.basis === 'prudent' ? side.prudent : side.value);
+/** Le verdict en icône : flamme pour un excellent trade, tête de mort pour un très mauvais, point de couleur sinon. */
+const verdictIcon = (v) => ic(v?.label === 'Excellent' ? 'flame' : v?.label === 'Très mauvais' ? 'skull'
+  : v?.tone === 'unknown' ? 'help' : 'dot');
 const cardTone = (a) => (!a ? 'even' : a.incomplete ? 'unknown' : toneOf(a.pctMain, 3));
 
 const partnerName = (c) => escapeHtml(c.partner?.displayName || c.partner?.name || t('Joueur'));
@@ -180,7 +185,7 @@ function tilesHtml(side) {
     const title = escapeHtml(itemTitle(i));
     const tile = i.thumb
       ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}">`
-      : `<div class="tc-tile ph ${cls}" title="${title}">${itemIcon(i)}</div>`;
+      : `<div class="tc-tile ph ${cls}" title="${title}">${ic(itemIcon(i))}</div>`;
     return i.projected ? `<span class="tc-tw">${tile}${projBadge()}</span>` : tile;
   }).join('');
   const rest = side.items.slice(cut);
@@ -243,29 +248,29 @@ function balanceHtml(a, { big = false } = {}) {
 function flagsHtml(a) {
   const chips = [];
   if (a.divergent) {
-    chips.push(`<span class="chip mixed" title="${escapeHtml(t("La cote communautaire et les ventes réelles ne vont pas dans le même sens : trancher reviendrait à parier sur l'une des deux."))}">⚖️ ${t('Value {a} vs RAP {b}', { a: fmtPct(a.pctValue), b: fmtPct(a.pctRap) })}</span>`);
+    chips.push(`<span class="chip mixed" title="${escapeHtml(t("La cote communautaire et les ventes réelles ne vont pas dans le même sens : trancher reviendrait à parier sur l'une des deux."))}">${ic('scale')} ${t('Value {a} vs RAP {b}', { a: fmtPct(a.pctValue), b: fmtPct(a.pctRap) })}</span>`);
   }
   if (a.speculativeIncoming) {
     const worst = a.get.items.filter(i => i.speculative).sort((x, y) => y.ratio - x.ratio)[0];
-    chips.push(`<span class="chip spec" title="${escapeHtml(t("Cote très au-dessus des ventes réelles : elle repose sur l'avis de la communauté, pas sur des transactions."))}">📈 ${t('Spéculatif')}${worst?.ratio ? ` ${worst.ratio.toFixed(1)}× RAP` : ''}</span>`);
+    chips.push(`<span class="chip spec" title="${escapeHtml(t("Cote très au-dessus des ventes réelles : elle repose sur l'avis de la communauté, pas sur des transactions."))}">${ic('trend-up')} ${t('Spéculatif')}${worst?.ratio ? ` ${worst.ratio.toFixed(1)}× RAP` : ''}</span>`);
   }
   if (a.movedItems?.length) {
     const m = a.movedItems[0];
     const all = a.movedItems.map(x => `${x.name} : ${fmtFull(x.moved.from)} → ${fmtFull(x.moved.to)}`).join(' · ');
-    chips.push(`<span class="chip moved" title="${escapeHtml(all)}">🔁 ${escapeHtml(m.name)} ${fmtPct(m.moved.pct)}</span>`);
+    chips.push(`<span class="chip moved" title="${escapeHtml(all)}">${ic('revised')} ${escapeHtml(m.name)} ${fmtPct(m.moved.pct)}</span>`);
   }
   if (a.faceCount) {
     const names = [...a.give.items, ...a.get.items].filter(i => i.isFace).map(i => i.name).join(' · ');
-    chips.push(`<span class="chip face" title="${escapeHtml(names)}">🎭 ${plural(a.faceCount, '{n} visage', '{n} visages')}</span>`);
+    chips.push(`<span class="chip face" title="${escapeHtml(names)}">${ic('face')} ${plural(a.faceCount, '{n} visage', '{n} visages')}</span>`);
   }
   if (a.projectedIncoming) {
     chips.push(`<span class="chip proj" title="${escapeHtml(t("Le RAP de cet objet a été gonflé par des rachats entre complices : s'y fier est le piège classique."))}"><i class="proj-ic">${PROJ_ICON}</i> ${t('Projected')}</span>`);
   }
   if (a.robuxTaxed) {
-    chips.push(`<span class="chip tax" title="${escapeHtml(t('Roblox prélève 30 % sur les Robux reçus dans un trade. Le total ci-dessus compte le net.'))}">💸 ${t('−{n} R$ de taxe', { n: fmtNum(a.robuxLost) })}</span>`);
+    chips.push(`<span class="chip tax" title="${escapeHtml(t('Roblox prélève 30 % sur les Robux reçus dans un trade. Le total ci-dessus compte le net.'))}">${ic('percent')} ${t('−{n} R$ de taxe', { n: fmtNum(a.robuxLost) })}</span>`);
   }
   if (a.valueStale) {
-    chips.push(`<span class="chip stale" title="${escapeHtml(t("La table Rolimon's n'a pas pu être rafraîchie : les cotes affichées peuvent avoir été révisées depuis."))}">⏳ ${t('Cotes non actualisées')}</span>`);
+    chips.push(`<span class="chip stale" title="${escapeHtml(t("La table Rolimon's n'a pas pu être rafraîchie : les cotes affichées peuvent avoir été révisées depuis."))}">${ic('clock')} ${t('Cotes non actualisées')}</span>`);
   }
   return chips.length ? `<div class="flags">${chips.join('')}</div>` : '';
 }
@@ -279,7 +284,7 @@ const itemUrl = (i) => (i.bundleId
 function detailRow(i, big = false) {
   const img = i.thumb
     ? `<img src="${escapeHtml(i.thumb)}" alt="" data-icon="${itemIcon(i)}">`
-    : `<div class="ph">${itemIcon(i)}</div>`;
+    : `<div class="ph">${ic(itemIcon(i))}</div>`;
   const right = i.unknown
     ? `<b style="color:var(--face)">—</b><span>${t('sans cote')}</span>`
     : `<b>${fmtFull(i.value)}</b><span>RAP ${fmtNum(i.rap)}${i.noValue ? ' · ' + t('pas de value') : ''}</span>`;
@@ -312,24 +317,24 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
 
   const pin = outbound
     ? `<button class="tc-btn pin ${tracked ? 'on' : ''}" data-track="${c.tradeId}" data-on="${tracked ? '0' : '1'}"
-         title="${escapeHtml(t(tracked ? 'Ne plus suivre ce trade' : 'Suivre ce trade (alerte si accepté, refusé ou contré)'))}">📌</button>`
+         title="${escapeHtml(t(tracked ? 'Ne plus suivre ce trade' : 'Suivre ce trade (alerte si accepté, refusé ou contré)'))}">${ic('pin')}</button>`
     : '';
   const nix = a && isOpen && tab !== 'completed'
     ? `<button class="tc-btn nix" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}"
-         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">✕</button>`
+         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">${ic('x')}</button>`
     : '';
   const verdict = a
-    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${c.verdict?.icon || ''} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
+    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${verdictIcon(c.verdict)} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
     : '';
   // Pas de numéro de trade ici : ses 16 chiffres mangeaient le statut. Il
   // reste dans le zoom.
   const meta = [
     timeAgo(c.created),
     outbound && c.status && STATUS_LABEL[c.status] ? `<span class="tc-status">${t(STATUS_LABEL[c.status])}</span>` : '',
-    tracked ? `<span class="tc-status on">📌 ${t('suivi')}</span>` : ''
+    tracked ? `<span class="tc-status on">${ic('pin')} ${t('suivi')}</span>` : ''
   ].filter(Boolean).join(' · ');
   const counter = link
-    ? `<div class="tc-link">${t('↩ contre-offre sur le trade #{id}', { id: link.counterTo })}${link.round > 2 ? ' ' + t('· {n}ᵉ échange', { n: link.round }) : ''}</div>`
+    ? `<div class="tc-link">${ic('reply')} ${t('contre-offre sur le trade #{id}', { id: link.counterTo })}${link.round > 2 ? ' ' + t('· {n}ᵉ échange', { n: link.round }) : ''}</div>`
     : '';
 
   const head = `<div class="tc-head">
@@ -344,7 +349,7 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     // n'aide personne à comprendre ce qui se passe.
     const why = c.error
       ? `<div class="err-box">
-           <div class="err-msg">⚠ ${escapeHtml(t('Évaluation impossible — {why}', { why: c.error }))}</div>
+           <div class="err-msg">${ic('alert')} ${escapeHtml(t('Évaluation impossible — {why}', { why: c.error }))}</div>
            <button class="err-retry" data-retry="${c.tradeId}">${t('Réessayer')}</button>
          </div>`
       : '';
@@ -363,14 +368,14 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
       ${counter}
       <div class="tc-swap">
         ${sideHtml(t('Vous donnez'), a.give, a, false)}
-        <div class="tc-mid">⇄</div>
+        <div class="tc-mid">${ic('swap')}</div>
         ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true)}
       </div>
       ${balanceHtml(a)}
       ${flagsHtml(a)}
     </div>
     ${showDetail && nb
-      ? `<button class="tc-more${open ? ' open' : ''}" data-expand="${c.tradeId}"><span>${open ? t('Masquer le détail') : t('Détail des {n} objets', { n: nb })}</span><i>▾</i></button>`
+      ? `<button class="tc-more${open ? ' open' : ''}" data-expand="${c.tradeId}"><span>${open ? t('Masquer le détail') : t('Détail des {n} objets', { n: nb })}</span><i>${ic('chevron')}</i></button>`
       : ''}
     ${showDetail && open ? detailHtml(a, outbound) : ''}
   </article>`;
@@ -424,7 +429,7 @@ function summaryHtml(kind, snap) {
   } else if (kind === 'outbound') {
     const tracked = Object.keys(data.state?.tracked || {}).length;
     aside = `<div class="ls-aside"><span>${t('Suivis')}</span><b class="${tracked ? 'warn' : ''}">${tracked}</b>
-      <small>${t('📌 pour être prévenu')}</small></div>`;
+      <small>${ic('pin')} ${t('pour être prévenu')}</small></div>`;
   } else {
     const best = [...rated].sort((x, y) => y.analysis.pctMain - x.analysis.pctMain)[0];
     if (best && best.analysis.pctMain > 0) {
@@ -434,9 +439,9 @@ function summaryHtml(kind, snap) {
   }
 
   const stats = [
-    wins ? `<span class="win">▲ ${plural(wins, '{n} gagnant', '{n} gagnants')}</span>` : '',
-    losses ? `<span class="loss">▼ ${plural(losses, '{n} perdant', '{n} perdants')}</span>` : '',
-    blind ? `<span class="face">❔ ${plural(blind, '{n} sans cote', '{n} sans cote')}</span>` : '',
+    wins ? `<span class="win">${ic('caret-up')} ${plural(wins, '{n} gagnant', '{n} gagnants')}</span>` : '',
+    losses ? `<span class="loss">${ic('caret-down')} ${plural(losses, '{n} perdant', '{n} perdants')}</span>` : '',
+    blind ? `<span class="face">${ic('help')} ${plural(blind, '{n} sans cote', '{n} sans cote')}</span>` : '',
     loaded.length < snap.length ? `<span>${t('Évaluation…')}</span>` : ''
   ].filter(Boolean).join('');
 
@@ -451,15 +456,15 @@ function summaryHtml(kind, snap) {
 }
 
 const EMPTY = {
-  inbound: ['📥', 'Aucun trade en attente', "Vous serez notifié dès qu'un nouveau trade arrive."],
-  outbound: ['📤', 'Aucun trade envoyé', "Vos propositions apparaîtront ici. Épinglez-en une (📌) pour être averti dès qu'elle est acceptée, refusée ou contrée."],
-  completed: ['✅', 'Aucun trade terminé récemment', ''],
-  history: ['🗒️', 'Journal vide', 'Chaque événement détecté (notifié ou filtré) apparaîtra ici.']
+  inbound: ['inbox', 'Aucun trade en attente', "Vous serez notifié dès qu'un nouveau trade arrive."],
+  outbound: ['send', 'Aucun trade envoyé', "Vos propositions apparaîtront ici. Épinglez-en une ({pin}) pour être averti dès qu'elle est acceptée, refusée ou contrée."],
+  completed: ['check-circle', 'Aucun trade terminé récemment', ''],
+  history: ['journal', 'Journal vide', 'Chaque événement détecté (notifié ou filtré) apparaîtra ici.']
 };
 
 function emptyHtml(kind) {
   const [icon, title, text] = EMPTY[kind];
-  return `<div class="empty"><div class="empty-ic">${icon}</div><b>${t(title)}</b>${text ? `<span>${t(text)}</span>` : ''}</div>`;
+  return `<div class="empty"><div class="empty-ic">${ic(icon)}</div><b>${t(title)}</b>${text ? `<span>${t(text, { pin: ic('pin') })}</span>` : ''}</div>`;
 }
 
 /* =========================== zoom sur un trade =========================== */
@@ -508,13 +513,13 @@ function zoomHtml(c, kind) {
         <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div>
           <div class="t">#${c.tradeId} · ${timeAgo(c.created)}</div></div>
       </div>
-      <button class="z-close" title="${t('Fermer')}">✕</button>
+      <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body">
       ${a ? `<section class="z-hero" data-tone="${tone}">
         <div class="z-verdict">
-          <span class="tc-pill ${tone}">${c.verdict?.icon || ''} ${escapeHtml(t(c.verdict?.label || ''))}</span>
-          ${expires ? `<span class="z-exp">⏳ ${t('Expire {ago}', { ago: expires })}</span>` : ''}
+          <span class="tc-pill ${tone}">${verdictIcon(c.verdict)} ${escapeHtml(t(c.verdict?.label || ''))}</span>
+          ${expires ? `<span class="z-exp">${ic('clock')} ${t('Expire {ago}', { ago: expires })}</span>` : ''}
         </div>
         ${balanceHtml(a, { big: true })}
       </section>` : `<div class="z-empty">${t('Détail indisponible pour ce trade.')}</div>`}
@@ -524,7 +529,7 @@ function zoomHtml(c, kind) {
     </div>
     <div class="z-msg" hidden></div>
     <footer class="z-foot">
-      <button class="z-open">${t('Ouvrir sur Roblox ↗')}</button>
+      <button class="z-open">${t('Ouvrir sur Roblox')} ${ic('external')}</button>
       ${canDecline ? `<button class="z-decline" data-kind="${kind}">${t(declineLabel)}</button>` : ''}
     </footer>
   </div>`;
@@ -632,7 +637,7 @@ async function quickDecline(btn, tradeId, kind) {
     nixTimer = setTimeout(() => {
       btn.dataset.armed = '0';
       btn.classList.remove('armed');
-      btn.textContent = '✕';
+      btn.innerHTML = ic('x');
     }, 5000);
     return;
   }
@@ -653,7 +658,7 @@ async function quickDecline(btn, tradeId, kind) {
   btn.disabled = false;
   btn.dataset.armed = '0';
   btn.classList.remove('armed');
-  btn.textContent = '✕';
+  btn.innerHTML = ic('x');
   btn.title = t('Échec : {why}', { why: res?.error || '?' });
 }
 
@@ -681,21 +686,21 @@ const clock = (at) => new Date(at).toLocaleTimeString(locale(), { hour: '2-digit
 
 function journalRow(h) {
   const info = KIND_INFO[h.kind] || { label: '', tone: 'even' };
-  let icon = KIND_ICON[h.kind] || '•';
+  let icon = KIND_ICON[h.kind] || 'dot';
   let title, sub = '', pill = '';
 
   if (h.kind === 'revalued') {
     // Une réévaluation n'est pas un trade : ni partenaire ni numéro, mais un
     // objet, ses deux cotes et l'impact sur le compte.
-    icon = h.pct >= 0 ? '📈' : '📉';
+    icon = h.pct >= 0 ? 'trend-up' : 'trend-down';
     title = `${escapeHtml(h.name)}${h.count > 1 ? ` <span class="jr-x">×${h.count}</span>` : ''}`;
     sub = t('cote {a} → {b} · impact {c}', { a: fmtNum(h.from), b: fmtNum(h.to), c: fmtSigned(h.delta) });
   } else {
     title = `${escapeHtml(h.partner)} <span class="jr-x">#${h.tradeId}</span>`;
     if (h.kind === 'declined_by_me') sub = escapeHtml(t(h.skipped || ''));
     else if (h.skipped) sub = escapeHtml(t('filtré : {why}', { why: t(h.skipped) }));
-    else if (h.counterTo) sub = t('↩ réponse au trade #{id}', { id: h.counterTo });
-    else if (h.unknown) sub = `<span class="face">❔ ${t('{n} objet(s) sans cote', { n: h.unknown })}</span>`;
+    else if (h.counterTo) sub = ic('reply') + ' ' + t('réponse au trade #{id}', { id: h.counterTo });
+    else if (h.unknown) sub = `<span class="face">${ic('help')} ${t('{n} objet(s) sans cote', { n: h.unknown })}</span>`;
     else if (h.get != null && h.give != null) sub = t('{a} reçu vs {b} donné', { a: fmtNum(h.get), b: fmtNum(h.give) });
   }
   if (h.pct != null) pill = `<span class="jr-pill ${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>`;
@@ -704,7 +709,7 @@ function journalRow(h) {
   const tag = url ? 'button' : 'div';
   const muted = !h.notified && h.kind !== 'revalued' ? ' muted' : '';
   return `<${tag} class="jr${muted}"${url ? ` data-url="${escapeHtml(url)}"` : ''}>
-    <span class="jr-ic" data-tone="${info.tone}">${icon}</span>
+    <span class="jr-ic" data-tone="${info.tone}">${ic(icon)}</span>
     <span class="jr-m">
       <span class="jr-k">${info.label ? t(info.label) : ''}</span>
       <span class="jr-t">${title}</span>
@@ -827,7 +832,7 @@ const FILTERS = [
   { key: 'moved', label: 'Réévalués', test: (i) => !!i.change }
 ];
 
-const TREND_ICON = ['↘', '↯', '→', '↗', '↕'];
+const TREND_ICON = ['trend-down', 'zigzag', 'trend-flat', 'trend-up', 'wave'];
 const SLICE_COLORS = ['#4d9fff', '#2fd070', '#c792ea', '#ffb02e', '#ff7a85', '#3a4458'];
 const REDUCED_MOTION = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
@@ -878,7 +883,7 @@ const seriesText = (def, n) => (def.money ? amount(n) : fmtFull(n));
 const seriesShort = (def, n) => (def.money ? amountShort(n) : fmtNum(n));
 const seriesSigned = (def, n) => (def.money ? amountSigned(n, true) : fmtSigned(n, true));
 const pillText = (def, delta, pct) =>
-  `${delta > 0 ? '▲' : delta < 0 ? '▼' : '•'} ${seriesSigned(def, delta)} · ${fmtPct(pct)}`;
+  `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${seriesSigned(def, delta)} · ${fmtPct(pct)}`;
 
 /* ------------------------------- le mouvement ---------------------------- */
 
@@ -1156,14 +1161,14 @@ function allocationHtml(items) {
 function thumbHtml(i) {
   return i.thumb
     ? `<img class="w-img" src="${escapeHtml(i.thumb)}" alt="" loading="lazy">`
-    : `<div class="w-img ph">${i.isFace ? '🎭' : '▫'}</div>`;
+    : `<div class="w-img ph">${ic(i.isFace ? 'face' : 'box')}</div>`;
 }
 
 function itemBadges(i) {
   return [
-    i.rare ? `<span class="w-tag rare" title="${t('RARE')}">★</span>` : '',
+    i.rare ? `<span class="w-tag rare" title="${t('RARE')}">${ic('star')}</span>` : '',
     i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">${PROJ_ICON}</span>` : '',
-    i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">🎭</span>` : ''
+    i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">${ic('face')}</span>` : ''
   ].join('');
 }
 
@@ -1171,14 +1176,14 @@ function itemSub(i) {
   return [
     i.acronym ? escapeHtml(i.acronym) : '',
     i.demand >= 0 && DEMAND_LABEL[i.demand] ? t('demande {v}', { v: t(DEMAND_LABEL[i.demand]).toLowerCase() }) : '',
-    i.trend >= 0 && TREND_LABEL[i.trend] ? `${TREND_ICON[i.trend]} ${t(TREND_LABEL[i.trend]).toLowerCase()}` : ''
+    i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend]).toLowerCase()}` : ''
   ].filter(Boolean).join(' · ');
 }
 
 function itemRowHtml(i, sum) {
   const ch = i.change;
   const aside = ch
-    ? `<span class="${toneOf(ch.pct)}">${ch.pct >= 0 ? '↗' : '↘'} ${fmtPct(ch.pct)}</span>`
+    ? `<span class="${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${fmtPct(ch.pct)}</span>`
     : `<span>${sum ? sharePct((i.total / sum) * 100) : ''}</span>`;
   return `<button class="w-item" data-item="${escapeHtml(i.key)}">
     <span class="w-thumb">${thumbHtml(i)}${i.count > 1 ? `<em>×${i.count}</em>` : ''}</span>
@@ -1249,7 +1254,7 @@ function collectionHtml(rep, items, owned) {
       <input id="w-search" type="search" placeholder="${escapeHtml(t('Rechercher un objet'))}" value="${escapeHtml(wallet.query)}" autocomplete="off" spellcheck="false">
       <select id="w-sort" title="${escapeHtml(t('Trier'))}">${SORTS.map(s =>
         `<option value="${s.key}"${s.key === wallet.sort ? ' selected' : ''}>${t(s.label)}</option>`).join('')}</select>
-      <button class="w-view" data-view title="${wallet.view === 'grid' ? t('Vue liste') : t('Vue galerie')}">${wallet.view === 'grid' ? '☰' : '▦'}</button>
+      <button class="w-view" data-view title="${wallet.view === 'grid' ? t('Vue liste') : t('Vue galerie')}">${ic(wallet.view === 'grid' ? 'list' : 'grid')}</button>
     </div>
     <div class="w-chips">${chips}</div>
     <div id="w-items"></div>
@@ -1313,8 +1318,8 @@ function openItemSheet(key) {
   const sum = items.reduce((s, x) => s + x.total, 0);
   const roliId = i.kind === 'asset' ? i.id : i.faceAssetId;
   const links = [
-    roliId ? { label: "Rolimon's ↗", url: `https://www.rolimons.com/item/${roliId}` } : null,
-    { label: 'Roblox ↗', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
+    roliId ? { label: "Rolimon's", url: `https://www.rolimons.com/item/${roliId}` } : null,
+    { label: 'Roblox', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
   ].filter(Boolean);
   const ch = i.change;
   const fact = (label, value) => `<div class="w-fact"><span>${label}</span><b>${value}</b></div>`;
@@ -1334,7 +1339,7 @@ function openItemSheet(key) {
         <div class="w-sh-name"><b>${escapeHtml(i.name)}</b>
           <small>${[i.acronym ? escapeHtml(i.acronym) : '', kind].filter(Boolean).join(' · ')} ${itemBadges(i)}</small></div>
       </div>
-      <button class="z-close" title="${t('Fermer')}">✕</button>
+      <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body">
       <div class="w-sh-amount">${amount(i.total)}</div>
@@ -1344,13 +1349,13 @@ function openItemSheet(key) {
         ${fact('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
         ${fact('RAP', amount(i.rap))}
         ${fact(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : '—')}
-        ${fact(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${TREND_ICON[i.trend]} ${t(TREND_LABEL[i.trend])}` : '—')}
+        ${fact(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : '—')}
       </div>
-      ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ch.pct >= 0 ? '📈' : '📉'} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
+      ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
       ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
     </div>
     <footer class="z-foot">${links.map(l =>
-      `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label}</button>`).join('')}</footer>
+      `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label} ${ic('external')}</button>`).join('')}</footer>
   </div>`;
   document.body.appendChild(wrap);
   bindImages(wrap);
@@ -1387,7 +1392,7 @@ function openItemSheet(key) {
 let reconOpen = false;
 
 function reconRow(l, sign) {
-  const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="">` : `<div class="ph">🎭</div>`;
+  const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="">` : `<div class="ph">${ic('face')}</div>`;
   const href = sign < 0 && l.legacyAssetId
     ? `https://www.roblox.com/catalog/${l.legacyAssetId}`
     : `https://www.roblox.com/bundles/${l.bundleId}`;
@@ -1425,7 +1430,7 @@ function reconciliationHtml(rep) {
       ${e.map(l => reconRow(l, +1)).join('')}
       <div class="note">${t("Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire — Rolimon's continue de le compter. Un visage reçu arrive en bundle — Rolimon's ne le voit pas. RoNote compare, visage par visage, ce que Rolimon's compte et les bundles que tu possèdes réellement.")}</div>`;
   return `<details class="panel w-fold" id="w-recon"${reconOpen ? ' open' : ''}>
-    <summary class="panel-h"><span>${t('Réconciliation des visages')}</span><span>${n ? plural(n, '{n} écart', '{n} écarts') : '✓'}</span></summary>
+    <summary class="panel-h"><span>${t('Réconciliation des visages')}</span><span>${n ? plural(n, '{n} écart', '{n} écarts') : ic('check')}</span></summary>
     ${body}
   </details>`;
 }
@@ -1454,7 +1459,7 @@ function renderStats() {
   const st = data.state || {};
   const rep = data.report;
   const profil = st.userId ? `https://www.rolimons.com/player/${st.userId}` : null;
-  const lien = profil ? `<a class="link" href="${profil}" target="_blank" rel="noreferrer">${t("Voir sur Rolimon's ↗")}</a>` : '';
+  const lien = profil ? `<a class="link" href="${profil}" target="_blank" rel="noreferrer">${t("Voir sur Rolimon's")} ${ic('external')}</a>` : '';
 
   if (st.portfolioPrivate) {
     listEl.innerHTML = `<div class="empty"><b>${t('Inventaire privé')}</b>
@@ -1523,7 +1528,7 @@ function renderStats() {
     <section class="w-hero" data-tone="${tone}">
       <div class="w-top">
         ${seriesChips(WALLET_SERIES, keys, 'data-series')}
-        <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${wallet.hidden ? '🙈' : '👁'}</button>
+        <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${ic(wallet.hidden ? 'eye-off' : 'eye')}</button>
       </div>
       <div class="w-label">${t(HERO_LABEL[primary])}</div>
       <div class="w-amount" id="w-amount">${seriesText(pdef, now)}</div>
@@ -1568,7 +1573,7 @@ function renderStats() {
       cancelAnimationFrame(heroFrame);
       if (i === null) {
         amountEl.textContent = seriesText(pdef, now);
-        pillEl.textContent = pillText(pdef, delta, pct);
+        pillEl.innerHTML = pillText(pdef, delta, pct);
         pillEl.className = `w-pill ${tone}`;
         whenEl.textContent = whenText;
         return;
@@ -1576,7 +1581,7 @@ function renderStats() {
       const base = pts[0][primary] || 0;
       const value = pts[i][primary] || 0;
       amountEl.textContent = seriesText(pdef, value);
-      pillEl.textContent = pillText(pdef, value - base, base ? ((value - base) / base) * 100 : 0);
+      pillEl.innerHTML = pillText(pdef, value - base, base ? ((value - base) / base) * 100 : 0);
       pillEl.className = 'w-pill ' + toneOf(value - base);
       whenEl.textContent = fmtDate(pts[i].at);
     }
@@ -1694,7 +1699,7 @@ function bindImages(root) {
     img.addEventListener('error', () => {
       const ph = document.createElement('div');
       ph.className = (img.className ? img.className + ' ' : '') + 'ph';
-      ph.textContent = img.dataset.icon ?? (img.closest('.rec-row') ? '🎭' : '▫');
+      ph.innerHTML = ic(img.dataset.icon ?? (img.closest('.rec-row') ? 'face' : 'box'));
       ph.title = img.title;
       img.replaceWith(ph);
     }, { once: true });

@@ -2,6 +2,7 @@ import { B } from '../common/shim.js';
 import { SOUNDS } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
 import { t, setLang, translateDom } from '../common/i18n.js';
+import { ic, fillIcons } from '../common/icons.js';
 
 const $ = (s) => document.querySelector(s);
 const send = (msg) => B.runtime.sendMessage(msg);
@@ -73,7 +74,7 @@ function renderIgnored() {
     return;
   }
   box.innerHTML = settings.ignoredUsers.map(u =>
-    `<span class="chip">${escapeHtml(u.name || ('#' + u.id))}<button data-id="${u.id}" title="${t('Retirer')}">×</button></span>`
+    `<span class="chip">${escapeHtml(u.name || ('#' + u.id))}<button data-id="${u.id}" title="${t('Retirer')}" aria-label="${t('Retirer')}">${ic('x')}</button></span>`
   ).join('');
   box.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', async () => {
     const r = await send({ type: 'ronote:unmute', userId: Number(b.dataset.id) });
@@ -194,7 +195,7 @@ function wire() {
 
   $('#btn-diag-copy').addEventListener('click', async (e) => {
     await navigator.clipboard.writeText($('#diag-out').textContent);
-    e.target.textContent = t('Copié ✓');
+    e.target.innerHTML = ic('check') + ' ' + escapeHtml(t('Copié'));
     setTimeout(() => { e.target.textContent = t('Copier'); }, 1500);
   });
 
@@ -266,6 +267,7 @@ async function load() {
   render();
 }
 
+fillIcons(document);
 fillSounds();
 wire();
 wireNav();

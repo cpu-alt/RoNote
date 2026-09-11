@@ -1005,3 +1005,50 @@ button.jr:active { transform: scale(.985); }
   button.icon.spin span, .tc-btn.nix.armed, .z-foot .z-decline.armed { animation: none !important; }
   .tab-ind.ready, .tc, .tc-tile, .tc-more i { transition: none !important; }
 }
+
+/* ================================ icônes ================================
+   Un seul jeu (common/icons.js) : trait de 2, couleur du texte. La taille par
+   défaut suit le texte ; les emplacements qui en demandent une autre la fixent.
+   ======================================================================== */
+
+.ic {
+  display: inline-block; flex: none; width: 1em; height: 1em; vertical-align: -0.14em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+button.icon i, button.icon span { display: inline-flex; }
+button.icon .ic { width: 16px; height: 16px; }
+.foot a .ic, .link .ic, .z-open .ic { width: 11px; height: 11px; vertical-align: -1px; }
+
+.tc-btn { display: inline-flex; align-items: center; justify-content: center; }
+.tc-btn .ic { width: 13px; height: 13px; }
+.tc-btn.pin .ic { width: 14px; height: 14px; }
+.tc-pill .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
+.tc-status .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
+.tc-link .ic { width: 12px; height: 12px; vertical-align: -2px; margin-right: 2px; }
+.tc-mid .ic { width: 15px; height: 15px; }
+.tc-more i { display: inline-flex; }
+.tc-more .ic { width: 12px; height: 12px; }
+.tc-tile.ph .ic, .det-row .ph .ic, .rec-row .ph .ic, .w-img.ph .ic { width: 55%; height: 55%; opacity: .75; }
+.err-msg .ic { width: 12px; height: 12px; vertical-align: -2px; }
+.chip .ic { width: 11px; height: 11px; vertical-align: -2px; }
+.ls-stats .ic { width: 8px; height: 8px; vertical-align: 0; }
+.ls-aside small .ic { width: 10px; height: 10px; vertical-align: -1px; }
+.empty-ic .ic { width: 30px; height: 30px; stroke-width: 1.7; color: #9fc3ff; }
+.empty span .ic { width: 12px; height: 12px; vertical-align: -2px; }
+
+.z-close { display: inline-flex; align-items: center; justify-content: center; }
+.z-close .ic { width: 14px; height: 14px; }
+.z-exp .ic { width: 12px; height: 12px; vertical-align: -2px; }
+
+.jr-ic { color: var(--c); }
+.jr-ic .ic { width: 16px; height: 16px; }
+.jr-s .ic { width: 11px; height: 11px; vertical-align: -2px; }
+
+.w-eye, .w-view { display: inline-flex; align-items: center; justify-content: center; color: var(--dim); }
+.w-eye .ic, .w-view .ic { width: 15px; height: 15px; }
+.w-pill .ic { width: 8px; height: 8px; vertical-align: 0; }
+.w-tag .ic { width: 11px; height: 11px; vertical-align: -1px; }
+.w-val span .ic, .w-cval .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
+.w-name small .ic, .w-fact .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
+.w-rev .ic { width: 14px; height: 14px; vertical-align: -2.5px; }
+.w-fold summary .ic { width: 11px; height: 11px; vertical-align: -1px; color: var(--win); }

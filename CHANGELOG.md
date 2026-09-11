@@ -11,7 +11,7 @@ l'utilisateur, pas la liste des commits.
 - **des courbes superposables** : value, RAP et nombre de collectibles, seules ou
   empilées sur le même graphique. Au survol, une infobulle donne la valeur de
   chacune au jour pointé ; le plus haut et le plus bas de la période sont marqués ;
-- **👁 masque les montants** (jamais les pourcentages), pratique en partage d'écran ;
+- **l'œil masque les montants** (jamais les pourcentages), pratique en partage d'écran ;
 - quatre tuiles : l'autre chiffre, le rang, le nombre d'objets et l'effet des
   **réévaluations des 7 derniers jours** ;
 - **la répartition** : le poids de tes 5 plus gros objets ;
@@ -59,9 +59,15 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
 **La page de réglages refaite dans le même style.** Un menu fixe à gauche, avec une
 icône par section, qui suit la lecture et y fait défiler en douceur ; l'état de
 l'extension en tuiles dans un bandeau en tête ; de vrais interrupteurs à la place des
-cases ; « Enregistré ✓ » en petit message qui glisse en bas à droite. Sur une fenêtre
+cases ; « Enregistré » en petit message qui glisse en bas à droite. Sur une fenêtre
 étroite, le menu passe en barre horizontale. Le pied de page affiche enfin la vraie
 version (il était resté bloqué sur 2.9.0). Aucun réglage ne change.
+
+**Des icônes dessinées pour RoNote à la place des emojis.** Popup et réglages
+utilisent désormais un seul jeu d'icônes au trait : même rendu sur Windows, macOS
+et Linux, taille calée sur le texte, et couleur du verdict (une flamme verte pour
+un excellent trade, une tête de mort rouge pour un très mauvais). Les
+notifications du système gardent leurs emojis : Windows n'y affiche que du texte.
 
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
