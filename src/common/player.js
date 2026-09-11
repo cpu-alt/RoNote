@@ -136,6 +136,36 @@ export function thinSeries(points, max = 400, now = Date.now(), recentDays = 90)
   return [...evenly(pts.filter(p => p.at < cut), max - recent.length), ...recent];
 }
 
+/**
+ * Ses bundles, tires de la reconciliation du portefeuille (portfolio.js) faite
+ * sur SON compte : ceux qu'il possede vraiment — y compris ceux que Rolimon's
+ * ne voit pas — et les « fantomes », que Rolimon's lui compte encore alors
+ * qu'il ne les a plus. Seul ce qui s'affiche est garde : le rapport complet
+ * pese trop lourd pour un cache par joueur.
+ */
+export function playerFaces(report) {
+  if (!report) return null;
+  const ignored = new Set((report.extras || []).map(l => Number(l.bundleId)));
+  const faces = (report.items || [])
+    .filter(i => i.kind === 'bundle' || i.isFace)
+    .map(i => ({
+      key: i.key, kind: i.kind, id: i.id, faceAssetId: i.faceAssetId || 0,
+      name: i.name, value: i.value, count: i.count, total: i.total, thumb: i.thumb || null,
+      ignored: i.kind === 'bundle' && ignored.has(Number(i.id))
+    }));
+  const ghosts = (report.ghosts || []).map(g => ({
+    assetId: g.assetId, bundleId: g.bundleId, legacyAssetId: g.legacyAssetId,
+    name: g.name, value: g.value, count: g.count, total: g.total, thumb: g.thumb || null
+  }));
+  return {
+    ok: !!report.ok, partial: !!report.partial, private: !!report.private, terminated: !!report.terminated,
+    reason: report.reason || '',
+    faces, ghosts,
+    ghostValue: report.ghostValue || 0, extraValue: report.extraValue || 0,
+    rawValue: report.rolimons?.value || 0, value: report.value || 0, corrected: !!report.corrected
+  };
+}
+
 /** Age d'un compte, dans l'unite qui se lit le mieux. */
 export function accountAge(created, now = Date.now()) {
   if (!created) return null;

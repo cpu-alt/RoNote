@@ -677,7 +677,10 @@ async function quickDecline(btn, tradeId, kind) {
  * ce que le popup sait déjà (ses trades affichés) ; le journal complet et ses
  * profils publics arrivent ensuite du service worker.
  */
-const player = { id: 0, token: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y' };
+const player = {
+  id: 0, token: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y',
+  faces: null, facesTab: 'owned', facesAll: false
+};
 
 /** Service worker resté sur l'ancienne version : le seul remède est de recharger RoNote. */
 const whyText = (why, template) => (/message inconnu/.test(String(why))
@@ -793,6 +796,7 @@ function playerBodyHtml() {
   return `<section class="p-hero">${hero}${flags ? `<div class="p-flags">${flags}</div>` : ''}${chartOn ? '<div class="p-chart" id="p-chart"></div>' : ''}</section>
     <div class="p-h">${t('Entre vous')}</div>
     ${tiles}${verdictLine}
+    ${chartOn ? playerFacesHtml() : ''}
     <div class="p-h">${t('Vos échanges')}${rows.length ? ` <small>${rows.length}</small>` : ''}</div>
     ${list}`;
 }
@@ -844,6 +848,58 @@ function renderPlayerChart(animate = false) {
   });
 }
 
+/** Une ligne de bundle : vignette, nom, quantité, et ce qu'il pèse. */
+function faceRow(l, gone) {
+  const href = gone
+    ? (l.legacyAssetId ? `https://www.roblox.com/catalog/${l.legacyAssetId}` : `https://www.roblox.com/bundles/${l.bundleId}`)
+    : `https://www.roblox.com/${l.kind === 'bundle' ? 'bundles' : 'catalog'}/${l.id}`;
+  const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="" loading="lazy">` : `<div class="ph">${ic('face')}</div>`;
+  const sub = gone ? t("compté par Rolimon's, plus dans son inventaire") : l.ignored ? t("ignoré par Rolimon's") : '';
+  return `<a class="rec-row p-face${gone ? ' gone' : ''}" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
+    ${img}
+    <div class="rec-n">${escapeHtml(l.name)}${l.count > 1 ? ` ×${l.count}` : ''}${sub ? `<small>${sub}</small>` : ''}</div>
+    <div class="rec-v${gone ? ' loss' : ''}">${gone ? '−' : ''}${amount(l.total)}</div>
+  </a>`;
+}
+
+/**
+ * Ses bundles : ceux qu'il possède vraiment, et ceux que Rolimon's lui compte
+ * encore alors qu'il ne les a plus — avec ce que ça change à sa value.
+ */
+function playerFacesHtml() {
+  const f = player.faces;
+  const copies = (list) => list.reduce((s, l) => s + l.count, 0);
+  const head = (n) => `<div class="p-h">${t('Ses bundles')}${n ? ` <small>${n}</small>` : ''}</div>`;
+  if (!f) return head(0) + '<div class="p-fskel"></div>';
+  if (f.error || (!f.ok && !f.partial)) {
+    const why = f.private ? t('Inventaire privé')
+      : whyText(f.error || t(f.reason || 'réponse vide'), 'Bundles indisponibles — {why}.');
+    return head(0) + `<div class="ls-none p-fnone">${escapeHtml(why)}</div>`;
+  }
+
+  const gone = player.facesTab === 'gone' && f.ghosts.length;
+  const lines = gone ? f.ghosts : f.faces;
+  const shown = player.facesAll ? lines : lines.slice(0, 8);
+  const chips = `<div class="lchips p-fchips">
+    <button class="${gone ? '' : 'on'}" data-ftab="owned">${t('Possédés')} <small>${copies(f.faces)}</small></button>
+    ${f.ghosts.length ? `<button class="${gone ? 'on' : ''}" data-ftab="gone">${t("Qu'il n'a plus")} <small>${copies(f.ghosts)}</small></button>` : ''}
+  </div>`;
+  const rows = shown.length
+    ? shown.map(l => faceRow(l, gone)).join('')
+    : `<div class="ls-none">${t('Aucun bundle coté.')}</div>`;
+  const more = lines.length > shown.length
+    ? `<button class="p-more" data-fmore>${plural(lines.length - shown.length, '+ {n} autre', '+ {n} autres')}</button>`
+    : '';
+  const correction = f.corrected
+    ? `<div class="w-rev ${toneOf(f.value - f.rawValue)}">${ic(f.value >= f.rawValue ? 'trend-up' : 'trend-down')} ${t("Rolimon's l'estime à {raw} ; ses vrais bundles le mettent à {value} ({delta}).",
+      { raw: amount(f.rawValue), value: amount(f.value), delta: amountSigned(f.value - f.rawValue) })}</div>`
+    : '';
+  const partial = f.partial
+    ? `<div class="note">${escapeHtml(t('Liste incomplète — {why}.', { why: t(f.reason) }))}</div>`
+    : '';
+  return `${head(copies(f.faces))}${chips}<div class="jr-day p-faces">${rows}${more}</div>${correction}${partial}`;
+}
+
 function playerFootHtml() {
   const ignored = player.res ? !!player.res.ignored : isIgnored(player.id);
   return `<button class="z-open" data-url="https://www.roblox.com/users/${player.id}/profile">${t('Profil Roblox')} ${ic('external')}</button>
@@ -861,6 +917,11 @@ function bindPlayer(root) {
   });
   const mute = root.querySelector('[data-mute]');
   if (mute) mute.onclick = () => toggleMute(mute);
+  root.querySelectorAll('[data-ftab]').forEach(b => {
+    b.onclick = () => { player.facesTab = b.dataset.ftab; player.facesAll = false; renderPlayer(); };
+  });
+  const more = root.querySelector('[data-fmore]');
+  if (more) more.onclick = () => { player.facesAll = true; renderPlayer(); };
 }
 
 function renderPlayer(animateChart = false) {
@@ -916,7 +977,10 @@ function openPlayer(id) {
     || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id);
   if (!seed) return;
   const token = ++player.token;
-  Object.assign(player, { id, who: seed.partner || { id }, headshot: seed.headshot || null, res: null, chart: null });
+  Object.assign(player, {
+    id, who: seed.partner || { id }, headshot: seed.headshot || null,
+    res: null, chart: null, faces: null, facesTab: 'owned', facesAll: false
+  });
 
   // La fiche s'ouvre à côté de la liste, qui reste utilisable : le popup
   // s'élargit pour elle. Changer de joueur remplace son contenu sur place.
@@ -961,6 +1025,16 @@ function openPlayer(id) {
       if (!still()) return;
       player.chart = { error: t('réponse vide') };
       renderPlayerChart();
+    });
+    // Ses bundles : trois appels (profil, inventaire Rolimon's, bundles Roblox), à part eux aussi.
+    send({ type: 'ronote:player-faces', userId: id }).then((res) => {
+      if (!still()) return;
+      player.faces = res?.faces || { error: res?.error || t('réponse vide') };
+      renderPlayer();
+    }, () => {
+      if (!still()) return;
+      player.faces = { error: t('réponse vide') };
+      renderPlayer();
     });
   }
   send({ type: 'ronote:player', userId: id, name: who.name || '', displayName: who.displayName || '' }).then((res) => {

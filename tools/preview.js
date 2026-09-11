@@ -245,6 +245,15 @@ const mockRuntime = {
         const k = 1250400 / series[series.length - 1].v;
         return { points: playerMod.thinSeries(series.map(p => ({ at: p.at, v: Math.round(p.v * k), r: Math.round(p.r * k * 0.8), n: Math.round(p.n * 0.3) }))) };
       }
+      case 'ronote:player-faces': {
+        // Shedletsky prend l'inventaire réel anonymisé de l'aperçu (fantômes
+        // compris) ; Roblox, l'inventaire privé.
+        await new Promise(r => setTimeout(r, 500));
+        if (Number(msg.userId) === alice.id) {
+          return { faces: playerMod.playerFaces({ ...portfolioMod.emptyReport(alice.id), ok: false, private: true, reason: "inventaire privé — Rolimon's ne publie rien" }) };
+        }
+        return { faces: playerMod.playerFaces(report) };
+      }
       case 'ronote:mute':
         if (!SETTINGS.ignoredUsers.some(u => Number(u.id) === Number(msg.userId))) {
           SETTINGS.ignoredUsers.push({ id: Number(msg.userId), name: msg.name || '' });
@@ -366,5 +375,11 @@ if (shot.get('tab')) {
     const n = Math.max(1, Number(shot.get('player')) || 1);
     await until(() => pdoc.querySelectorAll('.tc button[data-player]').length >= n);
     pdoc.querySelectorAll('.tc button[data-player]')[n - 1]?.click();
+    // `ftab=gone` : ses bundles qu'il n'a plus ; `pscroll=420` : fait défiler la fiche.
+    if (shot.get('ftab') || shot.get('pscroll')) {
+      await until(() => pdoc.querySelector('#p-body [data-ftab]'));
+      if (shot.get('ftab')) pdoc.querySelector(`#p-body [data-ftab="${shot.get('ftab')}"]`)?.click();
+      if (shot.get('pscroll')) pdoc.getElementById('p-body').scrollTop = Number(shot.get('pscroll'));
+    }
   }
 }

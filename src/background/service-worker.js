@@ -15,7 +15,7 @@ import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
-import { historyFor, thinSeries } from '../common/player.js';
+import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
@@ -1067,6 +1067,41 @@ async function handleMessage(msg) {
         return { points };
       } catch (e) {
         return hit ? { points: hit.points, stale: true } : { error: String(e?.message || e) };
+      }
+    }
+    /**
+     * Ses bundles, pour sa fiche : la meme reconciliation que le portefeuille
+     * (portfolio.js), faite sur son compte — ce qu'il possede vraiment, et ce
+     * que Rolimon's lui compte encore alors qu'il ne l'a plus. Lue a
+     * l'ouverture de la fiche seulement, et gardee 30 min.
+     */
+    case 'ronote:player-faces': {
+      const id = Number(msg.userId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      setLang(settings.lang);
+      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
+      const { playerFaces: stored } = await B.storage.local.get('playerFaces');
+      const cache = stored || {};
+      const hit = cache[id];
+      if (hit && Date.now() - hit.at < PLAYER_TTL) return { faces: hit.faces };
+      try {
+        const report = await buildPortfolio(id, await getCatalog(settings));
+        const faces = playerFaces(report);
+        const lines = { ghosts: faces.ghosts, extras: [], items: faces.faces };
+        const urls = await safe(() => resolveThumbs(portfolioThumbKeys(lines)), []);
+        attachPortfolioThumbs(lines, urls || []);
+        await flushThumbs();
+        // Un profil injoignable ne se met pas en cache : on reessaiera.
+        if (report.rolimons || report.private || report.terminated) {
+          const kept = Object.entries({ ...cache, [id]: { at: Date.now(), faces } })
+            .sort((a, b) => b[1].at - a[1].at)
+            .slice(0, PLAYER_HISTORY_CAP);
+          await B.storage.local.set({ playerFaces: Object.fromEntries(kept) });
+        }
+        return { faces };
+      } catch (e) {
+        return hit ? { faces: hit.faces, stale: true } : { error: String(e?.message || e) };
       }
     }
     case 'ronote:mute': {

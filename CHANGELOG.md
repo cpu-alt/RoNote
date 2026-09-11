@@ -83,6 +83,10 @@ avatar, la croix ou Échap la referment :
   et leur bilan, et surtout **ce que ses offres te rapportent en moyenne** — un
   habitué des offres perdantes se repère d'un coup d'œil, et l'anneau de son avatar
   en prend la couleur ;
+- **ses bundles** : ceux qu'il possède vraiment — y compris ceux que Rolimon's ne
+  voit pas — et, dans un second onglet, **ceux qu'il n'a plus** mais que Rolimon's
+  lui compte encore, avec sa value corrigée ; la même réconciliation que ton
+  portefeuille, faite sur son compte ;
 - la liste de vos échanges, du plus récent au plus ancien ; un clic rouvre le trade ;
 - ses profils Roblox et Rolimon's, et un bouton pour l'ignorer (ou ne plus
   l'ignorer) sans passer par les réglages.
