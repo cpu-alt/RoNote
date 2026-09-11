@@ -154,6 +154,28 @@ for (let i = 120; i >= 0; i--) {
   });
 }
 
+// La reconstruction des visages : finie par défaut ; `faces=partial` pour la
+// voir en cours, `faces=none` pour l'ancienne mesure au jour le jour.
+const facesMode = new URLSearchParams(location.search).get('faces') || 'done';
+const firstMove = Date.now() - 75 * 864e5;
+const corrSeries = series
+  .filter(p => facesMode === 'done' || p.at >= Date.now() - 30 * 864e5)
+  .map(p => {
+    const age = (Date.now() - p.at) / 864e5;
+    // Trois visages reçus à des dates différentes, un fantôme depuis 40 jours.
+    const share = p.at < firstMove ? 0 : (age < 75 ? 0.45 : 0) + (age < 52 ? 0.4 : 0) + (age < 20 ? 0.3 : 0) - (age < 40 ? 0.15 : 0);
+    const n = p.at < firstMove ? 0 : (age < 75) + (age < 52) + (age < 20) - (age < 40);
+    return { at: p.at, dv: Math.round(report.delta * share), dr: Math.round(report.delta * share * 0.9), dn: n };
+  });
+const faceScan = facesMode === 'none' ? null : {
+  done: facesMode === 'done', scanned: facesMode === 'done' ? 1284 : 312, faceTrades: 41,
+  oldestAt: Date.now() - (facesMode === 'done' ? 400 : 30) * 864e5, firstMoveAt: firstMove,
+  unexplained: {}, failed: 0
+};
+const faceData = () => (facesMode === 'none'
+  ? { corrections, corrSeries: [], faceScan }
+  : { corrections: [], corrSeries, faceScan });
+
 const STATE = {
   userId: ME, userName: 'DemoTrader', enabled: true,
   inboundCount: CARDS.inbound.length, lastOkAt: Date.now() - 12000, lastError: null,
@@ -219,13 +241,13 @@ const mockRuntime = {
     switch (msg.type) {
       case 'ronote:get':
       case 'ronote:refresh':
-        return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report, corrections };
+        return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report, ...faceData() };
       case 'ronote:hydrate': {
         const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed];
         return { cards: all.filter(c => msg.ids.includes(c.tradeId)), failed: [], links: {}, tracked: STATE.tracked };
       }
       case 'ronote:portfolio':
-        return { state: STATE, portfolio: series, report, corrections };
+        return { state: STATE, portfolio: series, report, ...faceData() };
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };

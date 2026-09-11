@@ -283,6 +283,12 @@ const EN = {
   'Pointillés : estimation. Avant le {date}, RoNote ne mesurait pas encore tes bundles : la plus ancienne correction connue est appliquée.':
     'Dotted: estimate. Before {date}, RoNote was not measuring your bundles yet: the oldest known correction is applied.',
   'estimation': 'estimate',
+  "Reconstruction de tes visages en cours : {n} trades parcourus, jusqu'au {date}. Les pointillés ne sont pas encore reconstruits.":
+    'Rebuilding your faces: {n} trades read, back to {date}. The dotted part is not rebuilt yet.',
+  'Reconstruit trade par trade : {n} trades avec des bundles, chacun à sa cote du jour.':
+    'Rebuilt trade by trade: {n} trades with bundles, each at that day\'s value.',
+  '{names} : aucun trade retrouvé (achat ou cadeau ?), compté depuis le {date}.':
+    '{names}: no trade found (bought or gifted?), counted since {date}.',
   'Voir sur Rolimon\'s ↗': "View on Rolimon's ↗",
   'Réconciliation des visages': 'Face reconciliation',
   '{n} écart': '{n} discrepancy',

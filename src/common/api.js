@@ -313,6 +313,20 @@ export async function getTrade(id, hint = null) {
 }
 
 /**
+ * Detail d'un trade pour l'historique des visages : la v2 d'abord, la seule qui
+ * decrive les bundles — un seul appel par trade. La v1 en repli.
+ */
+export async function getTradeBundlesDetail(id) {
+  try {
+    const d = normalizeTradeDetail(await apiGet(`${TRADES_V2}/trades/${id}`));
+    if (itemCount(d) || robuxTotal(d)) return d;
+  } catch (e) {
+    if (e?.isRate) throw e;
+  }
+  return getTrade(id);
+}
+
+/**
  * Teste toute la chaine de recuperation d'un trade et renvoie un rapport brut.
  * Sert a diagnostiquer un trade qui refuse de s'evaluer sans avoir a deviner.
  */

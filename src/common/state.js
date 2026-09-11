@@ -201,3 +201,27 @@ export async function recordPortfolioCorrection(entry) {
   kept.sort((a, b) => a.at - b.at);
   await B.storage.local.set({ [KEY_CORR]: kept.slice(-CORR_CAP) });
 }
+
+/* ------------------------- les visages dans le temps ------------------- */
+
+/** Stockage de la reconstruction (background/facescan.js). */
+export const FACE_KEYS = {
+  scan: 'faceScan',                 // avancement du parcours des trades
+  ledger: 'faceLedger',             // trades termines avec des bundles
+  histories: 'faceHistory',         // cote jour par jour des bundles concernes
+  series: 'portfolioCorrSeries'     // correction reconstruite, un point par releve
+};
+
+/** Ce que le popup a besoin de savoir : la correction reconstruite et l'avancement. */
+export async function getFaceSummary() {
+  const got = await B.storage.local.get([FACE_KEYS.scan, FACE_KEYS.series]);
+  const s = got[FACE_KEYS.scan];
+  return {
+    scan: s ? {
+      done: !!s.done, scanned: s.scanned || 0, faceTrades: s.faceTrades || 0,
+      oldestAt: s.oldestAt || 0, firstMoveAt: s.firstMoveAt || 0,
+      unexplained: s.unexplained || {}, failed: s.failed || 0
+    } : null,
+    series: Array.isArray(got[FACE_KEYS.series]) ? got[FACE_KEYS.series] : []
+  };
+}

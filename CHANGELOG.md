@@ -56,19 +56,23 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
 - l'ouverture lit tout en parallèle, et le rafraîchissement de fond ne redessine
   plus un onglet (et ses vignettes) quand rien n'a changé.
 
-**La courbe du portefeuille compte enfin les bundles.** Rolimon's trace la valeur de
-ton compte sans les visages possédés en bundles, et avec les visages fantômes : sa
-courbe ne collait pas au chiffre corrigé affiché au-dessus. Le nouveau bouton
-🎭 **Bundles** (actif par défaut) corrige les deux ensemble — value, RAP et nombre de
-collectibles.
+**La courbe du portefeuille compte enfin les bundles — jour par jour.** Rolimon's trace
+la valeur de ton compte sans les visages possédés en bundles, et avec les visages
+fantômes : sa courbe ne collait pas au chiffre corrigé affiché au-dessus. Le nouveau
+bouton 🎭 **Bundles** (actif par défaut) corrige les deux ensemble — value, RAP et
+nombre de collectibles.
 
-- RoNote mesure la correction chaque jour et l'applique au relevé du même jour : à
-  partir de maintenant, la courbe corrigée est exacte ;
-- avant sa première mesure, RoNote ne sait pas quels bundles tu avais : il applique la
-  plus ancienne correction connue, trace cette partie **en pointillés** et l'indique
-  (« estimation ») ;
-- la courbe se termine désormais sur le relevé du moment, et rejoint le chiffre du
-  haut ; bouton coupé, tu retrouves la courbe brute de Rolimon's.
+- **rejouée trade par trade** : RoNote parcourt une fois ton historique de trades
+  terminés, en arrière-plan et sans se presser, et note chaque bundle reçu ou donné.
+  En remontant le temps depuis aujourd'hui, il sait combien de chaque visage tu avais
+  en plus ou en moins de ce que Rolimon's compte, chaque jour ;
+- **à la cote du jour** : un visage reçu en mars compte à partir de mars, à sa cote de
+  mars, tirée de son historique Rolimon's ; un visage donné devient un fantôme le jour
+  du trade ; un visage reçu puis redonné ne compte qu'entre les deux ;
+- un bundle arrivé sans trade retrouvé (achat, cadeau) est signalé par son nom ;
+- pendant le parcours, la partie pas encore reconstruite reste en pointillés et
+  l'avancement s'affiche ; la courbe se termine sur le relevé du moment ; bouton coupé,
+  tu retrouves la courbe brute de Rolimon's.
 
 **La page de réglages refaite dans le même style.** Un menu fixe à gauche, avec une
 icône par section, qui suit la lecture et y fait défiler en douceur ; l'état de
