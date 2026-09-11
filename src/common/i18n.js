@@ -370,8 +370,11 @@ const EN = {
 
   /* --- page de réglages et diagnostic ------------------------------------ */
   'bundles': 'bundles',
-  "RoNote v2.9.0 — extension locale, aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's.":
-    "RoNote v2.9.0 — local extension; no data goes anywhere except the public Roblox and Rolimon's APIs.",
+  "Extension locale : aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's.":
+    "Local extension: no data goes anywhere except the public Roblox and Rolimon's APIs.",
+  'Surveillance': 'Monitoring',
+  'Suivi des envois': 'Outgoing tracking',
+  'Diagnostic': 'Diagnostics',
   'Alertes de trades Roblox — déduplication par identifiant de trade.': 'Roblox trade alerts — deduplicated by trade id.',
   'Enregistré ✓': 'Saved ✓',
   'Général': 'General',

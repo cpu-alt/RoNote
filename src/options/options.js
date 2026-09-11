@@ -233,6 +233,29 @@ function wire() {
   });
 }
 
+/* -------------------------------- menu -------------------------------- */
+
+/**
+ * Le menu suit la lecture : la section à l'écran est surlignée. Les cartes
+ * arrivent en cascade au chargement, pas à chaque relecture des réglages.
+ */
+function wireNav() {
+  const links = [...document.querySelectorAll('#nav a')];
+  const sections = [...document.querySelectorAll('main section[id]')];
+  sections.forEach((s, i) => s.style.setProperty('--i', i));
+  links[0]?.classList.add('on');   // en haut de page, avant tout défilement
+  const spy = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const href = '#' + e.target.id;
+      links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === href));
+    }
+  }, { rootMargin: '-10% 0px -75% 0px' });
+  sections.forEach(s => spy.observe(s));
+  // La version vient du manifeste : le pied de page ne peut plus prendre de retard.
+  $('#version').textContent = 'RoNote v' + (B.runtime.getManifest?.().version || '');
+}
+
 async function load() {
   const r = await send({ type: 'ronote:get' });
   settings = r.settings;
@@ -245,5 +268,6 @@ async function load() {
 
 fillSounds();
 wire();
+wireNav();
 load();
 setInterval(load, 20000);

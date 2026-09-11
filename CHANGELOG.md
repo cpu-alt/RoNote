@@ -56,6 +56,13 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
 - l'ouverture lit tout en parallèle, et le rafraîchissement de fond ne redessine
   plus un onglet (et ses vignettes) quand rien n'a changé.
 
+**La page de réglages refaite dans le même style.** Un menu fixe à gauche, avec une
+icône par section, qui suit la lecture et y fait défiler en douceur ; l'état de
+l'extension en tuiles dans un bandeau en tête ; de vrais interrupteurs à la place des
+cases ; « Enregistré ✓ » en petit message qui glisse en bas à droite. Sur une fenêtre
+étroite, le menu passe en barre horizontale. Le pied de page affiche enfin la vraie
+version (il était resté bloqué sur 2.9.0). Aucun réglage ne change.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant

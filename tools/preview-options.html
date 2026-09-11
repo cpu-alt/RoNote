@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — aperçu des réglages</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070b; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<iframe id="f" title="réglages"></iframe>
+<script type="module">
+/**
+ * Aperçu de la page de réglages, alimentée par un faux service worker. Comme
+ * pour le popup (preview.html), c'est la vraie page : options.html, .css, .js.
+ *   ?lang=en      interface en anglais
+ *   ?scroll=900   défile jusqu'à cette hauteur
+ */
+const { DEFAULTS } = await import('../src/common/defaults.js');
+const q = new URLSearchParams(location.search);
+
+const settings = structuredClone(DEFAULTS);
+settings.lang = q.get('lang') || 'fr';
+settings.ignoredUsers = [{ id: 261, name: 'Shedletsky' }, { id: 1, name: 'Roblox' }];
+
+const state = {
+  userName: 'DemoTrader', lastOkAt: Date.now() - 12000, inboundCount: 3,
+  tracked: { 3210000000000004: {} }, valueCount: 2688, valueTs: Date.now() - 42 * 60000
+};
+
+const mock = {
+  runtime: {
+    getURL: (p) => p,
+    getManifest: () => ({ version: '2.10.0' }),
+    async sendMessage(msg) {
+      switch (msg.type) {
+        case 'ronote:get':
+          return {
+            settings, state, history: [],
+            counts: { inbound: 164, outbound: 238, completed: 154, inactive: 458 },
+            newest: { inbound: Date.now() - 3 * 60000 }, belowMark: {}
+          };
+        case 'ronote:settings':
+          for (const [k, v] of Object.entries(msg.patch || {})) {
+            settings[k] = v && typeof v === 'object' && !Array.isArray(v) ? { ...settings[k], ...v } : v;
+          }
+          return { settings };
+        case 'ronote:unmute':
+          settings.ignoredUsers = settings.ignoredUsers.filter(u => u.id !== msg.userId);
+          return { settings };
+        default:
+          return { ok: true };
+      }
+    }
+  },
+  storage: { local: { get: async () => ({}), set: async () => {} } }
+};
+window.__ronoteMock = mock;
+
+const base = new URL('../src/options/', location.href).href;
+let html = await fetch('../src/options/options.html').then(r => r.text());
+html = html.replace('<head>', `<head><base href="${base}"><script>globalThis.chrome = parent.__ronoteMock;<\/script>`);
+
+const frame = document.getElementById('f');
+frame.contentWindow.chrome = mock;
+const doc = frame.contentDocument;
+doc.open();
+doc.write(html);
+doc.close();
+
+if (q.get('scroll')) {
+  await new Promise(r => setTimeout(r, 900));
+  frame.contentDocument.documentElement.style.scrollBehavior = 'auto';
+  frame.contentWindow.scrollTo(0, Number(q.get('scroll')));
+}
+</script>
+</body>
+</html>
