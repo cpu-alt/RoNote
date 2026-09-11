@@ -96,6 +96,9 @@ B.runtime.onInstalled.addListener(async (details) => {
     await notifySystem(t('RoNote est installé'),
       t('Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule. Les trades déjà présents ne déclencheront aucune alerte.'));
   }
+  // Restes de la courbe « bundles comptés », retirée avant publication : les
+  // corrections mesurées et la reconstruction des visages ne servent plus.
+  await safe(() => B.storage.local.remove(['portfolioCorr', 'faceScan', 'faceLedger', 'faceHistory', 'portfolioCorrSeries']));
   tick('installed');
 });
 
