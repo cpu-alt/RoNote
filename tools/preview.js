@@ -15,6 +15,7 @@ globalThis.chrome = {
 const roli = await import('../src/common/roli.js');
 const apiMod = await import('../src/common/api.js');
 const analysis = await import('../src/common/analysis.js');
+const playerMod = await import('../src/common/player.js');
 
 const json = (p) => fetch(p).then(r => r.json());
 const [rawV3, rawV1, thumbs, fxPortfolio] = await Promise.all([
@@ -36,6 +37,7 @@ cat.changes['a:1029025'] = { from: 340000, to: 400000, pct: 17.6, at: Date.now()
 const SETTINGS = {
   enabled: true, pollSeconds: 30, valueBasis: 'value', robuxTax: true,
   showItemDetails: true, useRolimons: true, trackPortfolio: true, reconcilePortfolio: true,
+  ignoredUsers: [],
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
 
@@ -221,6 +223,29 @@ const mockRuntime = {
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };
+      case 'ronote:player': {
+        // Shedletsky joue ici le compte de 12 jours, pour voir l'alerte « compte
+        // récent » ; Roblox, l'inventaire privé.
+        await new Promise(r => setTimeout(r, 350));
+        const id = Number(msg.userId);
+        const who = [bob, alice].find(u => u.id === id) || { id, name: msg.name, displayName: msg.name };
+        const priv = id === alice.id;
+        return {
+          events: playerMod.historyFor(HISTORY, who),
+          profile: { id, name: who.name, displayName: who.displayName, created: priv ? Date.parse('2006-02-27') : Date.now() - 12 * 864e5, banned: false, verified: priv },
+          roli: { value: priv ? 0 : 1250400, rap: priv ? 0 : 986200, rank: priv ? 0 : 8123, private: priv, terminated: false, lastOnline: Date.now() - 3 * 3600e3 },
+          ignored: SETTINGS.ignoredUsers.some(u => Number(u.id) === id),
+          rolimons: true
+        };
+      }
+      case 'ronote:mute':
+        if (!SETTINGS.ignoredUsers.some(u => Number(u.id) === Number(msg.userId))) {
+          SETTINGS.ignoredUsers.push({ id: Number(msg.userId), name: msg.name || '' });
+        }
+        return { settings: SETTINGS };
+      case 'ronote:unmute':
+        SETTINGS.ignoredUsers = SETTINGS.ignoredUsers.filter(u => Number(u.id) !== Number(msg.userId));
+        return { settings: SETTINGS };
       case 'ronote:settings':
         Object.assign(SETTINGS, msg.patch || {});
         return { settings: SETTINGS };
@@ -319,5 +344,11 @@ if (shot.get('tab')) {
     await until(() => pdoc.querySelectorAll('.tc-body[data-zoom] .tc-swap').length >= Number(shot.get('trade') || shot.get('detail')));
     if (shot.get('detail')) nth('button[data-expand]', 'detail')?.click();
     else nth('.tc-body[data-zoom]', 'trade')?.click();
+  }
+  // `player=2` : ouvre la fiche du joueur de la deuxième carte.
+  if (shot.get('player')) {
+    const n = Math.max(1, Number(shot.get('player')) || 1);
+    await until(() => pdoc.querySelectorAll('.tc button[data-player]').length >= n);
+    pdoc.querySelectorAll('.tc button[data-player]')[n - 1]?.click();
   }
 }

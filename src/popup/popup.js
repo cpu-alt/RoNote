@@ -5,6 +5,7 @@ import {
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
 import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
+import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 
 const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
@@ -175,6 +176,10 @@ const partnerHandle = (c) => (c.partner?.name && c.partner.name !== c.partner.di
 const avatarHtml = (c) => (c.headshot
   ? `<img class="av" src="${escapeHtml(c.headshot)}" alt="" data-icon="">`
   : '<div class="av ph"></div>');
+/** L'avatar ouvre la fiche du joueur ; sans identifiant connu, il reste une image. */
+const avatarBtn = (c, ring) => (Number(c.partner?.id)
+  ? `<button class="av-ring av-btn ${ring}" data-player="${Number(c.partner.id)}" title="${escapeHtml(t('Fiche du joueur'))}">${avatarHtml(c)}</button>`
+  : `<span class="av-ring ${ring}">${avatarHtml(c)}</span>`);
 
 /** Quatre vignettes au plus par côté : au-delà, la dernière devient « +n ». */
 function tilesHtml(side) {
@@ -338,7 +343,7 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     : '';
 
   const head = `<div class="tc-head">
-      <span class="av-ring ${tracked ? 'tracked' : tone}">${avatarHtml(c)}</span>
+      ${avatarBtn(c, tracked ? 'tracked' : tone)}
       <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div><div class="t">${meta}</div></div>
       ${verdict}${nix}${pin}
     </div>`;
@@ -509,7 +514,7 @@ function zoomHtml(c, kind) {
   return `<div class="zoom-card w-sheet" role="dialog" aria-modal="true">
     <header class="z-head">
       <div class="head">
-        <span class="av-ring ${tone}">${avatarHtml(c)}</span>
+        ${avatarBtn(c, tone)}
         <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div>
           <div class="t">#${c.tradeId} · ${timeAgo(c.created)}</div></div>
       </div>
@@ -541,8 +546,17 @@ function onZoomKey(e) {
 
 function closeZoom() {
   zoomed = null;
-  document.getElementById('zoom')?.remove();
   document.removeEventListener('keydown', onZoomKey);
+  const wrap = document.getElementById('zoom');
+  if (!wrap) return;
+  // La fiche d'un joueur repart par où elle est venue ; le reste disparaît net.
+  if (wrap.classList.contains('p-wrap') && !REDUCED_MOTION) {
+    wrap.removeAttribute('id');   // une autre fiche peut s'ouvrir pendant la sortie
+    wrap.classList.add('out');
+    setTimeout(() => wrap.remove(), 200);
+    return;
+  }
+  wrap.remove();
 }
 
 function openZoom(tradeId) {
@@ -565,6 +579,7 @@ function openZoom(tradeId) {
   wrap.querySelector('.z-open').addEventListener('click', () => {
     B.tabs.create({ url: hit.card.url || tradeUrl(tradeId) });
   });
+  wrap.querySelector('[data-player]')?.addEventListener('click', (e) => openPlayer(Number(e.currentTarget.dataset.player)));
   const dec = wrap.querySelector('.z-decline');
   if (dec) dec.addEventListener('click', () => decline(dec, hit.card, dec.dataset.kind, wrap));
   document.addEventListener('keydown', onZoomKey);
@@ -605,7 +620,8 @@ async function decline(btn, card, kind, wrap) {
     type: 'ronote:decline',
     tradeId: card.tradeId,
     kind: card.kind || kind,
-    partner: card.partner?.displayName || card.partner?.name || ''
+    partner: card.partner?.displayName || card.partner?.name || '',
+    partnerId: card.partner?.id || null
   });
 
   if (res?.ok) {
@@ -646,7 +662,7 @@ async function quickDecline(btn, tradeId, kind) {
   btn.textContent = '…';
   const hit = findCard(tradeId);
   const partner = hit?.card?.partner?.displayName || hit?.card?.partner?.name || '';
-  const res = await send({ type: 'ronote:decline', tradeId, kind, partner });
+  const res = await send({ type: 'ronote:decline', tradeId, kind, partner, partnerId: hit?.card?.partner?.id || null });
   if (res?.ok) {
     for (const m of Object.values(cards)) m.delete(tradeId);
     for (const m of Object.values(failures)) m.delete(tradeId);
@@ -660,6 +676,213 @@ async function quickDecline(btn, tradeId, kind) {
   btn.classList.remove('armed');
   btn.innerHTML = ic('x');
   btn.title = t('Échec : {why}', { why: res?.error || '?' });
+}
+
+/* =========================== fiche d'un joueur =========================== */
+
+/**
+ * La fiche d'un partenaire glisse depuis la droite. Elle s'ouvre aussitôt avec
+ * ce que le popup sait déjà (ses trades affichés) ; le journal complet et ses
+ * profils publics arrivent ensuite du service worker.
+ */
+const player = { id: 0, who: null, headshot: null, res: null };
+
+const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) === id);
+
+/** Les trades de ce joueur que le popup a sous la main, tous onglets confondus. */
+function liveTradesWith(id) {
+  const out = [];
+  for (const kind of ['inbound', 'outbound', 'completed']) {
+    for (const item of data.state?.snapshot?.[kind] || []) {
+      if (Number(item.partner?.id) !== id) continue;
+      out.push({ ...item, ...(cards[kind].get(item.tradeId) || {}), kind });
+    }
+  }
+  return out;
+}
+
+function ageText(age) {
+  if (age.unit === 'year') return plural(age.n, '{n} an', '{n} ans');
+  if (age.unit === 'month') return age.n > 1 ? t('{n} mois', { n: age.n }) : t('1 mois');
+  return plural(age.n, '{n} jour', '{n} jours');
+}
+
+/** Libellé et icône d'une ligne d'échange : son état, pas son premier événement. */
+function playerRowInfo(r) {
+  if (r.open && r.dir === 'out') return ['Offre envoyée', 'send', 'accent'];
+  if (r.open) return r.kind === 'counter' ? ['Contre-offre reçue', 'counter', 'accent'] : ['Offre reçue', 'inbox', 'accent'];
+  if (r.done) return ['Trade conclu', 'check-circle', 'win'];
+  const info = KIND_INFO[r.kind];
+  return [info?.label || '', KIND_ICON[r.kind] || 'dot', info?.tone || 'even'];
+}
+
+function playerBodyHtml() {
+  const res = player.res;
+  const rows = partnerTimeline(res?.events || [], liveTradesWith(player.id));
+  const s = partnerStats(rows);
+  const roli = res?.roli, prof = res?.profile;
+  const age = accountAge(prof?.created);
+
+  // La valeur de son inventaire, en grand — ou pourquoi on ne l'a pas.
+  let hero = `<div class="ls-l">${t("Valeur de l'inventaire")}</div>`;
+  if (!res) {
+    hero += '<div class="p-skel"></div>';
+  } else if (roli && !roli.private && roli.value) {
+    hero += `<div class="p-amount">${amount(roli.value)}</div>
+      <div class="p-sub">${[t('RAP {v}', { v: amount(roli.rap) }), roli.rank ? t('rang #{n}', { n: fmtFull(roli.rank) }) : ''].filter(Boolean).join(' · ')}</div>`;
+  } else {
+    const why = !res.rolimons ? t("Rolimon's est désactivé dans les réglages")
+      : roli?.private ? t('Inventaire privé')
+      : roli ? t("Rolimon's n'a pas encore scanné cet inventaire.")
+      : t('Profil public indisponible.');
+    hero += `<div class="p-amount dim">—</div><div class="p-sub">${escapeHtml(why)}</div>`;
+  }
+
+  const flags = [
+    age ? (age.days < YOUNG_ACCOUNT_DAYS
+      ? `<span class="p-flag warn">${ic('alert')} ${t('Compte récent : {age}', { age: ageText(age) })}</span>`
+      : `<span class="p-flag">${ic('clock')} ${t('Compte de {age}', { age: ageText(age) })}</span>`) : '',
+    prof?.banned || roli?.terminated ? `<span class="p-flag loss">${ic('ban')} ${t('Compte banni')}</span>` : '',
+    prof?.verified ? `<span class="p-flag accent">${ic('check-circle')} ${t('Vérifié')}</span>` : '',
+    roli?.lastOnline ? `<span class="p-flag">${ic('pulse')} ${t('En ligne {ago}', { ago: timeAgo(roli.lastOnline) })}</span>` : '',
+    res?.ignored ? `<span class="p-flag face" title="${escapeHtml(t("Ses trades ne déclenchent plus d'alerte."))}">${ic('user-off')} ${t('Ignoré')}</span>` : ''
+  ].filter(Boolean).join('');
+
+  const tile = (label, value, sub = '') =>
+    `<div class="w-fact"><span>${label}</span><b>${value}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const tiles = `<div class="w-facts">
+    ${tile(t('Offres reçues'), s.received)}
+    ${tile(t('Offres envoyées'), s.sent)}
+    ${tile(t('Gain moyen'), s.avgIn == null ? '—' : `<em class="${toneOf(s.avgIn, 3)}">${fmtPct(s.avgIn)}</em>`,
+      s.rated ? plural(s.rated, 'sur {n} offre', 'sur {n} offres') : '')}
+    ${tile(t('Trades conclus'), s.done,
+      s.net != null ? `<em class="${toneOf(s.net)}">${t('bilan {v}', { v: amountSigned(s.net) })}</em>` : '')}
+  </div>`;
+
+  // Le verdict de la relation, seulement quand il repose sur plus d'une offre.
+  let verdictLine = '';
+  if (s.rated >= 2 && s.avgIn <= -10) {
+    verdictLine = `<div class="w-rev loss">${ic('trend-down')} ${t('Ses offres te font perdre {pct} en moyenne.', { pct: sharePct(Math.abs(s.avgIn)) })}</div>`;
+  } else if (s.rated >= 2 && s.avgIn >= 3) {
+    verdictLine = `<div class="w-rev win">${ic('trend-up')} ${t('Ses offres te sont favorables : {pct} en moyenne.', { pct: fmtPct(s.avgIn) })}</div>`;
+  }
+
+  const list = rows.length
+    ? `<div class="jr-day p-list">${rows.slice(0, 40).map(r => {
+        const [label, icon, tone] = playerRowInfo(r);
+        const rated = r.pct != null && !r.unknown;
+        const sub = [timeAgo(r.at),
+          rated && r.get != null && r.give != null ? t('{a} reçu vs {b} donné', { a: fmtNum(r.get), b: fmtNum(r.give) }) : ''
+        ].filter(Boolean).join(' · ');
+        const pill = rated ? `<span class="jr-pill ${toneOf(r.pct, 3)}">${fmtPct(r.pct)}</span>`
+          : r.unknown ? `<span class="jr-pill face">${ic('help')}</span>` : '';
+        return `<button class="jr" data-ptrade="${r.tradeId}">
+          <span class="jr-ic" data-tone="${tone}">${ic(icon)}</span>
+          <span class="jr-m"><span class="jr-t">${label ? t(label) : ''} <span class="jr-x">#${r.tradeId}</span></span>
+            ${sub ? `<span class="jr-s">${sub}</span>` : ''}</span>
+          <span class="jr-r">${pill}</span>
+        </button>`;
+      }).join('')}</div>`
+    : `<div class="ls-none">${t("Aucun échange avec ce joueur pour l'instant.")}</div>`;
+
+  return `<section class="p-hero">${hero}${flags ? `<div class="p-flags">${flags}</div>` : ''}</section>
+    <div class="p-h">${t('Entre vous')}</div>
+    ${tiles}${verdictLine}
+    <div class="p-h">${t('Vos échanges')}${rows.length ? ` <small>${rows.length}</small>` : ''}</div>
+    ${list}`;
+}
+
+function playerFootHtml() {
+  const ignored = player.res ? !!player.res.ignored : isIgnored(player.id);
+  return `<button class="z-open" data-url="https://www.roblox.com/users/${player.id}/profile">${t('Profil Roblox')} ${ic('external')}</button>
+    <button class="z-open" data-url="https://www.rolimons.com/player/${player.id}">Rolimon's ${ic('external')}</button>
+    <button class="p-mute${ignored ? ' on' : ''}" data-mute>${ic('user-off')} ${t(ignored ? 'Ne plus ignorer' : 'Ignorer')}</button>`;
+}
+
+function bindPlayer(root) {
+  root.querySelectorAll('button[data-url]').forEach(b => { b.onclick = () => B.tabs.create({ url: b.dataset.url }); });
+  root.querySelectorAll('[data-ptrade]').forEach(b => {
+    b.onclick = () => {
+      const id = Number(b.dataset.ptrade);
+      if (findCard(id)) openZoom(id); else B.tabs.create({ url: tradeUrl(id) });
+    };
+  });
+  const mute = root.querySelector('[data-mute]');
+  if (mute) mute.onclick = () => toggleMute(mute);
+}
+
+function renderPlayer() {
+  const body = document.getElementById('p-body');
+  if (!body) return;
+  const top = body.scrollTop;
+  body.innerHTML = playerBodyHtml();
+  body.scrollTop = top;
+  document.getElementById('p-foot').innerHTML = playerFootHtml();
+  // L'anneau de l'avatar prend la couleur de la relation : ses offres, en moyenne.
+  const s = partnerStats(partnerTimeline(player.res?.events || [], liveTradesWith(player.id)));
+  document.getElementById('p-ring').className = `av-ring p-av ${s.rated ? toneOf(s.avgIn, 3) : ''}`;
+  bindImages(body);
+  bindPlayer(document.getElementById('zoom'));
+}
+
+/** Ignorer un joueur coupe les alertes de ses trades ; ça se défait d'un clic. */
+async function toggleMute(btn) {
+  const on = !(player.res ? player.res.ignored : isIgnored(player.id));
+  const who = player.who || {};
+  btn.disabled = true;
+  const res = await send(on
+    ? { type: 'ronote:mute', userId: player.id, name: who.displayName || who.name || '' }
+    : { type: 'ronote:unmute', userId: player.id });
+  if (res?.settings) data.settings = res.settings;
+  if (player.res) player.res.ignored = isIgnored(player.id);
+  renderPlayer();
+}
+
+function openPlayer(id) {
+  if (!id) return;
+  const live = liveTradesWith(id);
+  const seed = live.find(c => c.headshot) || live[0]
+    || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id);
+  if (!seed) return;
+  Object.assign(player, { id, who: seed.partner || { id }, headshot: seed.headshot || null, res: null });
+
+  document.getElementById('zoom')?.remove();
+  zoomed = 'player:' + id;   // le rafraîchissement de fond attend la fermeture
+
+  const who = player.who;
+  const wrap = document.createElement('div');
+  wrap.className = 'zoom p-wrap';
+  wrap.id = 'zoom';
+  wrap.innerHTML = `<div class="zoom-card p-sheet" role="dialog" aria-modal="true">
+    <header class="z-head">
+      <div class="head">
+        <span class="av-ring p-av" id="p-ring">${avatarHtml({ headshot: player.headshot })}</span>
+        <div class="who"><div class="n">${escapeHtml(who.displayName || who.name || t('Joueur'))}</div>
+          <div class="t">${who.name ? '@' + escapeHtml(who.name) : ''}</div></div>
+      </div>
+      <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
+    </header>
+    <div class="z-body" id="p-body">${playerBodyHtml()}</div>
+    <footer class="z-foot p-foot" id="p-foot">${playerFootHtml()}</footer>
+  </div>`;
+  document.body.appendChild(wrap);
+  bindImages(wrap);
+  bindPlayer(wrap);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
+  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
+  document.addEventListener('keydown', onZoomKey);
+
+  const still = () => zoomed === 'player:' + id;
+  const failed = (why) => ({ events: [], error: why, rolimons: data.settings?.useRolimons !== false, ignored: isIgnored(id) });
+  send({ type: 'ronote:player', userId: id, name: who.name || '', displayName: who.displayName || '' }).then((res) => {
+    if (!still()) return;
+    player.res = res && !res.error ? res : failed(res?.error || t('réponse vide'));
+    renderPlayer();
+  }, () => {
+    if (!still()) return;
+    player.res = failed(t('réponse vide'));
+    renderPlayer();
+  });
 }
 
 /* =============================== journal ================================ */
@@ -1707,6 +1930,12 @@ function bindImages(root) {
 }
 
 function bindList() {
+  listEl.querySelectorAll('.tc [data-player]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPlayer(Number(el.dataset.player));
+    });
+  });
   listEl.querySelectorAll('.tc-body[data-zoom]').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;

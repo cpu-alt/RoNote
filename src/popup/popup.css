@@ -990,6 +990,80 @@ button.jr:active { transform: scale(.985); }
 }
 .z-decline:disabled { opacity: .6; cursor: default; animation: none; }
 
+/* =========================== fiche d'un joueur ===========================
+   Elle glisse depuis la droite sur toute la hauteur et laisse à gauche une
+   bande de la liste : un clic dessus la referme. Elle repart par la droite. */
+
+.zoom.p-wrap { padding: 8px 8px 8px 40px; }
+.zoom-card.p-sheet { animation: p-in .38s var(--ease); }
+.zoom.p-wrap.out { pointer-events: none; animation: p-fade .2s ease-in forwards; }
+.zoom.p-wrap.out .p-sheet { animation: p-out .2s ease-in forwards; }
+@keyframes p-in   { from { transform: translateX(64px); opacity: 0; } }
+@keyframes p-out  { to { transform: translateX(64px); opacity: 0; } }
+@keyframes p-fade { to { opacity: 0; } }
+
+button.av-btn { border: 0; cursor: pointer; transition: transform .15s var(--ease), box-shadow .2s; }
+button.av-btn:hover { transform: scale(1.08); box-shadow: 0 0 0 3px #4d9fff33; }
+button.av-btn:active { transform: scale(.94); }
+button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.p-av .av { width: 46px; height: 46px; }
+.p-sheet .z-head .who .n { font-size: 15px; }
+.p-sheet .z-head .who .t { font-size: 11px; }
+
+.p-hero {
+  padding: 12px 13px; border-radius: 16px; border: 1px solid #2a3552;
+  background:
+    radial-gradient(120% 90% at 100% 0%, #3552a852, transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, #7b3fe41f, transparent 60%),
+    linear-gradient(160deg, #182038, #0f1422);
+  animation: w-up .45s .06s var(--ease) both;
+}
+.p-amount { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1.18; font-variant-numeric: tabular-nums; }
+.p-amount.dim { color: var(--faint); }
+.p-sub { font-size: 11px; color: var(--dim); }
+.p-skel {
+  height: 50px; margin-top: 6px; border-radius: 10px;
+  background: linear-gradient(90deg, #141a2a, #1f2842, #141a2a); background-size: 200% 100%;
+  animation: w-shine 1.4s linear infinite;
+}
+.p-flags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.p-flag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px;
+  background: #ffffff0d; color: var(--dim); font-size: 10.5px; font-weight: 650;
+}
+.p-flag .ic { width: 11px; height: 11px; }
+.p-flag.warn   { background: #33280f; }
+.p-flag.loss   { background: #2b1416; }
+.p-flag.face   { background: #2a1d36; }
+.p-flag.accent { background: #13213a; color: #79c0ff; }
+
+.p-h {
+  display: flex; align-items: baseline; gap: 6px; margin: 14px 2px 6px;
+  font-size: 10px; font-weight: 750; letter-spacing: .6px; text-transform: uppercase; color: var(--faint);
+}
+.p-h small { font-size: 10px; font-weight: 650; color: var(--dim); }
+.p-sheet .w-facts { margin-top: 0; }
+.p-sheet .w-fact em { font-style: normal; }
+.p-sheet .w-fact small em { font-weight: 650; }
+.p-sheet .w-rev { margin-top: 6px; }
+.p-sheet .w-rev .ic { width: 12px; height: 12px; vertical-align: -2px; }
+.p-list { padding: 4px; }
+.p-list .jr { cursor: pointer; }
+.p-list .jr:hover { background: #ffffff08; }
+.jr-pill.face { background: #c792ea22; color: var(--face); }
+.jr-pill .ic { width: 10px; height: 10px; vertical-align: -1px; }
+
+.p-foot button { flex: 1 1 auto; padding: 9px 8px; font-size: 11.5px; white-space: nowrap; }
+.p-mute { display: inline-flex; align-items: center; justify-content: center; gap: 5px; color: var(--dim); }
+.p-mute .ic { width: 13px; height: 13px; }
+.z-foot .p-mute.on { color: var(--face); border-color: #4a3560; background: #221a2e; }
+
+@media (prefers-reduced-motion: reduce) {
+  .p-hero, .p-skel, .zoom.p-wrap.out, .zoom.p-wrap.out .p-sheet { animation: none !important; }
+  button.av-btn { transition: none !important; }
+}
+
 /* ================================ pied ================================== */
 
 .foot {

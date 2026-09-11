@@ -42,7 +42,7 @@ RoNote contacts exactly two domains, both declared in its manifest:
 | Domain | Why | What is sent |
 |---|---|---|
 | `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
-| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile | For the value table and item histories, **nothing about you** — the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile |
+| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card, read theirs | For the value table and item histories, **nothing about you** — the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
@@ -79,7 +79,7 @@ or cancelling only destroys an offer.
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
-| `*.rolimons.com` | The public value table, public item histories and, with portfolio tracking, your public Rolimon's profile |
+| `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |
 
 ## Children and minimum age
 

@@ -69,6 +69,23 @@ et Linux, taille calée sur le texte, et couleur du verdict (une flamme verte po
 un excellent trade, une tête de mort rouge pour un très mauvais). Les
 notifications du système gardent leurs emojis : Windows n'y affiche que du texte.
 
+**La fiche d'un joueur.** Un clic sur l'avatar d'un partenaire, dans une carte ou
+dans le zoom d'un trade, ouvre sa fiche, qui glisse depuis la droite :
+
+- la valeur de son inventaire, son RAP et son rang Rolimon's ;
+- l'âge de son compte, **signalé s'il a moins de 30 jours**, et s'il est banni,
+  vérifié ou vu en ligne récemment ;
+- **entre vous** : les offres qu'il t'a envoyées et les tiennes, les trades conclus
+  et leur bilan, et surtout **ce que ses offres te rapportent en moyenne** — un
+  habitué des offres perdantes se repère d'un coup d'œil, et l'anneau de son avatar
+  en prend la couleur ;
+- la liste de vos échanges, du plus récent au plus ancien ; un clic rouvre le trade ;
+- ses profils Roblox et Rolimon's, et un bouton pour l'ignorer (ou ne plus
+  l'ignorer) sans passer par les réglages.
+
+Ses profils publics ne sont demandés qu'à l'ouverture de la fiche, et gardés 30
+minutes. La politique de confidentialité le mentionne.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant

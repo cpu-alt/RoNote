@@ -622,6 +622,24 @@ export async function getUserHeadshot(userId) {
   } catch { return null; }
 }
 
+/**
+ * Profil public d'un joueur, pour sa fiche : la date de creation du compte
+ * est le premier indice d'un compte jetable. Aucune session necessaire.
+ */
+export async function getUserProfile(userId) {
+  const id = Number(userId);
+  if (!id) throw new ApiError('identifiant de joueur invalide', 0);
+  const j = await apiGet(`${USERS}/users/${id}`, { allowRelay: false });
+  return {
+    id,
+    name: j?.name || '',
+    displayName: j?.displayName || '',
+    created: (j?.created && Date.parse(j.created)) || 0,
+    banned: !!j?.isBanned,
+    verified: !!j?.hasVerifiedBadge
+  };
+}
+
 /* ============================= inventaire =============================== */
 
 /** Limiteds « classiques » : [{assetId, name, recentAveragePrice, serialNumber, …}] */
@@ -660,7 +678,8 @@ export async function getPlayerInfo(userId) {
     rank: Number(j.rank) || 0,
     scannedAt: Number(j.last_scan) ? Number(j.last_scan) * 1000 : 0,
     private: !!j.privacy_enabled,
-    terminated: !!j.terminated
+    terminated: !!j.terminated,
+    lastOnline: Number(j.last_online) ? Number(j.last_online) * 1000 : 0
   };
 }
 

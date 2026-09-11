@@ -15,6 +15,7 @@ import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
+import { historyFor } from '../common/player.js';
 import { eachLimit, inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
@@ -565,6 +566,8 @@ const PORTFOLIO_TTL = 10 * 60 * 1000;   // reconciliation : 4 appels reseau
 const HISTORY_TTL = 30 * 60 * 1000;     // la serie Rolimon's ne bouge qu'une fois par jour
 const ITEM_HISTORY_TTL = 6 * 60 * 60 * 1000;   // historique d'un objet (page de 1,7 Mo)
 const ITEM_HISTORY_CAP = 20;                   // objets dont l'historique reste en cache
+const PLAYER_TTL = 30 * 60 * 1000;             // profil d'un joueur ouvert depuis sa fiche
+const PLAYER_CAP = 30;                         // joueurs dont le profil reste en cache
 
 /**
  * Les chiffres du compte : ceux de Rolimon's, la correction des visages, et
@@ -998,6 +1001,47 @@ async function handleMessage(msg) {
       }
     }
 
+    /**
+     * Fiche d'un joueur : ce que le journal sait de vos echanges, plus ses
+     * profils publics Roblox et Rolimon's. Lus seulement a l'ouverture de la
+     * fiche, et gardes 30 min ; injoignables, l'ancien profil vaut mieux que rien.
+     */
+    case 'ronote:player': {
+      const id = Number(msg.userId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      const [history, { playerCache }] = await Promise.all([getHistory(), B.storage.local.get('playerCache')]);
+      const cache = playerCache || {};
+      let hit = cache[id];
+      if (!hit || Date.now() - hit.at > PLAYER_TTL) {
+        const [profile, roli] = await Promise.all([
+          safe(() => api.getUserProfile(id), null),
+          settings.useRolimons ? safe(() => api.getPlayerInfo(id), null) : null
+        ]);
+        if (profile || roli) {
+          hit = { at: Date.now(), profile, roli };
+          const kept = Object.entries({ ...cache, [id]: hit })
+            .sort((a, b) => b[1].at - a[1].at)
+            .slice(0, PLAYER_CAP);
+          await B.storage.local.set({ playerCache: Object.fromEntries(kept) });
+        }
+      }
+      return {
+        events: historyFor(history, { id, name: msg.name, displayName: msg.displayName }),
+        profile: hit?.profile || null,
+        roli: settings.useRolimons ? hit?.roli || null : null,
+        ignored: settings.ignoredUsers.some(u => Number(u.id) === id),
+        rolimons: !!settings.useRolimons
+      };
+    }
+    case 'ronote:mute': {
+      const id = Number(msg.userId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      if (settings.ignoredUsers.some(u => Number(u.id) === id)) return { settings };
+      return { settings: await saveSettings({ ignoredUsers: [...settings.ignoredUsers, { id, name: String(msg.name || '') }] }) };
+    }
+
     case 'ronote:portfolio': {
       const settings = await getSettings();
       const state = await getState();
@@ -1044,7 +1088,7 @@ async function handleMessage(msg) {
         await setBadge(state.inboundCount, await getSettings(), false);
         await pushHistory([{
           at: Date.now(), kind: 'declined_by_me', tradeId: id,
-          partner: msg.partner || '?', notified: false,
+          partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
           skipped: msg.kind === 'inbound' || msg.kind === 'counter' ? 'refusé depuis RoNote' : 'annulé depuis RoNote'
         }]);
         return { ok: true, via: res.via, state };
