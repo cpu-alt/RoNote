@@ -256,6 +256,35 @@ p.hint.top { margin: 0 0 6px; }
   max-height: 340px; overflow: auto;
 }
 
+/* ------------------------------ nouveautés ------------------------------ */
+
+.news { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 10px; }
+.rel {
+  border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2);
+  transition: border-color .2s, background .2s;
+}
+.rel[open] { border-color: #2c3a5c; background: linear-gradient(160deg, #1b2440, #151b2b); }
+.rel summary {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+  padding: 11px 14px; list-style: none; cursor: pointer;
+}
+.rel summary::-webkit-details-marker { display: none; }
+.rel summary:hover .rel-t { color: #fff; }
+.rel-v { font-size: 12px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.rel-t { flex: 1; min-width: 180px; font-size: 13.5px; font-weight: 700; transition: color .2s; }
+.rel-tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: #10331f; border: 1px solid #1f5a37; color: var(--win);
+}
+.rel-tag.dev { background: #2a1d36; border-color: #4a3560; color: var(--face); }
+.rel-date { font-size: 11.5px; color: var(--faint); }
+.rel-chev { display: inline-flex; color: var(--faint); transition: transform .2s var(--ease); }
+.rel-chev .ic { width: 14px; height: 14px; }
+.rel[open] .rel-chev { transform: rotate(180deg); }
+.rel ul { margin: 0; padding: 0 18px 13px 34px; color: var(--dim); font-size: 13px; line-height: 1.55; }
+.rel li + li { margin-top: 5px; }
+.rel li::marker { color: var(--accent); }
+
 footer {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px;
   margin-top: 20px; color: var(--faint); font-size: 12px; text-align: center;

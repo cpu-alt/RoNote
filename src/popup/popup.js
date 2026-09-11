@@ -13,7 +13,7 @@ const send = (msg) => B.runtime.sendMessage(msg);
 fillIcons(document);   // les icônes écrites en dur dans popup.html
 
 let data = { settings: null, state: null, history: [], portfolio: [], report: null };
-let tab = 'inbound';
+let tab = 'home';
 const cards = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const failures = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const expanded = new Set();     // trades dont le detail des objets est deplie
@@ -1048,6 +1048,163 @@ function openPlayer(id) {
   });
 }
 
+/* ================================ accueil ================================ */
+
+/**
+ * L'accueil : ce qui s'est passé aujourd'hui et ce qui attend une action, d'un
+ * coup d'œil. Tout vient de ce que le popup a déjà (journal, listes, série du
+ * portefeuille) : ouvrir l'onglet ne déclenche aucun appel.
+ */
+const VERSION_KEY = 'ronote:seenVersion';
+const appVersion = () => B.runtime.getManifest?.().version || '';
+
+/** Une version pas encore vue : l'accueil propose ses nouveautés, une fois. */
+function newsPending() {
+  const v = appVersion();
+  if (!v) return false;
+  try { return localStorage.getItem(VERSION_KEY) !== v; } catch { return false; }
+}
+function markNewsSeen() {
+  try { localStorage.setItem(VERSION_KEY, appVersion()); } catch { /* le bandeau reviendra */ }
+}
+
+/** Change d'onglet comme un clic sur la barre. */
+function selectTab(name) {
+  document.querySelector(`.tab[data-tab="${name}"]`)?.click();
+}
+
+function homeSignature() {
+  return JSON.stringify(['home', Math.floor(Date.now() / 60000), data.history?.length || 0, data.history?.[0]?.at || 0,
+    data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size, cards.outbound.size,
+    data.state?.portfolioLast?.v, data.portfolio?.length || 0, wallet.hidden, newsPending()]);
+}
+
+/** Variation de la value sur les dernières 24 h, d'après la série Rolimon's (un relevé par jour environ). */
+function dayChange(series) {
+  const pts = (series || []).filter(p => p.v > 0);
+  if (pts.length < 2) return null;
+  const last = pts[pts.length - 1];
+  const ref = [...pts].reverse().find(p => p.at <= last.at - 23 * 3600e3);
+  if (!ref) return null;
+  return { delta: last.v - ref.v, pct: ((last.v - ref.v) / ref.v) * 100 };
+}
+
+function renderHome(entering) {
+  const st = data.state || {};
+  const hist = data.history || [];
+  const now = new Date();
+  const since = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const today = hist.filter(h => h.at >= since);
+
+  const received = today.filter(h => h.kind === 'inbound' || h.kind === 'counter');
+  const wins = received.filter(h => h.pct != null && toneOf(h.pct, 3) === 'win').length;
+  const done = today.filter(h => h.kind === 'completed' || h.kind === 'outbound_accepted');
+  const doneRated = done.filter(h => h.get != null && h.give != null);
+  const net = doneRated.reduce((s, h) => s + (h.get - h.give), 0);
+  const muted = today.filter(h => h.skipped && h.kind !== 'declined_by_me').length;
+  const revals = today.filter(h => h.kind === 'revalued');
+  const revalEffect = revals.reduce((s, h) => s + (h.delta || 0), 0);
+
+  // Le portefeuille en tête, avec sa semaine ; sans lui, les trades en attente.
+  const series = data.portfolio || [];
+  const value = st.portfolioLast?.v || series[series.length - 1]?.v || 0;
+  const change = dayChange(series);
+  const week = downsample(series.filter(p => p.at >= Date.now() - 7 * 864e5 && p.v > 0));
+  const dateLabel = now.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
+  const hero = value
+    ? `<section class="ls h-hero">
+        <div class="ls-l">${escapeHtml(dateLabel)}</div>
+        <div class="h-top"><div class="h-amount">${amount(value)}</div>
+          ${change ? `<span class="w-pill ${toneOf(change.delta)}">${pillText(WALLET_SERIES.v, change.delta, change.pct)}</span>` : ''}</div>
+        <div class="h-sub">${[t('Ton portefeuille'), change ? t('sur 24 h') : '',
+          st.portfolioRank ? t('rang #{n}', { n: fmtFull(st.portfolioRank) }) : ''].filter(Boolean).join(' · ')}</div>
+        ${week.length >= 2 ? chartHtml({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES, animate: entering }) : ''}
+      </section>`
+    : `<section class="ls h-hero">
+        <div class="ls-l">${escapeHtml(dateLabel)}</div>
+        <div class="ls-n">${st.inboundCount || 0}</div>
+        <div class="h-sub">${plural(st.inboundCount || 0, '{n} trade en attente', '{n} trades en attente')}</div>
+      </section>`;
+
+  const news = newsPending()
+    ? `<button class="h-news" data-news>
+        <span class="h-news-ic">${ic('sparkle')}</span>
+        <span class="jr-m"><span class="jr-t">${t('RoNote {v} est installé', { v: escapeHtml(appVersion()) })}</span>
+          <span class="jr-s">${t('Voir les nouveautés')}</span></span>
+        <i class="h-go">${ic('chevron')}</i>
+      </button>`
+    : '';
+
+  const tile = (label, n, sub = '') =>
+    `<div class="w-fact"><span>${label}</span><b>${n}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const tiles = `<section class="w-facts h-tiles">
+    ${tile(t("Reçus aujourd'hui"), received.length, wins ? plural(wins, '{n} gagnant', '{n} gagnants') : '')}
+    ${tile(t("Conclus aujourd'hui"), done.length,
+      doneRated.length ? `<em class="${toneOf(net)}">${t('bilan {v}', { v: amountSigned(net) })}</em>` : '')}
+    ${tile(t('Alertes filtrées'), muted)}
+    ${tile(t('Réévaluations'), revals.length,
+      revals.length ? `<em class="${toneOf(revalEffect)}">${t('effet {v}', { v: amountSigned(revalEffect) })}</em>` : '')}
+  </section>`;
+
+  // Ce qui attend une action : un clic y mène.
+  const inbound = (st.snapshot?.inbound || []).map(x => ({ x, c: cards.inbound.get(x.tradeId) })).filter(e => e.c);
+  const best = inbound.map(e => e.c).filter(c => c.analysis && !c.analysis.incomplete)
+    .sort((a, b) => b.analysis.pctMain - a.analysis.pctMain)[0];
+  const expiring = inbound
+    .map(({ x, c }) => ({ c, exp: Date.parse(x.expiration || c.expiration) || 0 }))
+    .filter(e => e.exp > Date.now() && e.exp - Date.now() < 864e5)
+    .sort((a, b) => a.exp - b.exp)[0];
+  const tracked = Object.keys(st.tracked || {}).length;
+  const go = `<i class="h-go">${ic('chevron')}</i>`;
+  const todo = [
+    st.inboundCount ? `<button class="h-todo" data-go="inbound">
+        <span class="jr-ic" data-tone="accent">${ic('inbox')}</span>
+        <span class="jr-m"><span class="jr-t">${plural(st.inboundCount, '{n} trade en attente', '{n} trades en attente')}</span>
+          ${best && best.analysis.pctMain > 0 ? `<span class="jr-s">${t('meilleure offre : {pct} de {who}', { pct: fmtPct(best.analysis.pctMain), who: partnerName(best) })}</span>` : ''}</span>
+        ${go}
+      </button>` : '',
+    expiring ? `<button class="h-todo" data-zoomid="${expiring.c.tradeId}">
+        <span class="jr-ic" data-tone="warn">${ic('clock')}</span>
+        <span class="jr-m"><span class="jr-t">${t('Offre de {who}', { who: partnerName(expiring.c) })}</span>
+          <span class="jr-s">${t('Expire {ago}', { ago: timeUntil(expiring.exp) })}</span></span>
+        ${expiring.c.analysis && !expiring.c.analysis.incomplete
+          ? `<span class="jr-pill ${toneOf(expiring.c.analysis.pctMain, 3)}">${fmtPct(expiring.c.analysis.pctMain)}</span>` : go}
+      </button>` : '',
+    tracked ? `<button class="h-todo" data-go="outbound">
+        <span class="jr-ic" data-tone="warn">${ic('pin')}</span>
+        <span class="jr-m"><span class="jr-t">${plural(tracked, '{n} trade suivi', '{n} trades suivis')}</span>
+          <span class="jr-s">${t('en attente de réponse')}</span></span>
+        ${go}
+      </button>` : ''
+  ].filter(Boolean).join('');
+  const todoHtml = `<section class="panel h-panel">
+    <div class="panel-h"><span>${t('À traiter')}</span></div>
+    ${todo || `<div class="h-none">${ic('check-circle')} ${t("Rien à traiter pour l'instant.")}</div>`}
+  </section>`;
+
+  const recent = [...hist].sort((a, b) => b.at - a.at).slice(0, 4);
+  const recentHtml = recent.length
+    ? `<section class="panel h-panel">
+        <div class="panel-h"><span>${t('Derniers événements')}</span>
+          <button class="h-link" data-go="history">${t('Tout le journal')} ${ic('chevron')}</button></div>
+        <div class="h-events">${recent.map(journalRow).join('')}</div>
+      </section>`
+    : '';
+
+  listEl.innerHTML = hero + news + tiles + todoHtml + recentHtml;
+  if (entering) cascade(listEl.children, 8);
+  if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
+  bindImages(listEl);
+  listEl.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => selectTab(el.dataset.go)));
+  listEl.querySelectorAll('[data-zoomid]').forEach(el => el.addEventListener('click', () => openZoom(Number(el.dataset.zoomid))));
+  listEl.querySelectorAll('.jr[data-url]').forEach(el => el.addEventListener('click', () => B.tabs.create({ url: el.dataset.url })));
+  listEl.querySelector('[data-news]')?.addEventListener('click', () => {
+    markNewsSeen();
+    B.tabs.create({ url: B.runtime.getURL('options/options.html#s-news') });
+    renderList();
+  });
+}
+
 /* =============================== journal ================================ */
 
 const JOURNAL_FILTERS = [
@@ -2032,6 +2189,13 @@ function renderList() {
   const entering = listEl.dataset.tab !== tab;
   listEl.dataset.tab = tab;
   if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
+  if (tab === 'home') {
+    const sig = homeSignature();
+    if (!entering && sig === lastListSig) return;
+    lastListSig = sig;
+    keepScroll(() => renderHome(entering));
+    return;
+  }
 
   // Le rafraîchissement de fond repasse toutes les 10 à 30 s. Rien de neuf :
   // on garde la liste telle quelle au lieu de recréer cartes et vignettes.
@@ -2172,7 +2336,8 @@ async function hydrate(kind = tab) {
       for (const f of res?.failed || []) failures[kind].set(f.tradeId, f.error);
       if (res?.links) data.state.links = res.links;
       if (res?.tracked) data.state.tracked = res.tracked;
-      if (tab === kind && !zoomed) renderList();
+      // L'accueil lit aussi les cartes : meilleure offre, offre qui expire.
+      if ((tab === kind || tab === 'home') && !zoomed) renderList();
     }
   } finally {
     hydrating.delete(kind);

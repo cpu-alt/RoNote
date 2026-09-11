@@ -69,6 +69,13 @@ doc.open();
 doc.write(html);
 doc.close();
 
+// `?section=s-news` : défile jusqu'à cette section.
+if (q.get('section')) {
+  await new Promise(r => setTimeout(r, 900));
+  frame.contentDocument.documentElement.style.scrollBehavior = 'auto';
+  frame.contentDocument.getElementById(q.get('section'))?.scrollIntoView();
+}
+
 if (q.get('scroll')) {
   await new Promise(r => setTimeout(r, 900));
   frame.contentDocument.documentElement.style.scrollBehavior = 'auto';

@@ -1,8 +1,9 @@
 import { B } from '../common/shim.js';
 import { SOUNDS } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
-import { t, setLang, translateDom } from '../common/i18n.js';
+import { t, setLang, translateDom, currentLang, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
+import { RELEASES } from '../common/changelog.js';
 
 const $ = (s) => document.querySelector(s);
 const send = (msg) => B.runtime.sendMessage(msg);
@@ -65,6 +66,36 @@ function render() {
   $('#qh-still').checked = !!settings.quietHours.stillNotify;
   renderIgnored();
   renderDiag();
+  renderNews();
+}
+
+/**
+ * Quoi de neuf : chaque version, de la plus récente à la plus ancienne. Les
+ * deux premières sont dépliées, la version installée est marquée. Rendu une
+ * fois par langue : la page se relit toutes les 20 s, la liste ne change pas.
+ */
+function renderNews() {
+  const box = $('#news');
+  if (!box || box.dataset.lang === currentLang()) return;
+  box.dataset.lang = currentLang();
+  const pick = (s) => (currentLang() === 'en' ? s.en : s.fr);
+  const installed = B.runtime.getManifest?.().version || '';
+  box.innerHTML = RELEASES.map((r, n) => {
+    const tag = !r.version ? `<span class="rel-tag dev">${t('En préparation')}</span>`
+      : r.version === installed ? `<span class="rel-tag">${t('Version installée')}</span>` : '';
+    const date = r.date
+      ? `<span class="rel-date">${new Date(r.date + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })}</span>`
+      : '';
+    return `<details class="rel"${n < 2 ? ' open' : ''}>
+      <summary>
+        <span class="rel-v">${r.version ? 'v' + escapeHtml(r.version) : escapeHtml(t('Prochaine version'))}</span>
+        <span class="rel-t">${escapeHtml(pick(r.title))}</span>
+        ${tag}${date}
+        <i class="rel-chev">${ic('chevron')}</i>
+      </summary>
+      <ul>${r.items.map(i => `<li>${escapeHtml(pick(i))}</li>`).join('')}</ul>
+    </details>`;
+  }).join('');
 }
 
 function renderIgnored() {
@@ -257,6 +288,8 @@ function wireNav() {
   $('#version').textContent = 'RoNote v' + (B.runtime.getManifest?.().version || '');
 }
 
+let hashDone = false;
+
 async function load() {
   const r = await send({ type: 'ronote:get' });
   settings = r.settings;
@@ -265,6 +298,12 @@ async function load() {
   newest = r.newest || {};
   belowMark = r.belowMark || {};
   render();
+  // Le bandeau « nouveautés » du popup ouvre la page sur #s-news : la liste
+  // n'existe qu'une fois rendue, le défilement natif est donc passé trop tôt.
+  if (!hashDone && location.hash) {
+    hashDone = true;
+    requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView());
+  }
 }
 
 fillIcons(document);

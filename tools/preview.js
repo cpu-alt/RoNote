@@ -208,6 +208,7 @@ function demoItemHistory(itemId) {
 const log = document.getElementById('log');
 const mockRuntime = {
   getURL: (p) => p,
+  getManifest: () => ({ version: '2.10.0' }),   // l'accueil propose les nouveautés d'une version pas encore vue
   openOptionsPage: () => { log.textContent = '→ ouverture des réglages'; },
   async sendMessage(msg) {
     switch (msg.type) {
@@ -349,7 +350,7 @@ if (shot.get('tab')) {
   await until(() => pdoc.getElementById('acct')?.textContent.startsWith('@'));
   pdoc.querySelector(`.tab[data-tab="${shot.get('tab')}"]`)?.click();
   // Le défilement attend que la liste ait du contenu : sinon il retombe à zéro.
-  await until(() => pdoc.querySelector('#list .tc-swap, #list .w-hero, #list .jr, #list .empty'));
+  await until(() => pdoc.querySelector('#list .tc-swap, #list .w-hero, #list .h-hero, #list .jr, #list .empty'));
   if (shot.get('scroll')) pdoc.getElementById('list').scrollTop = Number(shot.get('scroll'));
   // `scrub=0.6` : simule le survol du graphique à 60 % de sa largeur.
   if (shot.get('scrub')) {

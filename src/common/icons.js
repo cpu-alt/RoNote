@@ -75,6 +75,8 @@ export const ICONS = {
     + '<rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
   list: path('M9 6.5h11M9 12h11M9 17.5h11') + path('M4.5 6.5v.1M4.5 12v.1M4.5 17.5v.1'),
   journal: '<rect x="5" y="3" width="14" height="18" rx="2.5"/>' + path('M9 8h6M9 12h6M9 16h3.5'),
+  home: path('M3.5 11 12 4l8.5 7') + path('M6 9.5V19a1 1 0 0 0 1 1h3.5v-5.5h3V20H17a1 1 0 0 0 1-1V9.5'),
+  sparkle: path('M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z') + path('M18.5 15v5M16 17.5h5'),
 
   /* --- sections des reglages ------------------------------------------ */
   bell: path('M6.5 16.5v-5.5a5.5 5.5 0 0 1 11 0v5.5l1.8 1.5H4.7z') + path('M10 20.5a2.1 2.1 0 0 0 4 0'),

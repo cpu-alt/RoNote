@@ -623,6 +623,33 @@ const EN = {
   'bundles Roblox indisponibles': 'Roblox bundles unavailable',
   'compte supprimé': 'terminated account',
 
+  /* --- accueil ---------------------------------------------------------- */
+  'Accueil': 'Home',
+  'Ton portefeuille': 'Your portfolio',
+  'sur 24 h': 'over 24 h',
+  "Reçus aujourd'hui": 'Received today',
+  "Conclus aujourd'hui": 'Completed today',
+  'Alertes filtrées': 'Filtered alerts',
+  'effet {v}': 'effect {v}',
+  'À traiter': 'To handle',
+  '{n} trade en attente': '{n} pending trade',
+  '{n} trades en attente': '{n} pending trades',
+  'meilleure offre : {pct} de {who}': 'best offer: {pct} from {who}',
+  'Offre de {who}': 'Offer from {who}',
+  'en attente de réponse': 'waiting for a reply',
+  "Rien à traiter pour l'instant.": 'Nothing to handle right now.',
+  'Derniers événements': 'Latest events',
+  'Tout le journal': 'Full log',
+  'RoNote {v} est installé': 'RoNote {v} is installed',
+  'Voir les nouveautés': "See what's new",
+
+  /* --- quoi de neuf ----------------------------------------------------- */
+  'Quoi de neuf': "What's new",
+  'Chaque mise à jour de RoNote, de la plus récente à la plus ancienne.': 'Every RoNote update, newest first.',
+  'En préparation': 'In progress',
+  'Version installée': 'Installed version',
+  'Prochaine version': 'Next version',
+
   /* --- bases de calcul -------------------------------------------------- */
   'Value': 'Value',
   'RAP': 'RAP',

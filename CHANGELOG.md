@@ -96,6 +96,21 @@ minutes, son historique 6 heures. Si une source ne répond pas, la fiche dit
 laquelle et pourquoi, au lieu d'un simple « indisponible ». La politique de
 confidentialité le mentionne.
 
+**L'onglet Accueil.** Le popup s'ouvre désormais sur le résumé du jour :
+
+- ton portefeuille, sa variation sur 24 heures et sa courbe de la semaine ;
+- les trades reçus et conclus aujourd'hui (avec leur bilan), les alertes filtrées
+  et les réévaluations (avec leur effet) ;
+- **à traiter** : les trades en attente et la meilleure offre, l'offre qui expire
+  le plus tôt dans les 24 heures, les trades suivis — un clic y mène ;
+- les quatre derniers événements du journal.
+
+Rien n'est demandé au réseau : l'accueil lit ce que le popup a déjà.
+
+**Quoi de neuf, dans les réglages.** Chaque version, de la plus récente à la plus
+ancienne, en français ou en anglais, la version installée marquée. Après une mise
+à jour, un bandeau de l'accueil y mène, une fois.
+
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant
