@@ -70,7 +70,9 @@ un excellent trade, une tête de mort rouge pour un très mauvais). Les
 notifications du système gardent leurs emojis : Windows n'y affiche que du texte.
 
 **La fiche d'un joueur.** Un clic sur l'avatar d'un partenaire, dans une carte ou
-dans le zoom d'un trade, ouvre sa fiche, qui glisse depuis la droite :
+dans le zoom d'un trade, ouvre sa fiche **à côté du popup** : le popup s'élargit
+vers la gauche, et la liste reste à droite, utilisable. Un second clic sur le même
+avatar, la croix ou Échap la referment :
 
 - la valeur de son inventaire, son RAP et son rang Rolimon's, avec **la courbe de
   son inventaire** — value, RAP et collectibles superposables, d'un mois à tout

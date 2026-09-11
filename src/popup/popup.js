@@ -540,23 +540,16 @@ function zoomHtml(c, kind) {
   </div>`;
 }
 
-function onZoomKey(e) {
-  if (e.key === 'Escape') closeZoom();
-}
+/** Échap referme ce qui est au premier plan : le zoom d'abord, puis la fiche d'un joueur. */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('zoom')) closeZoom();
+  else if (document.getElementById('side')) closePlayer();
+});
 
 function closeZoom() {
   zoomed = null;
-  document.removeEventListener('keydown', onZoomKey);
-  const wrap = document.getElementById('zoom');
-  if (!wrap) return;
-  // La fiche d'un joueur repart par où elle est venue ; le reste disparaît net.
-  if (wrap.classList.contains('p-wrap') && !REDUCED_MOTION) {
-    wrap.removeAttribute('id');   // une autre fiche peut s'ouvrir pendant la sortie
-    wrap.classList.add('out');
-    setTimeout(() => wrap.remove(), 200);
-    return;
-  }
-  wrap.remove();
+  document.getElementById('zoom')?.remove();
 }
 
 function openZoom(tradeId) {
@@ -582,7 +575,6 @@ function openZoom(tradeId) {
   wrap.querySelector('[data-player]')?.addEventListener('click', (e) => openPlayer(Number(e.currentTarget.dataset.player)));
   const dec = wrap.querySelector('.z-decline');
   if (dec) dec.addEventListener('click', () => decline(dec, hit.card, dec.dataset.kind, wrap));
-  document.addEventListener('keydown', onZoomKey);
 }
 
 /**
@@ -685,7 +677,7 @@ async function quickDecline(btn, tradeId, kind) {
  * ce que le popup sait déjà (ses trades affichés) ; le journal complet et ses
  * profils publics arrivent ensuite du service worker.
  */
-const player = { id: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y' };
+const player = { id: 0, token: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y' };
 
 /** Service worker resté sur l'ancienne version : le seul remède est de recharger RoNote. */
 const whyText = (why, template) => (/message inconnu/.test(String(why))
@@ -883,7 +875,7 @@ function renderPlayer(animateChart = false) {
   const s = partnerStats(partnerTimeline(player.res?.events || [], liveTradesWith(player.id)));
   document.getElementById('p-ring').className = `av-ring p-av ${s.rated ? toneOf(s.avgIn, 3) : ''}`;
   bindImages(body);
-  bindPlayer(document.getElementById('zoom'));
+  bindPlayer(document.getElementById('side'));
 }
 
 /** Ignorer un joueur coupe les alertes de ses trades ; ça se défait d'un clic. */
@@ -899,22 +891,47 @@ async function toggleMute(btn) {
   renderPlayer();
 }
 
+/** Referme la fiche : elle repart vers le popup, qui reprend ensuite sa largeur. */
+function closePlayer() {
+  player.token++;   // les réponses encore en route ne redessinent plus rien
+  player.id = 0;
+  const side = document.getElementById('side');
+  if (!side) return;
+  const done = () => {
+    side.remove();
+    if (!document.getElementById('side')) document.documentElement.classList.remove('side-open');
+  };
+  if (REDUCED_MOTION) { done(); return; }
+  side.removeAttribute('id');   // une autre fiche peut s'ouvrir pendant la sortie
+  side.classList.add('out');
+  setTimeout(done, 160);
+}
+
 function openPlayer(id) {
   if (!id) return;
+  // Un second clic sur le même joueur referme sa fiche.
+  if (player.id === id && document.getElementById('side')) { closePlayer(); return; }
   const live = liveTradesWith(id);
   const seed = live.find(c => c.headshot) || live[0]
     || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id);
   if (!seed) return;
+  const token = ++player.token;
   Object.assign(player, { id, who: seed.partner || { id }, headshot: seed.headshot || null, res: null, chart: null });
 
-  document.getElementById('zoom')?.remove();
-  zoomed = 'player:' + id;   // le rafraîchissement de fond attend la fermeture
+  // La fiche s'ouvre à côté de la liste, qui reste utilisable : le popup
+  // s'élargit pour elle. Changer de joueur remplace son contenu sur place.
+  let side = document.getElementById('side');
+  const swap = !!side;
+  if (!side) {
+    side = document.createElement('aside');
+    side.className = 'side';
+    side.id = 'side';
+    document.body.appendChild(side);
+    document.documentElement.classList.add('side-open');
+  }
 
   const who = player.who;
-  const wrap = document.createElement('div');
-  wrap.className = 'zoom p-wrap';
-  wrap.id = 'zoom';
-  wrap.innerHTML = `<div class="zoom-card p-sheet" role="dialog" aria-modal="true">
+  side.innerHTML = `<div class="zoom-card p-sheet${swap ? ' swap' : ''}" role="dialog" aria-label="${escapeHtml(t('Fiche du joueur'))}">
     <header class="z-head">
       <div class="head">
         <span class="av-ring p-av" id="p-ring">${avatarHtml({ headshot: player.headshot })}</span>
@@ -926,15 +943,12 @@ function openPlayer(id) {
     <div class="z-body" id="p-body">${playerBodyHtml()}</div>
     <footer class="z-foot p-foot" id="p-foot">${playerFootHtml()}</footer>
   </div>`;
-  document.body.appendChild(wrap);
-  bindImages(wrap);
-  bindPlayer(wrap);
+  bindImages(side);
+  bindPlayer(side);
   renderPlayerChart();
-  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
-  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
-  document.addEventListener('keydown', onZoomKey);
+  side.querySelector('.z-close').addEventListener('click', closePlayer);
 
-  const still = () => zoomed === 'player:' + id;
+  const still = () => player.token === token;
   const failed = (why) => ({ events: [], why, rolimons: data.settings?.useRolimons !== false, ignored: isIgnored(id) });
   // La courbe vient d'une page plus lourde : elle arrive à part, sans retenir le reste.
   if (data.settings?.useRolimons !== false) {
@@ -1664,7 +1678,6 @@ function openItemSheet(key) {
   wrap.querySelectorAll('button[data-url]').forEach(b => {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
   });
-  document.addEventListener('keydown', onZoomKey);
 
   if (!roliId) return;
   const still = () => zoomed === 'item:' + key;

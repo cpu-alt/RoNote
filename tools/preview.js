@@ -315,6 +315,15 @@ doc.open();
 doc.write(html);
 doc.close();
 
+// La fiche d'un joueur élargit le popup : le cadre suit, comme le fait Chrome.
+{
+  const fit = () => {
+    const w = doc.documentElement.classList.contains('side-open') ? Math.max(420, doc.body?.offsetWidth || 0) : 420;
+    frame.style.width = frame.parentElement.style.width = w + 'px';
+  };
+  new frame.contentWindow.MutationObserver(fit).observe(doc.documentElement, { attributes: true, attributeFilter: ['class'] });
+}
+
 document.querySelectorAll('button[data-tab]').forEach(b => {
   b.addEventListener('click', () => {
     const el = frame.contentDocument.querySelector(`.tab[data-tab="${b.dataset.tab}"]`);

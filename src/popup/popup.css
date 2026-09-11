@@ -991,16 +991,26 @@ button.jr:active { transform: scale(.985); }
 .z-decline:disabled { opacity: .6; cursor: default; animation: none; }
 
 /* =========================== fiche d'un joueur ===========================
-   Elle glisse depuis la droite sur toute la hauteur et laisse à gauche une
-   bande de la liste : un clic dessus la referme. Elle repart par la droite. */
+   Elle s'ouvre À CÔTÉ du popup, pas par-dessus : le popup s'élargit, et
+   Chrome l'étend vers la gauche depuis l'icône (800 px, son maximum). La
+   liste reste à droite, intacte et utilisable ; le zoom d'un trade ne couvre
+   plus qu'elle. */
 
-.zoom.p-wrap { padding: 8px 8px 8px 40px; }
-.zoom-card.p-sheet { animation: p-in .38s var(--ease); }
-.zoom.p-wrap.out { pointer-events: none; animation: p-fade .2s ease-in forwards; }
-.zoom.p-wrap.out .p-sheet { animation: p-out .2s ease-in forwards; }
-@keyframes p-in   { from { transform: translateX(64px); opacity: 0; } }
-@keyframes p-out  { to { transform: translateX(64px); opacity: 0; } }
-@keyframes p-fade { to { opacity: 0; } }
+:root { --side-w: 380px; }
+html.side-open body { width: calc(420px + var(--side-w)); padding-left: var(--side-w); }
+html.side-open .zoom { left: var(--side-w); }
+
+.side {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 40;
+  display: flex; width: var(--side-w); padding: 8px 0 8px 8px;
+}
+.side .zoom-card.p-sheet { animation: p-in .34s var(--ease); }
+.side .zoom-card.p-sheet.swap { animation: p-swap .3s var(--ease); }
+.side.out { pointer-events: none; }
+.side.out .zoom-card.p-sheet { animation: p-out .16s ease-in forwards; }
+@keyframes p-in   { from { transform: translateX(28px); opacity: 0; } }
+@keyframes p-out  { to { transform: translateX(28px); opacity: 0; } }
+@keyframes p-swap { from { transform: translateY(6px); opacity: .35; } }
 
 button.av-btn { border: 0; cursor: pointer; transition: transform .15s var(--ease), box-shadow .2s; }
 button.av-btn:hover { transform: scale(1.08); box-shadow: 0 0 0 3px #4d9fff33; }
@@ -1069,7 +1079,7 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .z-foot .p-mute.on { color: var(--face); border-color: #4a3560; background: #221a2e; }
 
 @media (prefers-reduced-motion: reduce) {
-  .p-hero, .p-skel, .p-cskel, .zoom.p-wrap.out, .zoom.p-wrap.out .p-sheet { animation: none !important; }
+  .p-hero, .p-skel, .p-cskel, .side .zoom-card.p-sheet { animation: none !important; }
   button.av-btn { transition: none !important; }
 }
 
