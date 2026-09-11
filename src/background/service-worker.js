@@ -1089,8 +1089,10 @@ async function handleMessage(msg) {
       // l'autre, sans pour autant se faire limiter par Roblox.
       await eachLimit((msg.ids || []).slice(0, SNAPSHOT_LIMIT), HYDRATE_PARALLEL, async (id) => {
         try {
+          // Un trade de la suite d'une liste n'est pas dans le releve : le
+          // popup fournit ce qu'il en sait (dates, partenaire).
           cards.push(await buildCard(id, msg.kind || 'inbound', state.userId, cat, settings,
-            { hint: hints.get(Number(id)) || null }));
+            { hint: hints.get(Number(id)) || msg.hints?.[id] || null }));
         } catch (e) {
           // Un detail illisible ne doit JAMAIS faire disparaitre le trade de la
           // liste : on remonte l'echec, le popup affichera la carte en mode
@@ -1101,6 +1103,21 @@ async function handleMessage(msg) {
       saveDetailCacheSoon();
       await flushThumbs();
       return { cards, failed, links: state.links, tracked: state.tracked };
+    }
+    /**
+     * La suite d'une liste, au-dela des 25 trades du releve : demandee par le
+     * popup quand on arrive en bas, 50 par 50. Un seul appel par page ; le
+     * detail de chaque trade suit a part, a mesure qu'il approche de l'ecran.
+     */
+    case 'ronote:list-more': {
+      const type = { inbound: 'Inbound', outbound: 'Outbound', completed: 'Completed' }[msg.kind];
+      if (!type) return { error: 'liste inconnue' };
+      try {
+        const page = await api.listTrades(type, 50, String(msg.cursor || ''));
+        return { trades: (page?.data || []).map(liteTrade), cursor: page?.nextPageCursor || null };
+      } catch (e) {
+        return { error: String(e?.message || e) };
+      }
     }
     /**
      * Historique d'un objet, pour sa fiche dans l'onglet Portefeuille. Demande

@@ -110,6 +110,13 @@ const CARDS = {
     { minutes: 2600 + i * 90, status: 'Completed' }))
 };
 
+// La suite de « Terminés », au-delà des 25 du relevé : de quoi voir la liste
+// se charger page par page en la faisant défiler.
+const OLDER_COMPLETED = Array.from({ length: 60 }, (_, i) => makeCard('completed', i % 2 ? alice : bob,
+  [asset(1048037, 3114, 'Bighead')],
+  i % 4 === 0 ? [bundle(74870047635131, 13601, 'Snowman Face')] : [asset(1037673, 24448, "Jester's Cap")],
+  { minutes: 2600 + (25 + i) * 90, status: 'Completed' }));
+
 const lite = (c) => ({ tradeId: c.tradeId, partner: c.partner, created: c.created, status: c.status });
 
 /* ------------------------------ portefeuille --------------------------- */
@@ -216,8 +223,15 @@ const mockRuntime = {
       case 'ronote:refresh':
         return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report };
       case 'ronote:hydrate': {
-        const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed];
+        const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed, ...OLDER_COMPLETED];
         return { cards: all.filter(c => msg.ids.includes(c.tradeId)), failed: [], links: {}, tracked: STATE.tracked };
+      }
+      case 'ronote:list-more': {
+        // Pages de 50, la première recouvrant le relevé, comme l'API Roblox.
+        await new Promise(r => setTimeout(r, 400));
+        const all = msg.kind === 'completed' ? [...CARDS.completed, ...OLDER_COMPLETED] : (CARDS[msg.kind] || []);
+        const start = Number(msg.cursor || 0);
+        return { trades: all.slice(start, start + 50).map(lite), cursor: start + 50 < all.length ? String(start + 50) : null };
       }
       case 'ronote:portfolio':
         return { state: STATE, portfolio: series, report };

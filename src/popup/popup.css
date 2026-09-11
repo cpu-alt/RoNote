@@ -228,6 +228,20 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .lchips button small { margin-left: 2px; color: var(--faint); font-size: 10px; font-weight: 600; }
 .lchips button.on { background: #14243a; border-color: var(--accent); color: var(--fg); }
 
+/* Bas d'une liste : la suite des trades, chargée en y arrivant. */
+.l-more {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 8px 4px; color: var(--faint); font-size: 11px; text-align: center;
+}
+.l-more.err { color: var(--loss); }
+.l-more button {
+  padding: 6px 14px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--dim);
+  font-size: 11px; font-weight: 650; transition: color .2s, border-color .2s, transform .12s;
+}
+.l-more button:hover { color: var(--fg); border-color: #33405a; }
+.l-more button:active { transform: scale(.95); }
+
 /* -------------------------------- silhouette ------------------------------ */
 
 .tc-skel {

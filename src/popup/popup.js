@@ -17,6 +17,37 @@ let data = { settings: null, state: null, history: [], portfolio: [], report: nu
 let tab = 'home';
 const cards = { inbound: new Map(), outbound: new Map(), completed: new Map() };
 const failures = { inbound: new Map(), outbound: new Map(), completed: new Map() };
+
+/**
+ * PAS SEULEMENT LES 25 DERNIERS.
+ *
+ * La vérification ne relève que le haut de chaque liste (25 trades). La suite
+ * se charge page par page en arrivant en bas : `cursor` vaut undefined tant que
+ * rien n'est chargé, null une fois au bout. La première page recouvre le
+ * relevé ; les doublons sont écartés à l'affichage.
+ */
+const SNAPSHOT_SIZE = 25;   // trades relevés à chaque vérification (service worker)
+const LIST_KINDS = ['inbound', 'outbound', 'completed'];
+const freshMore = () => ({ trades: [], cursor: undefined, loading: false, error: '' });
+const more = Object.fromEntries(LIST_KINDS.map(k => [k, freshMore()]));
+
+/** La liste complète d'un onglet : le relevé de la vérification, puis la suite chargée. */
+function listOf(kind) {
+  const snap = data.state?.snapshot?.[kind] || [];
+  const extra = more[kind]?.trades;
+  // Relevé incomplet : toute la liste y tient, la suite chargée plus tôt est périmée.
+  if (!extra?.length || snap.length < SNAPSHOT_SIZE) return snap;
+  const seen = new Set(snap.map(x => x.tradeId));
+  return snap.concat(extra.filter(x => !seen.has(x.tradeId)));
+}
+
+/** Il reste des trades à charger sous cette liste. */
+const hasMore = (kind) => (data.state?.snapshot?.[kind] || []).length >= SNAPSHOT_SIZE && more[kind]?.cursor !== null;
+
+/** Un trade refusé ou annulé quitte aussi la suite chargée. */
+function forgetTrade(id) {
+  for (const k of LIST_KINDS) more[k].trades = more[k].trades.filter(x => x.tradeId !== id);
+}
 const expanded = new Set();     // trades dont le detail des objets est deplie
 const shownCards = new Set();   // cartes deja montrees evaluees : leur arrivee ne se rejoue pas
 let zoomed = null;              // trade (ou objet) affiche en grand, ou null
@@ -432,7 +463,8 @@ function summaryHtml(kind, snap) {
   const wins = rated.filter(c => toneOf(c.analysis.pctMain, 3) === 'win').length;
   const losses = rated.filter(c => toneOf(c.analysis.pctMain, 3) === 'loss').length;
   const blind = loaded.length - rated.length;
-  const count = kind === 'inbound' ? (data.state?.inboundCount ?? snap.length) : snap.length;
+  // « 25+ » : la liste continue au-delà de ce qui est chargé.
+  const count = kind === 'inbound' ? (data.state?.inboundCount ?? snap.length) : snap.length + (hasMore(kind) ? '+' : '');
   const label = { inbound: t('En attente'), outbound: t('Envoyés'), completed: t('Terminés récemment') }[kind];
 
   let aside = '';
@@ -456,7 +488,8 @@ function summaryHtml(kind, snap) {
     wins ? `<span class="win">${ic('caret-up')} ${plural(wins, '{n} gagnant', '{n} gagnants')}</span>` : '',
     losses ? `<span class="loss">${ic('caret-down')} ${plural(losses, '{n} perdant', '{n} perdants')}</span>` : '',
     blind ? `<span class="face">${ic('help')} ${plural(blind, '{n} sans cote', '{n} sans cote')}</span>` : '',
-    loaded.length < snap.length ? `<span>${t('Évaluation…')}</span>` : ''
+    // La suite se charge au défilement : seul un chargement en cours se signale.
+    hydrating.has(kind) ? `<span>${t('Évaluation…')}</span>` : ''
   ].filter(Boolean).join('');
 
   return `<section class="ls">
@@ -628,6 +661,7 @@ async function decline(btn, card, kind, wrap) {
   if (res?.ok) {
     for (const m of Object.values(cards)) m.delete(card.tradeId);
     for (const m of Object.values(failures)) m.delete(card.tradeId);
+    forgetTrade(card.tradeId);
     if (res.state) data.state = res.state;
     closeZoom();
     renderHeader();
@@ -667,6 +701,7 @@ async function quickDecline(btn, tradeId, kind) {
   if (res?.ok) {
     for (const m of Object.values(cards)) m.delete(tradeId);
     for (const m of Object.values(failures)) m.delete(tradeId);
+    forgetTrade(tradeId);
     if (res.state) data.state = res.state;
     renderHeader();
     renderList();
@@ -702,7 +737,7 @@ const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) 
 function liveTradesWith(id) {
   const out = [];
   for (const kind of ['inbound', 'outbound', 'completed']) {
-    for (const item of data.state?.snapshot?.[kind] || []) {
+    for (const item of listOf(kind)) {
       if (Number(item.partner?.id) !== id) continue;
       out.push({ ...item, ...(cards[kind].get(item.tradeId) || {}), kind });
     }
@@ -2202,7 +2237,8 @@ function listSignature(snap) {
   return JSON.stringify([
     tab, listFilter[tab], data.settings?.showItemDetails, data.state?.inboundCount,
     Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
-    snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)])
+    snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)]),
+    [more[tab]?.loading, more[tab]?.error, hasMore(tab), hydrating.has(tab)]
   ]);
 }
 
@@ -2220,7 +2256,7 @@ function renderList() {
 
   // Le rafraîchissement de fond repasse toutes les 10 à 30 s. Rien de neuf :
   // on garde la liste telle quelle au lieu de recréer cartes et vignettes.
-  const snap = data.state?.snapshot?.[tab] || [];
+  const snap = tab === 'history' ? [] : listOf(tab);
   const sig = listSignature(snap);
   if (!entering && sig === lastListSig) return;
   lastListSig = sig;
@@ -2231,6 +2267,10 @@ function renderList() {
     if (entering) cascade(listEl.children);
     return;
   }
+
+  // Un filtre sur la cote ne voit que les trades évalués : ceux déjà chargés
+  // le sont donc tous, pas seulement ceux qui passent à l'écran.
+  if (listFilter[tab] !== 'all' && listFilter[tab] !== 'tracked') queueHydrate(tab, snap.map(x => x.tradeId));
 
   const outbound = tab === 'outbound';
   const top = listEl.scrollTop;
@@ -2253,10 +2293,12 @@ function renderList() {
   });
 
   listEl.innerHTML = summaryHtml(tab, snap) + chipsHtml(tab, snap)
-    + (rows.length ? rows.join('') : `<div class="ls-none">${t('Aucun trade dans cette catégorie.')}</div>`);
+    + (rows.length ? rows.join('') : `<div class="ls-none">${t('Aucun trade dans cette catégorie.')}</div>`)
+    + moreHtml(tab);
   if (top) listEl.scrollTop = top;
   if (entering) cascade(listEl.children, 8);
   bindList();
+  watchList();
 }
 
 /**
@@ -2311,8 +2353,11 @@ function bindList() {
       el.textContent = '…';
       failures[tab].delete(id);
       cards[tab].delete(id);
-      await hydrate();
+      await queueHydrate(tab, [id]);
     });
+  });
+  listEl.querySelectorAll('button[data-more]').forEach(el => {
+    el.addEventListener('click', () => loadMore(el.dataset.more));
   });
   listEl.querySelectorAll('button[data-nix]').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -2325,7 +2370,7 @@ function bindList() {
       e.stopPropagation();
       const id = Number(el.dataset.track);
       const on = el.dataset.on === '1';
-      const partner = (data.state.snapshot.outbound || []).find(x => x.tradeId === id)?.partner || null;
+      const partner = listOf('outbound').find(x => x.tradeId === id)?.partner || null;
       const res = await send({ type: 'ronote:track', tradeId: id, on, partner });
       data.state.tracked = res.tracked || {};
       renderHeader();
@@ -2336,33 +2381,128 @@ function bindList() {
 
 /* =============================== données ================================ */
 
-const hydrating = new Set();   // listes en cours de chargement
+const hydrating = new Map();   // liste -> chargement en cours
+const hydrateQueue = Object.fromEntries(LIST_KINDS.map(k => [k, new Set()]));
+const inflight = new Set();    // `liste:id` dont le détail est déjà demandé
 
 /**
- * Charge le détail des trades d'une liste, par lots, en réaffichant entre
+ * Demande le détail de ces trades. Les demandes s'ajoutent à une file que
+ * vide un seul chargement par liste, par lots de six, en réaffichant entre
  * chaque : la liste se remplit progressivement au lieu d'attendre le dernier.
  */
-async function hydrate(kind = tab) {
-  if (!cards[kind] || hydrating.has(kind)) return;
-  const snap = data.state?.snapshot?.[kind] || [];
-  const todo = snap.map(x => x.tradeId)
-    .filter(id => !cards[kind].has(id) && !failures[kind].has(id));
-  if (!todo.length) return;
+function queueHydrate(kind, ids) {
+  const q = hydrateQueue[kind];
+  if (!q) return Promise.resolve();
+  for (const id of ids) {
+    if (!cards[kind].has(id) && !failures[kind].has(id) && !inflight.has(kind + ':' + id)) q.add(id);
+  }
+  if (q.size && !hydrating.has(kind)) {
+    hydrating.set(kind, pumpHydrate(kind).finally(() => {
+      hydrating.delete(kind);
+      if (q.size) queueHydrate(kind, []);
+      else if (tab === kind && !zoomed) renderList();   // retire « Évaluation… »
+    }));
+  }
+  return hydrating.get(kind) || Promise.resolve();
+}
 
-  hydrating.add(kind);
-  try {
-    for (let i = 0; i < todo.length; i += 6) {
-      const res = await send({ type: 'ronote:hydrate', ids: todo.slice(i, i + 6), kind });
+async function pumpHydrate(kind) {
+  const q = hydrateQueue[kind];
+  while (q.size) {
+    const ids = [...q].slice(0, 6);
+    // La v2 du détail ne donne aucune date : la liste les fournit.
+    const hints = {};
+    for (const id of ids) {
+      q.delete(id);
+      inflight.add(kind + ':' + id);
+      const lite = listOf(kind).find(x => x.tradeId === id);
+      if (lite) hints[id] = lite;
+    }
+    try {
+      const res = await send({ type: 'ronote:hydrate', ids, kind, hints });
       for (const c of res?.cards || []) cards[kind].set(c.tradeId, c);
       for (const f of res?.failed || []) failures[kind].set(f.tradeId, f.error);
       if (res?.links) data.state.links = res.links;
       if (res?.tracked) data.state.tracked = res.tracked;
-      // L'accueil lit aussi les cartes : meilleure offre, offre qui expire.
-      if ((tab === kind || tab === 'home') && !zoomed) renderList();
+    } finally {
+      for (const id of ids) inflight.delete(kind + ':' + id);
     }
-  } finally {
-    hydrating.delete(kind);
+    // L'accueil lit aussi les cartes : meilleure offre, offre qui expire.
+    if ((tab === kind || tab === 'home') && !zoomed) renderList();
   }
+}
+
+/** Le relevé de la vérification ; la suite s'évalue en approchant de l'écran. */
+function hydrate(kind = tab) {
+  return queueHydrate(kind, (data.state?.snapshot?.[kind] || []).map(x => x.tradeId));
+}
+
+/** Page suivante d'une liste : un appel, 50 trades. */
+async function loadMore(kind) {
+  const m = more[kind];
+  if (!m || m.loading || !hasMore(kind)) return;
+  m.loading = true;
+  m.error = '';
+  if (tab === kind && !zoomed) renderList();
+  try {
+    const res = await send({ type: 'ronote:list-more', kind, cursor: m.cursor || '' });
+    // « message inconnu » : le service worker tourne encore sur l'ancienne version.
+    if (!res || res.error) {
+      throw new Error(!res || /message inconnu/.test(res.error) ? t('Recharge RoNote dans chrome://extensions.') : res.error);
+    }
+    const known = new Set(m.trades.map(x => x.tradeId));
+    for (const x of res.trades || []) if (!known.has(x.tradeId)) m.trades.push(x);
+    m.cursor = res.cursor || null;
+  } catch (e) {
+    m.error = String(e?.message || e);
+  } finally {
+    m.loading = false;
+  }
+  if (tab === kind && !zoomed) renderList();
+}
+
+/** Le bas d'une liste : la suite, qui se charge seule en y arrivant. */
+function moreHtml(kind) {
+  const m = more[kind];
+  if (!m) return '';
+  if (!hasMore(kind)) {
+    const full = (data.state?.snapshot?.[kind] || []).length >= SNAPSHOT_SIZE;
+    return full && m.cursor === null ? `<div class="l-more">${t('Tu es au bout de la liste.')}</div>` : '';
+  }
+  if (m.loading) return `<div class="l-more">${t('Chargement…')}</div>`;
+  if (m.error) {
+    return `<div class="l-more err">${escapeHtml(t('Suite indisponible : {why}', { why: m.error }))}
+      <button data-more="${kind}">${t('Réessayer')}</button></div>`;
+  }
+  // Avec un filtre, peu de lignes s'affichent : le bas serait toujours visible
+  // et toute la liste se chargerait d'un coup. La suite vient alors au clic.
+  const auto = listFilter[kind] === 'all' ? ' data-auto="1"' : '';
+  return `<div class="l-more"><button data-more="${kind}"${auto}>${t('Voir les trades plus anciens')}</button></div>`;
+}
+
+/**
+ * Surveillé au défilement : une silhouette qui approche de l'écran fait
+ * évaluer son trade — une page de 50 trades ne coûte pas 50 détails d'un
+ * coup — et le bas de la liste fait charger la page suivante.
+ */
+const listWatch = typeof IntersectionObserver === 'function'
+  ? new IntersectionObserver((entries) => {
+    const kind = listEl.dataset.tab;
+    if (!cards[kind]) return;
+    const ids = [];
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      if (e.target.dataset.more) loadMore(kind);
+      else ids.push(Number(e.target.dataset.id));
+    }
+    if (ids.length) queueHydrate(kind, ids);
+  }, { root: listEl, rootMargin: '300px 0px' })
+  : null;
+
+function watchList() {
+  if (!listWatch) return;
+  listWatch.disconnect();
+  listEl.querySelectorAll('.tc-skel[data-id], .l-more [data-auto]').forEach(el => listWatch.observe(el));
 }
 
 /**
@@ -2411,6 +2551,8 @@ async function load({ refresh = false } = {}) {
   if (refresh) {
     for (const m of Object.values(cards)) m.clear();
     for (const m of Object.values(failures)) m.clear();
+    // La suite chargée date d'avant : elle se rechargera en redescendant.
+    for (const k of LIST_KINDS) more[k] = freshMore();
   }
   renderHeader();
   renderList();

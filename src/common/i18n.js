@@ -233,6 +233,10 @@ const EN = {
   /* --- listes, cartes et journal (refonte) ------------------------------ */
   'suivi': 'tracked',
   'Terminés récemment': 'Recently completed',
+  'Voir les trades plus anciens': 'Show older trades',
+  'Suite indisponible : {why}': 'Could not load more: {why}',
+  'Tu es au bout de la liste.': "You've reached the end of the list.",
+  'Recharge RoNote dans chrome://extensions.': 'Reload RoNote in chrome://extensions.',
   'Bilan': 'Net',
   'Meilleur': 'Best',
   'Suivis': 'Tracked',

@@ -111,6 +111,13 @@ Rien n'est demandé au réseau : l'accueil lit ce que le popup a déjà.
 ancienne, en français ou en anglais, la version installée marquée. Après une mise
 à jour, un bandeau de l'accueil y mène, une fois.
 
+**Tous tes trades, pas seulement les 25 derniers.** Reçus, Envoyés et Terminés
+chargent la suite en arrivant en bas de la liste, 50 trades à la fois, jusqu'au
+bout. Pour ne pas bombarder Roblox, un trade de la suite n'est évalué qu'en
+approchant de l'écran. Avec un filtre actif (Gagnants, Perdants…), la suite se
+charge au clic, et les trades déjà chargés sont tous évalués pour que le filtre
+soit juste.
+
 **Plus léger en arrière-plan, et deux bugs corrigés.**
 
 - **Corrigé :** un clic sur une notification pouvait ne rien ouvrir. Sa destination
