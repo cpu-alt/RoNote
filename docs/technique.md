@@ -339,17 +339,6 @@ seulement compté. Le service worker prépare la liste (`portfolioItems`, module
 testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
 10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
 
-**La courbe, bundles comptés.** Rolimon's publie la valeur du compte jour après jour,
-mais sans les visages possédés en bundles et avec les visages fantômes. Le bouton
-🎭 **Bundles** du solde (actif par défaut) corrige la courbe ET le chiffre du haut
-ensemble. À chaque calcul du portefeuille, le service worker enregistre la correction
-du jour (`portfolioCorr` : écart de value, de RAP et d'exemplaires, une mesure par jour,
-400 jours) ; la courbe corrigée est chaque relevé de Rolimon's plus la dernière
-correction mesurée ce jour-là (`correctedSeries`, testé). Avant la première mesure,
-RoNote ne sait pas quels bundles tu avais : la plus ancienne correction connue est
-appliquée et cette partie est tracée **en pointillés**, marquée « estimation » au
-survol. Bouton coupé, on retrouve la courbe brute de Rolimon's et sa value.
-
 **Chargement des listes.** Le contenu d'un trade ne change jamais : le service
 worker garde son détail brut 7 jours avec sa fiche. Tant que la table des cotes et les
 réglages de calcul (base, taxe sur les Robux) sont les mêmes, la fiche sert telle
@@ -879,7 +868,7 @@ Les suites Node restent disponibles si Node est installé :
 npm test    # anti-doublon (26) + envois et contre-offres (33)
             # + scripts de contenu et pont page ↔ extension (17)
             # + réévaluation des objets possédés (20)
-            # + objets du portefeuille, historique d'un objet et courbe corrigée (28)
+            # + objets du portefeuille et historique d'un objet (21)
 ```
 
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un

@@ -3,9 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { parseItems, mergeSources } from '../src/common/roli.js';
 import { holdingsOf } from '../src/common/revalue.js';
-import {
-  portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport, reconcile, correctionOf, correctedSeries
-} from '../src/common/portfolio.js';
+import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport } from '../src/common/portfolio.js';
 import { parseItemHistory } from '../src/common/api.js';
 
 let passed = 0, failed = 0;
@@ -106,33 +104,6 @@ console.log('\nHistorique d\'un objet (page Rolimon\'s)');
   let err = '';
   try { parseItemHistory('<html>rien</html>', now); } catch (e) { err = e.message; }
   check('page sans historique : erreur explicite', err.includes('historique'), true);
-}
-
-/* ---------------------------------------------------------------------- */
-console.log('\nCourbe corrigée (bundles comptés)');
-{
-  const real = reconcile({ ...emptyReport(fx.userId), rolimons: fx.playerinfo }, fx.playerinfo,
-    { counts: fx.playerassets, holds: [] }, owned, cat);
-  check('correction mesurée sur l\'inventaire réel : exactement l\'écart corrigé',
-    correctionOf(real)?.dv, fx.expected.value - fx.playerinfo.value);
-  check('rapport synthétique : value, RAP et nombre d\'exemplaires',
-    correctionOf({ ok: true, partial: false, at: 5, rolimons: { value: 1000, rap: 900 }, value: 1100, rap: 950, delta: 100,
-      extras: [{ count: 2 }], ghosts: [{ count: 1 }] }), { at: 5, dv: 100, dr: 50, dn: 1 });
-  check('rapport partiel ou inventaire privé : aucune correction',
-    [correctionOf({ ok: true, partial: true, rolimons: {}, delta: 3 }), correctionOf({ ok: false })], [null, null]);
-
-  const DAY = 864e5, T = Date.parse('2026-09-01T00:00:00Z');
-  const pts = [0, 1, 2, 3].map(d => ({ at: T + d * DAY + 3600e3, v: 1000, r: 900, n: 10 }));
-  const corr = [
-    { at: T + 3 * DAY + 3600e3 - 60e3, dv: 80, dr: 60, dn: 2 },   // volontairement dans le désordre
-    { at: T + 2 * DAY + 5 * 3600e3, dv: 50, dr: 40, dn: 1 }
-  ];
-  const s = correctedSeries(pts, corr);
-  check('chaque relevé reçoit la dernière correction de son jour', s.map(p => p.v), [1050, 1050, 1050, 1080]);
-  check('avant la première mesure : estimation', s.map(p => p.est), [true, true, false, false]);
-  check('RAP et nombre d\'objets corrigés aussi', [s[3].r, s[3].n], [960, 12]);
-  check('sans correction mesurée : courbe inchangée', correctedSeries(pts, []).map(p => [p.v, p.est]),
-    [[1000, false], [1000, false], [1000, false], [1000, false]]);
 }
 
 console.log(`\n${passed} réussis, ${failed} échoués`);

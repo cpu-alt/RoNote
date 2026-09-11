@@ -4,7 +4,7 @@ import { ApiError } from '../common/api.js';
 import {
   getSettings, saveSettings, getState, setState, getStreams, saveStreams, resetStreams,
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
-  getPortfolioReport, savePortfolioReport, getPortfolioCorrections, recordPortfolioCorrection
+  getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
 import { getCatalog } from '../common/roli.js';
 import { setLang, t, currentLang, dictFor } from '../common/i18n.js';
@@ -12,7 +12,7 @@ import {
   analyze, verdict, thumbKeysFor, missingValueAssetIds, unresolvedAssetIds
 } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
-import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs, correctionOf } from '../common/portfolio.js';
+import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
 import { eachLimit, inQuietHours } from '../common/utils.js';
@@ -594,10 +594,6 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
         attachPortfolioThumbs(report, urls || []);
       }
       await savePortfolioReport(report);
-      // La correction du jour (bundles comptes, fantomes retires) : c'est elle
-      // qui permet de tracer la courbe corrigee, jour apres jour.
-      const correction = correctionOf(report);
-      if (correction) await recordPortfolioCorrection(correction);
     } else {
       // Reconciliation coupee ou injoignable : on retombe sur le profil brut.
       const info = await safe(() => api.getPlayerInfo(state.userId), null);
@@ -724,7 +720,7 @@ async function tick(reason = 'manual') {
       await resetStreams();
       for (const k of Object.keys(streams)) delete streams[k];
       state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
-      await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null, portfolioCorr: [] });
+      await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null });
       state.portfolioAt = 0; state.historyFetchedAt = 0; state.portfolioLast = null;
       state.revalSince = 0;
       memDetails.clear();
@@ -930,15 +926,13 @@ async function handleMessage(msg) {
   switch (msg.type) {
     case 'ronote:get': {
       // Tout d'un coup : le popup attend cette reponse pour afficher quoi que ce soit.
-      const [settings, state, history, streams, portfolio, report, corrections] = await Promise.all([
-        getSettings(), getState(), getHistory(), getStreams(), getPortfolio(), getPortfolioReport(),
-        getPortfolioCorrections()
+      const [settings, state, history, streams, portfolio, report] = await Promise.all([
+        getSettings(), getState(), getHistory(), getStreams(), getPortfolio(), getPortfolioReport()
       ]);
       return {
         settings, state, history: history.slice(0, 100),
         portfolio,
         report,
-        corrections,
         counts: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.seen?.length || 0])),
         newest: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.newest || 0])),
         belowMark: Object.fromEntries(Object.entries(streams).map(([k, v]) => [k, v?.belowMark || 0]))
@@ -1008,10 +1002,7 @@ async function handleMessage(msg) {
       await refreshPortfolio(state, settings, await getCatalog(settings), { force: true });
       await setState(state);
       await flushThumbs({ force: true });
-      return {
-        state, portfolio: await getPortfolio(), report: await getPortfolioReport(),
-        corrections: await getPortfolioCorrections()
-      };
+      return { state, portfolio: await getPortfolio(), report: await getPortfolioReport() };
     }
     /**
      * Refuse un trade recu, ou annule un trade envoye — c'est le meme appel

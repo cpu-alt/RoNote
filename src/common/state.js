@@ -180,24 +180,3 @@ export async function pushHistory(entries, limit = DEFAULTS.historyLimit) {
 export async function clearHistory() {
   await B.storage.local.set({ [KEY_HISTORY]: [] });
 }
-
-/* ------------------------ corrections du portefeuille ------------------ */
-
-const KEY_CORR = 'portfolioCorr';
-const CORR_CAP = 400;   // plus d'un an, a une mesure par jour
-
-/** Les corrections mesurees, une par jour, de la plus ancienne a la plus recente. */
-export async function getPortfolioCorrections() {
-  const { [KEY_CORR]: list } = await B.storage.local.get(KEY_CORR);
-  return Array.isArray(list) ? list : [];
-}
-
-/** Une mesure par jour : la derniere de la journee remplace les precedentes. */
-export async function recordPortfolioCorrection(entry) {
-  const DAY = 864e5;
-  const day = Math.floor(entry.at / DAY);
-  const kept = (await getPortfolioCorrections()).filter(c => Math.floor(c.at / DAY) !== day);
-  kept.push(entry);
-  kept.sort((a, b) => a.at - b.at);
-  await B.storage.local.set({ [KEY_CORR]: kept.slice(-CORR_CAP) });
-}
