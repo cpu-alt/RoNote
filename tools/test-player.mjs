@@ -1,6 +1,6 @@
 // La fiche d'un joueur : module pur, aucun reseau.
 // Usage : node tools/test-player.mjs
-import { historyFor, partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../src/common/player.js';
+import { historyFor, partnerTimeline, partnerStats, accountAge, thinSeries, YOUNG_ACCOUNT_DAYS } from '../src/common/player.js';
 
 let passed = 0, failed = 0;
 function check(label, got, expected) {
@@ -70,6 +70,19 @@ check('en mois sous deux ans', accountAge(T - 400 * day, T).unit + accountAge(T 
 check('en années ensuite', accountAge(T - 3700 * day, T).unit + accountAge(T - 3700 * day, T).n, 'year10');
 check('date absente ou future : rien', [accountAge(0, T), accountAge(T + day, T)], [null, null]);
 check('un compte de 12 jours est récent', accountAge(T - 12 * day, T).days < YOUNG_ACCOUNT_DAYS, true);
+
+/* ---------------------------------------------------------------------- */
+console.log('\nHistorique d’inventaire allégé');
+
+const daily = Array.from({ length: 3000 }, (_, i) => ({ at: T - (2999 - i) * day, v: i, r: i, n: 1 }));
+const thin = thinSeries(daily, 400, T);
+check('au plus 400 relevés', thin.length <= 400, true);
+check('premier et dernier relevés gardés', [thin[0].at, thin[thin.length - 1].at], [daily[0].at, daily[2999].at]);
+check('les 90 derniers jours restent complets',
+  thin.filter(p => p.at >= T - 90 * day).length, daily.filter(p => p.at >= T - 90 * day).length);
+check('dans l’ordre du temps, sans doublon', thin.every((p, i) => !i || thin[i - 1].at < p.at), true);
+check('un historique court passe tel quel', thinSeries(daily.slice(0, 50), 400, T).length, 50);
+check('relevés sans date écartés', thinSeries([{ at: 0 }, null, { at: T }], 400, T).length, 1);
 
 console.log(`\n${passed} réussis, ${failed} échoués.`);
 if (failed) process.exit(1);

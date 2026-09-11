@@ -72,7 +72,9 @@ notifications du système gardent leurs emojis : Windows n'y affiche que du text
 **La fiche d'un joueur.** Un clic sur l'avatar d'un partenaire, dans une carte ou
 dans le zoom d'un trade, ouvre sa fiche, qui glisse depuis la droite :
 
-- la valeur de son inventaire, son RAP et son rang Rolimon's ;
+- la valeur de son inventaire, son RAP et son rang Rolimon's, avec **la courbe de
+  son inventaire** — value, RAP et collectibles superposables, d'un mois à tout
+  l'historique, comme pour ton portefeuille ;
 - l'âge de son compte, **signalé s'il a moins de 30 jours**, et s'il est banni,
   vérifié ou vu en ligne récemment ;
 - **entre vous** : les offres qu'il t'a envoyées et les tiennes, les trades conclus
@@ -83,8 +85,10 @@ dans le zoom d'un trade, ouvre sa fiche, qui glisse depuis la droite :
 - ses profils Roblox et Rolimon's, et un bouton pour l'ignorer (ou ne plus
   l'ignorer) sans passer par les réglages.
 
-Ses profils publics ne sont demandés qu'à l'ouverture de la fiche, et gardés 30
-minutes. La politique de confidentialité le mentionne.
+Ses profils publics ne sont demandés qu'à l'ouverture de la fiche et gardés 30
+minutes, son historique 6 heures. Si une source ne répond pas, la fiche dit
+laquelle et pourquoi, au lieu d'un simple « indisponible ». La politique de
+confidentialité le mentionne.
 
 **Politique de confidentialité corrigée.** Elle affirmait que Rolimon's ne reçoit
 rien te concernant. C'est vrai pour la table des valeurs et les historiques

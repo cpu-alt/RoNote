@@ -113,6 +113,29 @@ export function partnerStats(rows = []) {
   };
 }
 
+const evenly = (list, n) => {
+  if (list.length <= n) return list;
+  if (n <= 0) return [];
+  if (n === 1) return [list[list.length - 1]];
+  const step = (list.length - 1) / (n - 1);
+  return Array.from({ length: n }, (_, i) => list[Math.round(i * step)]);
+};
+
+/**
+ * L'historique Rolimon's d'un joueur compte des annees de releves : pour une
+ * fiche consultee en passant, quelques centaines suffisent. Les 90 derniers
+ * jours restent complets (les periodes courtes s'y lisent), le passe est
+ * echantillonne ; le premier et le dernier releve restent toujours.
+ */
+export function thinSeries(points, max = 400, now = Date.now(), recentDays = 90) {
+  const pts = (points || []).filter(p => p?.at > 0).sort((a, b) => a.at - b.at);
+  if (pts.length <= max) return pts;
+  const cut = now - recentDays * 864e5;
+  const recent = pts.filter(p => p.at >= cut);
+  if (recent.length >= max) return evenly(recent, max);
+  return [...evenly(pts.filter(p => p.at < cut), max - recent.length), ...recent];
+}
+
 /** Age d'un compte, dans l'unite qui se lit le mieux. */
 export function accountAge(created, now = Date.now()) {
   if (!created) return null;

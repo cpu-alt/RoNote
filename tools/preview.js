@@ -238,6 +238,13 @@ const mockRuntime = {
           rolimons: true
         };
       }
+      case 'ronote:player-history': {
+        // Roblox (inventaire privé) : pas d'historique, pour voir le message.
+        await new Promise(r => setTimeout(r, 600));
+        if (Number(msg.userId) === alice.id) return { error: 'HTTP 403' };
+        const k = 1250400 / series[series.length - 1].v;
+        return { points: playerMod.thinSeries(series.map(p => ({ at: p.at, v: Math.round(p.v * k), r: Math.round(p.r * k * 0.8), n: Math.round(p.n * 0.3) }))) };
+      }
       case 'ronote:mute':
         if (!SETTINGS.ignoredUsers.some(u => Number(u.id) === Number(msg.userId))) {
           SETTINGS.ignoredUsers.push({ id: Number(msg.userId), name: msg.name || '' });

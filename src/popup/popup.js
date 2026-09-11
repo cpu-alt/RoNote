@@ -685,7 +685,12 @@ async function quickDecline(btn, tradeId, kind) {
  * ce que le popup sait déjà (ses trades affichés) ; le journal complet et ses
  * profils publics arrivent ensuite du service worker.
  */
-const player = { id: 0, who: null, headshot: null, res: null };
+const player = { id: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y' };
+
+/** Service worker resté sur l'ancienne version : le seul remède est de recharger RoNote. */
+const whyText = (why, template) => (/message inconnu/.test(String(why))
+  ? t('Recharge RoNote dans chrome://extensions pour activer la fiche.')
+  : t(template, { why }));
 
 const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) === id);
 
@@ -723,19 +728,27 @@ function playerBodyHtml() {
   const roli = res?.roli, prof = res?.profile;
   const age = accountAge(prof?.created);
 
-  // La valeur de son inventaire, en grand — ou pourquoi on ne l'a pas.
+  // La valeur de son inventaire, en grand — ou pourquoi on ne l'a pas. Faute
+  // du profil Rolimon's, le dernier relevé de son historique fait l'affaire.
+  const lastPt = player.chart?.points?.[player.chart.points.length - 1];
+  const variation = '<span class="w-pill" id="p-var" hidden></span>';
+  const chartOn = res ? res.rolimons !== false : data.settings?.useRolimons !== false;
   let hero = `<div class="ls-l">${t("Valeur de l'inventaire")}</div>`;
   if (!res) {
     hero += '<div class="p-skel"></div>';
   } else if (roli && !roli.private && roli.value) {
-    hero += `<div class="p-amount">${amount(roli.value)}</div>
+    hero += `<div class="p-top"><div class="p-amount">${amount(roli.value)}</div>${variation}</div>
       <div class="p-sub">${[t('RAP {v}', { v: amount(roli.rap) }), roli.rank ? t('rang #{n}', { n: fmtFull(roli.rank) }) : ''].filter(Boolean).join(' · ')}</div>`;
+  } else if (!roli?.private && lastPt?.v) {
+    hero += `<div class="p-top"><div class="p-amount">${amount(lastPt.v)}</div>${variation}</div>
+      <div class="p-sub">${t('RAP {v}', { v: amount(lastPt.r) })} · ${t("d'après l'historique Rolimon's")}</div>`;
   } else {
     const why = !res.rolimons ? t("Rolimon's est désactivé dans les réglages")
       : roli?.private ? t('Inventaire privé')
       : roli ? t("Rolimon's n'a pas encore scanné cet inventaire.")
+      : res.why ? whyText(res.why, 'Profil public indisponible — {why}.')
       : t('Profil public indisponible.');
-    hero += `<div class="p-amount dim">—</div><div class="p-sub">${escapeHtml(why)}</div>`;
+    hero += `<div class="p-none">${escapeHtml(why)}</div>`;
   }
 
   const flags = [
@@ -785,11 +798,58 @@ function playerBodyHtml() {
       }).join('')}</div>`
     : `<div class="ls-none">${t("Aucun échange avec ce joueur pour l'instant.")}</div>`;
 
-  return `<section class="p-hero">${hero}${flags ? `<div class="p-flags">${flags}</div>` : ''}</section>
+  return `<section class="p-hero">${hero}${flags ? `<div class="p-flags">${flags}</div>` : ''}${chartOn ? '<div class="p-chart" id="p-chart"></div>' : ''}</section>
     <div class="p-h">${t('Entre vous')}</div>
     ${tiles}${verdictLine}
     <div class="p-h">${t('Vos échanges')}${rows.length ? ` <small>${rows.length}</small>` : ''}</div>
     ${list}`;
+}
+
+/**
+ * La courbe de son inventaire, comme celle du portefeuille : value, RAP et
+ * collectibles superposables, et la variation de sa value sur la période.
+ */
+function renderPlayerChart(animate = false) {
+  const box = document.getElementById('p-chart');
+  if (!box) return;
+  const ch = player.chart;
+  if (!ch) { box.innerHTML = '<div class="p-cskel"></div>'; return; }
+  const nochart = (why) => {
+    box.innerHTML = `<div class="w-nochart">${escapeHtml(whyText(why, 'Historique indisponible — {why}.'))}</div>`;
+  };
+  if (!ch.points?.length) { nochart(ch.error || t('réponse vide')); return; }
+  const avail = Object.fromEntries(Object.entries(WALLET_SERIES).filter(([k]) => ch.points.some(p => p[k] > 0)));
+  if (!Object.keys(avail).length) { nochart(t('réponse vide')); return; }
+
+  const range = ITEM_RANGES.find(r => r.key === player.range) || ITEM_RANGES[2];
+  const since = range.days ? Date.now() - range.days * 864e5 : 0;
+  const pts = downsample(ch.points.filter(p => p.at >= since));
+  const keys = orderedSeries(player.series, avail);
+
+  box.innerHTML = `${seriesChips(avail, keys, 'data-pseries')}
+    ${chartHtml({ id: 'p-plot', pts, keys, defs: avail, animate })}
+    ${legendHtml(pts, keys, avail)}
+    <div class="w-ranges">${ITEM_RANGES.map(r =>
+      `<button class="${r.key === range.key ? 'on' : ''}" data-prange="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
+  mountChart({ id: 'p-plot', pts, keys, defs: avail });
+
+  const varEl = document.getElementById('p-var');
+  if (varEl) {
+    const first = pts.find(p => p.v > 0)?.v || 0;
+    const last = pts[pts.length - 1]?.v || 0;
+    varEl.hidden = !(avail.v && pts.length >= 2 && first);
+    if (!varEl.hidden) {
+      varEl.className = `w-pill ${toneOf(last - first)}`;
+      varEl.innerHTML = pillText(avail.v, last - first, ((last - first) / first) * 100);
+    }
+  }
+
+  box.querySelectorAll('[data-pseries]').forEach(el => {
+    el.onclick = () => { player.series = toggleSeries(keys, el.dataset.pseries, avail); renderPlayerChart(true); };
+  });
+  box.querySelectorAll('[data-prange]').forEach(el => {
+    el.onclick = () => { player.range = el.dataset.prange; renderPlayerChart(true); };
+  });
 }
 
 function playerFootHtml() {
@@ -811,11 +871,12 @@ function bindPlayer(root) {
   if (mute) mute.onclick = () => toggleMute(mute);
 }
 
-function renderPlayer() {
+function renderPlayer(animateChart = false) {
   const body = document.getElementById('p-body');
   if (!body) return;
   const top = body.scrollTop;
   body.innerHTML = playerBodyHtml();
+  renderPlayerChart(animateChart);
   body.scrollTop = top;
   document.getElementById('p-foot').innerHTML = playerFootHtml();
   // L'anneau de l'avatar prend la couleur de la relation : ses offres, en moyenne.
@@ -844,7 +905,7 @@ function openPlayer(id) {
   const seed = live.find(c => c.headshot) || live[0]
     || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id);
   if (!seed) return;
-  Object.assign(player, { id, who: seed.partner || { id }, headshot: seed.headshot || null, res: null });
+  Object.assign(player, { id, who: seed.partner || { id }, headshot: seed.headshot || null, res: null, chart: null });
 
   document.getElementById('zoom')?.remove();
   zoomed = 'player:' + id;   // le rafraîchissement de fond attend la fermeture
@@ -868,12 +929,26 @@ function openPlayer(id) {
   document.body.appendChild(wrap);
   bindImages(wrap);
   bindPlayer(wrap);
+  renderPlayerChart();
   wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
   wrap.querySelector('.z-close').addEventListener('click', closeZoom);
   document.addEventListener('keydown', onZoomKey);
 
   const still = () => zoomed === 'player:' + id;
-  const failed = (why) => ({ events: [], error: why, rolimons: data.settings?.useRolimons !== false, ignored: isIgnored(id) });
+  const failed = (why) => ({ events: [], why, rolimons: data.settings?.useRolimons !== false, ignored: isIgnored(id) });
+  // La courbe vient d'une page plus lourde : elle arrive à part, sans retenir le reste.
+  if (data.settings?.useRolimons !== false) {
+    send({ type: 'ronote:player-history', userId: id }).then((res) => {
+      if (!still()) return;
+      player.chart = res?.points?.length ? { points: res.points } : { error: res?.error || t('réponse vide') };
+      // Sans profil Rolimon's, la valeur affichée vient de cet historique : toute la fiche se redessine.
+      if (player.res && !player.res.roli?.value) renderPlayer(true); else renderPlayerChart(true);
+    }, () => {
+      if (!still()) return;
+      player.chart = { error: t('réponse vide') };
+      renderPlayerChart();
+    });
+  }
   send({ type: 'ronote:player', userId: id, name: who.name || '', displayName: who.displayName || '' }).then((res) => {
     if (!still()) return;
     player.res = res && !res.error ? res : failed(res?.error || t('réponse vide'));

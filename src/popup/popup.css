@@ -1020,7 +1020,16 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   animation: w-up .45s .06s var(--ease) both;
 }
 .p-amount { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1.18; font-variant-numeric: tabular-nums; }
-.p-amount.dim { color: var(--faint); }
+.p-top { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 9px; }
+.p-none { margin-top: 5px; font-size: 11.5px; line-height: 1.45; color: var(--dim); }
+.p-chart { margin-top: 10px; }
+.p-chart .w-plot { margin: 4px -13px 0; }
+.p-chart .w-nochart { margin: 6px 0 2px; }
+.p-cskel {
+  height: 152px; border-radius: 12px;
+  background: linear-gradient(90deg, #141a2a, #1f2842, #141a2a); background-size: 200% 100%;
+  animation: w-shine 1.4s linear infinite;
+}
 .p-sub { font-size: 11px; color: var(--dim); }
 .p-skel {
   height: 50px; margin-top: 6px; border-radius: 10px;
@@ -1060,7 +1069,7 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .z-foot .p-mute.on { color: var(--face); border-color: #4a3560; background: #221a2e; }
 
 @media (prefers-reduced-motion: reduce) {
-  .p-hero, .p-skel, .zoom.p-wrap.out, .zoom.p-wrap.out .p-sheet { animation: none !important; }
+  .p-hero, .p-skel, .p-cskel, .zoom.p-wrap.out, .zoom.p-wrap.out .p-sheet { animation: none !important; }
   button.av-btn { transition: none !important; }
 }
 

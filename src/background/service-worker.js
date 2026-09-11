@@ -15,7 +15,7 @@ import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
-import { historyFor } from '../common/player.js';
+import { historyFor, thinSeries } from '../common/player.js';
 import { eachLimit, inQuietHours } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
@@ -568,6 +568,9 @@ const ITEM_HISTORY_TTL = 6 * 60 * 60 * 1000;   // historique d'un objet (page de
 const ITEM_HISTORY_CAP = 20;                   // objets dont l'historique reste en cache
 const PLAYER_TTL = 30 * 60 * 1000;             // profil d'un joueur ouvert depuis sa fiche
 const PLAYER_CAP = 30;                         // joueurs dont le profil reste en cache
+const PLAYER_HISTORY_TTL = 6 * 60 * 60 * 1000; // courbe d'inventaire d'un joueur (page Rolimon's)
+const PLAYER_HISTORY_CAP = 10;                 // joueurs dont la courbe reste en cache
+const PLAYER_HISTORY_POINTS = 400;             // releves gardes par courbe
 
 /**
  * Les chiffres du compte : ceux de Rolimon's, la correction des visages, et
@@ -1013,13 +1016,18 @@ async function handleMessage(msg) {
       const [history, { playerCache }] = await Promise.all([getHistory(), B.storage.local.get('playerCache')]);
       const cache = playerCache || {};
       let hit = cache[id];
+      const why = [];
       if (!hit || Date.now() - hit.at > PLAYER_TTL) {
+        // Chaque source echoue pour son compte, et dit pourquoi : « indisponible »
+        // tout court ne permet de rien corriger.
+        const grab = (label, fn) => Promise.resolve().then(fn)
+          .catch((e) => { why.push(`${label} : ${e?.message || e}`); return null; });
         const [profile, roli] = await Promise.all([
-          safe(() => api.getUserProfile(id), null),
-          settings.useRolimons ? safe(() => api.getPlayerInfo(id), null) : null
+          grab('Roblox', () => api.getUserProfile(id)),
+          settings.useRolimons ? grab("Rolimon's", () => api.getPlayerInfo(id)) : null
         ]);
         if (profile || roli) {
-          hit = { at: Date.now(), profile, roli };
+          hit = { at: Date.now(), profile: profile || hit?.profile || null, roli: roli || hit?.roli || null };
           const kept = Object.entries({ ...cache, [id]: hit })
             .sort((a, b) => b[1].at - a[1].at)
             .slice(0, PLAYER_CAP);
@@ -1031,8 +1039,35 @@ async function handleMessage(msg) {
         profile: hit?.profile || null,
         roli: settings.useRolimons ? hit?.roli || null : null,
         ignored: settings.ignoredUsers.some(u => Number(u.id) === id),
-        rolimons: !!settings.useRolimons
+        rolimons: !!settings.useRolimons,
+        why: why.join(' · ') || null
       };
+    }
+    /**
+     * Courbe d'inventaire d'un joueur, pour sa fiche : la meme serie que celle
+     * du portefeuille, lue sur sa page Rolimon's publique. Demandee a
+     * l'ouverture de la fiche seulement, allegee et gardee 6 h.
+     */
+    case 'ronote:player-history': {
+      const id = Number(msg.userId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      setLang(settings.lang);
+      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
+      const { playerHistory } = await B.storage.local.get('playerHistory');
+      const cache = playerHistory || {};
+      const hit = cache[id];
+      if (hit && Date.now() - hit.at < PLAYER_HISTORY_TTL) return { points: hit.points };
+      try {
+        const points = thinSeries(await api.getPlayerHistory(id), PLAYER_HISTORY_POINTS);
+        const kept = Object.entries({ ...cache, [id]: { at: Date.now(), points } })
+          .sort((a, b) => b[1].at - a[1].at)
+          .slice(0, PLAYER_HISTORY_CAP);
+        await B.storage.local.set({ playerHistory: Object.fromEntries(kept) });
+        return { points };
+      } catch (e) {
+        return hit ? { points: hit.points, stale: true } : { error: String(e?.message || e) };
+      }
     }
     case 'ronote:mute': {
       const id = Number(msg.userId);

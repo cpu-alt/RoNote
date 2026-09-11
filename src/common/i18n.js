@@ -604,6 +604,9 @@ const EN = {
   'Profil Roblox': 'Roblox profile',
   'Ignorer': 'Ignore',
   'Ne plus ignorer': 'Stop ignoring',
+  'Profil public indisponible — {why}.': 'Public profile unavailable — {why}.',
+  'Recharge RoNote dans chrome://extensions pour activer la fiche.': 'Reload RoNote in chrome://extensions to enable player cards.',
+  "d'après l'historique Rolimon's": "from Rolimon's history",
 
   /* --- bases de calcul -------------------------------------------------- */
   'Value': 'Value',
