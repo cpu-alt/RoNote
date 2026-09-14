@@ -222,6 +222,30 @@ for f in js_files:
 if not wild:
     ok("aucun postMessage vers « * »")
 
+# ------------------------------------------------ couverture des auto-tests
+# Une erreur de syntaxe ne se voit qu'au chargement du module : c'est le role
+# de tools/selftest.js, qui les importe pour de vrai dans un navigateur.
+# Encore faut-il qu'il les importe TOUS — une apostrophe mal echappee dans un
+# module absent de la liste a tue la page de reglages entiere en v2.11.1, sans
+# qu'aucun outil ne bronche. La liste ne peut donc plus prendre de retard.
+#
+# Les scripts de contenu ne sont pas des modules ; les scripts de page
+# s'executent contre leur propre document et sont couverts par les apercus
+# (tools/preview.html et tools/preview-options.html).
+PAGE_SCRIPTS = {"popup/popup.js", "options/options.js", "offscreen/offscreen.js"}
+selftest = (ROOT / "tools" / "selftest.js").read_text(encoding="utf-8")
+covered = 0
+for f in js_files:
+    rel = f.relative_to(SRC).as_posix()
+    if rel.startswith("content/") or rel in PAGE_SCRIPTS:
+        continue
+    if f"src/{rel}" in selftest:
+        covered += 1
+    else:
+        fail(f"tools/selftest.js n'importe pas src/{rel} "
+             f"— la syntaxe de ce module n'est verifiee nulle part")
+ok(f"auto-tests : {covered} modules charges pour de vrai")
+
 # --------------------------------------------------------------------- HTML
 HTML_REF = re.compile(r'(?:src|href)="([^"#:]+)"')
 for h in walk(".html"):

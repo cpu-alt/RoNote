@@ -88,6 +88,14 @@ try {
   await import('../src/common/filters.js');
   await import('../src/common/tones.js');
   await import('../src/background/notifier.js');
+  // Charges pour leur seule syntaxe : une apostrophe mal echappee dans l'un
+  // d'eux tue la page qui l'importe, et rien d'autre ne le verrait. La liste
+  // est tenue a jour par tools/check.py, qui refuse un module absent d'ici.
+  await import('../src/common/shim.js');
+  await import('../src/common/ui.js');
+  await import('../src/common/icons.js');
+  await import('../src/common/player.js');
+  await import('../src/common/changelog.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
