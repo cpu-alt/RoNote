@@ -497,6 +497,9 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   transition: background .18s, transform .12s;
 }
 button.jr { cursor: pointer; }
+/* Suivi dont le trade n'est plus dans la liste des 100 derniers envois. */
+.jr.gh { cursor: default; }
+.gh-why { padding: 0 8px 8px; color: var(--faint); font-size: 10.5px; line-height: 1.45; }
 button.jr:hover { background: #ffffff08; }
 button.jr:active { transform: scale(.985); }
 .jr.muted { opacity: .55; }

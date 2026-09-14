@@ -462,6 +462,16 @@ try {
     await tracker.resolveTracked(tracked, new Set(), open, { now: later });
     check('le delai passe, la verification reprend', calls, 6);
 
+    // Un suivi pose tout seul s'abandonne au bout d'une semaine ; une epingle
+    // posee a la main garde son mois.
+    const vieux = {
+      4001: { at: Date.now() - 8 * 864e5, auto: true },
+      4002: { at: Date.now() - 8 * 864e5, auto: false },
+      4003: { at: Date.now() - 40 * 864e5, auto: false }
+    };
+    await tracker.resolveTracked(vieux, new Set(), async () => ({ status: 'Open' }));
+    check('un suivi automatique de huit jours est abandonne', Object.keys(vieux).sort(), ['4002']);
+
     // Une issue definitive remonte telle quelle : c'est l'appelant qui retire
     // le suivi et notifie.
     const one = { 2001: { at: Date.now(), auto: true } };

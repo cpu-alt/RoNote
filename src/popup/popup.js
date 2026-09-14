@@ -1231,7 +1231,9 @@ function homeSignature() {
   return JSON.stringify(['home', new Date().toDateString(), data.history?.length || 0, data.history?.[0]?.at || 0,
     data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size,
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
-    data.state?.portfolioLast?.v, data.portfolio?.length || 0, wallet.hidden, newsPending()]);
+    data.state?.portfolioLast?.v, data.state?.portfolioLast?.at,
+    data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
+    wallet.hidden, newsPending()]);
 }
 
 /** Variation de la value sur les dernières 24 h, d'après la série Rolimon's (un relevé par jour environ). */
@@ -1261,7 +1263,18 @@ function renderHome(entering) {
   const revalEffect = revals.reduce((s, h) => s + (h.delta || 0), 0);
 
   // Le portefeuille en tête, avec sa semaine ; sans lui, les trades en attente.
-  const series = data.portfolio || [];
+  //
+  // La série vient de Rolimon's, qui ne rescanne un compte que quelques fois
+  // par jour : la courbe s'arrêtait donc là où le solde, lui, avait déjà bougé.
+  // On y ajoute le dernier relevé de RoNote — à l'échelle de la série, celle
+  // de Rolimon's (`rawV`), sinon la correction des visages ferait une marche.
+  const scanned = data.portfolio || [];
+  const live = st.portfolioLast;
+  const liveV = live ? (live.rawV ?? live.v) : 0;
+  const last = scanned[scanned.length - 1];
+  const series = liveV && live.at && live.at > (last?.at || 0)
+    ? [...scanned, { at: live.at, v: liveV, r: live.rawR ?? live.r ?? 0, n: last?.n || 0 }]
+    : scanned;
   const value = st.portfolioLast?.v || series[series.length - 1]?.v || 0;
   const change = dayChange(series);
   const week = downsample(series.filter(p => p.at >= Date.now() - 7 * 864e5 && p.v > 0));
@@ -2391,7 +2404,8 @@ function renderList() {
 
   listEl.innerHTML = summaryHtml(tab, snap) + chipsHtml(tab, snap)
     + (rows.length ? rows.join('') : `<div class="ls-none">${t('Aucun trade dans cette catégorie.')}</div>`)
-    + moreHtml(tab);
+    + moreHtml(tab)
+    + (tab === 'outbound' ? ghostHtml(ghostTracked()) : '');
   if (top) listEl.scrollTop = top;
   if (entering) cascade(listEl.children, 8);
   bindList();
@@ -2462,7 +2476,12 @@ function bindRow(row) {
       quickDecline(el, Number(el.dataset.nix), el.dataset.kind);
     });
   });
-  row.querySelectorAll('button[data-track]').forEach(el => {
+  bindTrack(row);
+}
+
+/** L'epingle « suivre ce trade », sur une carte ou sur une ligne hors liste. */
+function bindTrack(root) {
+  root.querySelectorAll('button[data-track]').forEach(el => {
     el.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id = Number(el.dataset.track);
@@ -2479,6 +2498,52 @@ function bindRow(row) {
 }
 
 /** Les pastilles de filtre : hors carte, elles survivent a un remplacement. */
+/**
+ * Les trades suivis absents de la liste. Roblox ne rend que les 100 derniers
+ * trades envoyes : un suivi plus ancien n'y figure plus. Le compteur les
+ * comptait pourtant, et rien ne les montrait — « 19 trades suivis » sans un
+ * seul trade suivi a l'ecran, et aucun moyen de les desepingler.
+ */
+function ghostTracked() {
+  const inList = new Set(listOf('outbound').map(x => x.tradeId));
+  return Object.entries(data.state?.tracked || {})
+    .map(([id, meta]) => ({ tradeId: Number(id), meta: meta || {} }))
+    .filter(g => Number.isFinite(g.tradeId) && !inList.has(g.tradeId))
+    .sort((a, b) => (b.meta.at || 0) - (a.meta.at || 0));
+}
+
+function ghostHtml(list) {
+  if (!list.length) return '';
+  const row = (g) => {
+    const who = g.meta.partner?.displayName || g.meta.partner?.name || t('joueur inconnu');
+    const since = [
+      g.meta.at ? t('suivi {ago}', { ago: timeAgo(g.meta.at) }) : '',
+      g.meta.auto ? t('suivi automatique') : ''
+    ].filter(Boolean).join(' · ');
+    return `<div class="jr gh">
+      <span class="jr-ic" data-tone="warn">${ic('pin')}</span>
+      <span class="jr-m">
+        <span class="jr-t">${escapeHtml(who)} <span class="jr-x">#${g.tradeId}</span></span>
+        ${since ? `<span class="jr-s">${since}</span>` : ''}
+      </span>
+      <button class="tc-btn pin on" data-track="${g.tradeId}" data-on="0"
+        title="${escapeHtml(t('Ne plus suivre ce trade'))}">${ic('pin')}</button>
+    </div>`;
+  };
+  return `<section class="panel h-panel">
+    <div class="panel-h">
+      <span>${plural(list.length, '{n} suivi hors liste', '{n} suivis hors liste')}</span>
+      <button class="h-link" data-untrack-all>${t('Ne plus les suivre')}</button>
+    </div>
+    <div class="h-events">${list.map(row).join('')}</div>
+    <div class="gh-why">
+      ${t("Roblox ne renvoie que les 100 derniers trades envoyés : ceux-là n'y sont plus. RoNote vérifie leur sort toutes les dix minutes et te prévient dès qu'il est connu.")}
+      ${list.some(g => g.meta.auto)
+        ? ` <button class="h-link" data-settings="s-outbound">${t('Régler le suivi automatique')}</button>` : ''}
+    </div>
+  </section>`;
+}
+
 function bindChips() {
   listEl.querySelectorAll('button[data-lfilter]').forEach(el => {
     el.addEventListener('click', () => {
@@ -2492,6 +2557,21 @@ function bindList() {
   listEl.querySelectorAll('.tc').forEach(bindRow);
   bindImages(listEl);
   bindChips();
+  listEl.querySelectorAll('.gh').forEach(bindTrack);
+  listEl.querySelectorAll('[data-settings]').forEach(el => el.addEventListener('click', () => {
+    B.tabs.create({ url: B.runtime.getURL(`options/options.html#${el.dataset.settings}`) });
+  }));
+  listEl.querySelector('[data-untrack-all]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const ids = ghostTracked().map(g => g.tradeId);
+    if (!ids.length) return;
+    btn.disabled = true;
+    const res = await ask({ type: 'ronote:track', ids, on: false });
+    if (!res?.tracked) { btn.disabled = false; return; }
+    data.state.tracked = res.tracked;
+    renderHeader();
+    renderList();
+  });
   listEl.querySelectorAll('button[data-more]').forEach(el => {
     el.addEventListener('click', () => loadMore(el.dataset.more));
   });

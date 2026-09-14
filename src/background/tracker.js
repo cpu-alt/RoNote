@@ -58,6 +58,14 @@ export const TRACK_CHECKS = 6;
 export const TRACK_RECHECK = 10 * 60 * 1000;
 /** Un suivi introuvable depuis un mois ne se resoudra plus : on l'abandonne. */
 export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+/**
+ * Les suivis POSES TOUT SEULS (contre-offres, ou tous les envois si l'option
+ * est active) s'abandonnent bien plus tot : personne ne les a demandes, ils
+ * s'accumulent par dizaines, et l'interet d'apprendre le sort d'une offre
+ * envoyee il y a trois semaines est nul. Une epingle posee a la main, elle,
+ * garde son mois entier.
+ */
+export const TRACK_MAX_AGE_AUTO = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Determine le sort des trades suivis qui ne sont plus dans la liste Outbound.
@@ -79,13 +87,14 @@ export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
  * @returns [{ tradeId, status, detail, meta }]
  */
 export async function resolveTracked(tracked, openIds, fetchDetail,
-  { max = TRACK_CHECKS, maxAge = TRACK_MAX_AGE, recheck = TRACK_RECHECK, now = Date.now() } = {}) {
+  { max = TRACK_CHECKS, maxAge = TRACK_MAX_AGE, autoMaxAge = TRACK_MAX_AGE_AUTO,
+    recheck = TRACK_RECHECK, now = Date.now() } = {}) {
   const due = [];
   for (const key of Object.keys(tracked || {})) {
     const id = Number(key);
     if (!Number.isFinite(id) || openIds.has(id)) continue;
     const meta = tracked[key];
-    if (meta?.at && now - meta.at > maxAge) { delete tracked[key]; continue; }
+    if (meta?.at && now - meta.at > (meta.auto ? autoMaxAge : maxAge)) { delete tracked[key]; continue; }
     // Deja regarde il y a peu : son sort n'a pas change en trente secondes.
     if (meta?.checkedAt && now - meta.checkedAt < recheck) continue;
     due.push(key);

@@ -10,6 +10,19 @@ L'état « armé » du bouton vivait dans la page seule : un rafraîchissement d
 fond reconstruisait la liste et le remettait au repos sans prévenir, si bien
 que le second clic ne faisait que le réarmer. Le trade restait là.
 
+**Les trades suivis se voient enfin, et se retirent.** Le compteur annonçait
+« 19 trades suivis » alors que l'onglet Envoyés n'en montrait aucun : ceux qui
+ne sont plus dans les 100 derniers envois n'étaient affichés nulle part, donc
+impossibles à désépingler. Ils ont maintenant leur bloc en bas de l'onglet, avec
+le partenaire, depuis quand ils sont suivis, et de quoi les retirer — un par un
+ou tous d'un coup. Un suivi posé automatiquement s'abandonne désormais au bout
+d'une semaine, au lieu d'un mois comme une épingle posée à la main.
+
+**La courbe de l'accueil suivait avec un train de retard.** Elle ne montrait que
+les relevés de Rolimon's, qui ne rescanne un compte que quelques fois par jour :
+le solde affiché avait bougé, la courbe non. Elle se termine maintenant sur le
+dernier relevé de RoNote.
+
 **La cause principale : les trades suivis.** La liste des trades envoyés
 s'arrête à 100 entrées. Un trade suivi plus ancien que ces 100-là, mais toujours
 ouvert, n'y figure plus — RoNote redemandait alors son détail à chaque

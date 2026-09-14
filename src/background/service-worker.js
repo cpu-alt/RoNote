@@ -1366,10 +1366,16 @@ async function handleMessage(msg) {
     }
 
     case 'ronote:track': {
-      const id = Number(msg.tradeId);
+      // `ids` : le popup desepingle d'un coup les suivis tombes hors de la
+      // liste des 100 derniers envois. Une seule ecriture pour tout le lot.
+      const ids = Array.isArray(msg.ids)
+        ? msg.ids.map(Number).filter(Number.isFinite)
+        : [Number(msg.tradeId)].filter(Number.isFinite);
       const state = await editStore((st) => {
-        if (msg.on === false) delete st.tracked[id];
-        else st.tracked[id] = { at: Date.now(), partner: msg.partner || null, auto: false, counterTo: null, round: 1 };
+        for (const id of ids) {
+          if (msg.on === false) delete st.tracked[id];
+          else st.tracked[id] = { at: Date.now(), partner: msg.partner || null, auto: false, counterTo: null, round: 1 };
+        }
       });
       return { tracked: state.tracked };
     }

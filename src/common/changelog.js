@@ -21,6 +21,12 @@ export const RELEASES = [
     items: [
       item("Corrige : le refus en deux clics depuis une carte pouvait ne jamais partir. Un rafraichissement de fond remettait le bouton au repos, et le second clic ne faisait que le rearmer.",
         'Fixed: the two-click decline on a card could never go through. A background refresh reset the button, so the second click only re-armed it.'),
+      item("Les trades suivis qui ne sont plus dans les 100 derniers envois apparaissent enfin, en bas de l'onglet Envoyes : avec leur partenaire, depuis quand ils sont suivis, et de quoi les retirer un par un ou tous d'un coup. Le compteur en annoncait sans que rien ne les montre.",
+        "Tracked trades that are no longer among the last 100 outbound ones finally show up, at the bottom of the Outbound tab: with their partner, how long they have been tracked, and a way to remove them one by one or all at once. The counter used to include them with nothing on screen."),
+      item("Un suivi pose automatiquement s'abandonne au bout d'une semaine, au lieu d'un mois — une epingle posee a la main garde son mois.",
+        'A trade tracked automatically is dropped after a week instead of a month — a pin you placed yourself keeps its month.'),
+      item("La courbe de l'accueil se termine sur le dernier releve de RoNote, au lieu de s'arreter au dernier scan de Rolimon's : elle ne retarde plus sur le solde affiche.",
+        "The Home curve now ends on RoNote's latest reading instead of stopping at Rolimon's last scan: it no longer lags behind the balance shown above it."),
       item("Corrige la cause principale des « HTTP 429 » : les trades suivis tombes hors de la liste des 100 derniers envois etaient redemandes a chaque verification, sans fin. Un meme trade suivi n'est plus redemande avant dix minutes, et son issue arrive le plus souvent sans aucun appel.",
         'Fixed the main cause of "HTTP 429" errors: tracked trades that fell outside the list of the last 100 outbound trades were re-fetched on every check, endlessly. The same tracked trade is no longer re-fetched within ten minutes, and its outcome usually arrives without any call at all.'),
       item("RoNote se tient sous un plafond de requetes par minute, et l'ajuste tout seul : chaque refus le divise par deux, il remonte apres dix minutes sans refus.",

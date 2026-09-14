@@ -158,7 +158,12 @@ for (let i = 120; i >= 0; i--) {
 const STATE = {
   userId: ME, userName: 'DemoTrader', enabled: true,
   inboundCount: CARDS.inbound.length, lastOkAt: Date.now() - 12000, lastError: null,
-  tracked: { [CARDS.outbound[0].tradeId]: { at: Date.now() } },
+  tracked: {
+    [CARDS.outbound[0].tradeId]: { at: Date.now() },
+    // Un suivi dont le trade n'est plus dans les 100 derniers envois : c'est
+    // le cas que l'onglet Envoyes montre a part, avec de quoi le desepingler.
+    9876543210: { at: Date.now() - 3 * 864e5, partner: { displayName: 'DemoTrader2' }, auto: true }
+  },
   links: {},
   snapshot: {
     at: Date.now() - 12000,
@@ -280,8 +285,17 @@ const mockRuntime = {
       case 'ronote:settings':
         Object.assign(SETTINGS, msg.patch || {});
         return { settings: SETTINGS };
-      case 'ronote:track':
+      case 'ronote:track': {
+        // Comme le worker : un id ou un lot, pose ou retire.
+        const ids = Array.isArray(msg.ids) ? msg.ids : [msg.tradeId];
+        for (const raw of ids) {
+          const id = Number(raw);
+          if (!Number.isFinite(id)) continue;
+          if (msg.on === false) delete STATE.tracked[id];
+          else STATE.tracked[id] = { at: Date.now(), partner: msg.partner || null, auto: false };
+        }
         return { tracked: STATE.tracked };
+      }
       case 'ronote:decline': {
         // On simule ce que fait le service worker : le trade disparait des
         // listes et le compteur baisse. Aucun appel reseau, evidemment.

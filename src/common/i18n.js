@@ -49,6 +49,15 @@ const EN = {
   'Mes trades': 'My trades',
   '{n} trade suivi': '{n} tracked trade',
   '{n} trades suivis': '{n} tracked trades',
+  '{n} suivi hors liste': '{n} tracked trade off the list',
+  '{n} suivis hors liste': '{n} tracked trades off the list',
+  'Ne plus les suivre': 'Stop tracking them',
+  'Régler le suivi automatique': 'Adjust automatic tracking',
+  'suivi {ago}': 'tracked {ago}',
+  'suivi automatique': 'tracked automatically',
+  'joueur inconnu': 'unknown player',
+  "Roblox ne renvoie que les 100 derniers trades envoyés : ceux-là n'y sont plus. RoNote vérifie leur sort toutes les dix minutes et te prévient dès qu'il est connu.":
+    'Roblox only returns the last 100 outbound trades, and these are no longer among them. RoNote checks their outcome every ten minutes and tells you as soon as it knows.',
 
   /* --- onglets --------------------------------------------------------- */
   'Reçus': 'Inbound',
