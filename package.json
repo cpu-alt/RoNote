@@ -1,6 +1,6 @@
 {
   "name": "ronote",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "private": true,
   "type": "module",
   "description": "Extension navigateur : alertes de trades Roblox (reçus / terminés) avec dédup fiable par ID de trade.",

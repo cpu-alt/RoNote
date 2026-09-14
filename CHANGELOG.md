@@ -3,7 +3,7 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## Prochaine version (en cours) — l'onglet Portefeuille refait
+## v2.11.0 — l'onglet Portefeuille refait
 
 **L'onglet Bénéfice devient Portefeuille**, pensé comme une appli de portefeuille :
 
