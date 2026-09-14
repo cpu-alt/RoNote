@@ -8,6 +8,29 @@ import { RELEASES } from '../common/changelog.js';
 const $ = (s) => document.querySelector(s);
 const send = (msg) => B.runtime.sendMessage(msg);
 
+/**
+ * Le service worker MV3 dort entre deux verifications. Un message parti juste
+ * avant son reveil revient `undefined` — et la page restait alors figee sur le
+ * gabarit francais, sans un mot. On retente une fois, puis on le dit.
+ */
+async function ask(msg) {
+  for (let tries = 0; tries < 2; tries++) {
+    const r = await send(msg).catch(() => null);
+    if (r) return r;
+    await new Promise(done => setTimeout(done, 250));
+  }
+  return null;
+}
+
+/** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
+function showUnreachable() {
+  const el = $('#diag');
+  if (el) {
+    el.innerHTML = `<div><div class="k">${t('État')}</div><div class="v err">${t('Injoignable')}</div>`
+      + `<div class="k">${t("l'extension n'a pas répondu — recharge la page")}</div></div>`;
+  }
+}
+
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
@@ -116,7 +139,8 @@ function renderIgnored() {
     `<span class="chip">${escapeHtml(u.name || ('#' + u.id))}<button data-id="${u.id}" title="${t('Retirer')}" aria-label="${t('Retirer')}">${ic('x')}</button></span>`
   ).join('');
   box.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', async () => {
-    const r = await send({ type: 'ronote:unmute', userId: Number(b.dataset.id) });
+    const r = await ask({ type: 'ronote:unmute', userId: Number(b.dataset.id) });
+    if (!r?.settings) { showUnreachable(); return; }
     settings = r.settings; renderIgnored();
   }));
 }
@@ -164,7 +188,10 @@ function flashSaved() {
 }
 
 async function save(patch) {
-  const r = await send({ type: 'ronote:settings', patch });
+  const r = await ask({ type: 'ronote:settings', patch });
+  // Sans reponse, garder les anciens reglages : les ecraser par `undefined`
+  // cassait tous les rendus suivants, bien apres l'echec.
+  if (!r?.settings) { showUnreachable(); return; }
   settings = r.settings;
   flashSaved();
   renderDiag();
@@ -253,7 +280,8 @@ function wire() {
   });
 
   $('#btn-export').addEventListener('click', async () => {
-    const { history } = await send({ type: 'ronote:get' });
+    const history = (await ask({ type: 'ronote:get' }))?.history;
+    if (!history) { showUnreachable(); return; }
     const rows = [['date', 'type', 'tradeId', 'statut', 'partenaire', 'partenaireId',
       'valeur_donnee', 'valeur_recue', 'ecart_pct', 'objets_sans_cote', 'reponse_au_trade', 'notifie', 'filtre',
       'objet', 'cote_avant', 'cote_apres', 'quantite', 'impact']];
@@ -299,7 +327,8 @@ function wireNav() {
 let hashDone = false;
 
 async function load() {
-  const r = await send({ type: 'ronote:get' });
+  const r = await ask({ type: 'ronote:get' });
+  if (!r?.settings) { showUnreachable(); return; }
   settings = r.settings;
   state = r.state;
   counts = r.counts || {};

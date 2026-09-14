@@ -591,6 +591,9 @@ document.addEventListener('keydown', (e) => {
 
 function closeZoom() {
   zoomed = null;
+  // Le compte a rebours du « Confirmer ? » tournerait sur un bouton detache,
+  // et rearmerait le bouton suivant a sa place.
+  clearTimeout(armTimer);
   document.getElementById('zoom')?.remove();
 }
 
@@ -677,22 +680,40 @@ async function decline(btn, card, kind, wrap) {
   msg.textContent = t('Échec : {why}', { why: res?.error || '?' });
 }
 
-/** Annulation depuis la carte : deux clics, le second dans les 5 s. */
+/**
+ * Annulation depuis la carte : deux clics, le second dans les 5 s.
+ *
+ * L'etat « arme » ne peut pas vivre dans le seul DOM : une ecriture du service
+ * worker reconstruit la liste et remettrait le bouton au repos sans prevenir —
+ * le second clic ne ferait que le rearmer, et le trade ne serait jamais refuse.
+ * Il vit donc ici, entre dans la signature de la liste, et `bindList` le
+ * rappelle sur le bouton refait.
+ */
 let nixTimer = null;
+let armedNix = null;
+
+/** Retour au repos, que le bouton d'origine soit encore a l'ecran ou non. */
+function disarmNix(btn) {
+  clearTimeout(nixTimer);
+  armedNix = null;
+  if (!btn?.isConnected) return;
+  btn.dataset.armed = '0';
+  btn.classList.remove('armed');
+  btn.innerHTML = ic('x');
+}
+
 async function quickDecline(btn, tradeId, kind) {
   if (btn.dataset.armed !== '1') {
     btn.dataset.armed = '1';
     btn.classList.add('armed');
     btn.textContent = t('Confirmer ?');
+    armedNix = tradeId;
     clearTimeout(nixTimer);
-    nixTimer = setTimeout(() => {
-      btn.dataset.armed = '0';
-      btn.classList.remove('armed');
-      btn.innerHTML = ic('x');
-    }, 5000);
+    nixTimer = setTimeout(() => disarmNix(btn), 5000);
     return;
   }
   clearTimeout(nixTimer);
+  armedNix = null;
   btn.disabled = true;
   btn.textContent = '…';
   const hit = findCard(tradeId);
@@ -708,9 +729,7 @@ async function quickDecline(btn, tradeId, kind) {
     return;
   }
   btn.disabled = false;
-  btn.dataset.armed = '0';
-  btn.classList.remove('armed');
-  btn.innerHTML = ic('x');
+  disarmNix(btn);
   btn.title = t('Échec : {why}', { why: res?.error || '?' });
 }
 
@@ -1200,7 +1219,7 @@ function renderHome(entering) {
   const best = inbound.map(e => e.c).filter(c => c.analysis && !c.analysis.incomplete)
     .sort((a, b) => b.analysis.pctMain - a.analysis.pctMain)[0];
   const expiring = inbound
-    .map(({ x, c }) => ({ c, exp: Date.parse(x.expiration || c.expiration) || 0 }))
+    .map(({ x, c }) => ({ c, exp: msOf(x.expiration || c.expiration) }))
     .filter(e => e.exp > Date.now() && e.exp - Date.now() < 864e5)
     .sort((a, b) => a.exp - b.exp)[0];
   const tracked = Object.keys(st.tracked || {}).length;
@@ -2238,6 +2257,7 @@ function listSignature(snap) {
     tab, listFilter[tab], data.settings?.showItemDetails, data.state?.inboundCount,
     Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
     snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)]),
+    armedNix,
     [more[tab]?.loading, more[tab]?.error, hasMore(tab), hydrating.has(tab)]
   ]);
 }
@@ -2360,6 +2380,11 @@ function bindList() {
     el.addEventListener('click', () => loadMore(el.dataset.more));
   });
   listEl.querySelectorAll('button[data-nix]').forEach(el => {
+    if (Number(el.dataset.nix) === armedNix) {
+      el.dataset.armed = '1';
+      el.classList.add('armed');
+      el.textContent = t('Confirmer ?');
+    }
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       quickDecline(el, Number(el.dataset.nix), el.dataset.kind);

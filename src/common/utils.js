@@ -140,8 +140,11 @@ export function fmtSigned(n, full = false) {
   return (v > 0 ? '+' : v < 0 ? '−' : '') + (full ? fmtFull(Math.abs(v)) : fmtNum(Math.abs(v)));
 }
 
+/** Un releve sans date vaut mieux affiche « — » qu'en « Invalid Date ». */
 export const fmtDate = (ms) =>
-  new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: '2-digit' });
+  Number.isFinite(Number(ms)) && Number(ms) > 0
+    ? new Date(Number(ms)).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: '2-digit' })
+    : '—';
 
 /** Signe du ton a appliquer : win / loss / even. */
 export const toneOf = (n, dead = 0) =>

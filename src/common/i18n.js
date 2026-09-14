@@ -33,6 +33,8 @@ const LOCALES = { fr: 'fr-FR', en: 'en-US' };
 const EN = {
   /* --- entête, état ---------------------------------------------------- */
   'Non connecté': 'Not signed in',
+  'Injoignable': 'Unreachable',
+  "l'extension n'a pas répondu — recharge la page": 'the extension did not answer — reload the page',
   'Trop de requêtes : Roblox nous met en pause {n} s.': 'Too many requests: Roblox is holding us for {n}s.',
   'Chargement…': 'Loading…',
   'Initialisation…': 'Initialising…',
