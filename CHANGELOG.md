@@ -18,10 +18,11 @@ le partenaire, depuis quand ils sont suivis, et de quoi les retirer — un par u
 ou tous d'un coup. Un suivi posé automatiquement s'abandonne désormais au bout
 d'une semaine, au lieu d'un mois comme une épingle posée à la main.
 
-**Les courbes du portefeuille suivaient avec un train de retard.** Elle ne montrait que
-les relevés de Rolimon's, qui ne rescanne un compte que quelques fois par jour :
-le solde affiché avait bougé, la courbe non. Elle se termine maintenant sur le
-dernier relevé de RoNote.
+**Les courbes suivaient avec un train de retard.** À l'accueil comme dans l'onglet
+Portefeuille, elles ne montraient que les relevés de Rolimon's, qui ne rescanne un
+compte que quelques fois par jour : le solde affiché juste au-dessus avait bougé,
+la courbe non. Elles se terminent maintenant sur le dernier relevé de RoNote, et
+la note sous celle du portefeuille le dit.
 
 **La cause principale : les trades suivis.** La liste des trades envoyés
 s'arrête à 100 entrées. Un trade suivi plus ancien que ces 100-là, mais toujours
