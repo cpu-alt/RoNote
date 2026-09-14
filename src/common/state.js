@@ -58,7 +58,7 @@ export async function saveSettings(patch) {
 /**
  * state = petit objet volatil, reecrit a chaque verification :
  *   userId, userName, meCheckedAt, inboundCount, lastPollAt, lastOkAt,
- *   lastError, backoffUntil, tickCount,
+ *   lastError, backoffUntil, backoffWhy, tickCount,
  *   tracked      : { [tradeId]: {at, partner, auto, counterTo, round, checkedAt} }
  *   counterHints : { [partnerId]: {fromOutbound, at, round, notified} }
  *   myCounters   : { [partnerId]: {fromInbound, at, round} }
@@ -73,7 +73,7 @@ export function withStateDefaults(st) {
   return {
     userId: null, userName: null, meCheckedAt: 0,
     inboundCount: 0, tickCount: 0,
-    lastPollAt: 0, lastOkAt: 0, lastError: null, backoffUntil: 0,
+    lastPollAt: 0, lastOkAt: 0, lastError: null, backoffUntil: 0, backoffWhy: '',
     tracked: {}, counterHints: {}, myCounters: {}, links: {},
     snapshot: { inbound: [], completed: [], outbound: [], at: 0 },
     ...(st || {})

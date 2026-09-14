@@ -8,7 +8,7 @@
  * ==========================================================================
  */
 import { B } from './shim.js';
-import { chunk, eachLimit, fetchWithTimeout } from './utils.js';
+import { chunk, eachLimit, fetchWithTimeout, sleep } from './utils.js';
 
 const TRADES    = 'https://trades.roblox.com/v1';
 const TRADES_V2 = 'https://trades.roblox.com/v2';
@@ -21,6 +21,15 @@ const ROLIMONS  = 'https://api.rolimons.com/players/v1';
 /** Plafonds imposes par Roblox : les depasser fait echouer TOUT le lot. */
 export const ASSET_THUMB_BATCH  = 100;
 export const BUNDLE_THUMB_BATCH = 30;
+
+/**
+ * Attente maximale tenue sur place apres un 429. Au-dela, l'erreur remonte
+ * avec son `retry-after` : c'est au backoff du service worker de l'absorber.
+ */
+const RETRY_AFTER_MAX = 10000;
+
+/** Vignettes reprises une par une : jamais plus de 4 a la fois. */
+const SOLO_THUMB_PARALLEL = 4;
 
 /** Onglets ou rejouer une requete : ceux du site, la ou la session est ouverte. */
 const ROBLOX_TABS = 'https://www.roblox.com/*';
@@ -103,10 +112,17 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
 
   // Roblox limite le debit par salves courtes. Une seule attente suffit
   // presque toujours, et evite de perdre un trade pour un 429 passager.
+  //
+  // Quand Roblox annonce une pause plus longue que RETRY_AFTER_MAX, la tenir
+  // ici garderait le cycle de verification ouvert pour rien : on rend la main
+  // avec le delai demande, et le service worker pose son backoff dessus.
   if (res?.status === 429 && retryOn429) {
-    const wait = Math.min(5000, (Number(res.headers?.get('retry-after')) || 1.5) * 1000);
-    await new Promise(r => setTimeout(r, wait));
-    return apiGet(url, { allowRelay, relayAnyError, retryOnCsrf, retryOn429: false });
+    const asked = Number(res.headers?.get('retry-after')) || 0;
+    const wait = (asked || 1.5) * 1000;
+    if (wait <= RETRY_AFTER_MAX) {
+      await sleep(wait);
+      return apiGet(url, { allowRelay, relayAnyError, retryOnCsrf, retryOn429: false });
+    }
   }
 
   const status = res?.status ?? 0;
@@ -587,11 +603,19 @@ async function fetchThumbBatches(ids, batch, urlOf) {
   const out = {};
   for (const part of chunk([...new Set(ids.map(Number).filter(Boolean))], batch)) {
     try {
-      readThumbs(await apiGet(urlOf(part), { allowRelay: false }), out);
-    } catch {
+      readThumbs(await apiGet(urlOf(part), { allowRelay: false, retryOn429: false }), out);
+    } catch (e) {
+      // Une limite de debit vaut pour tout l'hote : reprendre le lot objet par
+      // objet multiplierait les appels par sa taille — jusqu'a cent d'un coup —
+      // et prolongerait la limite au lieu de la passer. On s'arrete la ; les
+      // vignettes manquantes reviennent au prochain passage, le trade reste lu.
+      if (e?.status === 429) break;
       if (part.length > 1) {
-        const solo = await Promise.all(part.map(id => fetchThumbBatches([id], batch, urlOf).catch(() => ({}))));
-        for (const s of solo) Object.assign(out, s);
+        await eachLimit(part, SOLO_THUMB_PARALLEL, async (id) => {
+          try {
+            readThumbs(await apiGet(urlOf([id]), { allowRelay: false, retryOn429: false }), out);
+          } catch { /* vignette absente : le reste du lot passe quand meme */ }
+        });
       }
     }
   }
@@ -658,9 +682,18 @@ export async function getUserBundles(userId, maxPages = 8) {
 
 /* ============================== Rolimon's =============================== */
 
-async function rolimons(url, what) {
+async function rolimons(url, what, retryOn429 = true) {
   const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } });
-  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status);
+  if (!r.ok) {
+    // Meme regle que pour Roblox : une courte attente si Rolimon's la demande,
+    // sinon l'erreur remonte avec son delai et le backoff du worker s'en charge.
+    const asked = Number(r.headers?.get('retry-after')) || 0;
+    if (r.status === 429 && retryOn429 && (asked || 1.5) * 1000 <= RETRY_AFTER_MAX) {
+      await sleep((asked || 1.5) * 1000);
+      return rolimons(url, what, false);
+    }
+    throw new ApiError('HTTP ' + r.status, r.status, asked);
+  }
   const j = await r.json();
   if (!j?.success) throw new ApiError(`${what} indisponible chez Rolimon's`, 0);
   return j;

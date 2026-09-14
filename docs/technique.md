@@ -813,7 +813,16 @@ tous les chiffres.
 ### Robustesse et coût réseau
 - **Repli automatique** : si le service worker n'arrive pas à envoyer le cookie de
   session, la requête est relayée depuis un onglet `roblox.com` ouvert
-- **Backoff exponentiel** sur erreur réseau, respect de `Retry-After` sur 429
+- **Backoff exponentiel** sur erreur réseau (15 s doublés, plafonnés à 5 min).
+  Sur `429`, la pause est celle demandée par `Retry-After`, au minimum 60 s, et
+  le bouton « vérifier maintenant » ne la contourne pas — relancer un cycle
+  pendant une limite de débit ne fait que la prolonger. Au niveau transport,
+  une seule attente est tenue sur place, et seulement si elle vaut 10 s ou
+  moins : au-delà, l'erreur remonte avec son délai
+- **Aucune reprise objet par objet sur `429`** : un lot de vignettes refusé pour
+  limite de débit n'est pas rejoué image par image (c'était jusqu'à 100 requêtes
+  d'un coup, qui entretenaient la limite). Les vignettes manquantes reviennent au
+  passage suivant ; hors limite de débit, la reprise solo a lieu, 4 à la fois
 - Détection de **déconnexion** (une seule alerte) et de **changement de compte**
 - Identité en cache 15 min, compteur de trades déduit de la page quand c'est
   possible, détails de trade et vignettes en cache, écriture disque **uniquement

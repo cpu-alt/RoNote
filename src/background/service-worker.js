@@ -445,7 +445,7 @@ async function stepInactive(ctx) {
 
     if (status === 'RejectedDueToError' || status === 'InterventionRequired') {
       if (!ctx.settings.watchRejectedError) continue;
-      const card = await safe(() => buildCard(id, 'trade_error', ctx.me.id, ctx.cat, ctx.settings), null)
+      const card = await safeCard(() => buildCard(id, 'trade_error', ctx.me.id, ctx.cat, ctx.settings), null)
         || stubCard(t, 'trade_error');
       card.kind = 'trade_error';
       card.statusLabel = OUTCOMES[status].title
@@ -459,7 +459,7 @@ async function stepInactive(ctx) {
     if (dir === 'outbound' && ctx.settings.watchOutbound && ctx.settings.notifyUntrackedOutbound) {
       const info = OUTCOMES[status];
       if (!info || !ctx.settings.notifyOutbound[info.opt]) continue;
-      const card = await safe(() => buildCard(id, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
+      const card = await safeCard(() => buildCard(id, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
         || stubCard(t, info.kind);
       card.kind = info.kind;
       card.statusLabel = info.title;
@@ -508,7 +508,7 @@ async function stepOutbound(ctx) {
     const info = OUTCOMES[res.status];
     if (!info) continue;
 
-    const card = await safe(() => makeCard(res.detail, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
+    const card = await safeCard(() => makeCard(res.detail, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
       || stubCard({ id: res.tradeId, user: meta.partner, status: res.status }, info.kind);
     card.kind = info.kind;
     card.statusLabel = info.title;
@@ -551,7 +551,7 @@ async function stepInbound(ctx) {
   if (r.seeded) return;
 
   for (const t of r.fresh) {
-    let card = await safe(() => buildCard(t.id, 'inbound', ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
+    let card = await safeCard(() => buildCard(t.id, 'inbound', ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
       || stubCard(t, 'inbound');
 
     const pid = card.partner?.id ?? t.user?.id;
@@ -570,6 +570,21 @@ async function stepInbound(ctx) {
   }
 }
 
+/**
+ * `safe()` avale tout — y compris une limite de debit. Dix trades neufs, c'est
+ * alors dix appels condamnes d'avance, chacun avec son attente, et aucun
+ * backoff pose : la limite se prolonge toute seule. Ici, un 429 ressort, le
+ * cycle l'attrape et met la pause qu'il faut. Le reste est avale comme avant.
+ */
+async function safeCard(fn, fallback = null) {
+  try { return await fn(); }
+  catch (e) {
+    if (e instanceof ApiError && e.isRate) throw e;
+    console.debug('[RoNote] safeCard():', e?.message || e);
+    return fallback;
+  }
+}
+
 /** 4) Onglet Completed. */
 async function stepCompleted(ctx) {
   const r = await pollStream('completed', ctx.streams, { pageLimit: PAGE_LIMIT });
@@ -582,7 +597,7 @@ async function stepCompleted(ctx) {
     // point de vue (tu as recu / tu as donne) de la notification changent.
     const mine = directionOf(ctx.streams, t.id) === 'outbound';
     const kind = mine ? 'outbound_accepted' : 'completed';
-    const card = await safe(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
+    const card = await safeCard(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
       || stubCard(t, kind);
     card.kind = kind;
     if (mine) card.statusLabel = OUTCOMES.Completed.title;
@@ -820,7 +835,12 @@ async function tick(reason = 'manual') {
     if (reason === 'boot' && state.lastPollAt && Date.now() - state.lastPollAt < cadence * 0.8) return;
     state.lastPollAt = Date.now();
 
-    if (state.backoffUntil && Date.now() < state.backoffUntil && reason !== 'manual') {
+    // Un clic sur « verifier maintenant » passe outre une pause ordinaire :
+    // c'est tout l'interet du bouton. Mais pas outre une limite de debit —
+    // relancer un cycle complet pendant qu'elle court ne fait que la
+    // prolonger, et c'est le reflexe naturel devant le point rouge.
+    if (state.backoffUntil && Date.now() < state.backoffUntil
+        && (reason !== 'manual' || state.backoffWhy === 'rate')) {
       await commitStore(state, streams, { writeStreams: false });
       return;
     }
@@ -850,6 +870,7 @@ async function tick(reason = 'manual') {
     state.userName = me.displayName || me.name;
     state.lastError = null;
     state.backoffUntil = 0;
+    state.backoffWhy = '';
     state.tickCount = (state.tickCount || 0) + 1;
 
     const windowMs = Math.max(1, Number(settings.counterWindowMinutes) || 90) * 60000;
@@ -981,16 +1002,22 @@ async function handleError(e, state, streams, settings) {
     state.lastError.message = t('Non connecté à Roblox (cookie de session introuvable).');
     state.meCheckedAt = 0;
     state.backoffUntil = Date.now() + 60000;
+    state.backoffWhy = 'auth';
     if (Date.now() - authWarnedAt > 30 * 60000) {
       authWarnedAt = Date.now();
       await notifySystem(t('RoNote : connexion requise'),
         t('Connecte-toi sur roblox.com dans ce navigateur, puis ouvre un onglet Roblox. La surveillance reprendra automatiquement.'));
     }
   } else if (err.isRate) {
-    state.backoffUntil = Date.now() + Math.max(60, err.retryAfter || 0) * 1000;
+    const wait = Math.max(60, err.retryAfter || 0);
+    state.backoffUntil = Date.now() + wait * 1000;
+    state.backoffWhy = 'rate';
+    // « HTTP 429 » ne dit rien a personne, et laisse croire a une panne.
+    state.lastError.message = t('Trop de requêtes : Roblox nous met en pause {n} s.', { n: wait });
   } else {
     const prev = state.backoffUntil && state.backoffUntil > Date.now() ? state.backoffUntil - Date.now() : 15000;
     state.backoffUntil = Date.now() + Math.min(5 * 60000, prev * 2);
+    state.backoffWhy = 'net';
   }
   // Appelee pendant un passage : ecrire aussi les flux enregistrerait des
   // trades vus avant qu'ils soient notifies.

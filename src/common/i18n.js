@@ -33,6 +33,7 @@ const LOCALES = { fr: 'fr-FR', en: 'en-US' };
 const EN = {
   /* --- entête, état ---------------------------------------------------- */
   'Non connecté': 'Not signed in',
+  'Trop de requêtes : Roblox nous met en pause {n} s.': 'Too many requests: Roblox is holding us for {n}s.',
   'Chargement…': 'Loading…',
   'Initialisation…': 'Initialising…',
   'Surveillance en pause': 'Monitoring paused',
