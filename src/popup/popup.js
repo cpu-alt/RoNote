@@ -1236,6 +1236,24 @@ function homeSignature() {
     wallet.hidden, newsPending()]);
 }
 
+/**
+ * La série du portefeuille, prolongée jusqu'à maintenant.
+ *
+ * Elle vient de Rolimon's, qui ne rescanne un compte que quelques fois par
+ * jour : sans ce dernier point, la courbe s'arrête là où le solde affiché, lui,
+ * a déjà bougé — c'est ce qui donnait l'impression qu'elle ne suivait pas. Le
+ * relevé est ajouté à l'ÉCHELLE DE LA SÉRIE, celle de Rolimon's (`rawV`) :
+ * ajouter la valeur corrigée ferait une marche à la fin de la courbe.
+ */
+function walletSeries() {
+  const scanned = data.portfolio || [];
+  const live = data.state?.portfolioLast;
+  const v = live ? (live.rawV ?? live.v) : 0;
+  const tail = scanned[scanned.length - 1];
+  if (!v || !live.at || live.at <= (tail?.at || 0)) return scanned;
+  return [...scanned, { at: live.at, v, r: live.rawR ?? live.r ?? 0, n: tail?.n || data.state?.collectibles || 0 }];
+}
+
 /** Variation de la value sur les dernières 24 h, d'après la série Rolimon's (un relevé par jour environ). */
 function dayChange(series) {
   const pts = (series || []).filter(p => p.v > 0);
@@ -1263,18 +1281,7 @@ function renderHome(entering) {
   const revalEffect = revals.reduce((s, h) => s + (h.delta || 0), 0);
 
   // Le portefeuille en tête, avec sa semaine ; sans lui, les trades en attente.
-  //
-  // La série vient de Rolimon's, qui ne rescanne un compte que quelques fois
-  // par jour : la courbe s'arrêtait donc là où le solde, lui, avait déjà bougé.
-  // On y ajoute le dernier relevé de RoNote — à l'échelle de la série, celle
-  // de Rolimon's (`rawV`), sinon la correction des visages ferait une marche.
-  const scanned = data.portfolio || [];
-  const live = st.portfolioLast;
-  const liveV = live ? (live.rawV ?? live.v) : 0;
-  const last = scanned[scanned.length - 1];
-  const series = liveV && live.at && live.at > (last?.at || 0)
-    ? [...scanned, { at: live.at, v: liveV, r: live.rawR ?? live.r ?? 0, n: last?.n || 0 }]
-    : scanned;
+  const series = walletSeries();
   const value = st.portfolioLast?.v || series[series.length - 1]?.v || 0;
   const change = dayChange(series);
   const week = downsample(series.filter(p => p.at >= Date.now() - 7 * 864e5 && p.v > 0));
@@ -1799,10 +1806,11 @@ function mountChart({ id, pts, keys, defs, onScrub = null }) {
   const dots = [...plot.querySelectorAll('.w-cdot')];
   const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
   let frame = 0;
-  // Mesuree une fois : l'infobulle garde la meme forme d'un point a l'autre
-  // (une ligne par courbe). La lire apres avoir ecrit son contenu forcait un
-  // calcul de mise en page a chaque image du survol — d'ou les saccades.
-  let tipH = 0;
+  // Mesurees une fois : l'infobulle garde la meme forme d'un point a l'autre
+  // (une ligne par courbe), et le trace garde sa hauteur. Les lire apres avoir
+  // ecrit leur contenu forcait un calcul de mise en page a chaque image du
+  // survol — d'ou les saccades.
+  let tipH = 0, plotH = 0;
 
   const show = (clientX) => {
     const box = plot.getBoundingClientRect();
@@ -1827,7 +1835,8 @@ function mountChart({ id, pts, keys, defs, onScrub = null }) {
     // sous elle, elle descend en bas du graphique.
     const highest = Math.min(...m.lines.map(l => chartY(l.vals[i], m.min, m.span)));
     if (!tipH) tipH = tip.offsetHeight;
-    const low = highest < (tipH + 8) / box.height;
+    if (!plotH) plotH = plot.clientHeight;
+    const low = highest < (tipH + 8) / plotH;
     tip.style.top = low ? 'auto' : '0';
     tip.style.bottom = low ? '0' : 'auto';
     onScrub?.(i);
@@ -2163,7 +2172,7 @@ function renderStats() {
     return;
   }
 
-  const all = data.portfolio || [];
+  const all = walletSeries();
   const last = st.portfolioLast;
   if (!all.length && !last) {
     listEl.innerHTML = `<div class="empty"><b>${t("Chargement du profil Rolimon's")}</b>
@@ -2183,7 +2192,7 @@ function renderStats() {
   // Redessin de fond sans rien de neuf : l'onglet reste tel quel, avec ses
   // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
   const sig = JSON.stringify([
-    rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r,
+    rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r, last?.at,
     st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k])
   ]);
   if (listEl.querySelector('.w-hero') && sig === walletSig) return;
@@ -2253,7 +2262,7 @@ function renderStats() {
       <span>${rep?.at ? t('calculé {ago}', { ago: agoHtml(rep.at) }) : ''}</span>
       <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
     </div>
-    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
+    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour), prolongée jusqu'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
 
   bindImages(listEl);
   renderItems({ animate: mode === 'all' || mode === 'items' });

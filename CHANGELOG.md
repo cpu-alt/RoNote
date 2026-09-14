@@ -18,7 +18,7 @@ le partenaire, depuis quand ils sont suivis, et de quoi les retirer — un par u
 ou tous d'un coup. Un suivi posé automatiquement s'abandonne désormais au bout
 d'une semaine, au lieu d'un mois comme une épingle posée à la main.
 
-**La courbe de l'accueil suivait avec un train de retard.** Elle ne montrait que
+**Les courbes du portefeuille suivaient avec un train de retard.** Elle ne montrait que
 les relevés de Rolimon's, qui ne rescanne un compte que quelques fois par jour :
 le solde affiché avait bougé, la courbe non. Elle se termine maintenant sur le
 dernier relevé de RoNote.

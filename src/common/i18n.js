@@ -287,8 +287,8 @@ const EN = {
   '1s': '1w',
   '1a': '1y',
   'Pas encore assez de points sur cette période.': 'Not enough data points over this period yet.',
-  'Courbe telle que Rolimon\'s la publie (une mesure par jour). Le chiffre du haut, lui, est celui de maintenant, corrigé.':
-    "The curve is exactly what Rolimon's publishes (one reading a day). The figure at the top is the current one, corrected.",
+  'Courbe telle que Rolimon\'s la publie (une mesure par jour), prolongée jusqu\'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant, corrigé.':
+    "The curve is exactly what Rolimon's publishes (one reading a day), extended to RoNote's latest reading. The figure at the top is the current one, corrected.",
   "Voir sur Rolimon's": "View on Rolimon's",
   'Réconciliation des visages': 'Face reconciliation',
   '{n} écart': '{n} discrepancy',
