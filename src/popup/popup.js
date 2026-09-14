@@ -589,12 +589,47 @@ document.addEventListener('keydown', (e) => {
   else if (document.getElementById('side')) closePlayer();
 });
 
+/* --------------------------- focus des surcouches ------------------------ */
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+const focusReturn = [];   // une pile : une fiche peut s'ouvrir par-dessus un zoom
+
+/**
+ * Une surcouche prend le focus a l'ouverture, le garde tant qu'elle est la, et
+ * le rend a son declencheur en partant. Sans ca, le clavier restait derriere
+ * elle, dans une liste toujours tabulable : « Refuser le trade » n'etait
+ * atteignable qu'en traversant tout le reste.
+ */
+function captureFocus(root, firstSel) {
+  focusReturn.push(document.activeElement);
+  (root.querySelector(firstSel) || root).focus?.();
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const items = [...root.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+    if (!items.length) return;
+    e.preventDefault();
+    const at = items.indexOf(document.activeElement);
+    const to = e.shiftKey
+      ? (at <= 0 ? items.length - 1 : at - 1)
+      : (at < 0 || at === items.length - 1 ? 0 : at + 1);
+    items[to].focus();
+  });
+}
+
+/** Rend le focus a l'element qui avait ouvert la surcouche, s'il est encore la. */
+function releaseFocus() {
+  const back = focusReturn.pop();
+  if (back?.isConnected) back.focus?.();
+}
+
 function closeZoom() {
+  if (!document.getElementById('zoom')) { zoomed = null; return; }
   zoomed = null;
   // Le compte a rebours du « Confirmer ? » tournerait sur un bouton detache,
   // et rearmerait le bouton suivant a sa place.
   clearTimeout(armTimer);
-  document.getElementById('zoom')?.remove();
+  document.getElementById('zoom').remove();
+  releaseFocus();
 }
 
 function openZoom(tradeId) {
@@ -614,6 +649,7 @@ function openZoom(tradeId) {
 
   wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
   wrap.querySelector('.z-close').addEventListener('click', closeZoom);
+  captureFocus(wrap, '.z-close');
   wrap.querySelector('.z-open').addEventListener('click', () => {
     B.tabs.create({ url: hit.card.url || tradeUrl(tradeId) });
   });
@@ -779,10 +815,16 @@ function playerRowInfo(r) {
   return [info?.label || '', KIND_ICON[r.kind] || 'dot', info?.tone || 'even'];
 }
 
-function playerBodyHtml() {
+/** La chronologie des echanges avec ce joueur, reconstruite depuis les listes. */
+const playerRows = () => partnerTimeline(player.res?.events || [], liveTradesWith(player.id));
+
+/**
+ * `rows` et `s` arrivent du rendu, qui les calcule une fois : la fiche les
+ * refaisait deux fois par affichage, et `liveTradesWith` parcourt les trois
+ * listes en recopiant chaque trade au passage.
+ */
+function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
   const res = player.res;
-  const rows = partnerTimeline(res?.events || [], liveTradesWith(player.id));
-  const s = partnerStats(rows);
   const roli = res?.roli, prof = res?.profile;
   const age = accountAge(prof?.created);
 
@@ -987,16 +1029,33 @@ function bindPlayer(root) {
   if (more) more.onclick = () => { player.facesAll = true; renderPlayer(); };
 }
 
+/**
+ * Les trois reponses de la fiche (profil, visages, historique) reviennent
+ * souvent coup sur coup, et chacune reconstruisait la fiche entiere sous les
+ * yeux de l'utilisateur. Une seule reconstruction par image d'affichage.
+ */
+let playerFrame = 0, playerAnimPending = false;
+function queueRenderPlayer(animateChart = false) {
+  playerAnimPending = playerAnimPending || animateChart;
+  cancelAnimationFrame(playerFrame);
+  playerFrame = requestAnimationFrame(() => {
+    const animate = playerAnimPending;
+    playerAnimPending = false;
+    renderPlayer(animate);
+  });
+}
+
 function renderPlayer(animateChart = false) {
   const body = document.getElementById('p-body');
   if (!body) return;
+  const rows = playerRows();
+  const s = partnerStats(rows);
   const top = body.scrollTop;
-  body.innerHTML = playerBodyHtml();
+  body.innerHTML = playerBodyHtml(rows, s);
   renderPlayerChart(animateChart);
   body.scrollTop = top;
   document.getElementById('p-foot').innerHTML = playerFootHtml();
   // L'anneau de l'avatar prend la couleur de la relation : ses offres, en moyenne.
-  const s = partnerStats(partnerTimeline(player.res?.events || [], liveTradesWith(player.id)));
   document.getElementById('p-ring').className = `av-ring p-av ${s.rated ? toneOf(s.avgIn, 3) : ''}`;
   bindImages(body);
   bindPlayer(document.getElementById('side'));
@@ -1019,8 +1078,10 @@ async function toggleMute(btn) {
 function closePlayer() {
   player.token++;   // les réponses encore en route ne redessinent plus rien
   player.id = 0;
+  cancelAnimationFrame(playerFrame);
   const side = document.getElementById('side');
   if (!side) return;
+  releaseFocus();
   const done = () => {
     side.remove();
     if (!document.getElementById('side')) document.documentElement.classList.remove('side-open');
@@ -1074,6 +1135,7 @@ function openPlayer(id) {
   bindPlayer(side);
   renderPlayerChart();
   side.querySelector('.z-close').addEventListener('click', closePlayer);
+  captureFocus(side, '.z-close');
 
   const still = () => player.token === token;
   const failed = (why) => ({ events: [], why, rolimons: data.settings?.useRolimons !== false, ignored: isIgnored(id) });
@@ -1083,7 +1145,7 @@ function openPlayer(id) {
       if (!still()) return;
       player.chart = res?.points?.length ? { points: res.points } : { error: res?.error || t('réponse vide') };
       // Sans profil Rolimon's, la valeur affichée vient de cet historique : toute la fiche se redessine.
-      if (player.res && !player.res.roli?.value) renderPlayer(true); else renderPlayerChart(true);
+      if (player.res && !player.res.roli?.value) queueRenderPlayer(true); else renderPlayerChart(true);
     }, () => {
       if (!still()) return;
       player.chart = { error: t('réponse vide') };
@@ -1093,21 +1155,21 @@ function openPlayer(id) {
     send({ type: 'ronote:player-faces', userId: id }).then((res) => {
       if (!still()) return;
       player.faces = res?.faces || { error: res?.error || t('réponse vide') };
-      renderPlayer();
+      queueRenderPlayer();
     }, () => {
       if (!still()) return;
       player.faces = { error: t('réponse vide') };
-      renderPlayer();
+      queueRenderPlayer();
     });
   }
   send({ type: 'ronote:player', userId: id, name: who.name || '', displayName: who.displayName || '' }).then((res) => {
     if (!still()) return;
     player.res = res && !res.error ? res : failed(res?.error || t('réponse vide'));
-    renderPlayer();
+    queueRenderPlayer();
   }, () => {
     if (!still()) return;
     player.res = failed(t('réponse vide'));
-    renderPlayer();
+    queueRenderPlayer();
   });
 }
 
@@ -1700,6 +1762,10 @@ function mountChart({ id, pts, keys, defs, onScrub = null }) {
   const dots = [...plot.querySelectorAll('.w-cdot')];
   const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
   let frame = 0;
+  // Mesuree une fois : l'infobulle garde la meme forme d'un point a l'autre
+  // (une ligne par courbe). La lire apres avoir ecrit son contenu forcait un
+  // calcul de mise en page a chaque image du survol — d'ou les saccades.
+  let tipH = 0;
 
   const show = (clientX) => {
     const box = plot.getBoundingClientRect();
@@ -1723,7 +1789,8 @@ function mountChart({ id, pts, keys, defs, onScrub = null }) {
     // L'infobulle ne doit pas cacher le point survolé : quand la courbe passe
     // sous elle, elle descend en bas du graphique.
     const highest = Math.min(...m.lines.map(l => chartY(l.vals[i], m.min, m.span)));
-    const low = highest < (tip.offsetHeight + 8) / plot.clientHeight;
+    if (!tipH) tipH = tip.offsetHeight;
+    const low = highest < (tipH + 8) / box.height;
     tip.style.top = low ? 'auto' : '0';
     tip.style.bottom = low ? '0' : 'auto';
     onScrub?.(i);
@@ -1974,6 +2041,7 @@ function openItemSheet(key) {
 
   wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
   wrap.querySelector('.z-close').addEventListener('click', closeZoom);
+  captureFocus(wrap, '.z-close');
   wrap.querySelectorAll('button[data-url]').forEach(b => {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
   });
@@ -2262,6 +2330,27 @@ function listSignature(snap) {
   ]);
 }
 
+/**
+ * Une ligne de liste : la carte si elle est prete, l'erreur si l'evaluation a
+ * echoue, la silhouette a defaut. Un echec ne doit jamais escamoter un trade.
+ */
+function rowHtml(kind, item, { entering = false } = {}) {
+  const outbound = kind === 'outbound';
+  const c = cards[kind].get(item.tradeId);
+  if (c) {
+    const key = kind + ':' + item.tradeId;
+    const enter = !entering && !shownCards.has(key) && !REDUCED_MOTION;
+    shownCards.add(key);
+    // La fiche vient du cache ; le statut et l'expiration, eux, viennent de la
+    // liste, relue à chaque vérification.
+    return cardHtml({ ...item, ...c, status: item.status || c.status, expiration: item.expiration || c.expiration },
+      { outbound, enter });
+  }
+  const err = failures[kind].get(item.tradeId);
+  if (err) return cardHtml({ ...item, analysis: null, url: tradeUrl(item.tradeId), error: err }, { outbound });
+  return skeletonHtml(item.tradeId);
+}
+
 function renderList() {
   const entering = listEl.dataset.tab !== tab;
   listEl.dataset.tab = tab;
@@ -2292,25 +2381,8 @@ function renderList() {
   // le sont donc tous, pas seulement ceux qui passent à l'écran.
   if (listFilter[tab] !== 'all' && listFilter[tab] !== 'tracked') queueHydrate(tab, snap.map(x => x.tradeId));
 
-  const outbound = tab === 'outbound';
   const top = listEl.scrollTop;
-  const rows = snap.filter(item => matchesFilter(tab, item)).map(item => {
-    const c = cards[tab].get(item.tradeId);
-    if (c) {
-      const key = tab + ':' + item.tradeId;
-      const enter = !entering && !shownCards.has(key) && !REDUCED_MOTION;
-      shownCards.add(key);
-      // La fiche vient du cache ; le statut et l'expiration, eux, viennent de la
-      // liste, relue à chaque vérification.
-      return cardHtml({ ...item, ...c, status: item.status || c.status, expiration: item.expiration || c.expiration },
-        { outbound, enter });
-    }
-    // Détail illisible : on affiche quand même le trade avec ce qu'on sait.
-    // Un échec d'évaluation ne doit jamais escamoter une ligne de la liste.
-    const err = failures[tab].get(item.tradeId);
-    if (err) return cardHtml({ ...item, analysis: null, url: tradeUrl(item.tradeId), error: err }, { outbound });
-    return skeletonHtml(item.tradeId);
-  });
+  const rows = snap.filter(item => matchesFilter(tab, item)).map(item => rowHtml(tab, item, { entering }));
 
   listEl.innerHTML = summaryHtml(tab, snap) + chipsHtml(tab, snap)
     + (rows.length ? rows.join('') : `<div class="ls-none">${t('Aucun trade dans cette catégorie.')}</div>`)
@@ -2338,27 +2410,25 @@ function bindImages(root) {
   });
 }
 
-function bindList() {
-  listEl.querySelectorAll('.tc [data-player]').forEach(el => {
+/**
+ * Ce qui se cable DANS une carte. Isole de `bindList` pour qu'une carte
+ * remplacee seule (voir `patchRows`) retrouve ses gestes sans que la liste
+ * entiere soit recablee — ce qui doublerait les ecouteurs des autres cartes.
+ */
+function bindRow(row) {
+  row.querySelectorAll('[data-player]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       openPlayer(Number(el.dataset.player));
     });
   });
-  listEl.querySelectorAll('.tc-body[data-zoom]').forEach(el => {
+  row.querySelectorAll('.tc-body[data-zoom]').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
       openZoom(Number(el.dataset.zoom));
     });
   });
-  bindImages(listEl);
-  listEl.querySelectorAll('button[data-lfilter]').forEach(el => {
-    el.addEventListener('click', () => {
-      listFilter[tab] = el.dataset.lfilter;
-      renderList();
-    });
-  });
-  listEl.querySelectorAll('button[data-expand]').forEach(el => {
+  row.querySelectorAll('button[data-expand]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = Number(el.dataset.expand);
@@ -2366,7 +2436,7 @@ function bindList() {
       renderList();
     });
   });
-  listEl.querySelectorAll('button[data-retry]').forEach(el => {
+  row.querySelectorAll('button[data-retry]').forEach(el => {
     el.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id = Number(el.dataset.retry);
@@ -2376,10 +2446,7 @@ function bindList() {
       await queueHydrate(tab, [id]);
     });
   });
-  listEl.querySelectorAll('button[data-more]').forEach(el => {
-    el.addEventListener('click', () => loadMore(el.dataset.more));
-  });
-  listEl.querySelectorAll('button[data-nix]').forEach(el => {
+  row.querySelectorAll('button[data-nix]').forEach(el => {
     if (Number(el.dataset.nix) === armedNix) {
       el.dataset.armed = '1';
       el.classList.add('armed');
@@ -2390,7 +2457,7 @@ function bindList() {
       quickDecline(el, Number(el.dataset.nix), el.dataset.kind);
     });
   });
-  listEl.querySelectorAll('button[data-track]').forEach(el => {
+  row.querySelectorAll('button[data-track]').forEach(el => {
     el.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id = Number(el.dataset.track);
@@ -2402,6 +2469,69 @@ function bindList() {
       renderList();
     });
   });
+}
+
+/** Les pastilles de filtre : hors carte, elles survivent a un remplacement. */
+function bindChips() {
+  listEl.querySelectorAll('button[data-lfilter]').forEach(el => {
+    el.addEventListener('click', () => {
+      listFilter[tab] = el.dataset.lfilter;
+      renderList();
+    });
+  });
+}
+
+function bindList() {
+  listEl.querySelectorAll('.tc').forEach(bindRow);
+  bindImages(listEl);
+  bindChips();
+  listEl.querySelectorAll('button[data-more]').forEach(el => {
+    el.addEventListener('click', () => loadMore(el.dataset.more));
+  });
+}
+
+/**
+ * Une carte fraichement evaluee prend la place de sa silhouette, sur place.
+ *
+ * Reecrire la liste entiere entre chaque lot de six detruisait et rechargeait
+ * toutes les vignettes — jusqu'a cinq fois de suite pour vingt-cinq trades —
+ * d'ou le clignotement et les sauts pendant le chargement. Rend `false` quand
+ * la structure peut avoir bouge : c'est alors au rendu complet de trancher.
+ */
+function patchRows(kind, ids) {
+  if (tab !== kind || zoomed) return false;
+  // Sous filtre, une carte evaluee peut entrer ou sortir de la liste : la
+  // structure change, le remplacement sur place ne suffit plus.
+  if (listFilter[kind] !== 'all') return false;
+
+  const slots = ids
+    .map(id => [id, listEl.querySelector(`.tc-skel[data-id="${id}"]`)])
+    .filter(([, el]) => el);
+  if (!slots.length) return false;
+
+  const snap = listOf(kind);
+  for (const [id, slot] of slots) {
+    const item = snap.find(x => x.tradeId === id);
+    if (!item) return false;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = rowHtml(kind, item);
+    const node = tpl.content.firstElementChild;
+    if (!node || node.classList.contains('tc-skel')) continue;   // toujours pas evalue
+    slot.replaceWith(node);
+    bindRow(node);
+    bindImages(node);
+  }
+
+  // Le bandeau compte les gagnants, les perdants et le meilleur trade : il
+  // suit les cartes. Les pastilles comptent les trades, filtre par filtre.
+  const head = listEl.querySelector('section.ls');
+  if (head) head.outerHTML = summaryHtml(kind, snap);
+  const chips = listEl.querySelector('.lchips');
+  if (chips) { chips.outerHTML = chipsHtml(kind, snap); bindChips(); }
+
+  lastListSig = listSignature(snap);
+  watchList();
+  return true;
 }
 
 /* =============================== données ================================ */
@@ -2453,7 +2583,9 @@ async function pumpHydrate(kind) {
       for (const id of ids) inflight.delete(kind + ':' + id);
     }
     // L'accueil lit aussi les cartes : meilleure offre, offre qui expire.
-    if ((tab === kind || tab === 'home') && !zoomed) renderList();
+    if (zoomed) continue;
+    if (tab === 'home') renderList();
+    else if (tab === kind && !patchRows(kind, ids)) renderList();
   }
 }
 
@@ -2600,10 +2732,30 @@ function moveTabIndicator() {
 }
 document.fonts?.ready?.then(moveTabIndicator);
 
+/**
+ * Les fleches parcourent la barre d'onglets : c'est ce qu'un lecteur d'ecran
+ * annonce et ce que le clavier attend d'un `role="tablist"`.
+ */
+document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
+  const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (!step) return;
+  const tabs = [...document.querySelectorAll('.tab')];
+  const at = tabs.indexOf(document.activeElement);
+  if (at < 0) return;
+  e.preventDefault();
+  const next = tabs[(at + step + tabs.length) % tabs.length];
+  next.focus();
+  next.click();
+});
+
 document.querySelectorAll('.tab').forEach(el => {
   el.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x => {
+      x.classList.remove('active');
+      x.setAttribute('aria-selected', 'false');
+    });
     el.classList.add('active');
+    el.setAttribute('aria-selected', 'true');
     tab = el.dataset.tab;
     moveTabIndicator();
     listEl.scrollTop = 0;

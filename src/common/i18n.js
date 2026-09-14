@@ -676,6 +676,10 @@ export function resolveLang(setting) {
 
 export function setLang(setting) {
   lang = resolveLang(setting);
+  // Le gabarit est ecrit avec `lang="fr"` en dur : sans cette ligne, un lecteur
+  // d'ecran prononce toute l'interface anglaise avec la phonetique francaise.
+  // Le service worker, lui, n'a pas de document.
+  if (typeof document !== 'undefined') document.documentElement.lang = lang;
   return lang;
 }
 

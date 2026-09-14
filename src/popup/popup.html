@@ -28,17 +28,17 @@
     <span id="status-cotes" class="cotes"></span>
   </div>
 
-  <nav class="tabs">
+  <nav class="tabs" role="tablist" aria-label="Onglets">
     <span class="tab-ind" aria-hidden="true"></span>
-    <button class="tab home active" data-tab="home" title="Accueil"><i data-ic="home"></i></button>
-    <button class="tab" data-tab="inbound">Reçus <span class="pill" id="cnt-inbound"></span></button>
-    <button class="tab" data-tab="outbound">Envoyés <span class="pill amber" id="cnt-tracked"></span></button>
-    <button class="tab" data-tab="completed">Terminés</button>
-    <button class="tab" data-tab="stats">Portefeuille</button>
-    <button class="tab" data-tab="history">Journal</button>
+    <button class="tab home active" data-tab="home" role="tab" aria-selected="true" aria-controls="list" title="Accueil" aria-label="Accueil"><i data-ic="home"></i></button>
+    <button class="tab" data-tab="inbound" role="tab" aria-selected="false" aria-controls="list">Reçus <span class="pill" id="cnt-inbound"></span></button>
+    <button class="tab" data-tab="outbound" role="tab" aria-selected="false" aria-controls="list">Envoyés <span class="pill amber" id="cnt-tracked"></span></button>
+    <button class="tab" data-tab="completed" role="tab" aria-selected="false" aria-controls="list">Terminés</button>
+    <button class="tab" data-tab="stats" role="tab" aria-selected="false" aria-controls="list">Portefeuille</button>
+    <button class="tab" data-tab="history" role="tab" aria-selected="false" aria-controls="list">Journal</button>
   </nav>
 
-  <main id="list" class="list"></main>
+  <main id="list" class="list" role="tabpanel" tabindex="0"></main>
 
   <footer class="foot">
     <a href="https://www.roblox.com/trades?tab=Inbound" target="_blank" rel="noreferrer">Mes trades <i data-ic="external"></i></a>
