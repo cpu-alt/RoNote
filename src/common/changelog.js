@@ -16,7 +16,25 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
+    version: '2.11.1',
+    title: item('Limites de debit et confirmation de refus', 'Rate limits and decline confirmation'),
+    items: [
+      item("Corrige : le refus en deux clics depuis une carte pouvait ne jamais partir. Un rafraichissement de fond remettait le bouton au repos, et le second clic ne faisait que le rearmer.",
+        'Fixed: the two-click decline on a card could never go through. A background refresh reset the button, so the second click only re-armed it.'),
+      item("Beaucoup moins d'erreurs « HTTP 429 » : RoNote provoquait lui-meme la limite de debit de Roblox en reprenant les vignettes une par une. Le message dit maintenant ce qui se passe et pour combien de temps, et « verifier maintenant » n'aggrave plus la pause.",
+        'Far fewer "HTTP 429" errors: RoNote was triggering Roblox's rate limit itself by retrying thumbnails one by one. The message now says what is happening and for how long, and "check now" no longer makes the pause worse.'),
+      item('Les listes ne clignotent plus pendant le chargement : une carte evaluee remplace sa silhouette sans redessiner tout le reste.',
+        'Lists no longer flicker while loading: an evaluated card replaces its placeholder without redrawing everything else.'),
+      item("Survol des courbes plus fluide, et la fiche d'un joueur ne se reconstruit plus trois fois a l'ouverture.",
+        'Smoother curve hovering, and a player card no longer rebuilds three times when it opens.'),
+      item("Au clavier : les fleches parcourent les onglets, et les fiches gardent le focus tant qu'elles sont ouvertes.",
+        'Keyboard: arrow keys move through the tabs, and open cards keep the focus while they are open.'),
+      item("Reglages : quand l'extension ne repond pas, la page le dit au lieu de rester figee.",
+        "Settings: when the extension does not answer, the page says so instead of freezing.")
+    ]
+  },
+  {
+    version: '2.11.0',
     title: item('Accueil, portefeuille refait et fiche joueur', 'Home, redesigned portfolio and player cards'),
     items: [
       item("Nouvel onglet Accueil : le résumé du jour dès l'ouverture — ton portefeuille, l'activité du jour et ce qui attend une action.",

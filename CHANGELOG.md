@@ -3,6 +3,52 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.11.1 — les limites de débit, et le refus qui ne partait pas
+
+**Corrigé : le refus en deux clics depuis une carte pouvait ne jamais partir.**
+L'état « armé » du bouton vivait dans la page seule : un rafraîchissement de
+fond reconstruisait la liste et le remettait au repos sans prévenir, si bien
+que le second clic ne faisait que le réarmer. Le trade restait là.
+
+**Beaucoup moins de « HTTP 429 ».** RoNote provoquait lui-même la limite de
+débit de Roblox : un lot de cent vignettes refusé était rejoué image par image,
+toutes en même temps et chacune avec son propre réessai. La limite se
+prolongeait toute seule, et c'est la vérification des trades — innocente — qui
+récoltait l'erreur et allumait le point rouge.
+
+- plus de reprise une par une sur une limite de débit ; hors limite, quatre à
+  la fois au lieu de cent ;
+- le délai demandé par Roblox (`Retry-After`) est respecté au lieu d'être
+  plafonné à 5 s ;
+- les 429 sur le détail d'un trade posent enfin une pause, au lieu d'enchaîner
+  dix appels condamnés d'avance ;
+- « vérifier maintenant » ne contourne plus la pause d'une limite de débit —
+  le réflexe devant le point rouge la prolongeait ;
+- les appels Rolimon's de la fiche joueur et du portefeuille ont eux aussi un
+  réessai et un délai ;
+- le message dit ce qui se passe et pour combien de temps, au lieu de
+  « HTTP 429 ».
+
+**Les listes ne clignotent plus pendant le chargement.** Elles étaient réécrites
+en entier après chaque lot de six évaluations — jusqu'à cinq fois de suite pour
+vingt-cinq trades, et autant de fois où toutes les vignettes étaient détruites
+puis rechargées. Une carte prête remplace maintenant sa silhouette sur place.
+
+**Le reste du rendu.** L'infobulle des courbes était mesurée après avoir été
+écrite, à chaque image du survol ; la fiche d'un joueur recalculait deux fois la
+même chronologie et se reconstruisait à chaque réponse reçue.
+
+**Au clavier et au lecteur d'écran.** La barre d'onglets est un vrai `tablist` :
+l'onglet actif est annoncé, les flèches gauche et droite le parcourent. Les
+fiches et le zoom prennent le focus, le gardent tant qu'ils sont ouverts, et le
+rendent en partant — le clavier restait derrière eux. L'attribut `lang` du
+document suit la langue choisie.
+
+**Réglages.** Quand le service worker ne répond pas, la page le dit au lieu de
+rester figée ; une réponse vide n'écrase plus les réglages affichés.
+
+---
+
 ## v2.11.0 — l'onglet Portefeuille refait
 
 **L'onglet Bénéfice devient Portefeuille**, pensé comme une appli de portefeuille :
