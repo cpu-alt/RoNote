@@ -429,6 +429,51 @@ try {
   check('identifiant invalide refuse avant tout appel reseau',
     rejected, 'identifiant de trade invalide');
 
+  /* --------------------------- trades suivis ---------------------------- */
+  group('Trades suivis');
+  {
+    // Le cas qui tenait la limite de debit allumee : des trades suivis tombes
+    // hors de la page Outbound (100 entrees) mais toujours ouverts. Ils
+    // redevenaient « a verifier » a chaque passage, six par six, sans fin.
+    const tracked = {};
+    for (let i = 1; i <= 19; i++) tracked[String(1000 + i)] = { at: Date.now(), auto: true };
+    let calls = 0;
+    const open = async () => { calls++; return { status: 'Open' }; };
+
+    await tracker.resolveTracked(tracked, new Set(), open);
+    check('premier passage : six details au plus', calls, 6);
+
+    calls = 0;
+    await tracker.resolveTracked(tracked, new Set(), open);
+    check('passage suivant : les six deja vus ne sont pas redemandes', calls, 6);
+
+    calls = 0;
+    await tracker.resolveTracked(tracked, new Set(), open);
+    await tracker.resolveTracked(tracked, new Set(), open);
+    check('les dix-neuf finissent par passer, puis plus rien', calls, 7);
+
+    calls = 0;
+    await tracker.resolveTracked(tracked, new Set(), open);
+    check('tant que le delai court, aucun appel', calls, 0);
+
+    // Dix minutes plus tard, le tour reprend.
+    const later = Date.now() + tracker.TRACK_RECHECK + 1000;
+    calls = 0;
+    await tracker.resolveTracked(tracked, new Set(), open, { now: later });
+    check('le delai passe, la verification reprend', calls, 6);
+
+    // Une issue definitive remonte telle quelle : c'est l'appelant qui retire
+    // le suivi et notifie.
+    const one = { 2001: { at: Date.now(), auto: true } };
+    const res = await tracker.resolveTracked(one, new Set(), async () => ({ status: 'Declined' }));
+    check('une issue definitive est rendue', res.map(r => r.status), ['Declined']);
+    // Un trade encore dans la liste Outbound n'est jamais interroge.
+    let asked = 0;
+    await tracker.resolveTracked({ 3001: { at: Date.now() } }, new Set([3001]),
+      async () => { asked++; return { status: 'Open' }; });
+    check('un trade encore dans la liste ne coute aucun appel', asked, 0);
+  }
+
   /* ------------------------ garde-fou de debit -------------------------- */
   group('Garde-fou de debit');
   // Roblox compte par IP : ce qui sort passe par une porte, une par hote. Un
@@ -453,6 +498,9 @@ try {
       check('429 : le service refusant est nomme', first?.source, "Rolimon's");
       check('429 : le delai demande est conserve', first?.retryAfter, 30);
       check("429 : la porte de Rolimon's est fermee", apiMod.rateHolds()['rolimons.com'] > 25000, true);
+      // Le plafond de cadence apprend du refus : divise par deux, jamais sous
+      // son plancher. C'est ce qui evite d'y retourner au meme rythme.
+      check('429 : le plafond de cadence est divise par deux', apiMod.rateLimits()['rolimons.com'], 15);
       check("429 : celle de Roblox reste ouverte", apiMod.rateHolds()['roblox.com'] || 0, 0);
 
       let calls = 0;
@@ -466,6 +514,7 @@ try {
       apiMod.clearRateHolds();
     }
     check('les portes se rouvrent', apiMod.rateHolds()['rolimons.com'], 0);
+    check('le plafond de cadence repart de son maximum', apiMod.rateLimits()['rolimons.com'], 30);
   }
 
   /* --------------------- demarrage du service worker -------------------- */

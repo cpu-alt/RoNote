@@ -10,6 +10,22 @@ L'état « armé » du bouton vivait dans la page seule : un rafraîchissement d
 fond reconstruisait la liste et le remettait au repos sans prévenir, si bien
 que le second clic ne faisait que le réarmer. Le trade restait là.
 
+**La cause principale : les trades suivis.** La liste des trades envoyés
+s'arrête à 100 entrées. Un trade suivi plus ancien que ces 100-là, mais toujours
+ouvert, n'y figure plus — RoNote redemandait alors son détail à chaque
+vérification, six par passage, indéfiniment. Avec une vingtaine de trades
+suivis, cela suffisait à tenir la limite de débit de Roblox allumée en
+permanence. Désormais un même trade suivi n'est plus redemandé avant dix
+minutes, et son issue arrive le plus souvent sans aucun appel : les listes
+Terminés et Inactifs la portent déjà, et retirent le suivi elles-mêmes — au
+passage, plus de risque de double notification.
+
+**Un plafond de cadence, qui s'apprend.** Limiter le nombre d'appels en vol ne
+limite pas leur cadence. RoNote se tient maintenant sous un plafond en requêtes
+par minute, par service ; chaque refus le divise par deux, et il remonte d'un
+cran après dix minutes sans refus. L'extension s'ajuste donc au quota réel de
+ton compte au lieu de le découvrir à chaque fois.
+
 **Une seule porte de sortie.** Au plus 5 requêtes Roblox et 3 Rolimon's à la
 fois, toutes origines confondues : la vérification de fond, le popup qui défile
 et une fiche joueur ouverte respectaient chacune « sa » limite sans rien savoir

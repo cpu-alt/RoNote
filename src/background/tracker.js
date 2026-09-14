@@ -44,6 +44,18 @@ export const isFinal = (status) => !OPEN_STATUSES.has(status);
 
 /** Details de trades suivis demandes au plus par passage. */
 export const TRACK_CHECKS = 6;
+/**
+ * Delai avant de redemander le detail d'un MEME trade suivi.
+ *
+ * Sans lui, un trade suivi tombe hors de la page Outbound (limitee a 100) mais
+ * toujours ouvert redevient « a verifier » a chaque passage, pour l'eternite :
+ * avec une vingtaine de suivis, c'etait six details toutes les 30 secondes,
+ * soit une douzaine de requetes par minute rien que pour eux — de quoi tenir
+ * la limite de debit de Roblox allumee en permanence. Une issue reste vue au
+ * pire dix minutes plus tard, et les listes Termines / Inactifs la donnent
+ * souvent bien avant.
+ */
+export const TRACK_RECHECK = 10 * 60 * 1000;
 /** Un suivi introuvable depuis un mois ne se resoudra plus : on l'abandonne. */
 export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
@@ -55,7 +67,8 @@ export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
  * trade, et un statut encore ouvert laisse le suivi en place.
  *
  * Chaque detail est un appel a Roblox : au plus `max` par passage, ceux
- * verifies depuis le plus longtemps d'abord (`checkedAt`, ecrit sur le suivi).
+ * verifies depuis le plus longtemps d'abord (`checkedAt`, ecrit sur le suivi),
+ * et jamais deux fois le meme avant `recheck`.
  * Avec des centaines d'envois ouverts, verifier tout a chaque passage menait
  * droit a la limite de debit. Une limite atteinte arrete la boucle et remonte :
  * insister ne ferait que la prolonger.
@@ -66,13 +79,15 @@ export const TRACK_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
  * @returns [{ tradeId, status, detail, meta }]
  */
 export async function resolveTracked(tracked, openIds, fetchDetail,
-  { max = TRACK_CHECKS, maxAge = TRACK_MAX_AGE, now = Date.now() } = {}) {
+  { max = TRACK_CHECKS, maxAge = TRACK_MAX_AGE, recheck = TRACK_RECHECK, now = Date.now() } = {}) {
   const due = [];
   for (const key of Object.keys(tracked || {})) {
     const id = Number(key);
     if (!Number.isFinite(id) || openIds.has(id)) continue;
     const meta = tracked[key];
     if (meta?.at && now - meta.at > maxAge) { delete tracked[key]; continue; }
+    // Deja regarde il y a peu : son sort n'a pas change en trente secondes.
+    if (meta?.checkedAt && now - meta.checkedAt < recheck) continue;
     due.push(key);
   }
   due.sort((a, b) => (tracked[a]?.checkedAt || 0) - (tracked[b]?.checkedAt || 0));

@@ -422,7 +422,13 @@ async function stepInactive(ctx) {
 
   for (const t of r.fresh) {
     const id = Number(t.id);
-    if (ctx.state.tracked[id]) continue;        // le tracker s'en occupe (evite le doublon)
+    // Un trade suivi qui reapparait ici a son sort ecrit dans la liste : on le
+    // traite tout de suite, avec les regles du suivi, et on retire le suivi.
+    // Le laisser au tracker coutait un detail de plus et, depuis que le meme
+    // trade n'est plus redemande a chaque passage, jusqu'a dix minutes
+    // d'attente avant de prevenir.
+    const meta = ctx.state.tracked[id] || null;
+    if (meta) delete ctx.state.tracked[id];
 
     const status = normStatus(t.status);
     const dir = directionOf(ctx.streams, id);
@@ -434,10 +440,17 @@ async function stepInactive(ctx) {
         // apparaitra dans Outbound, il faudra le suivre.
         noteCounterByMe(ctx.state.myCounters, pid, id, ctx.state.links[id]?.round || 1);
       } else if (dir === 'outbound') {
-        // Le partenaire a contre un trade envoye qui n'etait pas suivi.
-        noteCounterFromPartner(ctx.state.counterHints, pid, id, (ctx.state.links[id]?.round || 1) + 1);
-        if (pid && ctx.settings.notifyUntrackedOutbound && ctx.settings.notifyOutbound.countered) {
-          ctx.pendingCountered.set(pid, stubCard(t, 'outbound_countered'));
+        // Le partenaire a contre un trade envoye. Un suivi pose a la main
+        // previent toujours ; l'auto-suivi et les non-suivis suivent les reglages.
+        noteCounterFromPartner(ctx.state.counterHints, pid, id, (meta?.round || ctx.state.links[id]?.round || 1) + 1);
+        const wanted = meta
+          ? (!meta.auto || ctx.settings.notifyOutbound.countered)
+          : (ctx.settings.notifyUntrackedOutbound && ctx.settings.notifyOutbound.countered);
+        if (pid && wanted) {
+          const card = stubCard(t, 'outbound_countered');
+          card.counterTo = meta?.counterTo || null;
+          card.round = meta?.round || 1;
+          ctx.pendingCountered.set(pid, card);
         }
       }
       continue;
@@ -455,16 +468,23 @@ async function stepInactive(ctx) {
       continue;
     }
 
-    // Declined / Expired sur un trade envoye mais non suivi
-    if (dir === 'outbound' && ctx.settings.watchOutbound && ctx.settings.notifyUntrackedOutbound) {
+    // Declined / Expired sur un trade envoye : suivi a la main, auto-suivi ou
+    // pas suivi du tout — chacun ses regles, une seule notification.
+    if (dir === 'outbound' && ctx.settings.watchOutbound) {
       const info = OUTCOMES[status];
-      if (!info || !ctx.settings.notifyOutbound[info.opt]) continue;
+      if (!info) continue;
+      const wanted = meta
+        ? (!meta.auto || ctx.settings.notifyOutbound[info.opt])
+        : (ctx.settings.notifyUntrackedOutbound && ctx.settings.notifyOutbound[info.opt]);
+      if (!wanted) continue;
       const card = await safeCard(() => buildCard(id, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
         || stubCard(t, info.kind);
       card.kind = info.kind;
       card.statusLabel = info.title;
+      card.counterTo = meta?.counterTo || null;
+      card.round = meta?.round || 1;
       ctx.events.push(card);
-      record(ctx, card, { status });
+      record(ctx, card, { status, tracked: !!meta });
     }
   }
 }
@@ -596,6 +616,9 @@ async function stepCompleted(ctx) {
     // accepte » — pas un simple « trade complete » : le titre, le son et le
     // point de vue (tu as recu / tu as donne) de la notification changent.
     const mine = directionOf(ctx.streams, t.id) === 'outbound';
+    // Meme raison qu'en Inactifs : la liste dit que c'est fini, le tracker n'a
+    // plus a en demander le detail — et ne notifiera donc pas une seconde fois.
+    delete ctx.state.tracked[t.id];
     const kind = mine ? 'outbound_accepted' : 'completed';
     const card = await safeCard(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
       || stubCard(t, kind);

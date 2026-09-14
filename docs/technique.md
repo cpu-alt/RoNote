@@ -819,6 +819,16 @@ tous les chiffres.
   pendant une limite de débit ne fait que la prolonger. Au niveau transport,
   une seule attente est tenue sur place, et seulement si elle vaut 10 s ou
   moins : au-delà, l'erreur remonte avec son délai
+- **Un plafond de cadence par hôte**, en requêtes par minute (90 pour Roblox,
+  30 pour Rolimon's au départ). Limiter les appels *en vol* ne limite pas leur
+  *cadence* : cinq à la fois, sans arrêt, reste soutenu. Le plafond s'apprend —
+  chaque `429` le divise par deux, jusqu'à un plancher, et il remonte d'un cran
+  après dix minutes sans refus
+- **Un trade suivi n'est pas redemandé avant 10 min.** La liste Outbound
+  s'arrête à 100 entrées : un trade suivi plus ancien, toujours ouvert, en sort
+  et redevenait « à vérifier » à chaque passage — six détails toutes les 30 s,
+  sans fin. Son issue, elle, arrive gratuitement par les listes Terminés et
+  Inactifs, qui la portent et retirent le suivi elles-mêmes
 - **Une seule porte de sortie, par hôte** : au plus 5 requêtes Roblox et 3
   Rolimon's en vol, toutes origines confondues. La vérification de fond, le
   popup qui défile et une fiche joueur ouverte respectaient chacune « sa »

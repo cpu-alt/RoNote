@@ -48,6 +48,21 @@ const ROBLOX_TABS = 'https://www.roblox.com/*';
  */
 const MAX_INFLIGHT = { 'roblox.com': 5, "rolimons.com": 3 };
 
+/**
+ * Plafond de cadence, en requetes par minute et par hote.
+ *
+ * Limiter les appels EN VOL ne limite pas leur nombre dans le temps : cinq a
+ * la fois, sans arret, reste une cadence soutenue — et c'est la cadence que
+ * Roblox compte. Ni Roblox ni Rolimon's ne publient leurs quotas : on part
+ * large, et on apprend. Chaque 429 divise le plafond par deux, jusqu'a un
+ * plancher ; apres dix minutes sans refus, il remonte d'un cran.
+ */
+const RATE = {
+  'roblox.com':   { start: 90, min: 15 },
+  "rolimons.com": { start: 30, min: 6 }
+};
+const RATE_RECOVER = 10 * 60 * 1000;
+
 const gates = new Map();
 
 function gateFor(url) {
@@ -55,19 +70,57 @@ function gateFor(url) {
   try { host = new URL(url).hostname.endsWith('rolimons.com') ? 'rolimons.com' : 'roblox.com'; } catch { /* url relative : Roblox */ }
   let g = gates.get(host);
   if (!g) {
-    g = { host, label: host === 'rolimons.com' ? "Rolimon's" : 'Roblox', free: MAX_INFLIGHT[host], queue: [], holdUntil: 0 };
+    g = {
+      host, label: host === 'rolimons.com' ? "Rolimon's" : 'Roblox',
+      free: MAX_INFLIGHT[host], queue: [], holdUntil: 0,
+      rate: RATE[host].start, tokens: RATE[host].start, filledAt: Date.now(), lastRateHit: 0
+    };
     gates.set(host, g);
   }
   return g;
 }
 
+/** Remet des jetons dans le seau, au prorata du temps ecoule. */
+function refill(g) {
+  const now = Date.now();
+  g.tokens = Math.min(g.rate, g.tokens + ((now - g.filledAt) / 60000) * g.rate);
+  g.filledAt = now;
+  if (g.lastRateHit && now - g.lastRateHit > RATE_RECOVER) {
+    g.rate = Math.min(RATE[g.host].start, Math.ceil(g.rate * 1.5));
+    g.lastRateHit = now;
+  }
+}
+
+/** Attend son tour dans la cadence. L'attente se compte en secondes, jamais plus. */
+async function takeToken(g) {
+  for (;;) {
+    refill(g);
+    if (g.tokens >= 1) { g.tokens -= 1; return; }
+    await sleep(Math.max(50, Math.ceil((1 - g.tokens) * (60000 / g.rate))));
+  }
+}
+
 const take = (g) => (g.free > 0 ? (g.free--, Promise.resolve()) : new Promise(go => g.queue.push(go)));
 const give = (g) => { const next = g.queue.shift(); if (next) next(); else g.free++; };
 
-/** Un 429 ferme la porte de son hote : les autres appels n'ont pas a le revivre. */
+/**
+ * Un 429 ferme la porte de son hote : les autres appels n'ont pas a le revivre.
+ * Et il apprend quelque chose — le plafond de cadence etait trop haut pour ce
+ * compte, a cette heure : on le divise par deux.
+ */
 function holdBack(url, seconds) {
   const g = gateFor(url);
   g.holdUntil = Math.max(g.holdUntil, Date.now() + Math.max(1, seconds) * 1000);
+  g.rate = Math.max(RATE[g.host].min, Math.floor(g.rate / 2));
+  g.tokens = Math.min(g.tokens, g.rate);
+  g.lastRateHit = Date.now();
+}
+
+/** Le plafond de cadence appris pour chaque hote, en requetes par minute. */
+export function rateLimits() {
+  const out = {};
+  for (const g of gates.values()) out[g.host] = g.rate;
+  return out;
 }
 
 /** Ce qui reste d'une pause de debit, par hote. Diagnostic et auto-tests. */
@@ -79,7 +132,12 @@ export function rateHolds() {
 
 /** Rouvre les portes. Les auto-tests s'en servent ; ailleurs, les pauses expirent seules. */
 export function clearRateHolds() {
-  for (const g of gates.values()) g.holdUntil = 0;
+  for (const g of gates.values()) {
+    g.holdUntil = 0;
+    g.rate = RATE[g.host].start;
+    g.tokens = g.rate;
+    g.lastRateHit = 0;
+  }
 }
 
 /**
@@ -97,6 +155,7 @@ async function through(url, run) {
   try {
     const wait = g.holdUntil - Date.now();
     if (wait > 0) await sleep(Math.min(wait, RETRY_AFTER_MAX));
+    await takeToken(g);
     return await run();
   } finally {
     give(g);

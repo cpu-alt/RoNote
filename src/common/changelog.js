@@ -21,6 +21,10 @@ export const RELEASES = [
     items: [
       item("Corrige : le refus en deux clics depuis une carte pouvait ne jamais partir. Un rafraichissement de fond remettait le bouton au repos, et le second clic ne faisait que le rearmer.",
         'Fixed: the two-click decline on a card could never go through. A background refresh reset the button, so the second click only re-armed it.'),
+      item("Corrige la cause principale des « HTTP 429 » : les trades suivis tombes hors de la liste des 100 derniers envois etaient redemandes a chaque verification, sans fin. Un meme trade suivi n'est plus redemande avant dix minutes, et son issue arrive le plus souvent sans aucun appel.",
+        'Fixed the main cause of "HTTP 429" errors: tracked trades that fell outside the list of the last 100 outbound trades were re-fetched on every check, endlessly. The same tracked trade is no longer re-fetched within ten minutes, and its outcome usually arrives without any call at all.'),
+      item("RoNote se tient sous un plafond de requetes par minute, et l'ajuste tout seul : chaque refus le divise par deux, il remonte apres dix minutes sans refus.",
+        'RoNote now keeps under a requests-per-minute ceiling and tunes it by itself: every refusal halves it, and it climbs back after ten minutes without one.'),
       item("Une seule porte de sortie : au plus 5 requetes Roblox et 3 Rolimon's a la fois, toutes origines confondues. Une limite de debit met en pause tout ce qui parle a ce service, et le message dit lequel des deux limite.",
         "A single way out: at most 5 Roblox and 3 Rolimon's requests at a time, from every source combined. A rate limit now pauses everything talking to that service, and the message says which of the two is limiting."),
       item("Beaucoup moins d'erreurs « HTTP 429 » : RoNote provoquait lui-meme la limite de debit de Roblox en reprenant les vignettes une par une. Le message dit maintenant ce qui se passe et pour combien de temps, et « verifier maintenant » n'aggrave plus la pause.",
