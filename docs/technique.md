@@ -819,6 +819,16 @@ tous les chiffres.
   pendant une limite de débit ne fait que la prolonger. Au niveau transport,
   une seule attente est tenue sur place, et seulement si elle vaut 10 s ou
   moins : au-delà, l'erreur remonte avec son délai
+- **Une seule porte de sortie, par hôte** : au plus 5 requêtes Roblox et 3
+  Rolimon's en vol, toutes origines confondues. La vérification de fond, le
+  popup qui défile et une fiche joueur ouverte respectaient chacune « sa »
+  limite sans rien savoir des autres, et leurs salves s'additionnaient. Un
+  `429` ferme la porte de son hôte pour tout le monde : pendant une pause
+  courte les appels attendent, pendant une longue ils sont refusés tout de
+  suite avec le délai — les garder en file les relâcherait tous ensemble à la
+  réouverture
+- **Le backoff des limites de débit s'écarte à chaque récidive** : 30 s, puis
+  60, puis 90, plafonné à 5 min, et remis à zéro dès qu'une vérification passe
 - **Aucune reprise objet par objet sur `429`** : un lot de vignettes refusé pour
   limite de débit n'est pas rejoué image par image (c'était jusqu'à 100 requêtes
   d'un coup, qui entretenaient la limite). Les vignettes manquantes reviennent au

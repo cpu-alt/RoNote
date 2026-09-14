@@ -10,6 +10,14 @@ L'état « armé » du bouton vivait dans la page seule : un rafraîchissement d
 fond reconstruisait la liste et le remettait au repos sans prévenir, si bien
 que le second clic ne faisait que le réarmer. Le trade restait là.
 
+**Une seule porte de sortie.** Au plus 5 requêtes Roblox et 3 Rolimon's à la
+fois, toutes origines confondues : la vérification de fond, le popup qui défile
+et une fiche joueur ouverte respectaient chacune « sa » limite sans rien savoir
+des autres, et leurs salves s'additionnaient. Une limite de débit ferme
+désormais la porte du service concerné pour tout le monde, au lieu que chaque
+appel suivant aille la chercher à son tour. Et la pause s'écarte si la limite
+revient : 30 s, puis 60, puis 90, plafonné à 5 min.
+
 **Beaucoup moins de « HTTP 429 ».** RoNote provoquait lui-même la limite de
 débit de Roblox : un lot de cent vignettes refusé était rejoué image par image,
 toutes en même temps et chacune avec son propre réessai. La limite se

@@ -34,6 +34,75 @@ const SOLO_THUMB_PARALLEL = 4;
 /** Onglets ou rejouer une requete : ceux du site, la ou la session est ouverte. */
 const ROBLOX_TABS = 'https://www.roblox.com/*';
 
+/* ====================== garde-fou de debit, par hote ===================== */
+
+/**
+ * Roblox compte les requetes par adresse IP, tous ses sous-domaines confondus.
+ * Or la verification de fond, le popup qui defile et une fiche joueur ouverte
+ * respectaient chacun « sa » limite, sans rien savoir des autres : leurs
+ * salves s'additionnaient, et la limite tombait sur celui qui passait la.
+ *
+ * Tout ce qui sort passe donc par une seule porte, une par hote. Et un 429
+ * vaut pour l'hote entier : la porte se ferme pour tout le monde le temps
+ * demande, au lieu de laisser chaque appel suivant aller le chercher.
+ */
+const MAX_INFLIGHT = { 'roblox.com': 5, "rolimons.com": 3 };
+
+const gates = new Map();
+
+function gateFor(url) {
+  let host = 'roblox.com';
+  try { host = new URL(url).hostname.endsWith('rolimons.com') ? 'rolimons.com' : 'roblox.com'; } catch { /* url relative : Roblox */ }
+  let g = gates.get(host);
+  if (!g) {
+    g = { host, label: host === 'rolimons.com' ? "Rolimon's" : 'Roblox', free: MAX_INFLIGHT[host], queue: [], holdUntil: 0 };
+    gates.set(host, g);
+  }
+  return g;
+}
+
+const take = (g) => (g.free > 0 ? (g.free--, Promise.resolve()) : new Promise(go => g.queue.push(go)));
+const give = (g) => { const next = g.queue.shift(); if (next) next(); else g.free++; };
+
+/** Un 429 ferme la porte de son hote : les autres appels n'ont pas a le revivre. */
+function holdBack(url, seconds) {
+  const g = gateFor(url);
+  g.holdUntil = Math.max(g.holdUntil, Date.now() + Math.max(1, seconds) * 1000);
+}
+
+/** Ce qui reste d'une pause de debit, par hote. Diagnostic et auto-tests. */
+export function rateHolds() {
+  const out = {};
+  for (const g of gates.values()) out[g.host] = Math.max(0, g.holdUntil - Date.now());
+  return out;
+}
+
+/** Rouvre les portes. Les auto-tests s'en servent ; ailleurs, les pauses expirent seules. */
+export function clearRateHolds() {
+  for (const g of gates.values()) g.holdUntil = 0;
+}
+
+/**
+ * Passe la porte, puis lance la requete. Une pause courte s'attend sur place ;
+ * une longue est refusee tout de suite, avec son delai — garder cent appels en
+ * file reviendrait a les relacher tous ensemble a la reouverture, et la limite
+ * repartirait pour un tour.
+ */
+async function through(url, run) {
+  const g = gateFor(url);
+  if (g.holdUntil - Date.now() > RETRY_AFTER_MAX) {
+    throw new ApiError('HTTP 429', 429, Math.ceil((g.holdUntil - Date.now()) / 1000), g.label);
+  }
+  await take(g);
+  try {
+    const wait = g.holdUntil - Date.now();
+    if (wait > 0) await sleep(Math.min(wait, RETRY_AFTER_MAX));
+    return await run();
+  } finally {
+    give(g);
+  }
+}
+
 let csrfToken = '';
 
 /** Jeton preleve sur une page Roblox ouverte (aucune requete supplementaire). */
@@ -43,11 +112,15 @@ export function setCsrfToken(t) {
 export const hasCsrfToken = () => !!csrfToken;
 
 export class ApiError extends Error {
-  constructor(message, status, retryAfter) {
+  constructor(message, status, retryAfter, source = 'Roblox') {
     super(message);
     this.name = 'ApiError';
     this.status = status ?? 0;
     this.retryAfter = retryAfter ?? 0;
+    // Qui a refuse : « Roblox » ou « Rolimon's ». Leurs quotas sont distincts,
+    // et un message qui accuse le mauvais service envoie chercher au mauvais
+    // endroit.
+    this.source = source;
   }
   get isAuth() { return this.status === 401 || this.status === 403; }
   get isRate() { return this.status === 429; }
@@ -95,8 +168,13 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   // Roblox rejette certains appels sans jeton, meme en GET.
   if (csrfToken) headers['x-csrf-token'] = csrfToken;
   try {
-    res = await fetchWithTimeout(url, { credentials: 'include', headers });
-  } catch (e) { netErr = e; }
+    res = await through(url, () => fetchWithTimeout(url, { credentials: 'include', headers }));
+  } catch (e) {
+    // La porte refuse tout de suite pendant une longue pause : c'est deja
+    // l'erreur finale, inutile de la rehabiller.
+    if (e instanceof ApiError) throw e;
+    netErr = e;
+  }
 
   // Roblox renvoie un jeton frais dans l'en-tete quand le notre est perime.
   const fresh = res?.headers?.get?.('x-csrf-token');
@@ -116,10 +194,11 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   // Quand Roblox annonce une pause plus longue que RETRY_AFTER_MAX, la tenir
   // ici garderait le cycle de verification ouvert pour rien : on rend la main
   // avec le delai demande, et le service worker pose son backoff dessus.
-  if (res?.status === 429 && retryOn429) {
+  if (res?.status === 429) {
     const asked = Number(res.headers?.get('retry-after')) || 0;
     const wait = (asked || 1.5) * 1000;
-    if (wait <= RETRY_AFTER_MAX) {
+    holdBack(url, asked || 5);
+    if (retryOn429 && wait <= RETRY_AFTER_MAX) {
       await sleep(wait);
       return apiGet(url, { allowRelay, relayAnyError, retryOnCsrf, retryOn429: false });
     }
@@ -140,7 +219,7 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   }
   const retryAfter = Number(res?.headers?.get('retry-after') || 0);
   const base = netErr ? `Réseau: ${netErr.message}` : `HTTP ${status}`;
-  throw new ApiError(relayNote ? `${base} — ${relayNote}` : base, status, retryAfter);
+  throw new ApiError(relayNote ? `${base} — ${relayNote}` : base, status, retryAfter, gateFor(url).label);
 }
 
 /** Suit `nextPageCursor` jusqu'au bout (ou jusqu'au plafond de pages). */
@@ -683,19 +762,22 @@ export async function getUserBundles(userId, maxPages = 8) {
 /* ============================== Rolimon's =============================== */
 
 async function rolimons(url, what, retryOn429 = true) {
-  const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } });
+  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'application/json' } }));
   if (!r.ok) {
     // Meme regle que pour Roblox : une courte attente si Rolimon's la demande,
     // sinon l'erreur remonte avec son delai et le backoff du worker s'en charge.
     const asked = Number(r.headers?.get('retry-after')) || 0;
-    if (r.status === 429 && retryOn429 && (asked || 1.5) * 1000 <= RETRY_AFTER_MAX) {
-      await sleep((asked || 1.5) * 1000);
-      return rolimons(url, what, false);
+    if (r.status === 429) {
+      holdBack(url, asked || 5);
+      if (retryOn429 && (asked || 1.5) * 1000 <= RETRY_AFTER_MAX) {
+        await sleep((asked || 1.5) * 1000);
+        return rolimons(url, what, false);
+      }
     }
-    throw new ApiError('HTTP ' + r.status, r.status, asked);
+    throw new ApiError('HTTP ' + r.status, r.status, asked, "Rolimon's");
   }
   const j = await r.json();
-  if (!j?.success) throw new ApiError(`${what} indisponible chez Rolimon's`, 0);
+  if (!j?.success) throw new ApiError(`${what} indisponible chez Rolimon's`, 0, 0, "Rolimon's");
   return j;
 }
 
@@ -745,8 +827,12 @@ export async function getPlayerAssets(userId) {
  * c'est la meme donnee, a la virgule pres, que le graphique du site.
  */
 export async function getPlayerHistory(userId) {
-  const r = await fetchWithTimeout(`https://www.rolimons.com/player/${userId}`, { headers: { Accept: 'text/html' } }, 30000);
-  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status);
+  const url = `https://www.rolimons.com/player/${userId}`;
+  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 30000));
+  if (!r.ok) {
+    if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 5);
+    throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
+  }
   const html = await r.text();
 
   const m = /var\s+chart_data\s*=\s*(\{[^\n]*?\});/.exec(html);
@@ -838,8 +924,12 @@ export function parseItemHistory(html, now = Date.now()) {
 export async function getItemHistory(itemId) {
   const id = Number(itemId);
   if (!id) throw new ApiError("identifiant d'objet invalide", 0);
-  const r = await fetchWithTimeout(`https://www.rolimons.com/item/${id}`, { headers: { Accept: 'text/html' } }, 30000);
-  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status);
+  const url = `https://www.rolimons.com/item/${id}`;
+  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 30000));
+  if (!r.ok) {
+    if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 5);
+    throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
+  }
   return parseItemHistory(await r.text());
 }
 

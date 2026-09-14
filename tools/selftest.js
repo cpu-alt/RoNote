@@ -421,6 +421,45 @@ try {
   check('identifiant invalide refuse avant tout appel reseau',
     rejected, 'identifiant de trade invalide');
 
+  /* ------------------------ garde-fou de debit -------------------------- */
+  group('Garde-fou de debit');
+  // Roblox compte par IP : ce qui sort passe par une porte, une par hote. Un
+  // 429 la ferme pour tout le monde, sinon chaque appel suivant va le chercher.
+  {
+    const realFetch = globalThis.fetch;
+    let running = 0, peak = 0;
+    globalThis.fetch = async () => {
+      running++;
+      peak = Math.max(peak, running);
+      await new Promise(r => setTimeout(r, 15));
+      running--;
+      return new Response(JSON.stringify({ success: true, name: 'x' }), { status: 200 });
+    };
+    try {
+      await Promise.all(Array.from({ length: 10 }, (_, i) => apiMod.getPlayerInfo(1000 + i)));
+      check("Rolimon's : jamais plus de 3 appels en meme temps", peak, 3);
+
+      globalThis.fetch = async () => new Response('{}', { status: 429, headers: { 'retry-after': '30' } });
+      let first = null;
+      try { await apiMod.getPlayerInfo(2001); } catch (e) { first = e; }
+      check('429 : le service refusant est nomme', first?.source, "Rolimon's");
+      check('429 : le delai demande est conserve', first?.retryAfter, 30);
+      check("429 : la porte de Rolimon's est fermee", apiMod.rateHolds()['rolimons.com'] > 25000, true);
+      check("429 : celle de Roblox reste ouverte", apiMod.rateHolds()['roblox.com'] || 0, 0);
+
+      let calls = 0;
+      globalThis.fetch = async () => { calls++; return new Response('{}', { status: 200 }); };
+      let second = null;
+      try { await apiMod.getPlayerInfo(2002); } catch (e) { second = e; }
+      check('pendant la pause : refus immediat', second?.status, 429);
+      check('pendant la pause : aucun appel reseau de plus', calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+      apiMod.clearRateHolds();
+    }
+    check('les portes se rouvrent', apiMod.rateHolds()['rolimons.com'], 0);
+  }
+
   /* --------------------- demarrage du service worker -------------------- */
   group('Service worker');
   // L'importer le fait vraiment demarrer : c'est le seul moyen de verifier

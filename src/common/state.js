@@ -73,7 +73,7 @@ export function withStateDefaults(st) {
   return {
     userId: null, userName: null, meCheckedAt: 0,
     inboundCount: 0, tickCount: 0,
-    lastPollAt: 0, lastOkAt: 0, lastError: null, backoffUntil: 0, backoffWhy: '',
+    lastPollAt: 0, lastOkAt: 0, lastError: null, backoffUntil: 0, backoffWhy: '', rateHits: 0,
     tracked: {}, counterHints: {}, myCounters: {}, links: {},
     snapshot: { inbound: [], completed: [], outbound: [], at: 0 },
     ...(st || {})

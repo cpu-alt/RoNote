@@ -21,6 +21,8 @@ export const RELEASES = [
     items: [
       item("Corrige : le refus en deux clics depuis une carte pouvait ne jamais partir. Un rafraichissement de fond remettait le bouton au repos, et le second clic ne faisait que le rearmer.",
         'Fixed: the two-click decline on a card could never go through. A background refresh reset the button, so the second click only re-armed it.'),
+      item("Une seule porte de sortie : au plus 5 requetes Roblox et 3 Rolimon's a la fois, toutes origines confondues. Une limite de debit met en pause tout ce qui parle a ce service, et le message dit lequel des deux limite.",
+        "A single way out: at most 5 Roblox and 3 Rolimon's requests at a time, from every source combined. A rate limit now pauses everything talking to that service, and the message says which of the two is limiting."),
       item("Beaucoup moins d'erreurs « HTTP 429 » : RoNote provoquait lui-meme la limite de debit de Roblox en reprenant les vignettes une par une. Le message dit maintenant ce qui se passe et pour combien de temps, et « verifier maintenant » n'aggrave plus la pause.",
         'Far fewer "HTTP 429" errors: RoNote was triggering Roblox's rate limit itself by retrying thumbnails one by one. The message now says what is happening and for how long, and "check now" no longer makes the pause worse.'),
       item('Les listes ne clignotent plus pendant le chargement : une carte evaluee remplace sa silhouette sans redessiner tout le reste.',

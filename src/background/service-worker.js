@@ -871,6 +871,7 @@ async function tick(reason = 'manual') {
     state.lastError = null;
     state.backoffUntil = 0;
     state.backoffWhy = '';
+    state.rateHits = 0;
     state.tickCount = (state.tickCount || 0) + 1;
 
     const windowMs = Math.max(1, Number(settings.counterWindowMinutes) || 90) * 60000;
@@ -1009,11 +1010,17 @@ async function handleError(e, state, streams, settings) {
         t('Connecte-toi sur roblox.com dans ce navigateur, puis ouvre un onglet Roblox. La surveillance reprendra automatiquement.'));
     }
   } else if (err.isRate) {
-    const wait = Math.max(60, err.retryAfter || 0);
+    // Une premiere limite se passe en une demi-minute. Si elle revient, c'est
+    // que la cadence est trop haute pour ce compte : on s'ecarte davantage a
+    // chaque fois, au lieu d'y retourner au meme rythme.
+    state.rateHits = (state.rateHits || 0) + 1;
+    const wait = Math.max(Math.min(300, 30 * state.rateHits), err.retryAfter || 0);
     state.backoffUntil = Date.now() + wait * 1000;
     state.backoffWhy = 'rate';
-    // « HTTP 429 » ne dit rien a personne, et laisse croire a une panne.
-    state.lastError.message = t('Trop de requêtes : Roblox nous met en pause {n} s.', { n: wait });
+    // « HTTP 429 » ne dit rien a personne, et laisse croire a une panne. Le
+    // service est nomme : Roblox et Rolimon's ont des quotas distincts.
+    state.lastError.message = t('Trop de requêtes : {who} nous met en pause {n} s.',
+      { who: err.source || 'Roblox', n: wait });
   } else {
     const prev = state.backoffUntil && state.backoffUntil > Date.now() ? state.backoffUntil - Date.now() : 15000;
     state.backoffUntil = Date.now() + Math.min(5 * 60000, prev * 2);
