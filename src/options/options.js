@@ -1,26 +1,10 @@
 import { B } from '../common/shim.js';
 import { SOUNDS } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
-import { t, setLang, translateDom, currentLang, locale } from '../common/i18n.js';
+import { t, currentLang, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { RELEASES } from '../common/changelog.js';
-
-const $ = (s) => document.querySelector(s);
-const send = (msg) => B.runtime.sendMessage(msg);
-
-/**
- * Le service worker MV3 dort entre deux verifications. Un message parti juste
- * avant son reveil revient `undefined` — et la page restait alors figee sur le
- * gabarit francais, sans un mot. On retente une fois, puis on le dit.
- */
-async function ask(msg) {
-  for (let tries = 0; tries < 2; tries++) {
-    const r = await send(msg).catch(() => null);
-    if (r) return r;
-    await new Promise(done => setTimeout(done, 250));
-  }
-  return null;
-}
+import { $, send, ask, applyLang, onStoredChange } from '../common/ui.js';
 
 /** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
 function showUnreachable() {
@@ -55,14 +39,10 @@ function fillSounds() {
   for (const k of SOUND_KEYS) $('#snd-' + k).innerHTML = options;
 }
 
-let domLang = null;   // langue deja appliquee au gabarit HTML
-
 function render() {
-  // Le gabarit est ecrit en francais et `translateDom` remplace en place :
-  // il n'est jouable qu'une fois. Changer de langue repart d'une page neuve.
-  const lang = setLang(settings.lang);
-  if (domLang === null) { domLang = lang; translateDom(document); }
-  else if (domLang !== lang) { location.reload(); return; }
+  // La langue du gabarit (voir `common/ui.js`) : changer de langue en cours de
+  // route repart d'une page neuve, et il n'y a alors plus rien a dessiner.
+  if (!applyLang(settings.lang)) return;
 
   // La page se redessine aussi quand le service worker ecrit : un nombre ou
   // une heure en cours de saisie ne doit pas etre remis a l'ancienne valeur.
@@ -354,11 +334,6 @@ load();
  * relecture periodique reveillait le service worker tant que l'onglet restait
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
-let reloadTimer = null;
-B.storage?.onChanged?.addListener((changes, area) => {
-  if (area !== 'local' || !(changes.settings || changes.state || changes.streams)) return;
-  clearTimeout(reloadTimer);
-  reloadTimer = setTimeout(load, 300);
-});
+onStoredChange(['settings', 'state', 'streams'], 300, () => load());
 // Les « il y a 3 min » du diagnostic avancent sans rien relire.
 setInterval(() => { if (!document.hidden && state) renderDiag(); }, 30000);

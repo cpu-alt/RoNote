@@ -3,14 +3,13 @@ import {
   fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml, clamp
 } from '../common/utils.js';
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
-import { t, p as plural, setLang, translateDom, locale } from '../common/i18n.js';
+import { t, p as plural, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 import { withDefaults, withStateDefaults } from '../common/state.js';
+import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml } from '../common/ui.js';
 
-const $ = (s) => document.querySelector(s);
 const listEl = $('#list');
-const send = (msg) => B.runtime.sendMessage(msg);
 fillIcons(document);   // les icônes écrites en dur dans popup.html
 
 let data = { settings: null, state: null, history: [], portfolio: [], report: null };
@@ -861,8 +860,7 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     res?.ignored ? `<span class="p-flag face" title="${escapeHtml(t("Ses trades ne déclenchent plus d'alerte."))}">${ic('user-off')} ${t('Ignoré')}</span>` : ''
   ].filter(Boolean).join('');
 
-  const tile = (label, value, sub = '') =>
-    `<div class="w-fact"><span>${label}</span><b>${value}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const tile = factHtml;
   const tiles = `<div class="w-facts">
     ${tile(t('Offres reçues'), s.received)}
     ${tile(t('Offres envoyées'), s.sent)}
@@ -910,6 +908,46 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
  * La courbe de son inventaire, comme celle du portefeuille : value, RAP et
  * collectibles superposables, et la variation de sa value sur la période.
  */
+/**
+ * Le corps commun des deux graphiques a plages — celui de la fiche joueur et
+ * celui de la fiche d'un objet. Ils ne different que par l'etat qui les pilote,
+ * les attributs qui les nomment et ce qui se passe une fois traces ; tout le
+ * reste (plage, echantillonnage, series disponibles, pastilles, courbe,
+ * legende, recablage) etait ecrit deux fois, et divergeait deja.
+ *
+ * Rend false quand aucune serie n'a de quoi etre tracee : a l'appelant de dire
+ * pourquoi, avec ses mots et sa mise en page.
+ */
+function renderRangedChart({ box, points, series, state, attr, id, defs = null, markers = [], animate = false, redraw, after = null }) {
+  const avail = Object.fromEntries(Object.entries(series).filter(([k]) => points.some(p => p[k] > 0)));
+  if (!Object.keys(avail).length) return false;
+
+  const range = ITEM_RANGES.find(r => r.key === state.range) || ITEM_RANGES[2];
+  const since = range.days ? Date.now() - range.days * 864e5 : 0;
+  const pts = downsample(points.filter(p => p.at >= since));
+  const keys = orderedSeries(state.series, avail);
+  const shown = defs || avail;
+
+  box.innerHTML = `${seriesChips(avail, keys, `data-${attr}series`)}
+    ${chartHtml({ id, pts, keys, defs: shown, animate, markers })}
+    ${legendHtml(pts, keys, shown)}
+    <div class="w-ranges">${ITEM_RANGES.map(r =>
+      `<button class="${r.key === range.key ? 'on' : ''}" data-${attr}range="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
+  mountChart({ id, pts, keys, defs: shown });
+
+  box.querySelectorAll(`[data-${attr}series]`).forEach(el => el.addEventListener('click', () => {
+    state.series = toggleSeries(keys, el.dataset[attr + 'series'], avail);
+    redraw(true);
+  }));
+  box.querySelectorAll(`[data-${attr}range]`).forEach(el => el.addEventListener('click', () => {
+    state.range = el.dataset[attr + 'range'];
+    redraw(true);
+  }));
+
+  after?.(pts, avail);
+  return true;
+}
+
 function renderPlayerChart(animate = false) {
   const box = document.getElementById('p-chart');
   if (!box) return;
@@ -919,23 +957,11 @@ function renderPlayerChart(animate = false) {
     box.innerHTML = `<div class="w-nochart">${escapeHtml(whyText(why, 'Historique indisponible — {why}.'))}</div>`;
   };
   if (!ch.points?.length) { nochart(ch.error || t('réponse vide')); return; }
-  const avail = Object.fromEntries(Object.entries(WALLET_SERIES).filter(([k]) => ch.points.some(p => p[k] > 0)));
-  if (!Object.keys(avail).length) { nochart(t('réponse vide')); return; }
 
-  const range = ITEM_RANGES.find(r => r.key === player.range) || ITEM_RANGES[2];
-  const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const pts = downsample(ch.points.filter(p => p.at >= since));
-  const keys = orderedSeries(player.series, avail);
-
-  box.innerHTML = `${seriesChips(avail, keys, 'data-pseries')}
-    ${chartHtml({ id: 'p-plot', pts, keys, defs: avail, animate })}
-    ${legendHtml(pts, keys, avail)}
-    <div class="w-ranges">${ITEM_RANGES.map(r =>
-      `<button class="${r.key === range.key ? 'on' : ''}" data-prange="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
-  mountChart({ id: 'p-plot', pts, keys, defs: avail });
-
-  const varEl = document.getElementById('p-var');
-  if (varEl) {
+  // La variation de la periode s'affiche a cote du solde, hors du graphique.
+  const pill = (pts, avail) => {
+    const varEl = document.getElementById('p-var');
+    if (!varEl) return;
     const first = pts.find(p => p.v > 0)?.v || 0;
     const last = pts[pts.length - 1]?.v || 0;
     varEl.hidden = !(avail.v && pts.length >= 2 && first);
@@ -943,14 +969,13 @@ function renderPlayerChart(animate = false) {
       varEl.className = `w-pill ${toneOf(last - first)}`;
       varEl.innerHTML = pillText(avail.v, last - first, ((last - first) / first) * 100);
     }
-  }
+  };
 
-  box.querySelectorAll('[data-pseries]').forEach(el => {
-    el.onclick = () => { player.series = toggleSeries(keys, el.dataset.pseries, avail); renderPlayerChart(true); };
+  const drawn = renderRangedChart({
+    box, points: ch.points, series: WALLET_SERIES, state: player,
+    attr: 'p', id: 'p-plot', animate, redraw: renderPlayerChart, after: pill
   });
-  box.querySelectorAll('[data-prange]').forEach(el => {
-    el.onclick = () => { player.range = el.dataset.prange; renderPlayerChart(true); };
-  });
+  if (!drawn) nochart(t('réponse vide'));
 }
 
 /** Une ligne de bundle : vignette, nom, quantité, et ce qu'il pèse. */
@@ -1265,8 +1290,7 @@ function renderHome(entering) {
       </button>`
     : '';
 
-  const tile = (label, n, sub = '') =>
-    `<div class="w-fact"><span>${label}</span><b>${n}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const tile = factHtml;
   const tiles = `<section class="w-facts h-tiles">
     ${tile(t("Reçus aujourd'hui"), received.length, wins ? plural(wins, '{n} gagnant', '{n} gagnants') : '')}
     ${tile(t("Conclus aujourd'hui"), done.length,
@@ -1961,32 +1985,13 @@ function renderSheetChart(animate = false) {
     return;
   }
 
-  const range = ITEM_RANGES.find(r => r.key === sheet.range) || ITEM_RANGES[2];
-  const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const pts = downsample(sheet.data.filter(p => p.at >= since));
-  const avail = Object.fromEntries(Object.entries(ITEM_SERIES).filter(([k]) => sheet.data.some(p => p[k] > 0)));
-  if (!Object.keys(avail).length) {
+  const drawn = renderRangedChart({
+    box, points: sheet.data, series: ITEM_SERIES, state: sheet, attr: 's',
+    id: 'w-sh-plot', defs: ITEM_SERIES, markers: sheet.changes || [], animate, redraw: renderSheetChart
+  });
+  if (!drawn) {
     box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible — {why}.', { why: t('réponse vide') }))}</div>`;
-    return;
   }
-  const keys = orderedSeries(sheet.series, avail);
-
-  box.innerHTML = `
-    ${seriesChips(avail, keys, 'data-sseries')}
-    ${chartHtml({ id: 'w-sh-plot', pts, keys, defs: ITEM_SERIES, animate, markers: sheet.changes })}
-    ${legendHtml(pts, keys, ITEM_SERIES)}
-    <div class="w-ranges">${ITEM_RANGES.map(r =>
-      `<button class="${r.key === range.key ? 'on' : ''}" data-srange="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
-  mountChart({ id: 'w-sh-plot', pts, keys, defs: ITEM_SERIES });
-
-  box.querySelectorAll('[data-sseries]').forEach(el => el.addEventListener('click', () => {
-    sheet.series = toggleSeries(keys, el.dataset.sseries, avail);
-    renderSheetChart(true);
-  }));
-  box.querySelectorAll('[data-srange]').forEach(el => el.addEventListener('click', () => {
-    sheet.range = el.dataset.srange;
-    renderSheetChart(true);
-  }));
 }
 
 function openItemSheet(key) {
@@ -2000,7 +2005,7 @@ function openItemSheet(key) {
     { label: 'Roblox', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
   ].filter(Boolean);
   const ch = i.change;
-  const fact = (label, value) => `<div class="w-fact"><span>${label}</span><b>${value}</b></div>`;
+  const fact = factHtml;
   const kind = i.isFace ? t('visage') : i.kind === 'bundle' ? t('bundle') : '';
 
   document.getElementById('zoom')?.remove();
@@ -2463,8 +2468,10 @@ function bindRow(row) {
       const id = Number(el.dataset.track);
       const on = el.dataset.on === '1';
       const partner = listOf('outbound').find(x => x.tradeId === id)?.partner || null;
-      const res = await send({ type: 'ronote:track', tradeId: id, on, partner });
-      data.state.tracked = res.tracked || {};
+      const res = await ask({ type: 'ronote:track', tradeId: id, on, partner });
+      // Sans reponse, l'epingle n'a pas bouge cote worker : ne rien ecraser.
+      if (!res?.tracked) return;
+      data.state.tracked = res.tracked;
       renderHeader();
       renderList();
     });
@@ -2574,11 +2581,20 @@ async function pumpHydrate(kind) {
       if (lite) hints[id] = lite;
     }
     try {
-      const res = await send({ type: 'ronote:hydrate', ids, kind, hints });
-      for (const c of res?.cards || []) cards[kind].set(c.tradeId, c);
-      for (const f of res?.failed || []) failures[kind].set(f.tradeId, f.error);
-      if (res?.links) data.state.links = res.links;
-      if (res?.tracked) data.state.tracked = res.tracked;
+      // Sans reponse — worker endormi, popup en train de se fermer — les
+      // trades restaient des silhouettes scintillantes pour toujours, alors
+      // que la table des echecs existe justement pour le dire.
+      const res = await ask({ type: 'ronote:hydrate', ids, kind, hints });
+      if (!res) {
+        for (const id of ids) failures[kind].set(id, t('réponse vide'));
+      } else {
+        for (const c of res.cards || []) cards[kind].set(c.tradeId, c);
+        for (const f of res.failed || []) failures[kind].set(f.tradeId, f.error);
+        if (res.links) data.state.links = res.links;
+        if (res.tracked) data.state.tracked = res.tracked;
+      }
+    } catch (e) {
+      for (const id of ids) failures[kind].set(id, e?.message || t('réponse vide'));
     } finally {
       for (const id of ids) inflight.delete(kind + ':' + id);
     }
@@ -2673,26 +2689,13 @@ async function hydrateAll() {
   }
 }
 
-let domLang = null;   // langue déjà appliquée au gabarit HTML
 
 /**
- * Le gabarit est écrit en français : `translateDom` remplace en place, donc
- * il n'est jouable qu'une fois. Si la langue change en cours de route (réglage
- * modifié dans l'autre onglet), on repart d'une page neuve.
+ * La langue du gabarit (voir `common/ui.js`). La pastille des onglets se place
+ * une fois la traduction posee : sa largeur depend du texte.
  * @returns false si la page se recharge
  */
-function applyLang() {
-  const lang = setLang(data.settings?.lang);
-  if (domLang === null) {
-    domLang = lang;
-    translateDom(document);
-    moveTabIndicator();
-  } else if (domLang !== lang) {
-    location.reload();
-    return false;
-  }
-  return true;
-}
+const applyLang = () => applyPageLang(data.settings?.lang, moveTabIndicator);
 
 async function load({ refresh = false } = {}) {
   // `lite` : le popup n'affiche pas les compteurs des flux, inutile de relire
@@ -2816,13 +2819,9 @@ function applyChanges() {
   hydrateAll();
 }
 
-B.storage?.onChanged?.addListener((changes, area) => {
-  if (area !== 'local') return;
-  const keys = STORED.filter(k => changes[k]);
-  if (!keys.length) return;
-  for (const k of keys) pendingChanges[k] = changes[k].newValue;
-  clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(applyChanges, 200);
+onStoredChange(STORED, 200, (values) => {
+  Object.assign(pendingChanges, values);
+  applyChanges();
 });
 
 // Les « il y a 3 min » avancent seuls : leur texte change, la liste ne se
