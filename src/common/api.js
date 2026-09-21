@@ -391,7 +391,7 @@ function normalizeItem(it) {
 
   return {
     // Identifiant d'exemplaire : `userAssetId` en v1, GUID en v2.
-    id: it.userAssetId ?? it.userAssetID ?? it.collectibleItemInstanceId ?? it.id ?? null,
+    id: it.userAssetId ?? it.userAssetID ?? (/^[1-9]\d*$/.test(String(it.id || '')) ? it.id : null) ?? it.collectibleItemInstanceId ?? it.id ?? null,
     assetId,
     bundleId,
     typeHint: type || '',

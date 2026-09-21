@@ -153,6 +153,52 @@
         <span><b>Compter les Robux nets de taxe</b><small>Roblox prélève 30 % sur les Robux reçus dans un trade. Décoché, RoNote compte le montant brut — donc surévalue ce qu'on vous propose.</small></span></label>
       <label class="row switch"><input type="checkbox" id="showItemDetails">
         <span><b>Détail des objets dans le popup</b><small>Ajoute sous chaque trade une liste dépliable : nom, série, value et RAP de chaque objet.</small></span></label>
+      <label class="row switch"><input type="checkbox" id="pageDelta">
+        <span><b>Écarts sur la page des trades Roblox</b><small>Affiche entre les deux offres l'écart de RAP et de value, et la cote Rolimon's sous chaque objet. S'applique tout de suite aux onglets ouverts.</small></span></label>
+      <div class="row proj stack" id="banner-row">
+        <span><b>Bandeau des écarts</b><small>Le bandeau RAP / Value posé entre les deux offres. Choisis la couleur d'un gain, celle d'une perte, le style et la taille.</small></span>
+        <span class="proj-edit banner-edit">
+          <span class="banner-preview" id="banner-preview" aria-hidden="true"></span>
+          <span class="proj-controls">
+            <span class="swatch-line"><span class="swatch-label">Gain</span><span class="swatches" id="gain-swatches"></span></span>
+            <span class="swatch-line"><span class="swatch-label">Perte</span><span class="swatches" id="loss-swatches"></span></span>
+            <span class="btnrow">
+              <select id="bannerStyle" aria-label="Style">
+                <option value="soft">Discret</option>
+                <option value="vivid">Vif</option>
+                <option value="neon">Néon</option>
+                <option value="solid">Plein</option>
+              </select>
+              <select id="bannerSize" aria-label="Taille">
+                <option value="s">Petit</option>
+                <option value="m">Moyen</option>
+                <option value="l">Grand</option>
+              </select>
+              <button class="btn" id="banner-reset" type="button">Par défaut</button>
+            </span>
+          </span>
+        </span>
+      </div>
+      <div class="row proj" id="proj-row">
+        <span><b>Badge « projected »</b><small>Posé en haut à droite des objets projected sur la page des trades. Choisis sa couleur et sa taille, ou importe ta propre image.</small></span>
+        <span class="proj-edit">
+          <span class="proj-stage" aria-hidden="true"><span class="proj-tile"></span><span class="proj-badge" id="proj-preview"></span></span>
+          <span class="proj-controls">
+            <span class="swatches" id="proj-swatches"></span>
+            <span class="btnrow">
+              <select id="projectedSize" aria-label="Taille">
+                <option value="s">Petit</option>
+                <option value="m">Moyen</option>
+                <option value="l">Grand</option>
+              </select>
+              <label class="btn" for="proj-file" tabindex="0">Importer une image</label>
+              <input type="file" id="proj-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+              <button class="btn" id="proj-clear" hidden>Retirer l'image</button>
+            </span>
+            <small class="proj-msg" id="proj-msg"></small>
+          </span>
+        </span>
+      </div>
       <label class="row"><span><b>Seuil « cote spéculative »</b><small>Un objet dont la value dépasse ce multiple de son RAP est signalé <i data-ic="trend-up"></i> : sa cote repose sur l'avis de la communauté plus que sur des ventes réelles.</small></span>
         <input type="number" id="speculativeRatio" min="1" max="10" step="0.1"></label>
       <label class="row switch"><input type="checkbox" id="trackPortfolio">
@@ -214,6 +260,8 @@
         <button id="btn-reset" class="btn">Réinitialiser</button></div>
       <div class="row"><span><b>Exporter le journal</b><small>Fichier CSV de tous les événements détectés.</small></span>
         <button id="btn-export" class="btn">Exporter</button></div>
+      <div class="row"><span><b>Diagnostic de la page d'échange</b><small>Ce que RoNote lit sur la dernière page de création d'un trade ouverte : la structure de la page, les objets reconnus et l'emplacement du bandeau. Copié dans le presse-papiers, à coller dans ton message pour signaler un problème d'affichage. Rien n'est envoyé.</small></span>
+        <button id="btn-page-diag" class="btn">Copier</button></div>
       <div class="row"><span><b>Vider le journal</b></span>
         <button id="btn-clear" class="btn danger">Vider</button></div>
     </section>
@@ -228,6 +276,8 @@
   </main>
 </div>
 <span class="saved" id="saved"><i data-ic="check"></i>Enregistré</span>
+<script src="../content/projected-badge.js"></script>
+<script src="../content/delta-banner.js"></script>
 <script type="module" src="options.js"></script>
 </body>
 </html>

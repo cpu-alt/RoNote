@@ -1,7 +1,7 @@
 # RoNote — Alertes de trades Roblox
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.11.1-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.13.0-brightgreen.svg)](CHANGELOG.md)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
 ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un
@@ -20,7 +20,9 @@ Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
 
 - **Notifications bureau fiables**, avec un son différent par type d'événement
 - **Analyse de valeur** de chaque trade : value, RAP, Robux comptés **nets** des 30 % de taxe
+- **Écarts directement sur Roblox** : deux bandeaux compacts RAP / Value entre les offres, à la place du séparateur. Le RAP suit les totaux affichés par Roblox ; la Value utilise les cotes Rolimon’s des objets, avec repli sur leur RAP. Les Robux affichés sont inclus, sans taxer une seconde fois les montants déjà nets. Les titres « Items you gave / received » permettent la lecture même sans liens de profil. La barre reste en place quand on change de trade, et le RAP reste lisible si Rolimon’s est indisponible.
 - **Détection des pièges** : objets *projected*, cotes spéculatives, visages et objets de bundle sans cote
+- **Value sous les objets** : cote Rolimon’s actuelle sous chaque carte de trade, y compris dans Closed / Inactive. Un objet sans cote publiée affiche « — » ; le RAP natif reste intact.
 - **Onglet Portefeuille** : la valeur de ton compte et sa courbe, puis chacun de tes collectibles avec sa cote, sa demande et sa tendance (recherche, tri, vue galerie, montants masquables)
 - **Alerte de réévaluation** : prévenu quand Rolimon's révise la cote d'un objet que tu possèdes
 - **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses

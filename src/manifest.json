@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.11.1",
+  "version": "2.13.0",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -42,6 +42,12 @@
     "128": "icons/icon128.png"
   },
   "minimum_chrome_version": "116",
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/rolimons-logo.webp"],
+      "matches": ["https://www.roblox.com/*"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -70,7 +76,11 @@
       ],
       "js": [
         "content/tradedom.js",
-        "content/scrape.js"
+        "content/projected-badge.js",
+        "content/delta-banner.js",
+        "content/scrape.js",
+        "content/trade-flex.js",
+        "content/trade-delta.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

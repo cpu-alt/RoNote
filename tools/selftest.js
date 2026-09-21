@@ -612,6 +612,127 @@ try {
   check('la signature ne bouge pas non plus',
     dom.signatureOf(apres), dom.signatureOf(avant));
 
+  group('Bandeaux : page sans profils, montants du site');
+  stage.innerHTML = await (await fetch('./fixtures/trade-page.html')).text();
+  const live = dom.readTradePage();
+  check('les titres identifient les offres sans profils', live.sides.map(s => s.role), ['give', 'get']);
+  check('liens image et nom : un seul exemplaire par carte', live.sides.map(s => s.items.length), [3, 3]);
+  check('RAP des six cartes lu sur la page', live.sides.map(s => s.items.map(i => i.rap)), [[1423,3930,1758],[466,7942,560]]);
+  check('totaux de la capture lus sur le site', live.sides.map(s => s.rapTotal), [7111,9591]);
+  check('436 Robux deja nets, pas le RAP du premier objet', [live.sides[1].robux, live.sides[1].robuxNet], [436,true]);
+  const instant = dom.visibleAnalysis(live);
+  check('RAP immediat sans service worker : +2480', instant.get.rap - instant.give.rap, 2480);
+  const pageTools = await import('../src/common/page-trade.js');
+  const flat = dom.plain(live);
+  const pd = pageTools.pageDetail(flat, null);
+  check('analyse possible sans liens de profil ni compte en cache', !!pd, true);
+  const catalog = {ready:true, assets: Object.fromEntries([101,102,103,201,202,203].map((id,i) =>
+    [id, ['test','',100,[1500,4000,1800,500,8000,600][i],0,0,0,0]]))};
+  const calculated = pageTools.analyzePage(flat, pd, catalog);
+  check('RAP du site prioritaire sur un RAP catalogue different', calculated.deltaRap, 2480);
+  check('Value enrichie par catalogue + Robux nets une seule fois', calculated.deltaValue, 2236);
+  check('RAP reste disponible si Rolimons est indisponible', pageTools.analyzePage(flat,pd,null).rapAvailable, true);
+  const beforeAmount = dom.signatureOf(live);
+  stage.querySelector('#get-total').textContent = '10,000';
+  check('changer seulement un montant invalide la signature', dom.signatureOf(dom.readTradePage()) !== beforeAmount, true);
+  stage.querySelector('#give-offer h3').textContent = 'Items you would have given';
+  stage.querySelector('#get-offer h3').textContent = 'Items you would have received';
+  const inactive = dom.readTradePage();
+  check('Closed / Inactive : les titres conditionnels identifient les offres', inactive.sides.map(s=>s.role), ['give','get']);
+  check('Closed / Inactive : evaluation sans profils', !!pageTools.pageDetail(dom.plain(inactive),null), true);
+  check('Value par carte conserve l’ordre des IDs du DOM', calculated.pageItems.map(s=>s.map(i=>[i.assetId,i.value])),
+    [[[101,1500],[102,4000],[103,1800]],[[201,500],[202,8000],[203,600]]]);
+  const unvalued = pageTools.analyzePage(flat,pd,{ready:true,assets:{}});
+  check('pas de RAP presente comme Value sous un objet non cote', unvalued.pageItems.flat().every(i=>i.value===null), true);
+  const blind = JSON.parse(JSON.stringify(flat));
+  blind.sides[1].items[0].rap = null;                  // RAP illisible sur la page
+  const blindCat = { ...catalog, assets: { ...catalog.assets } };
+  delete blindCat.assets[201];                          // absent de Rolimon's (UGC)
+  const blindDetail = pageTools.pageDetail(blind, null);
+  const noRap = pageTools.analyzePage(blind, blindDetail, blindCat);
+  check('objet sans cote ni RAP lisible : Value absente, et on dit lequel',
+    [noRap.valueAvailable, noRap.valueMissing, noRap.missingNames.length], [false, 'items', 1]);
+  const rescued = pageTools.analyzePage(blind, blindDetail, blindCat, null, { extra: { 201: 466 } });
+  check('le RAP economy de Roblox comble le trou : Value affichee', [rescued.valueAvailable, rescued.deltaValue], [true, 2236 - 500 + 466]);
+  // Un trade deja releve par les listes : reconnu a ses objets, sans titres.
+  const known = { id: 77, offers: [
+    { user: { id: 1234567890 }, robux: 0, userAssets: [101, 102, 103].map(assetId => ({ assetId, recentAveragePrice: 1000 })) },
+    { user: { id: 42 }, robux: 0, userAssets: [201, 202, 203].map(assetId => ({ assetId, recentAveragePrice: 2000 })) }
+  ] };
+  const untitled = JSON.parse(JSON.stringify(blind));
+  for (const side of untitled.sides) side.role = '';
+  check('sans titres ni profils, pas de sens : aucune analyse', pageTools.pageDetail(untitled, 1234567890), null);
+  const reversed = { ...known, offers: [...known.offers].reverse() };
+  const recognized = pageTools.capturedForPage(untitled, reversed, 1234567890);
+  check('trade connu reconnu a ses objets, dans le bon sens', recognized?.sides.map(s => s.role), ['give', 'get']);
+  const viaKnown = pageTools.analyzePage(recognized, pageTools.pageDetail(recognized, 1234567890), blindCat, reversed);
+  check('son RAP comble l objet illisible et absent de Rolimons', viaKnown.valueAvailable, true);
+  const projCat = { ready: true, assets: { ...catalog.assets, 202: [...catalog.assets[202]] } };
+  projCat.assets[202][6] = 1;                          // PROJ
+  const proj = pageTools.analyzePage(flat, pd, projCat);
+  check('objet projected signale sous sa carte, et lui seul',
+    proj.pageItems.flat().filter(i => i.projected).map(i => i.assetId), [202]);
+  check('sans table Rolimons, aucun projected invente',
+    pageTools.analyzePage(flat, pd, null).pageItems.flat().every(i => i.projected === null), true);
+  group('Page de creation d\'un trade');
+  const liveMarkup = stage.innerHTML;
+  stage.innerHTML = await (await fetch('./fixtures/trade-new-page.html')).text();
+  const draft = dom.readTradePage();
+  check('les paniers, pas les inventaires', [draft.ok, draft.composer, draft.sides.map(s => s.role)], [true, true, ['give', 'get']]);
+  check('un objet par panier, lu dans le panier', draft.sides.map(s => s.items.map(i => i.assetId)), [[101], [201]]);
+  check('totaux des paniers', draft.sides.map(s => s.rapTotal), [3814, 3003]);
+  const draftPd = pageTools.pageDetail(dom.plain(draft), null);
+  check('analyse du trade en preparation', pageTools.analyzePage(dom.plain(draft), draftPd, null).deltaRap, 3003 - 3814);
+  stage.querySelector('#request-basket .slots').innerHTML = '';
+  stage.querySelector('#request-total').textContent = '0';
+  check('panier encore vide : RAP quand meme calculable',
+    !!pageTools.pageDetail(dom.plain(dom.readTradePage()), null), true);
+  // Paniers en lignes (nom + montant), sans lien vers le catalogue.
+  stage.innerHTML = await (await fetch('./fixtures/trade-new-rows.html')).text();
+  const rows = dom.readTradePage();
+  check('lignes sans lien : objets lus par leur nom',
+    rows.sides.map(s => s.items.map(i => [i.name, i.rap])),
+    [[['Signature Kicks', 657]], [['Snow Leopard Fedora', 1485], ['Snow Leopard Fedora', 1485]]]);
+  check('champ Robux vide : 0, totaux lus', [rows.sides.map(s => s.robux), rows.sides.map(s => s.rapTotal)], [[0, 0], [657, 2970]]);
+  const nameCat = { ready: true, ts: 1, assets: {
+    111: ['Signature Kicks', '', 657, 800, 0, 0, 0, 0],
+    222: ['Snow Leopard Fedora', '', 1485, 1600, 0, 0, 1, 0],
+    333: ['Perfectly Legitimate Business Hat', '', 3814, 4000, 0, 0, 0, 0]
+  } };
+  const named = pageTools.resolveNames(dom.plain(rows), nameCat);
+  check('noms rapproches de la table Rolimons', named.sides.map(s => s.items.map(i => i.assetId)), [[111], [222, 222]]);
+  const namedA = pageTools.analyzePage(named, pageTools.pageDetail(named, null), nameCat);
+  check('Value du trade en preparation, doublon compte deux fois', [namedA.valueAvailable, namedA.deltaValue], [true, 3200 - 800]);
+  check('projected reconnu sur un objet lu par son nom', namedA.pageItems[1].map(i => [i.name, i.projected]),
+    [['Snow Leopard Fedora', true], ['Snow Leopard Fedora', true]]);
+  const cutName = pageTools.resolveNames({ composer: true, sides: [{ items: [{ name: 'Perfectly Legitimate…' }] }] }, nameCat);
+  check('nom tronque : reconnu s il est seul a commencer ainsi', cutName.sides[0].items[0].assetId, 333);
+  const stranger = JSON.parse(JSON.stringify(dom.plain(rows)));
+  stranger.sides[0].items[0].name = 'Objet Inconnu';
+  stranger.sides[0].items[0].names = ['Objet Inconnu'];
+  const strangerR = pageTools.resolveNames(stranger, nameCat);
+  const strangerA = pageTools.analyzePage(strangerR, pageTools.pageDetail(strangerR, null), nameCat);
+  check('objet absent de Rolimons (UGC) : compte a son RAP, sans Value affichee sous lui',
+    [strangerA.valueAvailable, strangerA.deltaValue, strangerA.pageItems[0][0].value], [true, 3200 - 657, null]);
+  // Au plus proche des captures : grille, cartes a hauteur fixe, deux images, aucun lien.
+  stage.innerHTML = await (await fetch('./fixtures/trade-new-real.html')).text();
+  const real = dom.readTradePage();
+  check('page reelle : les deux paniers', [real.ok, real.composer, real.sides.map(s => s.items.map(i => i.name))],
+    [true, true, [['Signature Kicks'], ['Snow Leopard Fedora']]]);
+  check('page reelle : les deux lignes Total Value sont reperees', real.sides.map(s => !!s.totalLabel), [true, true]);
+  check('page reelle : inventaires reperes', !!real.inventories, true);
+  check('page reelle : joueur et titre identifies pour le raccourci Rolimons',
+    [real.partnerId, !!real.tradeHeading], [123456789, true]);
+  const realInv = dom.inventoryItems(real.sides.map(s => s.root));
+  check('inventaires : une carte par objet, malgre deux images par carte',
+    realInv.map(i => i.name), ['Signature Kicks', 'Camoface', 'Snow Leopard Fedora', 'Snow Leopard Fedora', 'Goldrow', 'White Ninja Headband of t…']);
+  check('inventaires : « Holding » jamais pris pour un nom, RAP et son element lus',
+    realInv.map(i => [i.rap, !!i.priceEl && i.priceEl.textContent]), [[657, '657'], [7563, '7563'], [1496, '1496'], [1496, '1496'], [293, '293'], [1742, '1742']]);
+  stage.innerHTML = liveMarkup;
+
+  const hidden = document.createElement('div');
+  hidden.style.display = 'none'; hidden.innerHTML = stage.innerHTML; stage.prepend(hidden);
+  check('un autre onglet masque ne fausse pas le decoupage des offres',dom.readTradePage().sides.map(s=>s.items.length),[3,3]);
   stage.remove();
 
   /* ------------------------------- format ------------------------------- */

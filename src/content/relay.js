@@ -19,7 +19,9 @@ window.addEventListener('message', (e) => {
 
   try {
     if (d.__ronote === 'trade-detail' && d.tradeId && d.detail) {
-      B.runtime.sendMessage({ type: 'ronote:captured-trade', tradeId: d.tradeId, detail: d.detail });
+      Promise.resolve(B.runtime.sendMessage({ type: 'ronote:captured-trade', tradeId: d.tradeId, detail: d.detail }))
+        .then(() => { if (typeof globalThis.dispatchEvent === 'function') globalThis.dispatchEvent(new Event('ronote:detail-ready')); })
+        .catch(() => {});
     } else if (d.__ronote === 'csrf' && d.token) {
       B.runtime.sendMessage({ type: 'ronote:csrf', token: d.token });
     }

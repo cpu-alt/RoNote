@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoNote — lecture réelle du DOM</title>
+<style>
+body{margin:0;background:#2d0061;color:#fff;font:14px Arial,sans-serif}main{max-width:900px;margin:24px auto;padding:20px}.offer h3{font-size:18px;margin:16px 0 12px}.items{display:flex;gap:10px}.item-card{width:114px;min-width:0}.tile{height:108px;background:#60358a;display:flex;align-items:center;justify-content:center;font-size:48px;border-radius:4px;margin-bottom:8px}a{display:block;color:inherit;text-decoration:none;font-weight:bold}.text-robux-tile{color:#c8b5de}.total{display:flex;justify-content:space-between;margin-top:24px;gap:10px}.offer{padding-bottom:24px}hr{border:0;border-top:1px solid #60358a;margin:0}button{padding:8px 12px;margin:0 8px 10px 0;border:0;border-radius:4px;background:#553079;color:white;cursor:pointer}p{color:#c8b5de;line-height:1.5}#verification{font-size:12px}.text-robux-lg{font-weight:700}
+</style>
+<main><p>Reconstitution de ta capture · montants lus dans la page.<br>Les cotes Value de cet aperçu sont des données de test.</p>
+<button id="switch">Changer de trade</button><button id="offline">Rolimon’s indisponible</button><button id="inactive">Closed · Inactive</button>
+<div id="stage"></div><p id="verification">Vérification…</p></main>
+<script type="module">
+// Only the external API is mocked. The actual reader, analysis and UI run here.
+let offline = false;
+const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks','',657,800,0,0,0,0],222:['Snow Leopard Fedora','',1485,1600,0,0,1,0],301:['Coolface','',7563,9000,0,0,1,0],305:['Camoface','',7563,12500,0,0,1,0],306:['White Ninja Headband of the Void','',1742,2100,0,0,0,0],302:['Verdant Crown','',3769,4200,0,0,0,0],401:['Gold Clockwork Headphones','',4813,5500,0,0,0,0]},Object.fromEntries([101,102,103,201,202,203].map((id,i)=>[id,['test','',100,[1500,4000,1800,500,8000,600][i],0,0,id===202?1:0,0]])))};
+globalThis.chrome = {runtime:{getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
+  if (type === 'ronote:item-values') {
+    const {findByName} = await import('/src/common/page-trade.js');
+    const {resolveItem} = await import('/src/common/analysis.js');
+    return {ready:!offline, items:items.map(i=>{
+      let ids={assetId:i.assetId,bundleId:i.bundleId};
+      if(!ids.assetId&&!ids.bundleId){for(const n of (i.names&&i.names.length?i.names:[i.name])){const h=findByName(n,catalog);if(h){ids=h;break;}}}
+      if(!ids.assetId&&!ids.bundleId) return {key:i.key,known:false};
+      const it=resolveItem({...ids,recentAveragePrice:i.rap||0},catalog);
+      return {key:i.key,known:true,value:!it.noValue&&!it.unknown?it.value:null,projected:!!it.projected};
+    })};
+  }
+  const {pageDetail,analyzePage,resolveNames} = await import('/src/common/page-trade.js');
+  if (page.composer && !offline) page = resolveNames(page, catalog);
+  const detail = pageDetail(page,null);
+  return {analysis:detail ? analyzePage(page,detail,offline?null:catalog):null};
+}}};
+const fixture = ({ new: 'trade-new-page.html', rows: 'trade-new-rows.html', real: 'trade-new-real.html' })[new URLSearchParams(location.search).get('page')] || 'trade-page.html';
+const markup = await (await fetch('/tools/fixtures/' + fixture)).text();
+document.querySelector('#stage').innerHTML = markup;
+for(const file of ['tradedom.js','projected-badge.js','delta-banner.js','trade-delta.js']) {
+  if(file==='trade-delta.js') history.replaceState(null,'','/trades?preview=regression');
+  await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/src/content/'+file;script.onload=resolve;script.onerror=reject;document.head.append(script);});
+}
+const page = RoNoteDom.readTradePage();
+const instant = RoNoteDom.visibleAnalysis(page);
+const inventoryCount = page.composer
+  ? (RoNoteDom.inventoryItems?.((page.sides || []).map(side => side.root)) || []).length : 0;
+document.querySelector('#verification').textContent = page.ok && page.composer
+  ? `Lecture validée : création de trade, ${inventoryCount} objets visibles dans les inventaires.`
+  : page.ok && instant?.get.rap - instant?.give.rap === 2480
+    ? 'Lecture validée : 6 objets, RAP +2 480, Robux reçus 436 nets.' : 'ÉCHEC de lecture';
+let variant = 0;
+document.querySelector('#inactive').onclick=()=>{
+  document.querySelector('#give-offer h3').textContent='Items you would have given';
+  document.querySelector('#get-offer h3').textContent='Items you would have received';
+  history.replaceState(null,'','/trades?tab=Inactive');dispatchEvent(new PopStateEvent('popstate'));
+};
+document.querySelector('#switch').onclick=()=>{
+  variant++;
+  document.querySelector('#get-total').textContent = variant % 2 ? '6,000' : '9,591';
+  document.querySelector('#get-offer .text-robux-tile').textContent = variant % 2 ? '600' : '466';
+};
+document.querySelector('#offline').onclick=()=>{
+  offline=!offline;history.replaceState(null,'','/trades?preview=regression&offline='+offline);dispatchEvent(new PopStateEvent('popstate'));
+};
+</script></html>

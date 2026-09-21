@@ -56,6 +56,13 @@ export const DEFAULTS = {
   revalAlerts: true,
   revalMinPercent: 10,
   showItemDetails: true,      // liste depliable des objets sous chaque trade
+  pageDelta: true,            // ecarts RAP / Value et cote des objets sur la page des trades Roblox
+  projectedColor: '#ffc400',  // fond du badge « projected » sur la page Roblox
+  bannerGain: '#22e57a',      // bandeau des ecarts sur la page Roblox : couleur d'un gain
+  bannerLoss: '#ff4d5e',      // ... d'une perte
+  bannerStyle: 'soft',        // soft | vivid | neon | solid
+  bannerSize: 'm',            // s | m | l
+  projectedSize: 'm',         // s | m | l ; l'image importee est a part (cle projectedIcon)
 
   // --- Filtres (uniquement pour les trades RECUS) ------------------------
   onlyWins: false,            // ne notifier que si gain de valeur

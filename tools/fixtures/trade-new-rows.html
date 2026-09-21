@@ -1,0 +1,39 @@
+<!-- Reconstitution des paniers « Your Offer / Your Request » : objets en lignes, sans liens. Cotes fictives. -->
+<section class="trade-new" style="display:flex;flex-direction:row;gap:24px;align-items:flex-start">
+  <div class="inventories" id="left-col" style="flex:1 1 60%;min-width:0">
+    <div class="inventory" id="my-inventory">
+      <h2>Your Inventory</h2>
+      <div class="grid"><div class="item-card"><a href="/catalog/301/Coolface"><span class="tile">☺</span></a><a href="/catalog/301/Coolface">Coolface</a></div></div>
+      <div class="pager">Page 1</div>
+    </div>
+    <div class="divider" id="inv-divider" style="height:0;border-top:1px solid #60358a;margin:12px 0"></div>
+    <div class="inventory" id="their-inventory">
+      <h2>winterhealsme's Inventory</h2>
+      <div class="grid" id="their-grid" style="display:grid;grid-template-columns:repeat(3,114px);gap:10px"><div class="item-card"><a href="/catalog/302/Verdant-Crown"><span class="tile">♛</span></a><a href="/catalog/302/Verdant-Crown">Verdant Crown</a></div></div>
+      <div class="grid" id="named-grid" style="display:grid;grid-template-columns:repeat(3,114px);gap:10px">
+        <div class="tile-card" id="named-tile"><div class="thumb" style="position:relative"><img alt="" width="96" height="96" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><span class="hold">Holding</span><span class="serial">#162594</span></div><div class="nm">Gold Clockwork Headphones</div><div class="pr"><span class="icon-robux-16"></span><span>4813</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="baskets" id="right-col" style="flex:1 1 40%;min-width:0;display:flex;flex-direction:column">
+    <div class="basket" id="offer-basket">
+      <h3>Your Offer</h3>
+      <div class="slots">
+        <div class="slot"><img alt="" width="32" height="32" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div><div class="slot-name">Signature Kicks</div><div class="slot-price"><span class="icon-robux-16"></span><span>657</span></div></div></div>
+        <div class="slot empty"></div>
+      </div>
+      <div class="robux-field"><span class="icon-robux-16"></span><input type="text" placeholder="Plus Robux amount" value=""></div>
+      <div class="total"><span>Total Value:</span><span class="text-robux-lg">657</span></div>
+    </div>
+    <div class="basket" id="request-basket">
+      <h3>Your Request</h3>
+      <div class="slots">
+        <div class="slot"><img alt="" width="32" height="32" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div><div class="slot-name">Snow Leopard Fedora</div><div class="slot-price"><span class="icon-robux-16"></span><span>1485</span></div></div></div>
+        <div class="slot"><img alt="" width="32" height="32" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div><div class="slot-name">Snow Leopard Fedora</div><div class="slot-price"><span class="icon-robux-16"></span><span>1485</span></div></div></div>
+      </div>
+      <div class="robux-field"><span class="icon-robux-16"></span><input type="text" placeholder="Plus Robux amount" value=""></div>
+      <div class="total"><span>Total Value:</span><span class="text-robux-lg">2,970</span></div>
+    </div>
+    <button id="make-offer">Make Offer</button>
+  </div>
+</section>

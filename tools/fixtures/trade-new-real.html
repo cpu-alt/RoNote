@@ -1,0 +1,67 @@
+<!-- Page « Trade with … » au plus proche des captures : colonne de gauche en grille,
+     cartes à hauteur fixe qui coupent le débordement, deux images par carte, aucun lien.
+     Cotes fictives. -->
+<style>
+  .tw{display:flex;gap:0;align-items:stretch;background:#2d0061;position:relative;padding-top:48px}
+  .tw-title{position:absolute;left:16px;right:16px;top:8px;margin:0;font-size:25px;white-space:nowrap}.tw-title a{color:#c8b5de;text-decoration:none}
+  .tw-left{flex:1 1 auto;min-width:0;display:grid;grid-template-columns:1fr;row-gap:0;padding:16px;border-right:1px solid #4a2a7a}
+  .tw-inv{padding-bottom:18px}
+  .tw-inv + .tw-inv{border-top:1px solid #4a2a7a;padding-top:18px}
+  .tw-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .tw-head h4{margin:0;font-size:15px}
+  .tw-grid{display:grid;grid-template-columns:repeat(5,126px);gap:10px}
+  .tw-card{height:196px;overflow:hidden;display:flex;flex-direction:column}
+  .tw-thumb{position:relative;height:126px;border-radius:8px;background:#60358a;overflow:hidden}
+  .tw-thumb img.item{width:126px;height:126px;display:block}
+  .tw-thumb img.spark{position:absolute;left:6px;bottom:6px;width:20px;height:20px}
+  .tw-thumb .hold{position:absolute;inset:0;display:grid;place-items:center;font-weight:700}
+  .tw-name{font-weight:700;font-size:14px;line-height:18px;max-height:36px;overflow:hidden}
+  .tw-price{display:flex;align-items:center;gap:3px;font-size:13px;color:#c8b5de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:126px}
+  .tw-price.narrow{width:52px}
+  .tw-pager{text-align:center;padding-top:12px}
+  .tw-right{flex:0 0 300px;padding:16px;display:grid;grid-template-columns:1fr;align-content:start}
+  .tw-basket{padding-bottom:40px}
+  .tw-slot{display:flex;gap:8px;align-items:center;height:52px;margin:8px 0;border:1px solid #4a2a7a;overflow:hidden}
+  .tw-slot.empty{border-style:dashed}
+  .tw-total{display:flex;justify-content:space-between;font-weight:700}
+</style>
+<div class="tw">
+  <h2 class="tw-title">Trade with GRANDE <a href="/users/123456789/profile">@SBGRANDE</a></h2>
+  <div class="tw-left" id="left-col">
+    <div class="tw-inv" id="my-inventory">
+      <div class="tw-head"><h4>Your Inventory</h4><button>⌕</button></div>
+      <div class="tw-grid">
+        <div class="tw-card" id="c-kicks"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div><div class="tw-name">Signature Kicks</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>657</span></div></div>
+        <div class="tw-card" id="c-coolface"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><span class="hold">Holding</span></div><div class="tw-name">Camoface</div><div class="tw-price narrow"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>7563</span></div></div>
+      </div>
+      <div class="tw-pager">‹ Page 1 ›</div>
+    </div>
+    <div class="tw-inv" id="their-inventory">
+      <div class="tw-head"><h4>Accept_OR Counter's Inventory</h4><button>⌕</button></div>
+      <div class="tw-grid">
+        <div class="tw-card" id="c-fedora1"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div><div class="tw-name">Snow Leopard Fedora</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>1496</span></div></div>
+        <div class="tw-card" id="c-fedora2"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div><div class="tw-name">Snow Leopard Fedora</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>1496</span></div></div>
+        <div class="tw-card" id="c-goldrow"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div><div class="tw-name">Goldrow</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>293</span></div></div>
+        <div class="tw-card" id="c-ninja"><div class="tw-thumb"><img class="item" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img class="spark" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><span class="hold">Holding</span></div><div class="tw-name">White Ninja Headband of t…</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>1742</span></div></div>
+      </div>
+      <div class="tw-pager">‹ Page 1 ›</div>
+    </div>
+  </div>
+  <div class="tw-right" id="right-col">
+    <div class="tw-basket" id="offer-basket">
+      <h4>Your Offer</h4>
+      <div class="tw-slot"><img alt="" width="32" height="32" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div><div>Signature Kicks</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>657</span></div></div></div>
+      <div class="tw-slot empty"></div>
+      <div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><input placeholder="Plus Robux amount" value=""></div>
+      <div class="tw-total"><span>Total Value:</span><span>657</span></div>
+    </div>
+    <div class="tw-basket" id="request-basket">
+      <h4>Your Request</h4>
+      <div class="tw-slot"><img alt="" width="32" height="32" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div><div>Snow Leopard Fedora</div><div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><span>1496</span></div></div></div>
+      <div class="tw-slot empty"></div>
+      <div class="tw-price"><svg width="12" height="12"><circle cx="6" cy="6" r="5"/></svg><input placeholder="Plus Robux amount" value=""></div>
+      <div class="tw-total"><span>Total Value:</span><span>1,496</span></div>
+    </div>
+    <button id="make-offer">Make Offer</button>
+  </div>
+</div>

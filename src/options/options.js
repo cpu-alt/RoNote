@@ -18,7 +18,7 @@ function showUnreachable() {
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'useRolimons', 'trackPortfolio', 'reconcilePortfolio', 'robuxTax', 'showItemDetails',
+  'sound', 'useRolimons', 'trackPortfolio', 'reconcilePortfolio', 'robuxTax', 'showItemDetails', 'pageDelta',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters', 'revalAlerts'];
 const NUMS = ['maxNotificationsPerPoll', 'minGainPercent', 'minTheirValue', 'counterWindowMinutes'];
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
@@ -30,6 +30,122 @@ let newest = {};
 let belowMark = {};
 
 /* ------------------------------- rendu -------------------------------- */
+
+/* Le badge « projected » de la page Roblox : couleur, taille, image importée.
+   Le dessin lui-même vient de content/projected-badge.js, le même que sur la
+   page : l'aperçu ne peut pas mentir. */
+const PROJ_COLORS = [
+  ['#ffc400', 'Jaune'], ['#ff8a00', 'Orange'], ['#ff3b4a', 'Rouge'], ['#ff4fd8', 'Rose'],
+  ['#9b5cff', 'Violet'], ['#1ed6ff', 'Cyan'], ['#2ee06f', 'Vert']
+];
+const PROJ_MAX_FILE = 8 * 1024 * 1024;    // au-delà, refusé avant même de le lire
+const PROJ_GIF_KEEP = 400 * 1024;         // un GIF léger garde son animation
+const PROJ_PX = 96;                       // le reste est ramené à 96 px de côté
+let projectedIcon = '';
+
+const BANNER_GAIN = [['#22e57a', 'Vert'], ['#00e0b8', 'Turquoise'], ['#3ea8ff', 'Bleu'], ['#b6ff3b', 'Citron'], ['#ffc400', 'Jaune']];
+const BANNER_LOSS = [['#ff4d5e', 'Rouge'], ['#ff7a1a', 'Orange'], ['#ff3fb4', 'Rose'], ['#b05cff', 'Violet'], ['#ffc400', 'Jaune']];
+const previewColor = {};                  // couleur en cours de choix dans une roue, par réglage
+
+/** Une rangée de pastilles + une roue « autre couleur », pour le réglage `key`. */
+function renderSwatches(box, colors, key, current) {
+  if (!box.childElementCount) {
+    box.innerHTML = colors.map(([c, name]) =>
+      `<button type="button" class="swatch" data-key="${key}" data-color="${c}" style="background:${c}" title="${t(name)}" aria-label="${t(name)}"></button>`).join('') +
+      `<label class="swatch custom" title="${t('Autre couleur')}"><input type="color" data-key="${key}" aria-label="${t('Autre couleur')}"></label>`;
+  }
+  const preset = colors.some(([c]) => c === current);
+  for (const b of box.querySelectorAll('[data-color]')) b.setAttribute('aria-pressed', String(b.dataset.color === current));
+  const custom = box.querySelector('.swatch.custom');
+  custom.setAttribute('aria-pressed', String(!preset));
+  custom.style.background = preset ? '' : current;
+  const picker = custom.querySelector('input');
+  if (document.activeElement !== picker) picker.value = current;
+}
+
+/** Clics, roue en direct et roue validée : même câblage pour toutes les rangées. */
+function wireSwatches(box, onPreview) {
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-color]');
+    if (!b) return;
+    delete previewColor[b.dataset.key];
+    settings = { ...settings, [b.dataset.key]: b.dataset.color };
+    onPreview();
+    save({ [b.dataset.key]: b.dataset.color });
+  });
+  box.addEventListener('input', e => {
+    if (e.target.type !== 'color') return;
+    previewColor[e.target.dataset.key] = e.target.value;
+    onPreview();
+  });
+  box.addEventListener('change', e => {
+    if (e.target.type !== 'color') return;
+    delete previewColor[e.target.dataset.key];
+    settings = { ...settings, [e.target.dataset.key]: e.target.value };
+    onPreview();
+    save({ [e.target.dataset.key]: e.target.value });
+  });
+}
+
+function renderBanner() {
+  const lib = globalThis.RoNoteBanner;
+  const box = $('#banner-preview');
+  if (!lib || !box) return;
+  const live = { ...settings, ...previewColor };
+  const o = lib.normalize(live);
+  if (!box.shadowRoot) {
+    const root = box.attachShadow({ mode: 'open' });
+    root.innerHTML = `<style></style><div class="row">
+      <div class="cell" data-tone="up"><span class="arrow" aria-hidden="true"></span><span>+2 480 RAP (+35%)</span></div>
+      <div class="cell" data-tone="down"><span class="arrow down" aria-hidden="true"></span><span>−149 Value (−4%)</span></div></div>`;
+  }
+  box.shadowRoot.querySelector('style').textContent = lib.css(live);
+  renderSwatches($('#gain-swatches'), BANNER_GAIN, 'bannerGain', o.gain);
+  renderSwatches($('#loss-swatches'), BANNER_LOSS, 'bannerLoss', o.loss);
+  $('#bannerStyle').value = o.style;
+  $('#bannerSize').value = o.size;
+}
+
+function renderProjected() {
+  const badge = globalThis.RoNoteBadge;
+  const box = $('#proj-preview');
+  if (!badge || !box) return;
+  const color = previewColor.projectedColor || settings.projectedColor || badge.DEFAULT_COLOR;
+  if (!box.shadowRoot) box.attachShadow({ mode: 'open' });
+  badge.fill(box.shadowRoot, { color, size: settings.projectedSize || 'm', image: projectedIcon });
+
+  renderSwatches($('#proj-swatches'), PROJ_COLORS, 'projectedColor', color);
+  $('#projectedSize').value = settings.projectedSize || 'm';
+  $('#proj-clear').hidden = !projectedIcon;
+}
+
+function projMessage(text, err = false) {
+  const el = $('#proj-msg');
+  el.textContent = text;
+  el.classList.toggle('err', err);
+}
+
+const readAsDataUrl = (file) => new Promise((done, fail) => {
+  const r = new FileReader();
+  r.onload = () => done(String(r.result));
+  r.onerror = () => fail(r.error);
+  r.readAsDataURL(file);
+});
+
+/** L'image importée, prête à stocker : carrée, légère, en data: URL. */
+async function toProjectedIcon(file) {
+  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error(t('Format non pris en charge : PNG, JPG, GIF ou WebP.'));
+  if (file.size > PROJ_MAX_FILE) throw new Error(t('Image trop lourde (8 Mo maximum).'));
+  if (file.type === 'image/gif' && file.size <= PROJ_GIF_KEEP) return readAsDataUrl(file);
+  const bmp = await createImageBitmap(file);
+  const side = Math.min(bmp.width, bmp.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = PROJ_PX;
+  // Recadrée au centre, comme la vignette d'un objet.
+  canvas.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, PROJ_PX, PROJ_PX);
+  bmp.close?.();
+  return canvas.toDataURL('image/png');
+}
 
 const SOUND_KEYS = ['inbound', 'accepted', 'declined', 'error', 'revalued'];
 
@@ -78,6 +194,8 @@ function fill() {
   renderIgnored();
   renderDiag();
   renderNews();
+  renderProjected();
+  renderBanner();
 }
 
 /**
@@ -197,6 +315,59 @@ function wire() {
     save({ revalMinPercent: v });
   });
   $('#pollSeconds').addEventListener('change', e => save({ pollSeconds: Number(e.target.value) }));
+
+  // Pastilles de couleur : dessinées au premier rendu, d'où la délégation.
+  wireSwatches($('#proj-swatches'), renderProjected);
+  wireSwatches($('#gain-swatches'), renderBanner);
+  wireSwatches($('#loss-swatches'), renderBanner);
+  for (const k of ['bannerStyle', 'bannerSize']) {
+    $('#' + k).addEventListener('change', e => {
+      settings = { ...settings, [k]: e.target.value };
+      renderBanner();
+      save({ [k]: e.target.value });
+    });
+  }
+  $('#banner-reset').addEventListener('click', () => {
+    const d = globalThis.RoNoteBanner?.DEFAULTS;
+    if (!d) return;
+    const patch = { bannerGain: d.gain, bannerLoss: d.loss, bannerStyle: d.style, bannerSize: d.size };
+    for (const k of Object.keys(patch)) delete previewColor[k];
+    settings = { ...settings, ...patch };
+    renderBanner();
+    save(patch);
+  });
+  $('#projectedSize').addEventListener('change', e => {
+    settings = { ...settings, projectedSize: e.target.value };
+    renderProjected();
+    save({ projectedSize: e.target.value });
+  });
+  $('label[for="proj-file"]').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#proj-file').click(); }
+  });
+  $('#proj-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      projMessage(t("Préparation de l'image…"));
+      projectedIcon = await toProjectedIcon(file);
+      await B.storage.local.set({ projectedIcon });
+      renderProjected();
+      projMessage(t('Image appliquée aux onglets Roblox ouverts.'));
+      flashSaved();
+    } catch (err) {
+      projMessage(err?.message || t('Image illisible.'), true);
+    }
+  });
+  $('#proj-clear').addEventListener('click', async () => {
+    projectedIcon = '';
+    // Une valeur vide plutot qu'un remove : les onglets Roblox recoivent le
+    // meme evenement de changement, et le triangle revient aussitot.
+    await B.storage.local.set({ projectedIcon: '' }).catch(() => {});
+    renderProjected();
+    projMessage(t('Retour au triangle.'));
+    flashSaved();
+  });
   for (const k of SOUND_KEYS) {
     $('#snd-' + k).addEventListener('change', e => save({ sounds: { [k]: e.target.value } }));
   }
@@ -259,6 +430,19 @@ function wire() {
     flashSaved();
   });
 
+  $('#btn-page-diag').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const { pageDiag } = await B.storage.local.get('pageDiag').catch(() => ({}));
+    if (!pageDiag) { btn.textContent = t('Ouvre d\'abord un trade à créer'); return; }
+    const text = 'RoNote page diagnostic\n' + JSON.stringify({ ...pageDiag, skeleton: undefined }, null, 1) + '\n\n' + pageDiag.skeleton;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = t('Copié !');
+    } catch {
+      btn.textContent = t('Copie refusée');
+    }
+    setTimeout(() => { btn.textContent = t('Copier'); }, 2500);
+  });
   $('#btn-export').addEventListener('click', async () => {
     const history = (await ask({ type: 'ronote:get' }))?.history;
     if (!history) { showUnreachable(); return; }
@@ -335,5 +519,7 @@ load();
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
+B.storage.local.get('projectedIcon').then(got => { projectedIcon = got?.projectedIcon || ''; if (settings) renderProjected(); }).catch(() => {});
+onStoredChange(['projectedIcon'], 100, (v) => { projectedIcon = v.projectedIcon || ''; if (settings) renderProjected(); });
 // Les « il y a 3 min » du diagnostic avancent sans rien relire.
 setInterval(() => { if (!document.hidden && state) renderDiag(); }, 30000);

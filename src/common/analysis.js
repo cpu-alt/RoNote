@@ -18,6 +18,7 @@ import { assetKey, bundleKey } from './thumbs.js';
 
 /** Part prelevee par Roblox sur les Robux recus dans un trade. */
 export const ROBUX_TAX = 0.3;
+export const netRobux = amount => Math.floor(Math.max(0, Number(amount) || 0) * (1 - ROBUX_TAX) + 1e-9);
 
 /* ------------------------- identite d'un objet -------------------------- */
 
@@ -195,7 +196,7 @@ function sideOf(offer, cat, extra, bundleIds, opts) {
   const gross = Number(offer.robux) || 0;
   // Roblox preleve 30 % sur les Robux d'un trade : celui qui les recoit
   // n'en touche que 70. Compter le montant brut surevalue l'offre.
-  const net = opts.robuxTax ? Math.round(gross * (1 - ROBUX_TAX)) : gross;
+  const net = opts.robuxTax ? netRobux(gross) : gross;
 
   const known = items.filter(i => !i.unknown);
   const sum = (f) => known.reduce((s, i) => s + i[f], 0);

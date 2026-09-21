@@ -3,6 +3,29 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.13.0 — Trade Flex personnalisable
+
+- Carte inspirée des offres Roblox : grilles de vignettes, donné/reçu, totaux et comparateur central.
+- Résultat WIN / LOSS / EVEN, pourcentage et bordure colorée selon le RAP ou la Value sélectionnée.
+- Fonds Nuit, Violet ou image personnelle PNG/JPEG/WebP, avec réglage d'assombrissement. Import traité localement, conservé pendant la session de page.
+- Export PNG et copie de l'image par clic droit conservés.
+
+## v2.12.1 — Trade Flex
+
+- Bouton trophée après le profil Rolimon’s : génère une image PNG du trade, copiable par clic droit ou téléchargeable.
+- Deux colonnes donné/reçu, objets, totaux et écarts RAP / Value. Pseudos et serials omis de l'image.
+- Miniatures affichées quand disponibles, avec un symbole de remplacement si leur chargement échoue.
+
+## v2.12.0 — affichage des trades et confidentialité
+
+- Refonte des bandeaux RAP / Value et harmonisation de l'affichage des valeurs sur les pages de trade.
+- Valeurs Rolimon’s sous les objets et totaux par offre ; RAP utilisé pour les objets sans cote publiée.
+- Raccourci vers le profil Rolimon’s du partenaire et bouton « # » pour flouter les serials.
+- Gains RAP / Value séparés par des virgules pour les milliers.
+- Liens vers l'historique des exemplaires identifiés par leur serial.
+
+**Limite connue :** le clic sur les étoiles des objets sans serial ne retrouve pas encore systématiquement l'historique. Ce point reste en attente de correction.
+
 ## v2.11.1 — les limites de débit, et le refus qui ne partait pas
 
 **Corrigé : le refus en deux clics depuis une carte pouvait ne jamais partir.**

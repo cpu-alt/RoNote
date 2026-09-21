@@ -7,9 +7,10 @@ import {
   getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
 import { getCatalog } from '../common/roli.js';
+import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, addKnownInstances } from '../common/page-trade.js';
 import { setLang, t, currentLang, dictFor } from '../common/i18n.js';
 import {
-  analyze, verdict, thumbKeysFor, missingValueAssetIds, unresolvedAssetIds
+  analyze, verdict, thumbKeysFor, missingValueAssetIds, unresolvedAssetIds, resolveItem
 } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
@@ -1126,6 +1127,70 @@ async function uiData({ lite = false } = {}) {
 
 async function handleMessage(msg) {
   switch (msg.type) {
+    case 'ronote:page-analysis': {
+      const [settings, state] = await Promise.all([getSettings(), getState(), loadDetailCache()]);
+      if (settings.pageDelta === false) return { analysis: null, why: 'off' };
+      let page = msg.page;
+      let captured = null;
+      // Ce que la page a chargé elle-même, puis tous les trades déjà relevés
+      // par les listes (reçus, envoyés, terminés, inactifs). La page n'affiche
+      // pas l'identifiant du trade choisi : on le reconnaît à ses objets. Sans
+      // ce second vivier, seul le trade ouvert au chargement était reconnu.
+      const stored = await B.storage.local.get('captured');
+      // Roblox can keep the initial tradeId in the URL while another row is
+      // selected. Match the displayed offers; never restrict copy history to
+      // that initial URL ID. Asset + serial disambiguates historical copies.
+      const pool = [
+        ...Object.entries(stored.captured || {}).map(([id, e]) => ({ id, at: e.at, detail: e.detail, raw: true })),
+        ...[...memDetails.entries()].map(([id, r]) => ({ id: String(id), at: r?.at || 0, detail: r?.detail }))
+      ].filter(e => e.detail)
+        .sort((a, b) => b.at - a.at);
+      const details = pool.map(e => e.raw ? api.normalizeTradeDetail(e.detail) : e.detail);
+      for (const candidate of details) {
+        const matched = capturedForPage(page, candidate, state.userId);
+        if (matched) { page = matched; captured = candidate; break; }
+      }
+      const cat = await getCatalog(settings);
+      // Trade en préparation : ses objets peuvent n'être lus que par leur nom.
+      if (page?.composer) page = resolveNames(page, cat);
+      const detail = pageDetail(page, state.userId);
+      if (!detail) return { analysis: null, why: 'sides' };
+      // Le RAP d'un objet est le même d'un trade à l'autre : tout trade connu
+      // qui le contient comble un RAP illisible sur la page, sans réseau.
+      const knownRaps = {};
+      for (const d of details) for (const o of d?.offers || []) for (const i of o.userAssets || []) {
+        const id = Number(i.assetId) || 0, rap = Number(i.recentAveragePrice) || 0;
+        if (id && rap > 0 && !knownRaps[id]) knownRaps[id] = rap;
+      }
+      // Aucun appel réseau ici : cette réponse revient à chaque trade affiché
+      // et l'API economy de Roblox se fâche vite (429 pour tout le reste de
+      // l'extension). Seuls les ponts bundle déjà en cache servent.
+      const bundleIds = null;
+      const extra = knownRaps;
+      return { analysis: addKnownInstances(analyzePage(page, detail, cat, captured, { extra, bundleIds }), details) };
+    }
+    // Cote et « projected » des objets des inventaires, sur la page de création
+    // d'un trade. Aucun réseau : la table Rolimon's déjà en cache suffit.
+    case 'ronote:item-values': {
+      const settings = await getSettings();
+      if (settings.pageDelta === false) return { items: [], ready: false };
+      const cat = await getCatalog(settings);
+      const items = (Array.isArray(msg.items) ? msg.items : []).slice(0, 150).map(i => {
+        let ids = { assetId: Number(i.assetId) || 0, bundleId: Number(i.bundleId) || 0 };
+        if (!ids.assetId && !ids.bundleId) {
+          for (const n of (Array.isArray(i.names) && i.names.length ? i.names : [i.name]).slice(0, 4)) {
+            const hit = findByName(n, cat);
+            if (hit) { ids = { assetId: hit.assetId || 0, bundleId: hit.bundleId || 0 }; break; }
+          }
+        }
+        if (!ids.assetId && !ids.bundleId) return { key: i.key, known: false };
+        const item = resolveItem({ ...ids, recentAveragePrice: Number(i.rap) || 0 }, cat);
+        const listed = !item.noValue && !item.unknown;
+        return { key: i.key, known: true, value: listed ? item.value : null,
+          projected: !!item.projected, noValue: !!item.noValue };
+      });
+      return { items, ready: !!cat.ready };
+    }
     case 'ronote:get':
       return uiData(msg);
 

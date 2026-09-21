@@ -1,6 +1,6 @@
 {
   "name": "ronote",
-  "version": "2.11.1",
+  "version": "2.13.0",
   "private": true,
   "type": "module",
   "description": "Extension navigateur : alertes de trades Roblox (reçus / terminés) avec dédup fiable par ID de trade.",
@@ -9,7 +9,7 @@
     "build:node": "node tools/build.mjs",
     "check": "python tools/check.py",
     "check:node": "node tools/check.mjs",
-    "test": "node tools/test-dedup.mjs && node tools/test-tracker.mjs && node tools/test-content.mjs && node tools/test-revalue.mjs && node tools/test-portfolio.mjs",
+    "test": "node tools/test-dedup.mjs && node tools/test-tracker.mjs && node tools/test-content.mjs && node tools/test-revalue.mjs && node tools/test-portfolio.mjs && node tools/test-page-trade.mjs",
     "serve": "python tools/serve.py",
     "icons": "powershell -ExecutionPolicy Bypass -File tools/make-icons.ps1"
   }

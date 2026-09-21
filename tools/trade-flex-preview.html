@@ -1,0 +1,11 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><title>Trade Flex preview</title>
+<style>body{background:#141827;color:white;font:16px system-ui}button{padding:14px}</style>
+<button id="open">Ouvrir Trade Flex</button>
+<script src="../src/content/trade-flex.js"></script>
+<script>
+const loss=new URLSearchParams(location.search).has('loss');
+const sides=[{role:'give',rapTotal:69007,items:['Elton John - Elton Earring','Masked Hood of the Truest Seeker','Camoface','Masked Hood of the Truest Seeker'].map((name,i)=>({name,rap:[968,18723,7593,18723][i]}))},{role:'get',rapTotal:61938,items:['Kuddle E. Koala','Beautiful Hair for Beautiful People','Lord of the Buxeration','Super Super Happy Face'].map((name,i)=>({name,rap:[699,5398,4334,51507][i]}))}];
+const analysis={valueAvailable:true,give:{rap:69007,value:62107},get:{rap:61938,value:loss?50199:66199},pageItems:[sides[0].items.map(i=>({value:i.rap})),[699,6000,4500,55000].map(value=>({value}))]};
+document.getElementById('open').onclick=()=>RoNoteFlex.open({sides},analysis);
+RoNoteFlex.open({sides},analysis);
+</script></html>

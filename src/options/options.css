@@ -338,3 +338,42 @@ button[data-play] .ic { width: 14px; height: 14px; }
 .row small .ic, p.hint .ic { width: 12px; height: 12px; vertical-align: -2px; color: var(--fg); }
 .saved { display: inline-flex; align-items: center; gap: 6px; }
 .saved .ic { width: 14px; height: 14px; stroke-width: 2.4; }
+
+/* --------------------------- badge projected ---------------------------- */
+
+.row.proj { align-items: flex-start; flex-wrap: wrap; }
+.proj-edit { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.proj-stage {
+  position: relative; flex: none; width: 76px; height: 76px; border-radius: 10px;
+  background: linear-gradient(145deg, #3a2a5c, #22183a); border: 1px solid var(--line);
+}
+.proj-tile { position: absolute; inset: 18px; border-radius: 8px; background: #ffffff14; }
+.proj-badge { position: absolute; top: 6px; right: 6px; line-height: 0; }
+.proj-controls { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.swatch {
+  width: 24px; height: 24px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 2px solid #0000; box-shadow: inset 0 0 0 1px #0004;
+  transition: transform .15s, border-color .15s;
+}
+.swatch:hover { transform: scale(1.12); }
+.swatch[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.swatch.custom {
+  position: relative; overflow: hidden;
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+.swatch.custom input { position: absolute; inset: -8px; opacity: 0; cursor: pointer; }
+.proj-msg { color: var(--dim); font-size: 12px; min-height: 1em; }
+.proj-msg.err { color: #ff9a9f; }
+label.btn { display: inline-flex; align-items: center; }
+
+/* --------------------------- bandeau des écarts --------------------------- */
+
+.row.stack { flex-direction: column; align-items: stretch; gap: 12px; }
+.banner-edit { width: 100%; flex-direction: column; align-items: stretch; }
+.banner-preview { display: block; width: 100%; padding: 14px; border-radius: 12px;
+  background: linear-gradient(145deg, #3a1f66, #2a0f55); border: 1px solid var(--line); }
+.banner-edit .proj-controls { align-items: stretch; }
+.swatch-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.swatch-label { color: var(--dim); font-size: 12px; font-weight: 650; min-width: 44px; }
+.banner-edit .btnrow { justify-content: flex-end; flex-wrap: wrap; }
