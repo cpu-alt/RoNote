@@ -16,7 +16,8 @@
   };
   const assetUrl = (path) => { try { return B.runtime.getURL(path); } catch { return ''; } };
   const fr = (document.documentElement.lang || navigator.language || '').startsWith('fr');
-  const number = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0, useGrouping: false });
+  // Grouped like Roblox's own figures: "14 996" in French, "14,996" in English.
+  const number = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 });
   const deltaNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
   const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + deltaNumber.format(Math.abs(n));
   // The trades list (/trades) and the page to build a trade, opened from a

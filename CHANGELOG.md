@@ -58,6 +58,11 @@ trade réaffiché par Roblox depuis son propre cache sans nouvelle requête), le
 calcul n'était redemandé qu'une minute plus tard. Il l'est maintenant après
 1,5 s, puis 3, 6, 12 et 25 s, et tout de suite au retour sur l'onglet.
 
+**Pages de trade : chiffres groupés par milliers.** La cote Rolimon's sous chaque
+objet, les totaux par offre et les cotes des inventaires s'affichent comme les
+chiffres de Roblox : « 14 996 » en français, « 14,996 » en anglais, au lieu de
+« 14996 ».
+
 **Fini les « Extension context invalidated » en rafale.** Recharger ou mettre à
 jour l'extension laisse l'ancienne copie de ses scripts tourner dans les onglets
 Roblox ouverts, coupée de l'extension : chaque vérification (toutes les 2 s,

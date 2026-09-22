@@ -37,6 +37,8 @@ export const RELEASES = [
         "Trade pages: the Trade Flex, # and Rolimon's buttons have a fixed place at the right of the title. They no longer move, and no longer vanish behind a long username's \"…\"."),
       item("Pages de trade : les écarts RAP et value ne restent plus grisés jusqu'au rafraîchissement de la page. Une réponse incomplète est redemandée après quelques secondes au lieu d'une minute.",
         'Trade pages: the RAP and value gaps no longer stay grey until the page is refreshed. An incomplete answer is asked again after a few seconds instead of a minute.'),
+      item("Pages de trade : la cote Rolimon's sous chaque objet et les totaux sont groupés par milliers, comme les chiffres de Roblox (14 996).",
+        "Trade pages: the Rolimon's value under each item and the totals are grouped by thousands, like Roblox's own figures (14,996)."),
       item("Après une mise à jour de l'extension, un onglet Roblox resté ouvert n'accumule plus les erreurs « Extension context invalidated » : l'ancienne copie retire ses éléments et s'arrête. Recharge l'onglet pour retrouver RoNote.",
         'After an extension update, a Roblox tab left open no longer piles up "Extension context invalidated" errors: the old copy removes its elements and stops. Reload the tab to get RoNote back.')
     ]
