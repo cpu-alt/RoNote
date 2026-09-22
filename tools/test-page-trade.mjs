@@ -99,12 +99,14 @@ const context = vm.createContext({
   location: { pathname: '/trades', href: 'https://www.roblox.com/trades' },
   document: { documentElement: { lang: 'fr' }, body: new Node(), hidden: false,
     createElement: () => new Node(), addEventListener: (type, fn) => { docListeners[type] = fn; } },
-  chrome: { runtime: { getURL: path => 'chrome-extension://test/' + path,
+  chrome: { runtime: { id: 'test', getURL: path => 'chrome-extension://test/' + path,
     sendMessage: msg => new Promise(resolve => requests.push({ msg, resolve })) } },
-  RoNoteDom: { readTradePage: () => shown, signatureOf: p => p.tradeId + ':' + p.sides.map(s => s.robux || 0).join(','), plain: p => p },
-  MutationObserver: class { observe() {} }, addEventListener(type, fn) { globalListeners[type] = fn; },
+  RoNoteDom: { readTradePage: () => shown, signatureOf: p => p.tradeId + ':' + p.sides.map(s => s.robux || 0).join(','), plain: p => p,
+    phaseOf: t => /would have/i.test(t) ? 'inactive' : /gave|received/i.test(t) ? 'done' : t ? 'open' : '' },
+  MutationObserver: class { observe() {} disconnect() {} }, addEventListener(type, fn) { globalListeners[type] = fn; },
   getComputedStyle: () => ({ overflowX: 'visible', overflowY: 'visible', display: 'block', flexDirection: 'row' }),
-  setTimeout: fn => { timers.push(fn); return timers.length; }, setInterval: fn => { context.poll = fn; }
+  setTimeout: fn => { timers.push(fn); return timers.length; }, setInterval: fn => { context.poll = fn; return 1; },
+  clearTimeout: () => {}, clearInterval: () => {}
 });
 vm.runInContext(readFileSync(new URL('../src/content/trade-delta.js', import.meta.url), 'utf8'), context);
 const flush = async () => { while (timers.length) timers.shift()(); await new Promise(r => setImmediate(r)); };
@@ -158,8 +160,24 @@ assert.equal(totalRows[0].nextElementSibling?.dataset.rn, 'total-value', 'remove
 const heading = new Node();
 parent.append(heading); shown.tradeHeading = heading; shown.partnerId = 123;
 docListeners.scroll(); await flush();
-assert.equal(heading.children[1].href, 'https://www.rolimons.com/player/123', 'profile shortcut works outside composer');
-assert.equal(heading.children[0].dataset.rn, 'serial-toggle', 'privacy button precedes profile link');
+const bar = () => heading.children[0];
+assert.equal(bar().dataset.rn, 'trade-tools', 'icons grouped in one bar inside the heading');
+assert.match(bar().style.cssText, /position:absolute/, 'icons pinned to a fixed place in the heading');
+assert.match(heading.style.getPropertyValue('padding-right'), /px$/, 'room reserved for the icons');
+assert.equal(bar().children[1].href, 'https://www.rolimons.com/player/123', 'profile shortcut works outside composer');
+assert.equal(bar().children[0].dataset.rn, 'serial-toggle', 'privacy button precedes profile link');
+// Trade Flex only for a completed trade, read from the offer headings.
+context.RoNoteFlex = { open() {}, close() {} };
+docListeners.scroll(); await flush();
+assert.equal(bar().children.length, 2, 'no Flex button on a pending trade');
+shown.sides[0].heading = { textContent: 'Items you gave' }; shown.sides[1].heading = { textContent: 'Items you received' };
+docListeners.scroll(); await flush();
+assert.equal(bar().children[0]?.dataset.rn, 'trade-flex', 'Flex button on a completed trade, first so the others never move');
+assert.deepEqual(bar().children.map(c => c.dataset.rn), ['trade-flex', 'serial-toggle', 'rolimons-profile']);
+shown.sides[0].heading = { textContent: 'Items you would have given' };
+docListeners.scroll(); await flush();
+assert.equal(bar().children.length, 2, 'Flex button removed on a trade that fell through');
+delete shown.sides[0].heading; delete shown.sides[1].heading; delete context.RoNoteFlex;
 const serial = new Node(); serial.textContent = '#123'; serial.closest = () => null;
 const serialLeaf = new Node(); serialLeaf.textContent = '#123'; serialLeaf.closest = () => null;
 serial.append(serialLeaf);
@@ -168,12 +186,12 @@ left.querySelectorAll = selector => selector === '*' || selector.includes('seria
 a.pageItems[0][0].instances = [{ uaid: 99999, serial: 123 }];
 const opened = []; context.window = { open: (...args) => opened.push(args) };
 docListeners.scroll(); await flush();
-heading.children[0].listeners.get('click')();
+bar().children[0].listeners.get('click')();
 assert.equal(serial.style.filter, 'blur(5px)', 'privacy toggle blurs serial');
-assert.equal(heading.children[0].getAttribute('aria-pressed'), 'true');
+assert.equal(bar().children[0].getAttribute('aria-pressed'), 'true');
 serial.listeners.get('click')({ preventDefault() {}, stopImmediatePropagation() {} });
 assert.equal(opened[0][0], 'https://www.rolimons.com/uaid/99999', 'serial opens matching copy');
-heading.children[0].listeners.get('click')();
+bar().children[0].listeners.get('click')();
 assert.equal(serial.style.filter, undefined, 'second click restores serial');
 serial.textContent = serialLeaf.textContent = '#456'; docListeners.scroll(); await flush();
 serial.listeners.get('click')({ preventDefault() {}, stopImmediatePropagation() {} });
@@ -202,14 +220,39 @@ requests.at(-1).resolve({analysis:a}); await flush();
 assert.match(host().shadow.children[1].children[0].children[1].textContent, /1,000,000/);
 shown.partnerId = 456;
 docListeners.scroll(); await flush();
-assert.equal(heading.children.length, 2, 'one privacy button and profile shortcut after switching player');
-assert.equal(heading.children[1].href, 'https://www.rolimons.com/player/456');
+assert.equal(heading.children.length, 1, 'still a single icon bar after switching player');
+assert.equal(bar().children.length, 2, 'one privacy button and profile shortcut after switching player');
+assert.equal(bar().children[1].href, 'https://www.rolimons.com/player/456');
 for (const row of totalRows) row.remove();
 const residualLine = new Node();
 residualLine.getBoundingClientRect = () => ({ left: 0, right: 100, top: 24, bottom: 25, width: 100, height: 1 });
 host().after(residualLine);
 docListeners.scroll(); await flush();
 assert.equal(residualLine.style.getPropertyValue('display'), 'none', 'plain one-pixel line below calculator is hidden');
+// An incomplete answer (catalogue still loading) is asked again within
+// seconds: waiting a minute left the banner grey until the page was reloaded.
+shown = { ...shown, sides: shown.sides.map((s, i) => i ? { ...s, robux: 7 } : s) };
+docListeners.input({ target: { matches: () => true } }); await flush();
+const sent = requests.length;
+requests.at(-1).resolve({ analysis: { ...a, valueAvailable: false, valueMissing: 'catalog' } }); await flush();
+context.poll(); await flush();
+assert.equal(requests.length, sent, 'incomplete answer is not re-asked on the spot');
+await new Promise(r => setTimeout(r, 1600));
+context.poll(); await flush();
+assert.equal(requests.length, sent + 1, 'incomplete answer re-asked after 1.5 s, not a minute');
+requests.at(-1).resolve({ analysis: a }); await flush();
+// Extension reloaded while the tab stays open: this copy is cut off from it.
+// It must clean the page and stop, instead of throwing on every chrome.* call.
+assert.ok(host(), 'bars shown before the reload');
+delete context.chrome.runtime.id;
+const beforeReload = requests.length;
+context.poll(); await flush();
+assert.equal(host(), undefined, 'orphaned script removes its bars');
+assert.equal(left.children.length, 1, 'orphaned script removes item values');
+assert.equal(divider.style.getPropertyValue('display'), 'block', 'orphaned script restores the separator');
+docListeners.scroll(); context.poll(); await flush();
+assert.equal(requests.length, beforeReload, 'orphaned script sends nothing more');
+context.chrome.runtime.id = 'test';
 context.location.pathname = '/home'; context.location.href = 'https://www.roblox.com/home';
 context.poll(); await flush();
 assert.equal(host(), undefined, 'navigation removes the bars');

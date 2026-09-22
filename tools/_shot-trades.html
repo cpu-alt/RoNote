@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — prise de vue pages de trade</title>
+<style>
+  html, body { margin:0; width:1280px; height:800px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(1100px 620px at 78% 18%, #1b2740 0%, transparent 60%),
+      radial-gradient(900px 560px at 12% 92%, #14233a 0%, transparent 62%),
+      #05070b;
+    font:14px "Segoe UI", system-ui, sans-serif; color:#8e9cb3; box-sizing:border-box;
+    padding:34px 48px 0;
+  }
+  .head { text-align:center; margin-bottom:20px; }
+  .kicker {
+    display:inline-block; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:#4d9fff; font-weight:600; margin-bottom:12px;
+  }
+  h1 { color:#eef3fb; font-size:38px; line-height:1.15; margin:0 0 10px; letter-spacing:-.02em; font-weight:700; }
+  p { font-size:17px; line-height:1.5; margin:0 auto; color:#93a2ba; max-width:860px; }
+  .row { display:flex; justify-content:center; gap:32px; }
+  .col { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .label {
+    font-size:15px; font-weight:600; padding:6px 14px; border-radius:999px; border:1px solid;
+  }
+  .label.win { color:#6ff0a8; background:#22e57a1a; border-color:#22e57a55; }
+  .label.trap { color:#ffc94d; background:#ffc4001a; border-color:#ffc40055; }
+  /* Page de 720 × 700, affichée à 0,78. */
+  .win-frame {
+    width:562px; height:546px; border-radius:14px; overflow:hidden;
+    border:1px solid #263149; box-shadow:0 30px 80px #000c, 0 0 0 1px #ffffff08;
+  }
+  iframe { width:720px; height:700px; border:0; display:block; transform:scale(.78); transform-origin:top left; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <span class="kicker" id="kicker"></span>
+    <h1 id="title"></h1>
+    <p id="sub"></p>
+  </div>
+  <div class="row">
+    <div class="col"><span class="label win" id="l-win"></span><div class="win-frame"><iframe src="_trade-scene.html?v=win" title="win"></iframe></div></div>
+    <div class="col"><span class="label trap" id="l-trap"></span><div class="win-frame"><iframe src="_trade-scene.html?v=trap" title="trap"></iframe></div></div>
+  </div>
+<script>
+  // Capture 1280 × 800 des pages de trade Roblox, par Chrome headless :
+  //   ?lang=en
+  // Les deux pages sont _trade-scene.html : vrais scripts de contenu, API simulée.
+  const en = new URLSearchParams(location.search).get('lang') === 'en';
+  const COPY = en ? {
+    kicker: 'On Roblox trade pages',
+    title: 'Win or loss, before you click',
+    sub: "The RAP and Value gap on every trade, Rolimon's value under each item, projected items flagged.",
+    win: '▲ Win on RAP and Value',
+    trap: '⚠ Projected item: RAP says win, Value says loss'
+  } : {
+    kicker: 'Sur les pages de trade Roblox',
+    title: 'Win ou loss, avant de cliquer',
+    sub: "L’écart RAP et Value sur chaque trade, la cote Rolimon’s sous chaque objet, les objets projected signalés.",
+    win: '▲ Gagnant en RAP et en Value',
+    trap: '⚠ Objet projected : le RAP dit win, la Value dit loss'
+  };
+  for (const k of ['kicker', 'title', 'sub']) document.getElementById(k).textContent = COPY[k];
+  document.getElementById('l-win').textContent = COPY.win;
+  document.getElementById('l-trap').textContent = COPY.trap;
+  let ready = 0;
+  addEventListener('message', (e) => { if (e.data?.ronoteScene && ++ready === 2) document.title = 'PRET'; });
+</script>
+</body>
+</html>

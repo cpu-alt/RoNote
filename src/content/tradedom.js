@@ -95,15 +95,32 @@ function count(text) {
 }
 
 const HEADING = 'h1,h2,h3,h4,h5,h6,[role="heading"],.font-header-1,.font-header-2,.font-header-3';
-function roleOf(text) {
-  const s = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const headingText = (text) => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[’']/g, "'").replace(/\byou've\b/g,'you have')
     .replace(/\byou would've\b/g,'you would have').replace(/\s+/g,' ').trim().replace(/\s*:\s*$/,'');
+function roleOf(text) {
+  const s = headingText(text);
   if (/^items you (?:gave|give|will give|are giving|would give|would have given|offered)$/.test(s) ||
       /^(?:objets|articles) que (?:vous|tu) (?:avez donne|avez donnes|as donnes|donnez|donnes|allez donner|vas donner|auriez donnes|aurais donnes|auriez donne|aurais donne)$/.test(s)) return 'give';
   if (/^items you (?:received|receive|will receive|are receiving|would receive|would have received)$/.test(s) ||
       /^(?:objets|articles) que (?:vous|tu) (?:avez recu|avez recus|as recus|recevez|recois|allez recevoir|vas recevoir|auriez recus|aurais recus|auriez recu|aurais recu)$/.test(s)) return 'get';
   return '';
+}
+
+/**
+ * Where the trade stands, read from the tense of an offer heading:
+ *   done      "Items you gave / received"            (Completed tab)
+ *   inactive  "Items you would have given / received"
+ *   open      "Items you will give / give / receive…" (Inbound, Outbound)
+ * '' when the heading says nothing about it.
+ */
+function phaseOf(text) {
+  const s = headingText(text);
+  if (/^items you would have (?:given|received)$/.test(s) ||
+      /^(?:objets|articles) que (?:vous|tu) (?:auriez|aurais) (?:donnes?|recus?)$/.test(s)) return 'inactive';
+  if (/^items you (?:gave|received)$/.test(s) ||
+      /^(?:objets|articles) que (?:vous|tu) (?:avez|as) (?:donnes?|recus?)$/.test(s)) return 'done';
+  return roleOf(text) ? 'open' : '';
 }
 
 function headingFor(root) {
@@ -582,7 +599,7 @@ function signatureOf(page) {
 /* Le monde isole des scripts de contenu : c'est notre seul point de rendez-vous. */
 globalThis.RoNoteDom = {
   ITEM_LINK, USER_LINK,
-  idOf, nameOf, groupLinks, partnerHandle, readTradePage, plain, signatureOf, visibleAnalysis,
+  idOf, nameOf, groupLinks, partnerHandle, readTradePage, plain, signatureOf, visibleAnalysis, phaseOf,
   inventoryItems
 };
 })();

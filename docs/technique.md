@@ -326,15 +326,15 @@ compose.
 
 | Bloc | Ce qu'il montre |
 |---|---|
-| **Solde** | Value réelle, RAP et nombre de collectibles, **superposables**. Deux courbes de même unité (value et RAP) partagent l'axe ; dès que le nombre d'objets s'y ajoute, chacune passe en variation depuis le début de la période — la seule façon honnête d'empiler des unités différentes. Survoler la courbe affiche le jour pointé ; 👁 masque les montants, jamais les pourcentages. |
+| **Solde** | Value du compte, RAP et nombre de collectibles, **superposables**. Deux courbes de même unité (value et RAP) partagent l'axe ; dès que le nombre d'objets s'y ajoute, chacune passe en variation depuis le début de la période — la seule façon honnête d'empiler des unités différentes. Survoler la courbe affiche le jour pointé ; 👁 masque les montants, jamais les pourcentages. |
 | **Tuiles** | L'autre chiffre (RAP ou value), le rang Rolimon's, le nombre d'objets, et l'effet des réévaluations des 7 derniers jours sur tes objets. |
 | **Répartition** | Le poids de tes 5 plus gros objets parmi ce que tu possèdes de coté. |
 | **Mes collectibles** | Chaque objet avec vignette, quantité, cote, demande, tendance, et les marques rare ★, projected ⚠ et visage 🎭. Recherche, tri, filtres, vue liste ou galerie ; un clic ouvre sa fiche, avec les liens Rolimon's et Roblox. |
 | **Fiche d'un objet** | Sa courbe — value, RAP et meilleur prix, superposables — de 1 mois à tout l'historique, chaque révision de cote marquée d'un point. |
 
-La liste repose sur l'inventaire **réel** (`holdings`, le même que l'alerte de
-réévaluation) : un visage possédé y figure une fois, sous son bundle, et un visage
-fantôme n'y figure pas. Un objet que le catalogue public de Rolimon's ne cote pas est
+La liste repose sur l'inventaire compté par Rolimon's (`holdings`, le même que
+l'alerte de réévaluation) : un visage possédé y figure une fois, sous son bundle.
+Un objet que le catalogue public de Rolimon's ne cote pas est
 seulement compté. Le service worker prépare la liste (`portfolioItems`, module pur,
 testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
 10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
@@ -356,68 +356,49 @@ Les courbes sont lissées par une cubique **monotone** (Fritsch-Carlson) : elles
 
 L'historique d'un objet vient de sa page publique Rolimon's (`history_data` et `value_changes`), lue seulement à l'ouverture de sa fiche. La page pèse jusqu'à 1,7 Mo pour 11 000 relevés : RoNote n'en garde que le dernier relevé de chaque seau — 2 h sur 7 jours, 1 jour sur 3 mois, 3 jours sur un an, 14 jours au-delà — et le met en cache 6 heures, pour les 20 derniers objets ouverts.
 
-### La valeur que Rolimon's affiche est fausse, dans les deux sens
+### Les visages : Rolimon's est à jour
 
-C'est la conséquence la moins connue du passage des visages en bundles, et
-personne ne la corrige :
+Quand Roblox a converti les visages en bundles DynamicHead, la valeur publiée par
+Rolimon's est devenue fausse dans les deux sens : un visage échangé restait compté
+chez son ancien propriétaire, un visage reçu n'était compté nulle part. De la v2.1 à
+la v2.13, RoNote corrigeait ce total en comparant, visage par visage, ce que
+Rolimon's comptait et les bundles réellement possédés
+(`catalog.roblox.com/v1/users/{id}/bundles`).
 
-| | ce qui se passe | effet sur ta valeur |
-|---|---|---|
-| **Visage échangé** | l'ancien exemplaire reste dans l'inventaire Roblox ; Rolimon's continue de le compter | **compté en trop** |
-| **Visage reçu** | il arrive en bundle ; ni les collectibles ni Rolimon's ne le voient | **manquant** |
+**Depuis sa mise à jour de septembre 2026, Rolimon's compte les visages d'après les
+bundles réellement possédés.** Vérifié sur des comptes réels avant de retirer la
+correction : la valeur du profil est exactement la somme des objets comptés, et
+chaque visage compté correspond à un bundle possédé (zéro fantôme, zéro absent).
+RoNote prend donc la valeur de Rolimon's **telle quelle** depuis la v2.14 — la
+recalculer soi-même sous-compterait de toute façon, Rolimon's valorisant en interne
+des UGC limiteds absents de son catalogue public.
 
-Le juge de paix est le même dans les deux cas : `catalog.roblox.com/v1/users/{id}/bundles`.
-C'est le **bundle** qui est réellement échangé, donc c'est lui qui dit ce que tu
-possèdes. RoNote ne compare pas les inventaires en vrac — il compare, **visage par
-visage**, ce que Rolimon's compte (`players/v1/playerassets`) et les bundles cotés
-que tu possèdes :
+Un détail reste à gérer : `players/v1/playerassets` liste toujours un visage sous son
+**ancien assetId** (34764447 pour The Dog Whisperer, pas le bundle
+160001924154932). `holdingsOf` le rattache à son bundle grâce au pont de `roli.js`,
+pour trois raisons : la table v3 cote le bundle, les révisions de cote sont publiées
+sous sa clé, et c'est l'ancien asset qui fournit la vignette plate. La page d'un
+bundle chez Rolimon's (`/bundle/{id}`) confirme d'ailleurs ce pont avec un champ
+`migrated_from_asset_id`.
 
-```
-valeur corrigée  =  valeur Rolimon's  −  fantômes  +  visages absents
-```
-
-Mesuré sur un compte réel :
-
-```
-Rolimon's annonce                                 1 836 950
-  − Golden Bling Braces  (compté, plus possédé)      −6 762
-  − Blue Wistful Wink    (compté, plus possédé)      −4 500
-  − Gritty Bombo         (compté, plus possédé)      −3 349
-  + The Dog Whisperer    (possédé, non compté)      +55 000
-  + Purple Super Happy Joy                          +19 973
-  + Fawkes Face                                     +18 687
-  + Snowman Face                                    +13 601
-  + Blue Goof                                        +1 940
-                                                 ──────────
-valeur réelle                                     1 931 540   (+94 590)
-```
-
-**Pourquoi partir de la valeur de Rolimon's plutôt que tout recalculer ?** Parce
-qu'additionner soi-même sous-compte : Rolimon's valorise en interne des UGC limiteds
-qu'il ne publie pas dans son catalogue public. On garde donc leur total comme base
-et on ne corrige que ce qu'on sait démontrer, ligne par ligne.
-
-Le panneau **Réconciliation des visages** affiche chaque ligne avec sa vignette, son
-nom et son montant, en cliquant dessus pour ouvrir l'objet : un chiffre corrigé sans
-le détail de la correction ne serait pas vérifiable. Désactivable par « Corriger les
-visages passés en bundles » dans les réglages.
+Coût réseau du portefeuille : **deux appels à Rolimon's** (profil et inventaire),
+aucun à Roblox — contre jusqu'à dix avec la correction.
 
 ### Les indicateurs
 
 | | |
 |---|---|
-| **Value réelle** | valeur corrigée + variation sur la période, avec l'écart vis-à-vis de Rolimon's |
-| **RAP** | RAP total corrigé + variation |
+| **Value du compte** | valeur Rolimon's + variation sur la période |
+| **RAP** | RAP total + variation |
 | **Rang** | classement Rolimon's |
 | **Objets** | nombre de collectibles, + les visages possédés |
 
 Plages identiques au site : **1s · 1m · 3m · 6m · 1a · Tout**. Courbe Value (bleu,
 en aire) et RAP (vert).
 
-La **courbe** reste celle que Rolimon's publie, telle quelle : appliquer la
-correction d'aujourd'hui à des points d'il y a six mois serait une invention. Le
-chiffre du haut, lui, est celui de maintenant, corrigé — et l'écart entre les deux
-est écrit noir sur blanc juste en dessous.
+La **courbe** reste celle que Rolimon's publie, telle quelle, prolongée jusqu'au
+dernier relevé de RoNote : Rolimon's ne rescanne un compte que quelques fois par
+jour, et sans ce dernier point la courbe retarderait sur le chiffre du haut.
 
 ### D'où vient l'historique
 
@@ -435,7 +416,7 @@ donnée du graphique du site, sur toute son ancienneté, disponible dès la prem
 vérification — sans rien reconstruire.
 
 Trois cadences distinctes, parce que les trois sources ne bougent pas au même
-rythme : réconciliation **10 min**, historique **30 min**, catalogue **3 h**.
+rythme : profil et inventaire **10 min**, historique **30 min**, catalogue **3 h**.
 Reconstruire tout ça à chaque vérification (toutes les 30 s) serait une attaque en
 règle sur les API de Rolimon's depuis ton IP. Le bouton **Recalculer maintenant**
 force le tout.
@@ -723,10 +704,10 @@ Rolimon's révise ses cotes, parfois de plusieurs dizaines de pourcents d'un cou
 gardait 7 jours de révisions, mais ne s'en servait que pour marquer 🔁 les objets
 d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
 
-- **l'inventaire** vient du rafraîchissement du portefeuille (toutes les 10 min),
-  qui le relevait déjà pour corriger les visages. `buildPortfolio` le garde
-  désormais dans le rapport, sous les mêmes clés que les révisions (`a:` pour un
-  asset, `b:` pour un bundle) ;
+- **l'inventaire** vient du rafraîchissement du portefeuille (toutes les 10 min).
+  `buildPortfolio` le garde dans le rapport, sous les mêmes clés que les
+  révisions (`a:` pour un asset, `b:` pour un bundle — un visage y est rangé sous
+  son bundle) ;
 - **un visage n'alerte qu'une fois** : Rolimon's peut publier sa révision sous
   l'id du bundle ou sous l'ancien asset, et `revalue.js` prend l'un ou l'autre,
   jamais les deux ;
@@ -803,7 +784,6 @@ tous les chiffres.
   cote spéculative
 - **Robux nets de taxe** (30 % prélevés par Roblox sur les Robux reçus)
 - **Détail des objets** dépliable sous chaque trade
-- **Correction des visages passés en bundles** dans l'onglet Portefeuille
 - **Alerte quand un objet possédé est réévalué**, avec son seuil
 - **Filtres** : trades gagnants uniquement, gain min en %, valeur min reçue, items
   projected, joueurs ignorés
@@ -875,9 +855,10 @@ silencieusement l'évaluation :
 
 - les deux catalogues Rolimon's complets (`tools/fixtures/rolimons-*.json`) ;
 - une réponse de trade conforme au schéma officiel v2 ;
-- l'inventaire réel d'un compte, avec ses 3 visages fantômes et ses 5 bundles
-  ignorés par Rolimon's (`tools/fixtures/portfolio-*.json`), dont le test rejoue le
-  calcul complet et vérifie le total au robux près.
+- l'inventaire réel d'un compte (`tools/fixtures/portfolio-*.json`), ramené au
+  format de Rolimon's depuis sa mise à jour de septembre 2026 : ses visages sont
+  comptés sous leur ancien assetId, et le test vérifie qu'ils sont tous rangés sous
+  leur bundle, une seule fois.
 
 Couvre aussi : le pont visage↔bundle sur les 160 bundles, le piège *Zip It!*, la
 colonne `rare` déplacée entre v1 et v3, le `userAssetId` pris pour un `assetId`, les
@@ -959,7 +940,7 @@ src/
     roli.js                >> catalogue Rolimon's + pont visage↔bundle
     thumbs.js              résolution des vignettes (candidats ordonnés, cache)
     analysis.js            identité d'un objet, évaluation, verdict
-    portfolio.js           >> réconciliation de la valeur du compte
+    portfolio.js           >> valeur du compte et liste des objets
     revalue.js             >> révisions de cote × objets possédés
     state.js               réglages / état / flux (clés séparées) / journal
     filters.js             décision de notifier (module pur, testé)

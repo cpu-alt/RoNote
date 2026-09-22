@@ -11,10 +11,10 @@
  *
  *  Deux pieges, regles ici plutot que dans le service worker :
  *
- *  1. LES VISAGES.  Un visage possede est un bundle ; Rolimon's peut publier
- *     sa revision sous l'id du bundle (`b:`) ou sous l'ancien asset (`a:`).
- *     On prend l'une OU l'autre, jamais les deux : sinon une seule revision
- *     donnerait deux alertes.
+ *  1. LES VISAGES.  Un visage possede est un bundle, que Rolimon's liste sous
+ *     son ancien asset ; sa revision peut etre publiee sous l'id du bundle
+ *     (`b:`) ou sous l'ancien asset (`a:`). On prend l'une OU l'autre, jamais
+ *     les deux : sinon une seule revision donnerait deux alertes.
  *
  *  2. LE REPERE.  Une revision est datee du rafraichissement qui l'a vue. On
  *     n'alerte que sur ce qui est posterieur au repere, et le repere avance
@@ -27,33 +27,30 @@ import { readEntry } from './roli.js';
 /**
  * Ce que le joueur detient, sous les memes cles que `changes`.
  *
+ * Depuis sa mise a jour de septembre 2026, Rolimon's compte les visages
+ * d'apres les bundles reellement possedes, mais les liste toujours sous
+ * leur ANCIEN assetId. On les range sous leur bundle : c'est la fiche que
+ * cote la table v3, et la cle sous laquelle leurs revisions sont publiees.
+ *
  * @param counted  ce que Rolimon's compte  { counts: {assetId: n} }  (ou null)
- * @param owned    bundles reellement possedes  [{ id }]              (ou null)
  * @param cat      catalogue (roli.js) : `bundles` et le pont `bundleOf`
  * @returns        { 'a:<assetId>': n, 'b:<bundleId>': n }
  */
-export function holdingsOf(counted, owned, cat) {
+export function holdingsOf(counted, cat) {
+  const assets = cat?.assets || {};
   const bundles = cat?.bundles || {};
   const bundleOf = cat?.bundleOf || {};
   const out = {};
-
-  // Les bundles COTES possedes : c'est sous cette forme qu'un visage recu existe.
-  if (Array.isArray(owned)) {
-    for (const b of owned) {
-      const id = String(b?.id ?? '');
-      if (!id || !bundles[id]) continue;
-      out['b:' + id] = (out['b:' + id] || 0) + 1;
-    }
-  }
-
   for (const [assetId, n] of Object.entries(counted?.counts || {})) {
     const count = Number(n) || 0;
     if (count <= 0) continue;
-    // Un visage migre est deja compte par son bundle — ou n'est plus possede
-    // du tout (fantome). Mais sans la liste des bundles, le compte de
-    // Rolimon's reste la meilleure information disponible.
-    if (bundleOf[assetId] && Array.isArray(owned)) continue;
-    out['a:' + assetId] = (out['a:' + assetId] || 0) + count;
+    const bundleId = bundleOf[assetId];
+    // Un bundle limited qui n'est pas un visage (The Jade Catseye) n'a pas
+    // d'ancien asset : s'il est liste, c'est sous son propre id de bundle.
+    const key = bundleId && bundles[bundleId] ? 'b:' + bundleId
+      : !assets[assetId] && bundles[assetId] ? 'b:' + assetId
+      : 'a:' + assetId;
+    out[key] = (out[key] || 0) + count;
   }
   return out;
 }

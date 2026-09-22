@@ -18,7 +18,7 @@ function showUnreachable() {
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'useRolimons', 'trackPortfolio', 'reconcilePortfolio', 'robuxTax', 'showItemDetails', 'pageDelta',
+  'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'showItemDetails', 'pageDelta',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters', 'revalAlerts'];
 const NUMS = ['maxNotificationsPerPoll', 'minGainPercent', 'minTheirValue', 'counterWindowMinutes'];
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
@@ -173,10 +173,9 @@ function fill() {
   // Sans cotes communautaires, il n'y a qu'un seul chiffre possible : le RAP.
   $('#valueBasis').disabled = !settings.useRolimons;
   $('#speculativeRatio').disabled = !settings.useRolimons;
-  $('#reconcilePortfolio').disabled = !settings.trackPortfolio;
   // L'alerte croise les revisions avec l'inventaire que releve le portefeuille :
-  // sans cotes, sans suivi ou sans reconciliation, elle n'a rien a croiser.
-  const revalOk = settings.useRolimons && settings.trackPortfolio && settings.reconcilePortfolio !== false;
+  // sans cotes ou sans suivi, elle n'a rien a croiser.
+  const revalOk = settings.useRolimons && settings.trackPortfolio;
   $('#revalAlerts').disabled = !revalOk;
   $('#revalMinPercent').disabled = !revalOk;
   $('#revalMinPercent').value = settings.revalMinPercent ?? 10;

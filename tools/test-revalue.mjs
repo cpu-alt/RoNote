@@ -29,20 +29,19 @@ const cat = {
 /* ---------------------------------------------------------------------- */
 console.log('\nCe que le joueur détient');
 
-check('objets comptés avec leur quantité, bundle coté compté, bundle sans cote ignoré',
-  sorted(holdingsOf({ counts: { 100: 1, 200: 2, 300: 1 } }, [{ id: 900 }, { id: 12345 }], cat)),
-  { 'a:100': 1, 'a:200': 2, 'b:900': 1 });
-check('visage migré : compté une seule fois, par son bundle',
-  holdingsOf({ counts: { 300: 1 } }, [{ id: 900 }], cat), { 'b:900': 1 });
-check('visage fantôme (compté par Rolimon\'s, plus possédé) : ignoré',
-  holdingsOf({ counts: { 300: 1 } }, [], cat), {});
-check('liste des bundles indisponible : le compte de Rolimon\'s fait foi',
-  holdingsOf({ counts: { 300: 1 } }, null, cat), { 'a:300': 1 });
-check('inventaire Rolimon\'s indisponible : les bundles suffisent',
-  holdingsOf(null, [{ id: 901 }, { id: 901 }], cat), { 'b:901': 2 });
+check('objets comptés avec leur quantité',
+  sorted(holdingsOf({ counts: { 100: 1, 200: 2 } }, cat)), { 'a:100': 1, 'a:200': 2 });
+check('visage compté sous son ancien asset : rangé sous son bundle',
+  holdingsOf({ counts: { 300: 2 } }, cat), { 'b:900': 2 });
+check('bundle limited listé sous son propre id : rangé en bundle',
+  holdingsOf({ counts: { 901: 1 } }, cat), { 'b:901': 1 });
+check('objet inconnu du catalogue : gardé tel quel',
+  holdingsOf({ counts: { 555: 1 } }, cat), { 'a:555': 1 });
+check('sans pont (v1 injoignable) : le visage reste sous son ancien asset',
+  holdingsOf({ counts: { 300: 1 } }, { ...cat, bundleOf: {} }), { 'a:300': 1 });
 check('quantité nulle ou négative ignorée',
-  holdingsOf({ counts: { 100: 0, 200: -1 } }, [], cat), {});
-check('rien du tout : rien', holdingsOf(null, null, cat), {});
+  holdingsOf({ counts: { 100: 0, 200: -1 } }, cat), {});
+check('rien du tout : rien', holdingsOf(null, cat), {});
 
 /* ---------------------------------------------------------------------- */
 console.log('\nLes révisions qui concernent un objet possédé');

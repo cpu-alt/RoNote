@@ -3,6 +3,69 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.14.0 — les visages, Rolimon's est à jour
+
+**Rolimon's compte enfin les visages correctement.** Depuis sa mise à jour de
+septembre 2026, il les compte d'après les bundles réellement possédés : un
+visage échangé ne traîne plus dans l'inventaire de son ancien propriétaire, un
+visage reçu y apparaît. Vérifié sur des comptes réels : la valeur du profil est
+exactement la somme des objets comptés, et chaque visage compté correspond à un
+bundle possédé.
+
+La correction que RoNote faisait depuis la v2.1 (valeur Rolimon's − visages
+fantômes + visages absents) n'a donc plus lieu d'être. Elle aurait même pris le
+simple retard de scan de Rolimon's, juste après un trade, pour une erreur de
+comptage.
+
+- **La valeur du compte est celle de Rolimon's**, telle quelle. Le panneau
+  « Réconciliation des visages », la ligne « RoNote corrige de… » et le réglage
+  « Corriger les visages passés en bundles » disparaissent.
+- **Plus léger** : le portefeuille et la fiche joueur ne demandent plus la liste
+  des bundles à Roblox (jusqu'à 8 pages). Deux appels à Rolimon's par
+  rafraîchissement, aucun à Roblox.
+- **Les visages restent reconnus** : Rolimon's les liste toujours sous leur ancien
+  identifiant d'asset ; RoNote les rattache à leur bundle, pour la cote, la
+  vignette et les alertes de réévaluation.
+- **Fiche joueur** : la liste de ses bundles reste, l'onglet « Qu'il n'a plus » et
+  la ligne de correction disparaissent.
+- **Alertes de réévaluation** : elles ne dépendent plus que du suivi de la valeur
+  du compte.
+- Le « Quoi de neuf » des réglages et de l'accueil couvre de nouveau les
+  dernières versions (il s'arrêtait à la v2.11.1).
+
+**Trade Flex refait.** Carte rendue en 2× (nette une fois partagée), verdict
+lumineux, écarts RAP et value côte à côte autour d'un rond ⇄, value étiquetée
+sous chaque objet, badge sur les objets projected, date en pied de carte. La
+fenêtre gagne des commandes segmentées (fond, résultat mis en avant), un vrai
+bouton **Copier** (presse-papiers), et la carte tient entière à l'écran. Le bouton
+n'apparaît plus que sur un **trade terminé** : on flexe un trade conclu, pas une
+offre en attente ou tombée à l'eau. L'état se lit dans le titre des offres
+(« Items you gave » contre « Items you will give »), l'onglet Terminés de l'URL
+sert de repli.
+
+**Pages de trade : les boutons ont une place fixe.** Roblox tronque le titre
+« Trade with … @pseudo » avec « … » : les boutons #, Rolimon's et Trade Flex,
+posés à la suite du pseudo, passaient dessous avec un nom long, et bougeaient à
+chaque changement de trade. Ils sont maintenant calés au bord droit du titre,
+leur place réservée une fois pour toutes : le « … » de Roblox coupe le nom avant
+eux, et ils ne bougent plus. Le bouton Trade Flex (trade terminé seulement) se
+place à gauche, sans décaler les deux autres, avec une icône dessinée à la place
+de l'emoji. Tout est rendu tel quel en quittant la page.
+
+**Pages de trade : fini le bandeau grisé jusqu'au rafraîchissement.** Quand la
+première réponse arrivait incomplète (table des cotes en cours de chargement,
+trade réaffiché par Roblox depuis son propre cache sans nouvelle requête), le
+calcul n'était redemandé qu'une minute plus tard. Il l'est maintenant après
+1,5 s, puis 3, 6, 12 et 25 s, et tout de suite au retour sur l'onglet.
+
+**Fini les « Extension context invalidated » en rafale.** Recharger ou mettre à
+jour l'extension laisse l'ancienne copie de ses scripts tourner dans les onglets
+Roblox ouverts, coupée de l'extension : chaque vérification (toutes les 2 s,
+et à chaque changement de la page) levait une erreur. Cette copie orpheline le
+détecte maintenant, retire tout ce qu'elle avait posé sur la page et s'arrête ;
+les messages restés sans `.catch` dans `relay.js` et `scrape.js` sont couverts
+aussi. Recharger l'onglet réinstalle la nouvelle version.
+
 ## v2.13.0 — Trade Flex personnalisable
 
 - Carte inspirée des offres Roblox : grilles de vignettes, donné/reçu, totaux et comparateur central.

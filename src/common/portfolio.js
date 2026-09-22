@@ -1,65 +1,40 @@
 /**
  * ==========================================================================
- *  LE PORTEFEUILLE, RECONCILIE
+ *  LE PORTEFEUILLE
  * --------------------------------------------------------------------------
  *  Rolimon's publie LA valeur d'un compte — celle que lit toute la communaute
- *  du trade. On la garde comme base, parce que la recalculer soi-meme
+ *  du trade. On la prend telle quelle, parce que la recalculer soi-meme
  *  sous-compte : Rolimon's valorise en interne des UGC limiteds qu'il ne
  *  publie pas dans son catalogue public.
  *
- *  Mais depuis la conversion des visages en bundles DynamicHead, cette valeur
- *  est fausse dans les deux sens, et personne ne le corrige :
+ *  Jusqu'en septembre 2026, cette valeur etait fausse pour les visages
+ *  convertis en bundles DynamicHead (visages echanges encore comptes,
+ *  visages recus invisibles), et RoNote la corrigeait en croisant les
+ *  bundles Roblox du joueur. Rolimon's compte desormais les visages d'apres
+ *  les bundles reellement possedes : sa valeur est juste, et la correction
+ *  n'a plus lieu d'etre. Il continue de les lister sous leur ANCIEN assetId,
+ *  que le pont de roli.js rattache a leur bundle (voir revalue.js).
  *
- *  1. LES FANTOMES.  Un visage echange laisse derriere lui son ancien
- *     exemplaire dans l'inventaire Roblox. Rolimon's continue donc de le
- *     compter alors que le joueur ne l'a plus. Sa valeur est comptee en trop.
- *
- *  2. LES ABSENTS.   Un visage RECU arrive sous forme de bundle. Ni
- *     l'inventaire des collectibles ni Rolimon's ne le voient. Sa valeur
- *     manque au total.
- *
- *  Le juge de paix est le meme dans les deux cas : `catalog/users/{id}/bundles`.
- *  C'est le bundle qui est reellement echange, donc c'est lui qui dit ce que
- *  le joueur possede. On ne compare pas les inventaires en vrac — on compare,
- *  visage par visage, ce que Rolimon's compte et ce que le joueur possede :
- *
- *      valeur corrigee = valeur Rolimon's − fantomes + visages absents
- *
- *  Le pont entre les deux mondes (ancien assetId <-> bundleId) vient de
- *  roli.js. Chaque ligne est rendue a l'interface avec son nom et sa cote :
- *  un chiffre corrige sans le detail de la correction ne serait pas verifiable.
+ *  Deux appels a Rolimon's, aucun a Roblox : le profil (valeur, RAP, rang)
+ *  et l'inventaire, qui donne la liste des objets.
  * ==========================================================================
  */
 import * as api from './api.js';
 import { readEntry } from './roli.js';
 import { holdingsOf, revisionFor } from './revalue.js';
 
-/** Ce que Rolimon's compte, ce que le joueur possede, et l'ecart entre les deux. */
+/** Les chiffres de Rolimon's et la liste des objets du compte. */
 export async function buildPortfolio(userId, cat) {
-  const at = Date.now();
-  const base = {
-    at, userId: Number(userId) || 0,
-    ok: false, partial: false, reason: '',
-    private: false, terminated: false,
-    rolimons: null,
-    ghosts: [], extras: [],
-    ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
-    value: 0, rap: 0, rank: 0,
-    ownedFaces: 0, countedItems: 0, holds: 0,
-    holdings: null,
-    items: [], unrated: 0
-  };
+  const base = emptyReport(userId);
+  base.ok = false;
   if (!base.userId) return { ...base, reason: 'utilisateur inconnu' };
 
-  const [infoR, assetsR, bundlesR] = await Promise.allSettled([
+  const [infoR, assetsR] = await Promise.allSettled([
     api.getPlayerInfo(userId),
-    api.getPlayerAssets(userId),
-    api.getUserBundles(userId)
+    api.getPlayerAssets(userId)
   ]);
-
   const info = infoR.status === 'fulfilled' ? infoR.value : null;
   const counted = assetsR.status === 'fulfilled' ? assetsR.value : null;
-  const owned = bundlesR.status === 'fulfilled' ? bundlesR.value : null;
 
   if (!info) {
     return { ...base, reason: String(infoR.reason?.message || "profil Rolimon's injoignable") };
@@ -69,12 +44,23 @@ export async function buildPortfolio(userId, cat) {
     return {
       ...base, private: true, rolimons: info,
       value: info.value, rap: info.rap, rank: info.rank,
-      reason: 'inventaire privé — Rolimon\'s ne publie rien'
+      reason: "inventaire privé — Rolimon's ne publie rien"
     };
   }
+  return fromRolimons(base, info, counted, cat);
+}
 
-  const out = {
-    ...base,
+/**
+ * Le rapport, isole du reseau pour pouvoir etre teste sur de vraies donnees.
+ *
+ * @param out      squelette de rapport (emptyReport)
+ * @param info     profil Rolimon's  { value, rap, rank }
+ * @param counted  ce que Rolimon's compte  { counts: {assetId: n}, holds, scannedAt }  (ou null)
+ * @param cat      catalogue (roli.js) avec le pont faceOf / bundleOf
+ */
+export function fromRolimons(out, info, counted, cat) {
+  const report = {
+    ...out,
     ok: true,
     rolimons: info,
     rank: info.rank,
@@ -84,98 +70,19 @@ export async function buildPortfolio(userId, cat) {
     holds: counted?.holds?.length || 0,
     // Date du dernier releve de la courbe Rolimon's : la page qui la porte
     // n'est relue que si ce releve est plus recent que la serie gardee.
-    chartScannedAt: counted?.scannedAt || 0
+    chartScannedAt: counted?.scannedAt || 0,
+    // Ce que le joueur detient, sous les cles des revisions de cote : c'est ce
+    // que croise l'alerte de reevaluation. `null` si l'inventaire n'a pas
+    // repondu, pour ne pas confondre « rien possede » et « rien su ».
+    holdings: counted ? holdingsOf(counted, cat) : null
   };
-
-  // Ce que le joueur detient, sous les cles des revisions de cote : c'est ce
-  // que croise l'alerte de reevaluation (revalue.js). Calcule meme quand la
-  // reconciliation reste partielle ; `null` seulement si aucune source n'a
-  // repondu, pour ne pas confondre « rien possede » et « rien su ».
-  out.holdings = counted || owned ? holdingsOf(counted, owned, cat) : null;
-
   // Les memes objets, prets a afficher : la liste de l'onglet Portefeuille.
-  Object.assign(out, portfolioItems(out.holdings, cat));
-
-  // Sans l'une des deux sources, la reconciliation n'a pas de sens : on rend
-  // les chiffres de Rolimon's tels quels plutot qu'une correction a moitie faite.
-  if (!counted || !owned) {
-    out.partial = true;
-    out.reason = !counted ? "inventaire Rolimon's indisponible" : 'bundles Roblox indisponibles';
-    return out;
+  Object.assign(report, portfolioItems(report.holdings, cat));
+  if (!counted) {
+    report.partial = true;
+    report.reason = "inventaire Rolimon's indisponible";
   }
-
-  return reconcile(out, info, counted, owned, cat);
-}
-
-/**
- * La partie qui compte, isolee du reseau pour pouvoir etre testee sur de
- * vraies donnees.
- *
- * @param out      squelette de rapport deja rempli des chiffres de Rolimon's
- * @param info     profil Rolimon's  { value, rap, ... }
- * @param counted  ce que Rolimon's compte  { counts: {assetId: n}, holds }
- * @param owned    bundles reellement possedes  [{ id, name, bundleType }]
- * @param cat      catalogue (roli.js) avec le pont faceOf / bundleOf
- */
-export function reconcile(out, info, counted, owned, cat) {
-  const bundles = cat?.bundles || {};
-  const assets = cat?.assets || {};
-  const faceOf = cat?.faceOf || {};
-  const bundleOf = cat?.bundleOf || {};
-
-  // Les bundles COTES que le joueur possede. Les autres (bundles gratuits,
-  // tenues sans valeur marchande) ne pesent rien dans un portefeuille.
-  const ownedLimited = new Map();
-  for (const b of owned) {
-    const id = String(b.id);
-    if (!bundles[id]) continue;
-    ownedLimited.set(id, (ownedLimited.get(id) || 0) + 1);
-  }
-  out.ownedFaces = [...ownedLimited.values()].reduce((s, n) => s + n, 0);
-
-  // --- 1. les fantomes : comptes par Rolimon's, plus possedes -------------
-  for (const [assetId, n] of Object.entries(counted.counts)) {
-    const bundleId = bundleOf[assetId];
-    if (!bundleId) continue;                       // pas un visage migre : hors sujet
-    const have = ownedLimited.get(String(bundleId)) || 0;
-    const excess = n - have;
-    if (excess <= 0) continue;
-    const e = readEntry(assets[assetId]) || readEntry(bundles[String(bundleId)]);
-    if (!e) continue;
-    out.ghosts.push({
-      assetId: Number(assetId), bundleId: Number(bundleId), legacyAssetId: Number(assetId),
-      name: e.name, count: excess, value: e.value, rap: e.rap,
-      total: e.value * excess
-    });
-    out.ghostValue += e.value * excess;
-    out.ghostRap += e.rap * excess;
-  }
-
-  // --- 2. les absents : possedes, invisibles chez Rolimon's ---------------
-  for (const [bundleId, have] of ownedLimited) {
-    const legacy = faceOf[bundleId] || '';
-    const seen = legacy ? (counted.counts[legacy] || 0) : 0;
-    const missing = have - seen;
-    if (missing <= 0) continue;
-    const e = readEntry(bundles[bundleId]) || (legacy ? readEntry(assets[legacy]) : null);
-    if (!e) continue;
-    out.extras.push({
-      bundleId: Number(bundleId), legacyAssetId: Number(legacy) || 0,
-      name: e.name, count: missing, value: e.value, rap: e.rap,
-      total: e.value * missing
-    });
-    out.extraValue += e.value * missing;
-    out.extraRap += e.rap * missing;
-  }
-
-  out.ghosts.sort((a, b) => b.total - a.total);
-  out.extras.sort((a, b) => b.total - a.total);
-
-  out.value = Math.max(0, info.value - out.ghostValue + out.extraValue);
-  out.rap = Math.max(0, info.rap - out.ghostRap + out.extraRap);
-  out.delta = out.value - info.value;
-  out.corrected = out.ghosts.length > 0 || out.extras.length > 0;
-  return out;
+  return report;
 }
 
 /** Squelette de rapport, expose pour les tests. */
@@ -185,10 +92,8 @@ export function emptyReport(userId) {
     ok: true, partial: false, reason: '',
     private: false, terminated: false,
     rolimons: null,
-    ghosts: [], extras: [],
-    ghostValue: 0, ghostRap: 0, extraValue: 0, extraRap: 0,
     value: 0, rap: 0, rank: 0,
-    ownedFaces: 0, countedItems: 0, holds: 0,
+    countedItems: 0, holds: 0,
     holdings: null,
     items: [], unrated: 0
   };
@@ -196,8 +101,8 @@ export function emptyReport(userId) {
 
 /**
  * Les objets du portefeuille, une ligne par objet : ce que l'onglet
- * Portefeuille liste, trie et filtre. Construit sur `holdings`, donc sur
- * l'inventaire REEL — visages possedes compris, fantomes exclus.
+ * Portefeuille liste, trie et filtre. Construit sur `holdings` : un visage
+ * y figure sous son bundle, avec l'image plate de son ancien asset.
  *
  * Un objet que le catalogue public de Rolimon's ne cote pas (certains UGC
  * limiteds) n'a ni nom ni cote a montrer : il est compte dans `unrated`.
@@ -242,8 +147,7 @@ export function portfolioItems(holdings, cat) {
 }
 
 /** Toutes les lignes illustrees du rapport, dans un ordre fixe. */
-const reportLines = (report) =>
-  [...(report?.ghosts || []), ...(report?.extras || []), ...(report?.items || [])];
+const reportLines = (report) => report?.items || [];
 
 /**
  * Ce qu'il faut demander a thumbs.js pour illustrer le rapport. Pour un visage,
@@ -252,10 +156,7 @@ const reportLines = (report) =>
 export function portfolioThumbKeys(report) {
   return reportLines(report).map(l => {
     const keys = [];
-    if (l.legacyAssetId) keys.push('a:' + l.legacyAssetId);
     if (l.faceAssetId) keys.push('a:' + l.faceAssetId);
-    if (l.bundleId) keys.push('b:' + l.bundleId);
-    if (l.assetId && l.assetId !== l.legacyAssetId) keys.push('a:' + l.assetId);
     if (l.key) keys.push(l.key);
     return [...new Set(keys)];
   });

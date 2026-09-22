@@ -4,6 +4,17 @@
   const dom = globalThis.RoNoteDom;
   if (!dom || globalThis.__rnDelta) return;
   globalThis.__rnDelta = true;
+  // Reloading or updating the extension leaves this copy running in the open
+  // tabs, cut off from it: every chrome.* call then throws "Extension context
+  // invalidated". Such an orphan removes what it placed and stops for good.
+  let dead = false, observer = null, ticker = 0;
+  const alive = () => {
+    if (dead) return false;
+    try { if (B?.runtime?.id) return true; } catch { /* invalidated */ }
+    shutdown();
+    return false;
+  };
+  const assetUrl = (path) => { try { return B.runtime.getURL(path); } catch { return ''; } };
   const fr = (document.documentElement.lang || navigator.language || '').startsWith('fr');
   const number = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0, useGrouping: false });
   const deltaNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -11,7 +22,14 @@
   // The trades list (/trades) and the page to build a trade, opened from a
   // profile (/users/123/trade), with or without a language prefix (/fr/...).
   const onPage = () => /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/(?:trades|users\/\d+\/trade)(?:\/|$)/i.test(location.pathname);
-  let host, profileLink, profileAnchor, profileAnchorDisplay, signature = '', generation = 0, timer, retryAt = 0, lastUrl = location.href;
+  let host, profileLink, tools, signature = '', generation = 0, timer, retryAt = 0, lastUrl = location.href;
+  // An incomplete answer (catalogue still loading, trade detail not captured
+  // yet because Roblox redrew it from its own cache) is asked again soon, then
+  // less and less often: waiting a full minute left the banner grey until the
+  // page was refreshed.
+  const RETRY_STEPS = [1500, 3000, 6000, 12000, 25000];
+  let retries = 0;
+  const nextRetry = () => Date.now() + (RETRY_STEPS[retries++] ?? 60000);
   const cache = new Map();
   const badges = new Map();
   const totalBadges = new Map();
@@ -31,15 +49,15 @@
   function restyleBanner() {
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
-  B.storage?.local?.get(['settings', 'projectedIcon']).then(got => {
+  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon']).then(got => {
     enabled = got?.settings?.pageDelta !== false;
     Object.assign(look, lookOf(got?.settings), { image: got?.projectedIcon || '' });
     bannerSettings = got?.settings || {};
     restyleBanner();
     if (!enabled) clear(); else { restyleFlags(); schedule(); }
   }).catch(() => {});
-  B.storage?.onChanged?.addListener((changes, area) => {
-    if (area !== 'local') return;
+  if (alive()) B.storage?.onChanged?.addListener((changes, area) => {
+    if (area !== 'local' || dead) return;
     if (changes.projectedIcon) { look.image = changes.projectedIcon.newValue || ''; restyleFlags(); }
     if (!changes.settings) return;
     const nextSettings = changes.settings.newValue || {};
@@ -66,7 +84,7 @@
   const PROJ_KEY = 'pageProjected';
   let projectedKnown = new Map();
   let projectedSave = null;
-  B.storage?.local?.get(PROJ_KEY).then(got => {
+  if (alive()) B.storage?.local?.get(PROJ_KEY).then(got => {
     for (const [k, v] of Object.entries(got?.[PROJ_KEY] || {})) if (!projectedKnown.has(k)) projectedKnown.set(k, !!v);
     if (shownPage) renderItems(shownPage, shownAnalysis, true);
   }).catch(() => {});
@@ -83,7 +101,7 @@
       // Only the positives are worth keeping; unknown items simply wait.
       const out = {};
       for (const [k, v] of [...projectedKnown].slice(-600)) if (v) out[k] = 1;
-      B.storage?.local?.set({ [PROJ_KEY]: out }).catch(() => {});
+      if (alive()) B.storage?.local?.set({ [PROJ_KEY]: out }).catch(() => {});
     }, 1500);
   }
 
@@ -189,7 +207,7 @@
       const style = document.createElement('style'); style.textContent = CHIP_CSS;
       const pill = document.createElement('span'); pill.className = 'v';
       const label = document.createElement('img');
-      label.src = B.runtime.getURL('assets/rolimons-logo.webp'); label.alt = '';
+      label.src = assetUrl('assets/rolimons-logo.webp'); label.alt = '';
       const value = document.createElement('b');
       pill.append(label, value); shadow.append(style, pill);
       badge = { node, pill, label, value };
@@ -239,7 +257,7 @@
       const amount = document.createElement('span');
       amount.style.cssText = 'display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;font:inherit;font-weight:600;white-space:nowrap;';
       const icon = document.createElement('img');
-      icon.src = B.runtime.getURL('assets/rolimons-logo.webp'); icon.alt = '';
+      icon.src = assetUrl('assets/rolimons-logo.webp'); icon.alt = '';
       icon.style.cssText = 'display:block;width:13px;height:13px;object-fit:contain;';
       const value = document.createElement('b');
       value.style.cssText = 'font:inherit;font-weight:inherit;';
@@ -344,6 +362,7 @@
   }
 
   async function updateInventories(page) {
+    if (!alive()) return;
     let items = null;
     try { items = dom.inventoryItems?.((page?.sides || []).map(s => s.root)); } catch { items = null; }
     if (!items) { if (invBadges.size) clearInventories(); return; }
@@ -384,6 +403,7 @@
       if (invInfo.size > 3000) invInfo.delete(invInfo.keys().next().value);
 
     } catch {
+      if (!alive()) return;
       invRetryAt = Date.now() + 8000;
       setTimeout(schedule, 8050);
     } finally {
@@ -437,15 +457,6 @@
     }
   }
   const restore = () => { for (const reset of undo) reset(); undo = []; };
-  function resetProfileAnchor() {
-    if (profileAnchor && profileAnchorDisplay) {
-      for (const [element, name, value, priority] of profileAnchorDisplay) {
-        if (value) element.style.setProperty(name, value, priority);
-        else element.style.removeProperty(name);
-      }
-    }
-    profileAnchor = null; profileAnchorDisplay = null;
-  }
   let serialControl, flexControl, serialHidden = false;
   const serialNodes = new Map();
   // Capture before the thumbnail's own link/React handlers. Some badges are
@@ -555,23 +566,60 @@
       serialNodes.delete(el);
     }
   }
+  /**
+   * The icons (Trade Flex, blur serials, Rolimon's profile) have ONE fixed
+   * place: pinned to the right edge of the "Trade with … @handle" heading,
+   * with their room reserved once and for all. They never move with the
+   * length of the name, and Roblox's own ellipsis cuts a long name before
+   * them. Anchored on the right, the Flex button (completed trades only)
+   * appears on the left without shifting the other two.
+   * The heading's position and padding are restored when the page changes.
+   */
+  const TOOLS_ROOM = 3 * 30 + 2 * 6 + 12;   // three buttons, their gaps, some air
+  let headingSaved = null;                   // [element, property, value, priority][]
+  function releaseHeading() {
+    for (const [el, name, value, priority] of headingSaved || []) {
+      if (value) el.style.setProperty(name, value, priority); else el.style.removeProperty(name);
+    }
+    headingSaved = null;
+  }
+  function placeTools(heading, handle) {
+    if (headingSaved && headingSaved[0][0] !== heading) releaseHeading();
+    if (!headingSaved) {
+      headingSaved = ['position', 'padding-right'].map(name =>
+        [heading, name, heading.style.getPropertyValue(name), heading.style.getPropertyPriority(name)]);
+      // Some layouts put the @handle on its own line: keep it next to the name.
+      if (handle && handle !== heading && heading.contains(handle) && getComputedStyle(handle).display === 'block') {
+        headingSaved.push([handle, 'display', handle.style.getPropertyValue('display'), handle.style.getPropertyPriority('display')]);
+        handle.style.setProperty('display', 'inline');
+      }
+      const cs = getComputedStyle(heading);
+      const padding = parseFloat(cs.paddingRight) || 0;
+      if (cs.position === 'static') heading.style.setProperty('position', 'relative');
+      heading.style.setProperty('padding-right', `${padding + TOOLS_ROOM}px`, 'important');
+      Object.assign(tools.style, { right: `${padding}px` });
+    }
+    if (tools.parentElement !== heading) heading.append(tools);
+  }
+  /**
+   * Trade Flex shows off a done deal: only a completed trade can be flexed,
+   * never an offer still pending or one that fell through. The offer headings
+   * say so ("Items you gave"); the Completed tab of the URL stands in when
+   * they don't.
+   */
+  function isCompleted(page) {
+    if (!page?.ok || page.composer) return false;
+    const phases = (page.sides || []).map(s => dom.phaseOf?.(s.heading?.textContent)).filter(Boolean);
+    if (phases.length) return phases.every(p => p === 'done');
+    return /[?&]tab=completed(?:&|$)/i.test(location.search);
+  }
   function mountProfileLink(page) {
     const heading = page?.partnerId > 0 && page.tradeHeading?.isConnected ? page.tradeHeading : null;
-    if (!heading) { flexControl?.remove(); serialControl?.remove(); profileLink?.remove(); profileLink = null; resetProfileAnchor(); return; }
-    const anchor = page.tradeHandle?.isConnected && heading.contains(page.tradeHandle) ? page.tradeHandle : heading;
-    if (profileAnchor !== anchor) {
-      resetProfileAnchor(); profileAnchor = anchor;
-      profileAnchorDisplay = [];
-      const handle = page.tradeHandle;
-      if (handle && handle !== heading && getComputedStyle(handle).display === 'block') {
-        profileAnchorDisplay.push([handle, 'display', handle.style.getPropertyValue('display'), handle.style.getPropertyPriority('display')]);
-        handle.style.setProperty('display', 'inline-block');
-      }
-    }
+    if (!heading) { flexControl?.remove(); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
     if (!profileLink) {
       profileLink = document.createElement('a');
       profileLink.dataset.rn = 'rolimons-profile';
-      profileLink.style.cssText = 'box-sizing:border-box;position:relative;display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:30px;height:28px;margin-left:7px;border-radius:7px;border:1px solid rgba(128,170,210,.3);background:rgba(20,28,40,.45);color:#56baff;text-decoration:none;';
+      profileLink.style.cssText = 'box-sizing:border-box;position:relative;flex:none;display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:30px;height:28px;margin:0;border-radius:7px;border:1px solid rgba(128,170,210,.3);background:rgba(20,28,40,.45);color:#56baff;text-decoration:none;';
       const content = document.createElement('span');
       content.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:inherit;';
       profileLink.append(content);
@@ -579,7 +627,7 @@
       const style = document.createElement('style');
       style.textContent = ':host{transition:background .15s,border-color .15s}:host(:hover){background:rgba(0,145,230,.22)!important;border-color:#56baff!important}:host(:focus-visible){outline:2px solid #56baff;outline-offset:3px}.external{position:absolute;right:3px;top:0;font:12px/1.2 Arial,sans-serif}@media(prefers-reduced-motion:reduce){:host{transition:none}}';
       const logo = document.createElement('img');
-      logo.src = B.runtime.getURL('assets/rolimons-logo.webp'); logo.alt = '';
+      logo.src = assetUrl('assets/rolimons-logo.webp'); logo.alt = '';
       logo.style.cssText = 'display:block;width:20px;height:20px;object-fit:contain;';
       const external = document.createElement('span'); external.className = 'external'; external.textContent = '↗';
       external.setAttribute('aria-hidden', 'true');
@@ -589,20 +637,26 @@
     const url = `https://www.rolimons.com/player/${page.partnerId}`;
     if (profileLink.href !== url) profileLink.href = url;
     if (profileLink.title !== title) { profileLink.title = title; profileLink.setAttribute('aria-label', title); }
-    if (anchor === heading) {
-      if (profileLink.parentElement !== heading) heading.append(profileLink);
-    } else if (profileLink.previousElementSibling !== anchor &&
-        !(profileLink.previousElementSibling === serialControl && serialControl.previousElementSibling === anchor)) anchor.after(profileLink);
+    if (!tools) {
+      tools = document.createElement('span');
+      tools.dataset.rn = 'trade-tools';
+      tools.style.cssText = 'position:absolute;top:50%;right:0;transform:translateY(-50%);display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;z-index:1;';
+    }
+    if (profileLink.parentElement !== tools) tools.append(profileLink);
+    placeTools(heading, page.tradeHandle);
     mountSerialControl();
-    if (globalThis.RoNoteFlex) {
+    if (globalThis.RoNoteFlex && isCompleted(page)) {
       if (!flexControl) {
         flexControl = document.createElement('button');flexControl.type='button';flexControl.dataset.rn='trade-flex';
-        flexControl.textContent='🏆';flexControl.title=fr?'Créer une image du trade':'Create a trade image';
+        flexControl.innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+        flexControl.title=fr?'Créer une image du trade':'Create a trade image';
         flexControl.setAttribute('aria-label',flexControl.title);
-        flexControl.style.cssText=profileLink.style.cssText+'padding:0;font-size:17px;cursor:pointer;';
-        flexControl.addEventListener('click',()=>{if(shownPage)globalThis.RoNoteFlex.open(shownPage,shownAnalysis);});
+        flexControl.style.cssText=profileLink.style.cssText+'padding:0;cursor:pointer;color:#ffc94d;';
+        flexControl.addEventListener('click',()=>{if(isCompleted(shownPage))globalThis.RoNoteFlex.open(shownPage,shownAnalysis);});
       }
-      if (profileLink.nextElementSibling!==flexControl)profileLink.after(flexControl);
+      if (tools.firstElementChild!==flexControl)tools.prepend(flexControl);
+    } else if (flexControl?.isConnected) {
+      flexControl.remove(); globalThis.RoNoteFlex?.close();
     }
   }
   const clear = () => {
@@ -610,8 +664,8 @@
     resetSerials(); serialControl?.remove();
     clearNearbyLines();
     restore(); host?.remove(); host = null; signature = ''; generation++;
-    profileLink?.remove(); profileLink = null;
-    resetProfileAnchor();
+    profileLink?.remove(); profileLink = null; tools?.remove();
+    releaseHeading();
     for (const badge of badges.values()) { dropBadge(badge); }
     badges.clear();
     for (const total of totalBadges.values()) total.node.remove();
@@ -726,7 +780,7 @@
       const inv = dom.inventoryItems?.(page.sides.map(s => s.root)) || [];
       const diag = {
         at: new Date().toISOString(), path: location.pathname.replace(/\d{3,}/g, '#'),
-        version: B.runtime.getManifest?.().version,
+        version: alive() ? B.runtime.getManifest?.().version : '',
         placement, bannerShown: !!host?.isConnected,
         inventories: !!page.inventories,
         baskets: page.sides.map(s => ({ role: s.role, total: s.rapTotal, robux: s.robux,
@@ -928,6 +982,7 @@
   }
 
   async function update() {
+    if (!alive()) return;
     lastUrl = location.href;
     if (!enabled || !onPage() || document.hidden) { clear(); clearInventories(); return; }
     let page;
@@ -953,6 +1008,7 @@
     if (changed) {
       generation++;
       signature = sig;
+      retries = 0;
       if (!mount(page)) return;
     }
     const local = dom.visibleAnalysis?.(page);
@@ -989,16 +1045,26 @@
       if (result?.analysis?.valueAvailable) {
         cache.set(sig, { analysis, at: Date.now() });
         if (cache.size > 20) cache.delete(cache.keys().next().value);
-      } else retryAt = Date.now() + (result?.analysis ? 60000 : 10000);
+        retries = 0;
+      } else retryAt = nextRetry();
     } catch {
-      if (current === generation && host?.isConnected) { analysisPending = false; render(good.get(sig) || local); retryAt = Date.now() + 10000; }
+      if (!alive()) return;
+      if (current === generation && host?.isConnected) { analysisPending = false; render(good.get(sig) || local); retryAt = nextRetry(); }
     }
   }
+  function shutdown() {
+    if (dead) return;
+    dead = true;
+    // May run before the rest of the script is set up: nothing here may throw.
+    try { observer?.disconnect(); clearInterval(ticker); clearTimeout(timer); clearTimeout(projectedSave); } catch { /* not set up yet */ }
+    try { clear(); clearInventories(); } catch { /* not set up yet, or page already gone */ }
+  }
   function schedule() {
-    if (timer) return;
+    if (timer || dead) return;
     timer = setTimeout(() => { timer = null; update(); }, 40);
   }
-  new MutationObserver(records => {
+  observer = new MutationObserver(records => {
+    if (!alive()) return;
     if (!onPage()) { if (host) clear(); return; }
     if (!enabled) return;
     if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n =>
@@ -1015,9 +1081,16 @@
     if (enabled && onPage() && event.target?.matches?.('input')) { retryAt = 0; schedule(); }
   }, true);
   document.addEventListener('scroll', schedule, true);
-  document.addEventListener('visibilitychange', schedule);
+  // Back on the tab with a grey banner: ask again right away.
+  const refreshIncomplete = () => {
+    if (!document.hidden && shownPage && !shownAnalysis?.valueAvailable) { retryAt = 0; }
+    schedule();
+  };
+  document.addEventListener('visibilitychange', refreshIncomplete);
+  globalThis.addEventListener('focus', refreshIncomplete);
   // Also covers pushState navigation without DOM mutations and transient errors.
-  setInterval(() => {
+  ticker = setInterval(() => {
+    if (!alive()) return;
     if (!document.hidden && (onPage() || host) &&
         (location.href !== lastUrl || Date.now() >= retryAt || (shownPage?.composer && !profileLink?.isConnected))) schedule();
   }, 2000);

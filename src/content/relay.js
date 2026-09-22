@@ -23,7 +23,7 @@ window.addEventListener('message', (e) => {
         .then(() => { if (typeof globalThis.dispatchEvent === 'function') globalThis.dispatchEvent(new Event('ronote:detail-ready')); })
         .catch(() => {});
     } else if (d.__ronote === 'csrf' && d.token) {
-      B.runtime.sendMessage({ type: 'ronote:csrf', token: d.token });
+      Promise.resolve(B.runtime.sendMessage({ type: 'ronote:csrf', token: d.token })).catch(() => {});
     }
   } catch { /* extension rechargee : le message est simplement perdu */ }
 });
@@ -33,7 +33,7 @@ window.addEventListener('message', (e) => {
 const readMeta = () => {
   try {
     const meta = document.querySelector('meta[name="csrf-token"]');
-    if (meta?.content) B.runtime.sendMessage({ type: 'ronote:csrf', token: meta.content });
+    if (meta?.content) Promise.resolve(B.runtime.sendMessage({ type: 'ronote:csrf', token: meta.content })).catch(() => {});
   } catch { /* ignore */ }
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', readMeta, { once: true });

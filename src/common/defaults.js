@@ -50,7 +50,6 @@ export const DEFAULTS = {
   speculativeRatio: 1.6,      // value >= N x RAP -> cote signalee comme speculative
   robuxTax: true,             // compter les Robux recus nets des 30 % preleves par Roblox
   trackPortfolio: true,       // suivre la valeur totale du compte (profil Rolimon's)
-  reconcilePortfolio: true,   // corriger la valeur Rolimon's (visages fantomes / absents)
   // Reevaluation des objets possedes : prevenir quand Rolimon's revise la
   // cote d'un objet de l'inventaire d'au moins ce pourcentage.
   revalAlerts: true,

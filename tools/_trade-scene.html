@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RoNote — page de trade (capture)</title>
+<style>
+  /* Page de détail d'un trade, au thème sombre de Roblox. Seule l'API est
+     simulée : lecteur, analyse, bandeau et badges sont les vrais scripts. */
+  html, body { margin:0; }
+  body { background:#191b1d; color:#fff; font:14px "Builder Sans", "Segoe UI", Arial, sans-serif; width:720px; }
+  main { padding:20px 26px 22px; }
+  .top { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .top img { width:44px; height:44px; border-radius:50%; background:#393b3d; }
+  .top h2 { margin:0; font-size:20px; font-weight:700; }
+  .top small { display:block; color:#bdbebe; font-size:13px; font-weight:400; }
+  .offer h3 { font-size:16px; font-weight:700; margin:6px 0 10px; }
+  .items { display:flex; gap:12px; }
+  .item-card { width:118px; min-width:0; }
+  .tile { display:block; height:118px; background:#393b3d; border-radius:8px; margin-bottom:6px; overflow:hidden; }
+  .tile img { width:118px; height:118px; display:block; }
+  .item-card > a:nth-of-type(2) { display:block; color:#fff; text-decoration:none; font-weight:600; font-size:13px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .item-card-price { display:flex; align-items:center; gap:4px; color:#bdbebe; font-size:13px; }
+  .icon-robux-16 { width:13px; height:13px; border-radius:3px; border:2px solid #bdbebe; box-sizing:border-box; display:inline-block; }
+  .total { display:flex; justify-content:flex-end; gap:10px; margin-top:12px; color:#bdbebe; }
+  .total .text-robux-lg { color:#fff; font-weight:700; }
+  .offer { padding-bottom:14px; }
+  hr { border:0; border-top:1px solid #393b3d; margin:0 0 10px; }
+</style>
+</head>
+<body>
+<main id="stage"></main>
+<script type="module">
+const variant = new URLSearchParams(location.search).get('v') === 'trap' ? 'trap' : 'win';
+const thumbs = await fetch('/tools/fixtures/thumbs.json').then(r => r.json());
+
+// [assetId, nom, RAP, value, projected]
+const ITEMS = {
+  win: {
+    partner: [261, 'Shedletsky'],
+    give: [[1082932, 'Traffic Cone', 3411, 4000], [19027209, 'Perfectly Legitimate Business Hat', 4026, 4500]],
+    get: [[1081300, 'Golden Crown', 10542, 13000]]
+  },
+  // Le piège : un objet projected gonfle le RAP reçu, la value dit l'inverse.
+  trap: {
+    partner: [1, 'Roblox'],
+    give: [[1048037, 'Bighead', 3114, 4000], [33872761, 'Sebastian, the Fancy Crab', 3821, 3821], [44113968, 'Kuddle E. Koala', 642, 642]],
+    get: [[23301644, 'Knife-Haired Monster', 13245, 5200, 1]]
+  }
+}[variant];
+
+const fmt = n => n.toLocaleString('en-US');
+const card = ([id, name, rap]) => `
+  <div class="item-card"><a href="/catalog/${id}/x"><span class="tile"><img alt="" src="${thumbs[id] || ''}"></span></a><a href="/catalog/${id}/x">${name}</a>
+  <div class="item-card-price"><span class="icon-robux-16"></span><span class="text-robux-tile">${fmt(rap)}</span></div></div>`;
+const rap = rows => rows.reduce((s, r) => s + r[2], 0);
+document.getElementById('stage').innerHTML = `
+  <div class="top"><img alt="" src="${thumbs['u' + ITEMS.partner[0]] || ''}"><h2>Trade with ${ITEMS.partner[1]}<small>Inbound · Open</small></h2></div>
+  <section class="trade-detail">
+    <div class="offer" id="give-offer">
+      <h3>Items you will give</h3>
+      <div class="items">${ITEMS.give.map(card).join('')}</div>
+      <div class="total"><span>Total Value:</span><span class="text-robux-lg">${fmt(rap(ITEMS.give))}</span></div>
+    </div>
+    <hr id="trade-separator">
+    <div class="offer" id="get-offer">
+      <h3>Items you will receive</h3>
+      <div class="items">${ITEMS.get.map(card).join('')}</div>
+      <div class="total"><span>Total Value:</span><span class="text-robux-lg">${fmt(rap(ITEMS.get))}</span></div>
+    </div>
+  </section>`;
+
+const catalog = { ready: true, ts: 1, assets: Object.fromEntries(
+  [...ITEMS.give, ...ITEMS.get].map(([id, name, r, v, p]) => [id, [name, '', r, v, 0, 0, p ? 1 : 0, 0]])) };
+globalThis.chrome = { runtime: { id: 'preview', getURL: path => '/src/' + path, sendMessage: async ({ type, page, items }) => {
+  if (type === 'ronote:item-values') {
+    const { findByName } = await import('/src/common/page-trade.js');
+    const { resolveItem } = await import('/src/common/analysis.js');
+    return { ready: true, items: items.map(i => {
+      let ids = { assetId: i.assetId, bundleId: i.bundleId };
+      if (!ids.assetId && !ids.bundleId) for (const n of (i.names?.length ? i.names : [i.name])) { const h = findByName(n, catalog); if (h) { ids = h; break; } }
+      if (!ids.assetId && !ids.bundleId) return { key: i.key, known: false };
+      const it = resolveItem({ ...ids, recentAveragePrice: i.rap || 0 }, catalog);
+      return { key: i.key, known: true, value: !it.noValue && !it.unknown ? it.value : null, projected: !!it.projected };
+    }) };
+  }
+  const { pageDetail, analyzePage } = await import('/src/common/page-trade.js');
+  const detail = pageDetail(page, null);
+  return { analysis: detail ? analyzePage(page, detail, catalog) : null };
+} } };
+
+history.replaceState(null, '', '/trades?preview=shot');
+for (const file of ['tradedom.js', 'projected-badge.js', 'delta-banner.js', 'trade-delta.js']) {
+  await new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = '/src/content/' + file; s.onload = resolve; s.onerror = reject; document.head.append(s); });
+}
+setTimeout(() => { document.title = 'PRET'; parent.postMessage({ ronoteScene: variant, h: document.body.scrollHeight }, '*'); }, 2500);
+</script>
+</body>
+</html>

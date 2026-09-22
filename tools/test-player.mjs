@@ -3,8 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { historyFor, partnerTimeline, partnerStats, accountAge, thinSeries, playerFaces, YOUNG_ACCOUNT_DAYS } from '../src/common/player.js';
 import { parseItems, mergeSources } from '../src/common/roli.js';
-import { holdingsOf } from '../src/common/revalue.js';
-import { reconcile, emptyReport, portfolioItems } from '../src/common/portfolio.js';
+import { emptyReport, fromRolimons } from '../src/common/portfolio.js';
 
 const fixture = (f) => JSON.parse(readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8'));
 
@@ -95,24 +94,20 @@ console.log('\nSes bundles (inventaire réel anonymisé)');
 
 const cat = mergeSources(parseItems(fixture('rolimons-v3-itemdetails.json')), parseItems(fixture('rolimons-itemdetails.json')));
 const fx = fixture('portfolio-sample.json');
-const owned = fx.bundles.filter(b => b.bundleType === 'DynamicHead');
-const rep = reconcile({ ...emptyReport(fx.userId), rolimons: fx.playerinfo }, fx.playerinfo,
-  { counts: fx.playerassets, holds: [] }, owned, cat);
-Object.assign(rep, portfolioItems(holdingsOf({ counts: fx.playerassets }, owned, cat), cat));
+const rep = fromRolimons(emptyReport(fx.userId), fx.playerinfo, { counts: fx.playerassets, holds: [] }, cat);
 const pf = playerFaces(rep);
 
-check('chaque bundle coté possédé est listé, avec sa quantité',
-  pf.faces.filter(f => f.kind === 'bundle').reduce((s, f) => s + f.count, 0), rep.ownedFaces);
-check('ceux qu’il n’a plus sont les fantômes de la réconciliation',
-  [pf.ghosts.length, pf.ghostValue, pf.ghosts.map(g => g.name)], [rep.ghosts.length, rep.ghostValue, rep.ghosts.map(g => g.name)]);
-check('les bundles que Rolimon’s ne voit pas sont marqués',
-  pf.faces.filter(f => f.ignored).map(f => f.id).sort(), rep.extras.map(e => e.bundleId).sort());
+check('chaque visage possédé est listé, sous son bundle, avec sa quantité',
+  [pf.faces.filter(f => f.kind === 'bundle').length, pf.faces.reduce((s, f) => s + f.count, 0)],
+  [fx.expected.legacyFaces, fx.expected.faces]);
+check('chaque visage garde son ancien asset pour la vignette', pf.faces.every(f => f.faceAssetId > 0), true);
 check('du plus gros total au plus petit', pf.faces.every((f, n) => !n || pf.faces[n - 1].total >= f.total), true);
-check('value corrigée et value Rolimon’s', [pf.value, pf.rawValue, pf.corrected], [rep.value, fx.playerinfo.value, rep.corrected]);
+check('plus rien de l’ancienne correction des visages',
+  ['ghosts', 'rawValue', 'corrected'].filter(k => k in pf), []);
 check('rapport absent : rien', playerFaces(null), null);
 check('inventaire privé : aucune liste inventée',
-  (({ private: p, faces, ghosts }) => [p, faces, ghosts])(playerFaces({ ...emptyReport(1), ok: false, private: true })), [true, [], []]);
-console.log(`    (${pf.faces.length} bundles, ${pf.ghosts.length} qu’il n’a plus)`);
+  (({ private: p, faces }) => [p, faces])(playerFaces({ ...emptyReport(1), ok: false, private: true })), [true, []]);
+console.log(`    (${pf.faces.length} bundles)`);
 
 console.log(`\n${passed} réussis, ${failed} échoués.`);
 if (failed) process.exit(1);

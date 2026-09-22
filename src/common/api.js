@@ -281,20 +281,6 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   throw new ApiError(relayNote ? `${base} — ${relayNote}` : base, status, retryAfter, gateFor(url).label);
 }
 
-/** Suit `nextPageCursor` jusqu'au bout (ou jusqu'au plafond de pages). */
-async function allPages(baseUrl, { maxPages = 12, opts = {} } = {}) {
-  const out = [];
-  let cursor = '';
-  for (let page = 0; page < maxPages; page++) {
-    const url = cursor ? `${baseUrl}&cursor=${encodeURIComponent(cursor)}` : baseUrl;
-    const j = await apiGet(url, opts);
-    for (const d of j?.data || []) out.push(d);
-    cursor = j?.nextPageCursor || '';
-    if (!cursor) break;
-  }
-  return out;
-}
-
 /* ============================== identite ================================ */
 
 export function getAuthenticatedUser() {
@@ -806,18 +792,6 @@ export async function getUserProfile(userId) {
   };
 }
 
-/* ============================= inventaire =============================== */
-
-/**
- * Les bundles possedes. Depuis la conversion des visages en DynamicHead,
- * c'est la SEULE source qui dise ce que le joueur possede reellement en
- * visages : ni l'inventaire des collectibles ni Rolimon's ne les voient.
- */
-export async function getUserBundles(userId, maxPages = 8) {
-  const all = await allPages(`${CATALOG}/users/${userId}/bundles?limit=100`, { maxPages });
-  return all.filter(b => b && Number(b.id));
-}
-
 /* ============================== Rolimon's =============================== */
 
 async function rolimons(url, what, retryOn429 = true) {
@@ -859,8 +833,7 @@ export async function getPlayerInfo(userId) {
 /**
  * Le detail de ce que Rolimon's COMPTE dans la valeur d'un joueur :
  *   { [assetId]: [userAssetId, …] }
- * Indispensable pour savoir ce qui manque a leur total et ce qui y traine
- * encore alors que le joueur ne l'a plus (voir portfolio.js).
+ * Les visages y figurent sous leur ancien assetId (voir revalue.js).
  */
 export async function getPlayerAssets(userId) {
   const j = await rolimons(`${ROLIMONS}/playerassets/${userId}`, 'inventaire');

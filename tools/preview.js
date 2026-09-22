@@ -36,7 +36,7 @@ cat.changes['a:1029025'] = { from: 340000, to: 400000, pct: 17.6, at: Date.now()
 // `?lang=en` pour voir l'interface traduite sans toucher aux reglages.
 const SETTINGS = {
   enabled: true, pollSeconds: 30, valueBasis: 'value', robuxTax: true,
-  showItemDetails: true, useRolimons: true, trackPortfolio: true, reconcilePortfolio: true,
+  showItemDetails: true, useRolimons: true, trackPortfolio: true,
   ignoredUsers: [],
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
@@ -122,17 +122,9 @@ const lite = (c) => ({ tradeId: c.tradeId, partner: c.partner, created: c.create
 /* ------------------------------ portefeuille --------------------------- */
 
 const portfolioMod = await import('../src/common/portfolio.js');
-const revalueMod = await import('../src/common/revalue.js');
-const ownedFaces = fxPortfolio.bundles.filter(b => b.bundleType === 'DynamicHead');
-const report = portfolioMod.reconcile(
-  { ...portfolioMod.emptyReport(ME), rolimons: fxPortfolio.playerinfo, rank: fxPortfolio.playerinfo.rank },
-  fxPortfolio.playerinfo,
-  { counts: fxPortfolio.playerassets, holds: [] },
-  ownedFaces,
-  cat
-);
+const report = portfolioMod.fromRolimons(portfolioMod.emptyReport(ME), fxPortfolio.playerinfo,
+  { counts: fxPortfolio.playerassets, holds: [] }, cat);
 report.at = Date.now() - 4 * 60000;
-report.holdings = revalueMod.holdingsOf({ counts: fxPortfolio.playerassets }, ownedFaces, cat);
 
 // Deux révisions récentes sur des objets possédés : la tuile « 7 j », les
 // pourcentages de la liste et le filtre « Réévalués » ont de quoi s'afficher.
@@ -145,10 +137,14 @@ Object.assign(report, portfolioMod.portfolioItems(report.holdings, cat));
 portfolioMod.attachPortfolioThumbs(report,
   portfolioMod.portfolioThumbKeys(report).map(keys => keys.map(k => thumbs[k.slice(2)]).find(Boolean) || null));
 
+// `promo=1` : même courbe, décalée pour finir en hausse sur 24 h, 7 j et 1 mois
+// (captures du Store), et l'accueil annonce la version réelle du manifeste.
+const PROMO = new URLSearchParams(location.search).get('promo') === '1';
+const [P1, P2] = PROMO ? [16, 6] : [0, 0];
 const series = [];
 for (let i = 120; i >= 0; i--) {
   const t = Date.now() - i * 864e5;
-  const wave = Math.sin(i / 9) * 42000 + Math.sin(i / 3) * 12000;
+  const wave = Math.sin((i + P1) / 9) * 42000 + Math.sin((i + P2) / 3) * 12000;
   series.push({
     at: t, v: 1720000 + (120 - i) * 980 + wave, r: 1690000 + (120 - i) * 820 + wave * .7,
     n: Math.round(184 + (120 - i) * 0.12 + Math.sin(i / 11) * 3)
@@ -174,7 +170,7 @@ const STATE = {
   valueCount: Object.keys(cat.assets).length + Object.keys(cat.bundles).length,
   valueTs: Date.now() - 42 * 60000, valueStale: false,
   portfolioRank: report.rank, portfolioPrivate: false, collectibles: 198,
-  portfolioLast: { v: report.value, r: report.rap, at: Date.now(), rawV: report.rolimons.value, rawR: report.rolimons.rap }
+  portfolioLast: { v: report.value, r: report.rap, at: Date.now() }
 };
 
 const HISTORY = [
@@ -217,10 +213,11 @@ function demoItemHistory(itemId) {
 
 /* --------------------------- faux service worker ----------------------- */
 
+const PROMO_VERSION = PROMO ? (await json('../src/manifest.json')).version : null;
 const log = document.getElementById('log');
 const mockRuntime = {
   getURL: (p) => p,
-  getManifest: () => ({ version: '2.10.0' }),   // l'accueil propose les nouveautés d'une version pas encore vue
+  getManifest: () => ({ version: PROMO_VERSION || '2.10.0' }),   // l'accueil propose les nouveautés d'une version pas encore vue
   openOptionsPage: () => { log.textContent = '→ ouverture des réglages'; },
   async sendMessage(msg) {
     switch (msg.type) {

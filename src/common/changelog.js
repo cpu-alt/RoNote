@@ -16,6 +16,60 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.14.0',
+    title: item("Visages : Rolimon's est à jour", "Faces: Rolimon's is up to date"),
+    items: [
+      item("Rolimon's compte désormais les visages d'après les bundles réellement possédés : plus de visages fantômes, plus de visages reçus oubliés. La valeur de ton compte est celle de Rolimon's, sans correction.",
+        "Rolimon's now counts faces from the bundles actually owned: no more ghost faces, no more forgotten received faces. Your account value is Rolimon's own, with no correction."),
+      item("Le panneau « Réconciliation des visages » et le réglage qui l'activait disparaissent, devenus inutiles.",
+        'The "Face reconciliation" panel and the setting that turned it on are gone, now that they are no longer needed.'),
+      item("Portefeuille et fiche joueur plus légers : deux appels à Rolimon's et plus aucun à Roblox à chaque rafraîchissement, au lieu de jusqu'à dix.",
+        "Lighter portfolio and player cards: two calls to Rolimon's and none to Roblox on each refresh, instead of up to ten."),
+      item("La fiche d'un joueur liste ses bundles tels que Rolimon's les compte ; l'onglet « Qu'il n'a plus » disparaît.",
+        "A player's card lists their bundles as Rolimon's counts them; the \"No longer owned\" tab is gone."),
+      item("Les alertes de réévaluation ne dépendent plus que du suivi de la valeur du compte.",
+        'Revaluation alerts now only depend on account value tracking.'),
+      item("Trade Flex refait : une carte plus nette (rendue en haute définition), les écarts RAP et value côte à côte, les objets projected signalés, et un vrai bouton Copier.",
+        'Trade Flex redesigned: a sharper card (rendered in high definition), RAP and value gaps side by side, projected items flagged, and a real Copy button.'),
+      item("Trade Flex n'est proposé que sur un trade terminé (onglet Terminés) : plus de carte pour une offre encore en attente ou tombée à l'eau.",
+        'Trade Flex is only offered on a completed trade (Completed tab): no more card for an offer still pending or one that fell through.'),
+      item("Pages de trade : les boutons Trade Flex, # et Rolimon's ont une place fixe, calée à droite du titre. Ils ne bougent plus et ne disparaissent plus derrière les « … » d'un pseudo long.",
+        "Trade pages: the Trade Flex, # and Rolimon's buttons have a fixed place at the right of the title. They no longer move, and no longer vanish behind a long username's \"…\"."),
+      item("Pages de trade : les écarts RAP et value ne restent plus grisés jusqu'au rafraîchissement de la page. Une réponse incomplète est redemandée après quelques secondes au lieu d'une minute.",
+        'Trade pages: the RAP and value gaps no longer stay grey until the page is refreshed. An incomplete answer is asked again after a few seconds instead of a minute.'),
+      item("Après une mise à jour de l'extension, un onglet Roblox resté ouvert n'accumule plus les erreurs « Extension context invalidated » : l'ancienne copie retire ses éléments et s'arrête. Recharge l'onglet pour retrouver RoNote.",
+        'After an extension update, a Roblox tab left open no longer piles up "Extension context invalidated" errors: the old copy removes its elements and stops. Reload the tab to get RoNote back.')
+    ]
+  },
+  {
+    version: '2.13.0',
+    title: item('Trade Flex personnalisable', 'Customizable Trade Flex'),
+    items: [
+      item("Carte inspirée des offres Roblox : vignettes, donné et reçu, totaux, et résultat WIN, LOSS ou EVEN selon le RAP ou la value.",
+        'A card styled like Roblox offers: thumbnails, given and received, totals, and a WIN, LOSS or EVEN result by RAP or value.'),
+      item("Fonds Nuit, Violet ou ta propre image, avec un réglage d'assombrissement. L'image importée reste sur ton ordinateur.",
+        'Night, Purple or your own image as background, with a dim slider. The imported image stays on your computer.')
+    ]
+  },
+  {
+    version: '2.12.1',
+    title: item('Trade Flex', 'Trade Flex'),
+    items: [
+      item("Un bouton trophée sur la page d'un trade en fait une image PNG à partager, copiable par clic droit ou téléchargeable. Pseudos et serials n'y figurent pas.",
+        "A trophy button on a trade page turns it into a PNG image to share, copied with a right-click or downloaded. Names and serials are left out.")
+    ]
+  },
+  {
+    version: '2.12.0',
+    title: item('Pages de trade refaites', 'Redesigned trade pages'),
+    items: [
+      item("Nouveaux bandeaux RAP et value entre les deux offres, et la cote Rolimon's sous chaque objet avec un total par offre.",
+        "New RAP and value banners between the two offers, and Rolimon's value under each item with a total per offer."),
+      item("Un raccourci vers le profil Rolimon's de l'autre joueur, et un bouton « # » pour flouter les serials.",
+        "A shortcut to the other player's Rolimon's profile, and a # button to blur serial numbers.")
+    ]
+  },
+  {
     version: '2.11.1',
     title: item('Limites de debit et confirmation de refus', 'Rate limits and decline confirmation'),
     items: [

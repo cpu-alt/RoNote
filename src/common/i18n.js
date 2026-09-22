@@ -197,7 +197,7 @@ const EN = {
     'Click again to confirm. This is final on Roblox.',
 
   /* --- onglet Portefeuille ---------------------------------------------- */
-  'Value réelle': 'Real value',
+  'Value du compte': 'Account value',
   'RAP du compte': 'Account RAP',
   'Afficher les montants': 'Show amounts',
   'Masquer les montants': 'Hide amounts',
@@ -281,32 +281,13 @@ const EN = {
   'Objets': 'Items',
   'sur {p}': 'over {p}',
   'tout l\'historique': 'all of the history',
-  'Rolimon\'s affiche {v} — RoNote corrige de {d} pour les visages passés en bundles.':
-    "Rolimon's shows {v} — RoNote corrects it by {d} for faces turned into bundles.",
   'Tout': 'All',
   '1s': '1w',
   '1a': '1y',
   'Pas encore assez de points sur cette période.': 'Not enough data points over this period yet.',
-  'Courbe telle que Rolimon\'s la publie (une mesure par jour), prolongée jusqu\'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant, corrigé.':
-    "The curve is exactly what Rolimon's publishes (one reading a day), extended to RoNote's latest reading. The figure at the top is the current one, corrected.",
+  'Courbe telle que Rolimon\'s la publie (une mesure par jour), prolongée jusqu\'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant.':
+    "The curve is exactly what Rolimon's publishes (one reading a day), extended to RoNote's latest reading. The figure at the top is the current one.",
   "Voir sur Rolimon's": "View on Rolimon's",
-  'Réconciliation des visages': 'Face reconciliation',
-  '{n} écart': '{n} discrepancy',
-  '{n} écarts': '{n} discrepancies',
-  'Retiré': 'Removed',
-  'Ajouté': 'Added',
-  '{n} visage fantôme': '{n} ghost face',
-  '{n} visages fantômes': '{n} ghost faces',
-  '{n} visage possédé': '{n} owned face',
-  '{n} visages possédés': '{n} owned faces',
-  "compté par Rolimon's, plus dans ton inventaire": "counted by Rolimon's, no longer in your inventory",
-  "dans ton inventaire, ignoré par Rolimon's": "in your inventory, ignored by Rolimon's",
-  "Rien à corriger : ce que Rolimon's compte correspond exactement aux bundles que tu possèdes.":
-    "Nothing to correct: what Rolimon's counts matches exactly the bundles you own.",
-  'Correction indisponible — {why}.': 'Correction unavailable — {why}.',
-  'sources incomplètes': 'incomplete sources',
-  "Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire — Rolimon's continue de le compter. Un visage reçu arrive en bundle — Rolimon's ne le voit pas. RoNote compare, visage par visage, ce que Rolimon's compte et les bundles que tu possèdes réellement.":
-    "Roblox turned faces into <b>bundles</b>. A traded-away face leaves its old copy in your inventory — Rolimon's keeps counting it. A received face arrives as a bundle — Rolimon's never sees it. RoNote compares, face by face, what Rolimon's counts against the bundles you actually own.",
   'Recalculer maintenant': 'Recalculate now',
   'Calcul…': 'Computing…',
   'Inventaire privé': 'Private inventory',
@@ -519,9 +500,6 @@ const EN = {
   ": sa cote repose sur l'avis de la communauté plus que sur des ventes réelles.": ': its value rests on community opinion more than on real sales.',
   'Suivre la valeur de mon compte': 'Track my account value',
   'Relève la value et le RAP totaux de ton profil Rolimon\'s pour tracer ta progression dans l\'onglet': 'Reads the total value and RAP from your Rolimon\'s profile to chart your progress in the',
-  'Corriger les visages passés en bundles': 'Correct faces turned into bundles',
-  'Roblox a converti les visages en': 'Roblox turned faces into',
-  '. Un visage échangé laisse son ancien exemplaire dans l\'inventaire, que Rolimon\'s continue de compter ; un visage reçu arrive en bundle, que Rolimon\'s ne voit pas. RoNote compare visage par visage ce que Rolimon\'s compte et les bundles réellement possédés, puis affiche le détail de la correction.': '. A traded-away face leaves its old copy in the inventory, which Rolimon\'s keeps counting; a received face arrives as a bundle, which Rolimon\'s never sees. RoNote compares, face by face, what Rolimon\'s counts against the bundles actually owned, then shows the correction in detail.',
   'Quel que soit ce réglage,': 'Whatever this setting,',
   'les deux chiffres restent affichés': 'both figures stay on screen',
   '. Un trade où la value et le RAP se contredisent est marqué': '. A trade where value and RAP disagree is marked',
@@ -531,8 +509,8 @@ const EN = {
   'et exclu des totaux — jamais compté comme 0 — et la notification n\'est jamais supprimée par un filtre dans ce cas.': 'and excluded from the totals — never counted as 0 — and the notification is never dropped by a filter in that case.',
 
   'Alerter quand un objet que je possède est réévalué': 'Alert me when an item I own is revalued',
-  "Rolimon's révise ses cotes régulièrement. À chaque nouvelle table (toutes les 3 h), RoNote la compare à la précédente et te prévient si un objet de ton inventaire a bougé. S'appuie sur l'inventaire relevé pour la correction des visages : les deux réglages précédents doivent rester actifs.":
-    "Rolimon's revises its values regularly. With every new table (every 3 h), RoNote compares it with the previous one and alerts you when an item in your inventory has moved. It relies on the inventory read for the face correction: the two settings above must stay on.",
+  "Rolimon's révise ses cotes régulièrement. À chaque nouvelle table (toutes les 3 h), RoNote la compare à la précédente et te prévient si un objet de ton inventaire a bougé. S'appuie sur l'inventaire relevé par le suivi du compte : le réglage précédent doit rester actif.":
+    "Rolimon's revises its values regularly. With every new table (every 3 h), RoNote compares it with the previous one and alerts you when an item in your inventory has moved. It relies on the inventory read by account tracking: the setting above must stay on.",
   'Seuil de réévaluation': 'Revaluation threshold',
   'Variation minimale de la cote, à la hausse comme à la baisse, en %.': 'Minimum change in value, up or down, in %.',
   'Objet réévalué': 'Item revalued',
@@ -656,19 +634,13 @@ const EN = {
   'Recharge RoNote dans chrome://extensions pour activer la fiche.': 'Reload RoNote in chrome://extensions to enable player cards.',
   "d'après l'historique Rolimon's": "from Rolimon's history",
   'Ses bundles': 'Their bundles',
-  'Possédés': 'Owned',
-  "Qu'il n'a plus": 'No longer owned',
-  "compté par Rolimon's, plus dans son inventaire": "counted by Rolimon's, no longer in their inventory",
-  "ignoré par Rolimon's": "ignored by Rolimon's",
   'Aucun bundle coté.': 'No valued bundle.',
   '+ {n} autre': '+ {n} more',
   '+ {n} autres': '+ {n} more',
-  "Rolimon's l'estime à {raw} ; ses vrais bundles le mettent à {value} ({delta}).": "Rolimon's puts it at {raw}; their actual bundles make it {value} ({delta}).",
   'Bundles indisponibles — {why}.': 'Bundles unavailable — {why}.',
   'Liste incomplète — {why}.': 'Incomplete list — {why}.',
   "inventaire privé — Rolimon's ne publie rien": "private inventory — Rolimon's publishes nothing",
   "inventaire Rolimon's indisponible": "Rolimon's inventory unavailable",
-  'bundles Roblox indisponibles': 'Roblox bundles unavailable',
   'compte supprimé': 'terminated account',
 
   /* --- accueil ---------------------------------------------------------- */

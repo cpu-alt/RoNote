@@ -160,7 +160,7 @@ export async function savePortfolio(points) {
   return points.length;
 }
 
-/* ------------------------- rapport de reconciliation -------------------- */
+/* ------------------------- rapport du portefeuille ---------------------- */
 
 const KEY_REPORT = 'portfolioReport';
 

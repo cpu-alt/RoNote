@@ -114,6 +114,15 @@ console.log('\nLe point de rendez-vous entre fichiers');
 check('content/tradedom.js publie RoNoteDom', typeof ctx.RoNoteDom, 'object');
 check('… et rien d\'autre ne fuit', Object.keys(ctx).filter(k => k === 'B' || k === 'PANEL_ID'), []);
 
+console.log('\nOù en est le trade, d\'après le titre des offres');
+const phase = (s) => ctx.RoNoteDom.phaseOf(s);
+check('terminé : « Items you gave / received »', [phase('Items you gave'), phase('Items you received:')], ['done', 'done']);
+check('terminé, en français', [phase('Objets que tu as donnés'), phase('Objets que vous avez reçus')], ['done', 'done']);
+check('en cours : « will give », « give », « receive »',
+  [phase('Items you will give'), phase('Items you give'), phase('Items you receive')], ['open', 'open', 'open']);
+check('tombé à l\'eau : « would have »', [phase('Items you would have given'), phase("Items you would've received")], ['inactive', 'inactive']);
+check('autre titre : rien', [phase('Your Offer'), phase('')], ['', '']);
+
 console.log('\nCharger deux fois de suite ne casse rien');
 // Une navigation dans l'application monopage peut faire rejouer un script.
 let again = null;

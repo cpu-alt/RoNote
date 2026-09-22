@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { parseItems, mergeSources } from '../src/common/roli.js';
 import { holdingsOf } from '../src/common/revalue.js';
-import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport } from '../src/common/portfolio.js';
+import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport, fromRolimons } from '../src/common/portfolio.js';
 import { parseItemHistory } from '../src/common/api.js';
 
 let passed = 0, failed = 0;
@@ -19,8 +19,7 @@ console.log('\nInventaire réel anonymisé');
 
 const cat = mergeSources(parseItems(fixture('rolimons-v3-itemdetails.json')), parseItems(fixture('rolimons-itemdetails.json')));
 const fx = fixture('portfolio-sample.json');
-const owned = fx.bundles.filter(b => b.bundleType === 'DynamicHead');
-const holdings = holdingsOf({ counts: fx.playerassets }, owned, cat);
+const holdings = holdingsOf({ counts: fx.playerassets }, cat);
 const { items, unrated } = portfolioItems(holdings, cat);
 const copies = (list) => list.reduce((s, i) => s + i.count, 0);
 
@@ -31,6 +30,8 @@ check('chaque ligne a un nom, une cote, et total = cote × quantité',
   items.every(i => i.name && i.value > 0 && i.total === i.value * i.count && i.totalRap === i.rap * i.count), true);
 check('chaque bundle coté possédé est un visage, avec son ancien asset',
   items.filter(i => i.kind === 'bundle').every(i => i.isFace && i.faceAssetId > 0), true);
+check('les visages comptés sous leur ancien asset sont rangés sous leur bundle',
+  [items.filter(i => i.kind === 'bundle').length, copies(items.filter(i => i.isFace))], [fx.expected.legacyFaces, fx.expected.faces]);
 check('aucun visage listé deux fois (bundle et ancien exemplaire)',
   items.filter(i => i.kind === 'asset' && cat.bundleOf[i.id]).length, 0);
 check('chaque objet sait quelle vignette demander', portfolioThumbKeys({ items }).every(k => k.length > 0), true);
@@ -67,10 +68,22 @@ check('vignette d\'un visage : image plate d\'abord, tête 3D en repli',
 check('rien possédé : rien', portfolioItems(null, syn), { items: [], unrated: 0 });
 check('rapport vide : liste vide prête à afficher', [emptyReport(1).items, emptyReport(1).unrated], [[], 0]);
 
-const rep = { ghosts: [{ legacyAssetId: 7, bundleId: 8 }], extras: [], items: r.items };
-attachPortfolioThumbs(rep, ['g', 'i1', 'i2', null]);
-check('vignettes recollées dans l\'ordre : réconciliation puis objets',
-  [rep.ghosts[0].thumb, ...rep.items.map(i => i.thumb)], ['g', 'i1', 'i2', null]);
+const rep = { items: r.items };
+attachPortfolioThumbs(rep, ['i1', 'i2', null]);
+check('vignettes recollées dans l\'ordre des objets', rep.items.map(i => i.thumb), ['i1', 'i2', null]);
+
+/* ---------------------------------------------------------------------- */
+console.log('\nLe rapport : les chiffres de Rolimon\'s, tels quels');
+
+const full = fromRolimons(emptyReport(fx.userId), fx.playerinfo, { counts: fx.playerassets, holds: [], scannedAt: 7 }, cat);
+check('value et RAP : ceux du profil Rolimon\'s, sans correction',
+  [full.value, full.rap], [fx.expected.value, fx.expected.rap]);
+check('inventaire et liste des objets remplis',
+  [full.ok, full.partial, full.items.length > 0, !!full.holdings], [true, false, true, true]);
+check('date du dernier relevé de la courbe reprise', full.chartScannedAt, 7);
+const blind = fromRolimons(emptyReport(1), { value: 10, rap: 9, rank: 3 }, null, cat);
+check('inventaire injoignable : chiffres du profil, liste absente et signalée',
+  [blind.value, blind.rap, blind.rank, blind.holdings, blind.items, blind.partial], [10, 9, 3, null, [], true]);
 
 /* ---------------------------------------------------------------------- */
 console.log('\nHistorique d\'un objet (page Rolimon\'s)');

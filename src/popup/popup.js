@@ -777,7 +777,7 @@ async function quickDecline(btn, tradeId, kind) {
  */
 const player = {
   id: 0, token: 0, who: null, headshot: null, res: null, chart: null, series: ['v'], range: '1y',
-  faces: null, facesTab: 'owned', facesAll: false
+  faces: null, facesAll: false
 };
 
 /** Service worker resté sur l'ancienne version : le seul remède est de recharger RoNote. */
@@ -979,23 +979,17 @@ function renderPlayerChart(animate = false) {
 }
 
 /** Une ligne de bundle : vignette, nom, quantité, et ce qu'il pèse. */
-function faceRow(l, gone) {
-  const href = gone
-    ? (l.legacyAssetId ? `https://www.roblox.com/catalog/${l.legacyAssetId}` : `https://www.roblox.com/bundles/${l.bundleId}`)
-    : `https://www.roblox.com/${l.kind === 'bundle' ? 'bundles' : 'catalog'}/${l.id}`;
+function faceRow(l) {
+  const href = `https://www.roblox.com/${l.kind === 'bundle' ? 'bundles' : 'catalog'}/${l.id}`;
   const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="" loading="lazy">` : `<div class="ph">${ic('face')}</div>`;
-  const sub = gone ? t("compté par Rolimon's, plus dans son inventaire") : l.ignored ? t("ignoré par Rolimon's") : '';
-  return `<a class="rec-row p-face${gone ? ' gone' : ''}" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
+  return `<a class="rec-row p-face" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
     ${img}
-    <div class="rec-n">${escapeHtml(l.name)}${l.count > 1 ? ` ×${l.count}` : ''}${sub ? `<small>${sub}</small>` : ''}</div>
-    <div class="rec-v${gone ? ' loss' : ''}">${gone ? '−' : ''}${amount(l.total)}</div>
+    <div class="rec-n">${escapeHtml(l.name)}${l.count > 1 ? ` ×${l.count}` : ''}</div>
+    <div class="rec-v">${amount(l.total)}</div>
   </a>`;
 }
 
-/**
- * Ses bundles : ceux qu'il possède vraiment, et ceux que Rolimon's lui compte
- * encore alors qu'il ne les a plus — avec ce que ça change à sa value.
- */
+/** Ses bundles cotés, du plus gros au plus petit. */
 function playerFacesHtml() {
   const f = player.faces;
   const copies = (list) => list.reduce((s, l) => s + l.count, 0);
@@ -1007,27 +1001,18 @@ function playerFacesHtml() {
     return head(0) + `<div class="ls-none p-fnone">${escapeHtml(why)}</div>`;
   }
 
-  const gone = player.facesTab === 'gone' && f.ghosts.length;
-  const lines = gone ? f.ghosts : f.faces;
+  const lines = f.faces;
   const shown = player.facesAll ? lines : lines.slice(0, 8);
-  const chips = `<div class="lchips p-fchips">
-    <button class="${gone ? '' : 'on'}" data-ftab="owned">${t('Possédés')} <small>${copies(f.faces)}</small></button>
-    ${f.ghosts.length ? `<button class="${gone ? 'on' : ''}" data-ftab="gone">${t("Qu'il n'a plus")} <small>${copies(f.ghosts)}</small></button>` : ''}
-  </div>`;
   const rows = shown.length
-    ? shown.map(l => faceRow(l, gone)).join('')
+    ? shown.map(l => faceRow(l)).join('')
     : `<div class="ls-none">${t('Aucun bundle coté.')}</div>`;
   const more = lines.length > shown.length
     ? `<button class="p-more" data-fmore>${plural(lines.length - shown.length, '+ {n} autre', '+ {n} autres')}</button>`
     : '';
-  const correction = f.corrected
-    ? `<div class="w-rev ${toneOf(f.value - f.rawValue)}">${ic(f.value >= f.rawValue ? 'trend-up' : 'trend-down')} ${t("Rolimon's l'estime à {raw} ; ses vrais bundles le mettent à {value} ({delta}).",
-      { raw: amount(f.rawValue), value: amount(f.value), delta: amountSigned(f.value - f.rawValue) })}</div>`
-    : '';
   const partial = f.partial
     ? `<div class="note">${escapeHtml(t('Liste incomplète — {why}.', { why: t(f.reason) }))}</div>`
     : '';
-  return `${head(copies(f.faces))}${chips}<div class="jr-day p-faces">${rows}${more}</div>${correction}${partial}`;
+  return `${head(copies(f.faces))}<div class="jr-day p-faces">${rows}${more}</div>${partial}`;
 }
 
 function playerFootHtml() {
@@ -1047,9 +1032,6 @@ function bindPlayer(root) {
   });
   const mute = root.querySelector('[data-mute]');
   if (mute) mute.onclick = () => toggleMute(mute);
-  root.querySelectorAll('[data-ftab]').forEach(b => {
-    b.onclick = () => { player.facesTab = b.dataset.ftab; player.facesAll = false; renderPlayer(); };
-  });
   const more = root.querySelector('[data-fmore]');
   if (more) more.onclick = () => { player.facesAll = true; renderPlayer(); };
 }
@@ -1128,7 +1110,7 @@ function openPlayer(id) {
   const token = ++player.token;
   Object.assign(player, {
     id, who: seed.partner || { id }, headshot: seed.headshot || null,
-    res: null, chart: null, faces: null, facesTab: 'owned', facesAll: false
+    res: null, chart: null, faces: null, facesAll: false
   });
 
   // La fiche s'ouvre à côté de la liste, qui reste utilisable : le popup
@@ -1241,17 +1223,15 @@ function homeSignature() {
  *
  * Elle vient de Rolimon's, qui ne rescanne un compte que quelques fois par
  * jour : sans ce dernier point, la courbe s'arrête là où le solde affiché, lui,
- * a déjà bougé — c'est ce qui donnait l'impression qu'elle ne suivait pas. Le
- * relevé est ajouté à l'ÉCHELLE DE LA SÉRIE, celle de Rolimon's (`rawV`) :
- * ajouter la valeur corrigée ferait une marche à la fin de la courbe.
+ * a déjà bougé — c'est ce qui donnait l'impression qu'elle ne suivait pas.
  */
 function walletSeries() {
   const scanned = data.portfolio || [];
   const live = data.state?.portfolioLast;
-  const v = live ? (live.rawV ?? live.v) : 0;
+  const v = live?.v || 0;
   const tail = scanned[scanned.length - 1];
   if (!v || !live.at || live.at <= (tail?.at || 0)) return scanned;
-  return [...scanned, { at: live.at, v, r: live.rawR ?? live.r ?? 0, n: tail?.n || data.state?.collectibles || 0 }];
+  return [...scanned, { at: live.at, v, r: live.r || 0, n: tail?.n || data.state?.collectibles || 0 }];
 }
 
 /** Variation de la value sur les dernières 24 h, d'après la série Rolimon's (un relevé par jour environ). */
@@ -1518,7 +1498,7 @@ const WALLET_SERIES = {
   r: { label: 'RAP', color: '#2fd070', money: true },
   n: { label: 'Collectibles', color: '#c792ea', money: false }
 };
-const HERO_LABEL = { v: 'Value réelle', r: 'RAP du compte', n: 'Nombre de collectibles' };
+const HERO_LABEL = { v: 'Value du compte', r: 'RAP du compte', n: 'Nombre de collectibles' };
 
 /** Les courbes d'un objet, toutes en Robux. */
 const ITEM_SERIES = {
@@ -2092,54 +2072,6 @@ function openItemSheet(key) {
   });
 }
 
-/* ---------------------------- réconciliation ----------------------------- */
-
-let reconOpen = false;
-
-function reconRow(l, sign) {
-  const img = l.thumb ? `<img src="${escapeHtml(l.thumb)}" alt="">` : `<div class="ph">${ic('face')}</div>`;
-  const href = sign < 0 && l.legacyAssetId
-    ? `https://www.roblox.com/catalog/${l.legacyAssetId}`
-    : `https://www.roblox.com/bundles/${l.bundleId}`;
-  const why = sign < 0
-    ? t("compté par Rolimon's, plus dans ton inventaire")
-    : t("dans ton inventaire, ignoré par Rolimon's");
-  return `<a class="rec-row" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">
-    ${img}
-    <div class="rec-n">${escapeHtml(l.name)}${l.count > 1 ? ` ×${l.count}` : ''}<small>${why}</small></div>
-    <div class="rec-v ${sign < 0 ? 'loss' : 'win'}">${sign < 0 ? '−' : '+'}${amount(l.total)}</div>
-  </a>`;
-}
-
-/** Repliée par défaut : c'est une explication, pas ce qu'on vient regarder. */
-function reconciliationHtml(rep) {
-  const g = rep?.ghosts || [], e = rep?.extras || [];
-  const n = g.length + e.length;
-  const body = !n
-    ? `<div class="note">${rep?.ok
-      ? t("Rien à corriger : ce que Rolimon's compte correspond exactement aux bundles que tu possèdes.")
-      : escapeHtml(t('Correction indisponible — {why}.', { why: rep?.reason || t('sources incomplètes') }))}</div>`
-    : `<div class="recon-sum">
-        <div class="recon-box">
-          <div class="l">${t('Retiré')}</div>
-          <div class="v loss">−${amount(rep.ghostValue)}</div>
-          <div class="n">${plural(g.length, '{n} visage fantôme', '{n} visages fantômes')}</div>
-        </div>
-        <div class="recon-box">
-          <div class="l">${t('Ajouté')}</div>
-          <div class="v win">+${amount(rep.extraValue)}</div>
-          <div class="n">${plural(e.length, '{n} visage possédé', '{n} visages possédés')}</div>
-        </div>
-      </div>
-      ${g.map(l => reconRow(l, -1)).join('')}
-      ${e.map(l => reconRow(l, +1)).join('')}
-      <div class="note">${t("Roblox a converti les visages en <b>bundles</b>. Un visage échangé laisse son ancien exemplaire dans l'inventaire — Rolimon's continue de le compter. Un visage reçu arrive en bundle — Rolimon's ne le voit pas. RoNote compare, visage par visage, ce que Rolimon's compte et les bundles que tu possèdes réellement.")}</div>`;
-  return `<details class="panel w-fold" id="w-recon"${reconOpen ? ' open' : ''}>
-    <summary class="panel-h"><span>${t('Réconciliation des visages')}</span><span>${n ? plural(n, '{n} écart', '{n} écarts') : ic('check')}</span></summary>
-    ${body}
-  </details>`;
-}
-
 /* -------------------------------- l'onglet ------------------------------- */
 
 let walletFetching = false;
@@ -2206,8 +2138,7 @@ function renderStats() {
   const primary = keys[0];
   const pdef = WALLET_SERIES[primary];
 
-  // Le relevé du moment prime sur le dernier point historique, et il est
-  // CORRIGÉ : c'est la valeur réelle du compte, pas celle de Rolimon's.
+  // Le relevé du moment prime sur le dernier point historique.
   const cur = last || all[all.length - 1] || { v: 0, r: 0 };
   const nowOf = { v: cur.v || 0, r: cur.r || 0, n: all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0) };
   const head = inRange[0] || all[0] || {};
@@ -2218,8 +2149,6 @@ function renderStats() {
   const tone = toneOf(delta);
   const whenText = t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") });
 
-  const corrected = rep?.corrected && (rep.ghosts?.length || rep.extras?.length);
-  const gap = corrected ? cur.v - (cur.rawV ?? rep.rolimons?.value ?? cur.v) : 0;
   const moved = (items || []).filter(i => i.change);
   const movedImpact = moved.reduce((s, i) => s + (i.change.to - i.change.from) * i.count, 0);
   const owned = items ? items.reduce((s, i) => s + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0);
@@ -2253,16 +2182,14 @@ function renderStats() {
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
         <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : '—'}</b></div>
     </section>
-    ${corrected ? `<div class="w-note">${t("Rolimon's affiche {v} — RoNote corrige de {d} pour les visages passés en bundles.", { v: `<b>${amount(cur.rawV ?? rep.rolimons.value)}</b>`, d: `<b class="${toneOf(gap)}">${amountSigned(gap, true)}</b>` })}</div>` : ''}
     ${items ? allocationHtml(items) : ''}
     ${collectionHtml(rep, items, owned)}
-    ${reconciliationHtml(rep)}
     <div class="w-foot">
       ${lien}
       <span>${rep?.at ? t('calculé {ago}', { ago: agoHtml(rep.at) }) : ''}</span>
       <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
     </div>
-    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour), prolongée jusqu'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant, corrigé.")}</div>`;
+    <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour), prolongée jusqu'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant.")}</div>`;
 
   bindImages(listEl);
   renderItems({ animate: mode === 'all' || mode === 'items' });
@@ -2319,7 +2246,6 @@ function renderStats() {
     const row = e.target.closest('[data-item]');
     if (row) openItemSheet(row.dataset.item);
   });
-  listEl.querySelector('#w-recon')?.addEventListener('toggle', (e) => { reconOpen = e.target.open; });
   const recompute = listEl.querySelector('#btn-recompute');
   recompute?.addEventListener('click', () => recomputePortfolio(recompute));
 }

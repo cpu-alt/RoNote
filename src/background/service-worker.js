@@ -632,7 +632,7 @@ async function stepCompleted(ctx) {
 
 /* ============================ portefeuille ============================= */
 
-const PORTFOLIO_TTL = 10 * 60 * 1000;   // reconciliation : 4 appels reseau
+const PORTFOLIO_TTL = 10 * 60 * 1000;   // profil + inventaire : 2 appels a Rolimon's
 const HISTORY_TTL = 30 * 60 * 1000;     // la serie Rolimon's ne bouge qu'une fois par jour
 const ITEM_HISTORY_TTL = 6 * 60 * 60 * 1000;   // historique d'un objet (page de 1,7 Mo)
 const ITEM_HISTORY_CAP = 20;                   // objets dont l'historique reste en cache
@@ -644,30 +644,26 @@ const PLAYER_HISTORY_POINTS = 400;             // releves gardes par courbe
 const PORTFOLIO_RETRY = 5 * 60 * 1000;         // apres un echec, sans attendre la fraicheur complete
 
 /**
- * Les chiffres du compte : ceux de Rolimon's, la correction des visages, et
- * la serie historique. Trois cadences differentes, d'ou trois gardes de
+ * Les chiffres du compte : ceux de Rolimon's avec la liste des objets, et la
+ * serie historique. Deux cadences differentes, d'ou deux gardes de
  * fraicheur — reconstruire tout ca a chaque verification (toutes les 30 s)
  * serait une attaque en regle sur les API de Rolimon's depuis l'IP du joueur.
  */
 async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
   const now = Date.now();
+  // Releve ecrit avant 2.14 (`rawV` a cote du chiffre corrige des visages) :
+  // on le remplace au premier passage plutot que d'afficher 10 min de plus
+  // une correction que Rolimon's a rendue inutile.
+  if (state.portfolioLast && 'rawV' in state.portfolioLast) force = true;
 
   if (force || now - (state.portfolioAt || 0) > PORTFOLIO_TTL) {
-    const report = settings.reconcilePortfolio !== false
-      ? await safe(() => buildPortfolio(state.userId, cat), null)
-      : null;
+    const report = await safe(() => buildPortfolio(state.userId, cat), null);
 
     if (report?.rolimons) {
       state.portfolioAt = now;
       state.portfolioPrivate = report.private;
       state.portfolioRank = report.rank;
-      // `v` / `r` sont les chiffres CORRIGES : c'est ce que l'interface affiche
-      // en grand. Les chiffres bruts de Rolimon's restent a cote, pour que
-      // l'ecart soit lisible plutot que subi.
-      state.portfolioLast = {
-        v: report.value, r: report.rap, at: report.at,
-        rawV: report.rolimons.value, rawR: report.rolimons.rap
-      };
+      state.portfolioLast = { v: report.value, r: report.rap, at: report.at };
       const keys = portfolioThumbKeys(report);
       if (keys.length) {
         const urls = await safe(() => resolveThumbs(keys), []);
@@ -675,24 +671,9 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
       }
       await savePortfolioReport(report);
     } else {
-      // Reconciliation coupee ou injoignable : on retombe sur le profil brut.
-      const info = await safe(() => api.getPlayerInfo(state.userId), null);
-      if (info) {
-        state.portfolioAt = now;
-        state.portfolioPrivate = info.private;
-        state.portfolioRank = info.rank;
-        state.portfolioLast = { v: info.value, r: info.rap, at: info.at, rawV: info.value, rawR: info.rap };
-        await savePortfolioReport({
-          at: now, userId: state.userId, ok: false, partial: true,
-          reason: report?.reason || 'réconciliation désactivée',
-          rolimons: info, ghosts: [], extras: [],
-          ghostValue: 0, extraValue: 0, value: info.value, rap: info.rap, rank: info.rank
-        });
-      } else {
-        // Rien n'a repondu : nouvel essai dans 5 min. Sans repere, chaque
-        // passage relancait les quatre appels a Rolimon's et au catalogue.
-        state.portfolioAt = now - PORTFOLIO_TTL + PORTFOLIO_RETRY;
-      }
+      // Profil injoignable : nouvel essai dans 5 min. Sans repere, chaque
+      // passage relancerait les appels a Rolimon's.
+      state.portfolioAt = now - PORTFOLIO_TTL + PORTFOLIO_RETRY;
     }
     if (report?.chartScannedAt) state.chartScannedAt = report.chartScannedAt;
   }
@@ -728,8 +709,7 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
  */
 async function stepRevaluations(ctx) {
   const { settings, state } = ctx;
-  const active = settings.revalAlerts && settings.useRolimons
-    && settings.trackPortfolio && settings.reconcilePortfolio !== false;
+  const active = settings.revalAlerts && settings.useRolimons && settings.trackPortfolio;
   if (!active || !state.revalSince) {
     state.revalSince = Date.now();
     return;
@@ -967,7 +947,7 @@ async function tick(reason = 'manual') {
     await commitStore(state, streams);
     await setBadge(state.inboundCount, settings, false);
 
-    // Portefeuille : chiffres du moment, reconciliation, historique Rolimon's.
+    // Portefeuille : chiffres du moment, liste des objets, historique Rolimon's.
     // Le plus souvent rien n'est du : l'etat vient d'etre ecrit, inutile de
     // le reecrire a l'identique.
     if (settings.useRolimons && settings.trackPortfolio) {
@@ -1335,10 +1315,9 @@ async function handleMessage(msg) {
       }
     }
     /**
-     * Ses bundles, pour sa fiche : la meme reconciliation que le portefeuille
-     * (portfolio.js), faite sur son compte — ce qu'il possede vraiment, et ce
-     * que Rolimon's lui compte encore alors qu'il ne l'a plus. Lue a
-     * l'ouverture de la fiche seulement, et gardee 30 min.
+     * Ses bundles, pour sa fiche : le meme rapport que le portefeuille
+     * (portfolio.js), fait sur son compte. Lu a l'ouverture de la fiche
+     * seulement, et garde 30 min.
      */
     case 'ronote:player-faces': {
       const id = Number(msg.userId);
@@ -1353,7 +1332,7 @@ async function handleMessage(msg) {
       try {
         const report = await buildPortfolio(id, await getCatalog(settings));
         const faces = playerFaces(report);
-        const lines = { ghosts: faces.ghosts, extras: [], items: faces.faces };
+        const lines = { items: faces.faces };
         const urls = await safe(() => resolveThumbs(portfolioThumbKeys(lines)), []);
         attachPortfolioThumbs(lines, urls || []);
         await flushThumbs();

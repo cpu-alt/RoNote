@@ -869,20 +869,7 @@ button.jr:active { transform: scale(.985); }
 
 /* --------------------------- réconciliation ---------------------------- */
 
-.w-fold > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
-.w-fold > summary::-webkit-details-marker { display: none; }
-.w-fold > summary span:last-child::after { content: ' ▸'; }
-.w-fold[open] > summary { margin-bottom: 8px; }
-.w-fold[open] > summary span:last-child::after { content: ' ▾'; }
-.w-fold[open] > :not(summary) { animation: w-fade .3s both; }
 
-.recon-sum {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
-}
-.recon-box { background: var(--surface-2); border-radius: var(--r-md); padding: 8px 9px; }
-.recon-box .l { font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--faint); }
-.recon-box .v { font-size: 15px; font-weight: 750; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.recon-box .n { font-size: 10px; color: var(--faint); }
 
 .rec-row {
   display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center;
@@ -913,7 +900,6 @@ button.jr:active { transform: scale(.985); }
 @media (prefers-reduced-motion: reduce) {
   .w-in, .w-in .w-alloc, .w-plot.reveal .w-chart, .w-plot.reveal .w-end, .w-plot.reveal .w-mark,
   .w-plot.reveal .w-ext, .w-plot.reveal + .w-leg, .w-end::after, .zoom-card.w-sheet, .w-skel,
-  .w-fold[open] > :not(summary) { animation: none !important; }
   .w-cursor, .w-cdot, .w-tip { transition: none !important; }
 }
 
@@ -1090,7 +1076,6 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .p-sheet .w-fact small em { font-weight: 650; }
 .p-sheet .w-rev { margin-top: 6px; }
 .p-sheet .w-rev .ic { width: 12px; height: 12px; vertical-align: -2px; }
-.p-fchips { margin-bottom: 6px; }
 .p-faces { padding: 3px 10px; }
 .p-faces .rec-row {
   grid-template-columns: 32px 1fr auto; padding: 6px 0;
@@ -1100,7 +1085,6 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .p-faces .rec-v.loss { color: var(--loss); }
 .p-faces .rec-row img, .p-faces .rec-row .ph { width: 32px; height: 32px; border-radius: 8px; }
 .p-faces .rec-row:hover .rec-n { color: #9dcbff; }
-.p-faces .rec-row.gone img { filter: grayscale(.8); opacity: .7; }
 .p-faces .ls-none { padding: 14px 8px; }
 .p-fnone { padding: 14px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
 .p-more {
@@ -1252,4 +1236,3 @@ button.icon .ic { width: 16px; height: 16px; }
 .w-val span .ic, .w-cval .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
 .w-name small .ic, .w-fact .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
 .w-rev .ic { width: 14px; height: 14px; vertical-align: -2.5px; }
-.w-fold summary .ic { width: 11px; height: 11px; vertical-align: -1px; color: var(--win); }

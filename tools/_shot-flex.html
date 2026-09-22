@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>RoNote — prise de vue Trade Flex</title>
+<style>
+  html, body { margin:0; width:1280px; height:800px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(1100px 620px at 78% 18%, #1b2740 0%, transparent 60%),
+      radial-gradient(900px 560px at 12% 92%, #14233a 0%, transparent 62%),
+      #05070b;
+    display:flex; align-items:center; gap:60px; padding:0 76px;
+    font:14px "Segoe UI", system-ui, sans-serif; color:#8e9cb3;
+    box-sizing:border-box;
+  }
+  #card {
+    flex:none; height:700px; width:auto; border-radius:18px;
+    box-shadow:0 30px 80px #000c, 0 0 0 1px #ffffff10;
+  }
+  .side { flex:1; max-width:520px; }
+  .kicker {
+    display:inline-block; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:#4d9fff; font-weight:600; margin-bottom:18px;
+  }
+  h1 {
+    color:#eef3fb; font-size:42px; line-height:1.15; margin:0 0 20px;
+    letter-spacing:-.02em; font-weight:700;
+  }
+  p { font-size:18px; line-height:1.6; margin:0; color:#93a2ba; }
+  dialog { display:none !important; }
+</style>
+</head>
+<body>
+  <img id="card" alt="">
+  <div class="side">
+    <span class="kicker" id="kicker">Trade Flex</span>
+    <h1 id="title"></h1>
+    <p id="sub"></p>
+  </div>
+<script>
+  // Capture 1280 × 800 de Trade Flex, par Chrome headless :
+  //   ?lang=en
+  // Le vrai module trade-flex.js dessine la carte ; on lui donne un trade
+  // fictif avec de vraies vignettes du CDN Roblox (fixtures/thumbs.json).
+  const qs = new URLSearchParams(location.search);
+  const en = qs.get('lang') === 'en';
+  document.documentElement.lang = en ? 'en' : 'fr';
+  const COPY = en ? {
+    title: 'Flex your wins',
+    sub: "On any Roblox trade page, RoNote shows the Value and RAP gap. Once a trade is completed, one click turns it into a card to share — WIN or LOSS, by value or RAP. Names and serials are left out."
+  } : {
+    title: 'Montre tes wins',
+    sub: "Sur chaque page de trade Roblox, RoNote affiche l’écart Value et RAP. Une fois le trade conclu, un clic en fait une carte à partager — WIN ou LOSS, à la value ou au RAP. Pseudos et serials omis."
+  };
+  document.getElementById('title').textContent = COPY.title;
+  document.getElementById('sub').textContent = COPY.sub;
+
+  // Le module ferme son shadow root ; ici on l'ouvre pour lire l'image produite.
+  const attach = Element.prototype.attachShadow;
+  Element.prototype.attachShadow = function (o) { return attach.call(this, { ...o, mode: 'open' }); };
+</script>
+<script src="../src/content/trade-flex.js"></script>
+<script type="module">
+  const thumbs = await fetch('./fixtures/thumbs.json').then(r => r.json());
+  // [assetId, nom, RAP, value]
+  const GIVE = [
+    [1082932, 'Traffic Cone', 3411, 4000],
+    [1081300, 'Golden Crown', 10542, 13000],
+    [19027209, 'Perfectly Legitimate Business Hat', 4026, 4500],
+    [564449640, 'Beautiful Hair for Beautiful Space People', 5504, 7000]
+  ];
+  const GET = [
+    [162066176, 'Adurite Fedora with Black Iron Accent', 24417, 26000],
+    [1048037, 'Bighead', 3114, 4000],
+    [33872761, 'Sebastian, the Fancy Crab', 3821, 3821],
+    [44113968, 'Kuddle E. Koala', 642, 642]
+  ];
+  const card = (id) => {
+    const el = document.createElement('div');
+    const img = document.createElement('img');
+    img.src = thumbs[id] || '';
+    el.append(img);
+    return el;
+  };
+  const side = (role, rows) => ({
+    role, robux: 0, rapTotal: rows.reduce((s, r) => s + r[2], 0),
+    items: rows.map(([id, name, rap]) => ({ name, rap, card: card(id) }))
+  });
+  const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+  const page = { sides: [side('give', GIVE), side('get', GET)] };
+  const analysis = {
+    valueAvailable: true,
+    give: { rap: sum(GIVE, 2), value: sum(GIVE, 3) },
+    get: { rap: sum(GET, 2), value: sum(GET, 3) },
+    pageItems: [GIVE.map(r => ({ value: r[3] })), GET.map(r => ({ value: r[3] }))]
+  };
+
+  await RoNoteFlex.open(page, analysis);
+  const root = document.querySelector('dialog[data-rn="flex"] > div').shadowRoot;
+  document.getElementById('card').src = root.querySelector('img').src;
+  await new Promise(r => setTimeout(r, 300));
+  document.title = 'PRET';
+</script>
+</body>
+</html>

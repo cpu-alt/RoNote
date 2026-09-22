@@ -12,7 +12,7 @@ Retour au [README](../README.md).
 |---|---|
 | Compte développeur | 5 $ une fois, sur <https://chrome.google.com/webstore/devconsole> |
 | Vérification | Google demande une adresse e-mail vérifiée et une identité |
-| Paquet à téléverser | `dist/ronote-chrome-v2.11.1.zip`, produit par `python tools/build.py` |
+| Paquet à téléverser | `dist/ronote-chrome-v2.14.0.zip`, produit par `python tools/build.py` |
 | URL de confidentialité | `https://cpu-alt.github.io/RoNote/privacy.html` (en ligne) |
 
 > **Choisis « Unlisted » au premier envoi.** L'installation se fait par lien, les mises
@@ -38,12 +38,21 @@ NO FALSE ALERTS
 Tracking is based on the unique trade ID — never on the other player's username, never on a position in the list, never on a trade count. The classic bug ("I decline one trade and the one below it notifies again") simply does not happen here.
 
 VALUE, NOT RAP
-Every trade is evaluated item by item: value, RAP, and Robux counted net of the 30% Roblox tax. RoNote flags the usual traps — projected items, quotes sitting far above real sales, faces and bundle items with no value.
+Every trade is evaluated item by item: value, RAP, and Robux counted net of the 30% Roblox tax. RoNote flags the usual traps — projected items, quotes sitting far above real sales, faces and bundle items with no value. A trade can look like a win on RAP and be a loss on value: RoNote shows you both.
+
+ON ROBLOX TRADE PAGES
+Open any trade on roblox.com and RoNote adds:
+• The RAP and Value gap between the two offers — green for a win, red for a loss
+• Rolimon's value under every item, and a total for each side
+• A warning badge on projected items
+• A shortcut to the other player's Rolimon's profile, and a button to blur serial numbers
+• Trade Flex: turn a completed trade into a shareable WIN / LOSS image, with names and serials left out
 
 WHAT YOU GET
 • Desktop notifications, with a different sound per event type
-• Detailed value analysis, item by item
-• Portfolio tab: your account value and its chart, plus every collectible with its value, demand and trend
+• Home tab: your portfolio's 24-hour move, today's offers and revaluations at a glance
+• Portfolio tab: your account value over time — Value, RAP and collectibles on one chart — plus every item with its value, demand and trend
+• Player cards: click an avatar to see that player's inventory value and its curve, account age, last time online, and your trades together
 • Revaluation alerts: know when Rolimon's revises the value of an item you own
 • Filters: value threshold, ignored players, quiet hours
 • English and French, detected automatically
@@ -53,7 +62,7 @@ WHAT RONOTE WILL NOT DO
 RoNote never accepts a trade, never creates one, and never counters one. Those actions transfer items: a misplaced click would be irreversible. Declining or cancelling only destroys an offer — that is the only write RoNote allows itself.
 
 PRIVACY
-No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's: the public value table and item histories, the same for everyone, and your public Rolimon's profile, looked up by your Roblox user ID, for the portfolio.
+No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's: the public value table and item histories, the same for everyone, and public Rolimon's profiles looked up by Roblox user ID — yours for the portfolio, the other player's when you open their player card. Roblox user IDs are already public; nothing else is sent. Trade Flex images, including any background you import, are made on your computer and never uploaded.
 
 The code is open and verifiable: https://github.com/cpu-alt/RoNote
 
@@ -88,7 +97,7 @@ rallongent la revue.
 | `offscreen` | Play the alert sound. A Chrome service worker cannot produce audio; the offscreen document is the API Chrome provides for exactly this. |
 | `declarativeNetRequestWithHostAccess` | Roblox rejects (403) authenticated requests whose `Origin` header is not its own. A session rule rewrites `Origin` and `Referer` **only for requests issued by the extension itself** (`tabIds: [-1]`, outside any tab), and only towards `roblox.com`. The user's own browsing is never modified. |
 | Host access `*.roblox.com` | Read trades, items, thumbnails and public profiles from the Roblox APIs — the extension's data source. |
-| Host access `*.rolimons.com` | Download the public item value table and public item price histories, identical for every user. For portfolio tracking, look up the user's public Rolimon's profile by their Roblox user ID, which is already public; nothing else is transmitted. This source can be disabled in the settings. |
+| Host access `*.rolimons.com` | Download the public item value table and public item price histories, identical for every user. Look up public Rolimon's profiles by Roblox user ID, which is already public: the user's own for portfolio tracking, and another player's when the user opens that player's card. Nothing else is transmitted. This source can be disabled in the settings. |
 
 **Are you using remote code?** → **No**. All scripts ship inside the package; the
 extension neither loads nor evaluates any external code.
@@ -130,8 +139,19 @@ https://cpu-alt.github.io/RoNote/privacy.html
 | Élément | Format | État |
 |---|---|---|
 | Icône du magasin | 128 × 128 PNG | ✅ `src/icons/icon128.png` |
-| Captures d'écran | 1280 × 800, 1 à 5 | ✅ `store-assets/` (interface en anglais) |
-| Petite vignette promo | 440 × 280 | facultatif |
+| Captures d'écran | 1280 × 800, 1 à 5 | ✅ `store-assets/ronote-*.png` (interface en anglais) |
+| Petite vignette promo | 440 × 280 | ✅ `store-assets/promo-small-440x280.png` |
+| Vignette marquee | 1400 × 560 | ✅ `store-assets/promo-marquee-1400x560.png` |
+
+**Ordre de téléversement des captures** (le Store les affiche dans cet ordre) :
+
+1. `ronote-trades.png` — pages de trade Roblox : win / loss et objet projected
+2. `ronote-flex.png` — Trade Flex
+3. `ronote-inbound.png` — trades reçus évalués
+4. `ronote-stats.png` — onglet Portefeuille
+5. `ronote-player.png` — fiche joueur
+
+En réserve, hors limite des 5 : `ronote-home.png` (onglet Accueil).
 
 Pour les régénérer après un changement d'interface :
 
@@ -139,8 +159,23 @@ Pour les régénérer après un changement d'interface :
 python tools/serve.py
 ```
 
-puis, dans un autre terminal, Chrome en headless sur
-`tools/_shot.html?tab=<inbound|outbound|stats|history>&lang=en`.
+puis, dans un autre terminal, Chrome en headless (`--window-size=1280,800
+--virtual-time-budget=12000 --screenshot=…`) sur :
+
+| Capture | URL (sous `http://127.0.0.1:8777/tools/`) |
+|---|---|
+| `ronote-trades.png` | `_shot-trades.html?lang=en` (`--virtual-time-budget=14000`) |
+| `ronote-flex.png` | `_shot-flex.html?lang=en` |
+| `ronote-inbound.png` | `_shot.html?tab=inbound&lang=en&promo=1` |
+| `ronote-stats.png` | `_shot.html?tab=stats&lang=en&promo=1&series=v,r,n&scrub=0.72` |
+| `ronote-player.png` | `_shot.html?tab=inbound&player=1&lang=en&promo=1` |
+| `ronote-home.png` | `_shot.html?tab=home&lang=en&promo=1` |
+
+`promo=1` décale la courbe de démo pour qu'elle finisse en hausse et fait
+annoncer la version du manifeste par l'accueil. Les deux vignettes viennent de
+`_promo.html?size=small` (440 × 280) et `_promo.html?size=marquee` (1400 × 560) ;
+le marquee découpe `ronote-home.png` et `ronote-flex.png`, donc on le
+régénère **après** les captures.
 
 > **Anonymise** : aucune capture ne doit montrer ton pseudo, ton identifiant Roblox ni
 > ceux d'autres joueurs. Les captures actuelles utilisent le compte fictif

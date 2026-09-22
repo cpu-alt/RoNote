@@ -14,9 +14,11 @@
     font:14px "Segoe UI", system-ui, sans-serif; color:#8e9cb3;
     box-sizing:border-box;
   }
-  .stage { flex:none; width:420px; height:640px; display:flex; align-items:center; }
+  .stage { flex:none; height:640px; display:flex; align-items:center; }
+  /* `flex:none` : la fiche d'un joueur élargit le cadre à 800 px ; sans ça,
+     l'élément flex rétrécit et la fiche est coupée. */
   .frame {
-    width:420px; height:600px; border:1px solid #263149; border-radius:14px;
+    flex:none; width:420px; height:600px; border:1px solid #263149; border-radius:14px;
     overflow:hidden; box-shadow:0 30px 80px #000c, 0 0 0 1px #ffffff08;
     transform:scale(1.06); transform-origin:center;
   }
@@ -31,6 +33,11 @@
     letter-spacing:-.02em; font-weight:700;
   }
   p { font-size:18px; line-height:1.6; margin:0; color:#93a2ba; }
+  /* Fiche joueur : cadre large, légende resserrée. */
+  body.wide { gap:48px; padding:0 56px; }
+  body.wide .frame { transform:none; }
+  body.wide h1 { font-size:36px; }
+  body.wide p { font-size:16px; }
   #log { display:none; }
   .ctl { display:none; }
 </style>
@@ -44,6 +51,7 @@
   </div>
 
   <div class="ctl">
+    <button data-tab="home"></button>
     <button data-tab="inbound"></button>
     <button data-tab="outbound"></button>
     <button data-tab="stats"></button>
@@ -53,7 +61,16 @@
 
   <script type="module" src="./preview.js"></script>
   <script>
+    // Captures du Store (1280 × 800), par Chrome headless :
+    //   ?tab=home&lang=en&promo=1
+    //   ?tab=inbound&player=1&lang=en&promo=1   -> la fiche du joueur
+    // Tous les paramètres de preview.js passent tels quels (scroll, series…).
     const COPY_EN = {
+      home: {
+        kicker: 'Home',
+        title: 'Your trading day,\nat a glance',
+        sub: "Your portfolio and its 24-hour move, today's offers, filtered alerts and revaluations — before you even open a tab."
+      },
       inbound: {
         kicker: 'Inbound trades',
         title: 'Every trade,\nvalued properly',
@@ -65,9 +82,14 @@
         sub: "Accepted, declined, countered or expired: you are told at every change, and counter-offers stay chained to the original offer."
       },
       stats: {
-        kicker: 'Portfolio tab',
+        kicker: 'Portfolio',
         title: 'Your account value,\nover time',
-        sub: "How your portfolio actually moves, reconciled item by item — including the faces and bundles Rolimon's miscounts."
+        sub: "Value, RAP and collectibles on one chart, and every item with its value, demand and trend — faces included."
+      },
+      player: {
+        kicker: 'Player card',
+        title: 'Know who you\nare trading with',
+        sub: "Click an avatar: inventory value and its curve, account age, last time online, and every trade between the two of you."
       },
       history: {
         kicker: 'Log',
@@ -76,6 +98,11 @@
       }
     };
     const COPY_FR = {
+      home: {
+        kicker: 'Accueil',
+        title: 'Ta journée de trade,\nd’un coup d’œil',
+        sub: "Ton portefeuille et sa variation sur 24 h, les offres du jour, les alertes filtrées et les réévaluations — avant même d’ouvrir un onglet."
+      },
       inbound: {
         kicker: 'Trades reçus',
         title: 'Chaque trade,\névalué à la value',
@@ -87,9 +114,14 @@
         sub: "Accepté, refusé, contré ou expiré : tu es prévenu à chaque changement, et les contre-offres restent chaînées à l’offre d’origine."
       },
       stats: {
-        kicker: 'Onglet Portefeuille',
+        kicker: 'Portefeuille',
         title: 'La valeur de ton compte,\ndans le temps',
-        sub: "L’évolution réelle de ton portefeuille, réconciliée objet par objet — y compris les visages et bundles que Rolimon’s compte mal."
+        sub: "Value, RAP et collectibles sur une même courbe, et chaque objet avec sa cote, sa demande et sa tendance — visages compris."
+      },
+      player: {
+        kicker: 'Fiche joueur',
+        title: 'Sache avec qui\ntu trades',
+        sub: "Un clic sur un avatar : la valeur de son inventaire et sa courbe, l’âge du compte, sa dernière connexion, et tous vos échanges."
       },
       history: {
         kicker: 'Journal',
@@ -99,10 +131,12 @@
     };
     const qs = new URLSearchParams(location.search);
     const tab = qs.get('tab') || 'inbound';
+    const scene = qs.get('player') ? 'player' : tab;
+    if (scene === 'player') document.body.classList.add('wide');
     // `lang` sert deux fois : preview.js le lit pour l'interface du popup,
     // et il choisit ici la legende, sinon la capture serait bilingue.
     const COPY = qs.get('lang') === 'en' ? COPY_EN : COPY_FR;
-    const c = COPY[tab] || COPY.inbound;
+    const c = COPY[scene] || COPY.inbound;
     document.getElementById('kicker').textContent = c.kicker;
     document.getElementById('title').innerHTML =
       c.title.split('\n').map(s => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))).join('<br>');
@@ -120,7 +154,7 @@
       for (let i = 0; i < 150 && !ok; i++) {
         const el = frame.contentDocument?.querySelector(`.tab[data-tab="${tab}"]`);
         if (el) {
-          el.click();
+          if (!el.classList.contains('active')) el.click();
           ok = el.classList.contains('active');
         }
         if (!ok) await sleep(100);

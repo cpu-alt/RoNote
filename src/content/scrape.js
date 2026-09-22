@@ -47,7 +47,8 @@
       userIds: flat.sides.map(s => s.userIds),
       at: Date.now()
     };
-    try { B.runtime.sendMessage({ type: 'ronote:scraped-trade', trade }); } catch { /* ignore */ }
+    // Extension rechargee : l'appel leve, en synchrone ou dans sa promesse.
+    try { Promise.resolve(B.runtime.sendMessage({ type: 'ronote:scraped-trade', trade })).catch(() => {}); } catch { /* ignore */ }
   }
 
   let timer = null;

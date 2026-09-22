@@ -77,7 +77,6 @@ try {
   const apiMod = await import('../src/common/api.js');
   const analysis = await import('../src/common/analysis.js');
   const portfolio = await import('../src/common/portfolio.js');
-  const revalue = await import('../src/common/revalue.js');
   const filters = await import('../src/common/filters.js');
   const thumbs = await import('../src/common/thumbs.js');
   const streams = await import('../src/background/streams.js');
@@ -254,35 +253,18 @@ try {
     analysis.missingValueAssetIds(dPart, ctx), [999999999]);
 
   /* ---------------------------- portefeuille ---------------------------- */
-  group('Portefeuille reconcilie (donnees reelles anonymisees)');
+  group('Portefeuille (donnees reelles anonymisees)');
   const fx = await json('./fixtures/portfolio-sample.json');
-  const rep = portfolio.reconcile(
-    { ...portfolio.emptyReport(fx.userId), rolimons: { value: fx.playerinfo.value, rap: fx.playerinfo.rap } },
-    { value: fx.playerinfo.value, rap: fx.playerinfo.rap },
-    { counts: fx.playerassets, holds: [] },
-    fx.bundles.filter(b => b.bundleType === 'DynamicHead'),
-    cat
-  );
+  const rep = portfolio.fromRolimons(portfolio.emptyReport(fx.userId), fx.playerinfo,
+    { counts: fx.playerassets, holds: [] }, cat);
   info(`Rolimon's annonce ${fx.playerinfo.value.toLocaleString('fr-FR')}`);
-  check('visages fantomes detectes', rep.ghosts.length, fx.expected.ghosts);
-  check('valeur retiree', rep.ghostValue, fx.expected.ghostValue);
-  check('visages possedes ignores par Rolimon\'s', rep.extras.length, fx.expected.extras);
-  check('valeur ajoutee', rep.extraValue, fx.expected.extraValue);
-  check('valeur corrigee', rep.value, fx.expected.value);
-  for (const g of rep.ghosts) info(`fantome  −${g.total.toLocaleString('fr-FR')}  ${g.name}`);
-  for (const e of rep.extras) info(`ajoute   +${e.total.toLocaleString('fr-FR')}  ${e.name}`);
+  check("valeur : celle de Rolimon's, sans correction", rep.value, fx.expected.value);
+  check('chaque visage liste une fois, sous son bundle',
+    rep.items.filter(i => i.isFace).reduce((s, i) => s + i.count, 0), fx.expected.faces);
+  check('aucun ancien exemplaire de visage liste en plus',
+    Object.keys(rep.holdings).filter(k => k.startsWith('a:') && cat.bundleOf?.[k.slice(2)]).length, 0);
   check('chaque ligne sait quelle vignette demander',
     portfolio.portfolioThumbKeys(rep).every(k => k.length > 0), true);
-
-  // Ce que croise l'alerte de reevaluation, sur le meme inventaire reel.
-  {
-    const owned = fx.bundles.filter(b => b.bundleType === 'DynamicHead');
-    const held = revalue.holdingsOf({ counts: fx.playerassets }, owned, cat);
-    const sum = (pfx) => Object.entries(held).filter(([k]) => k.startsWith(pfx)).reduce((a, [, n]) => a + n, 0);
-    check('reevaluation : chaque visage possede compte une fois, par son bundle', sum('b:'), rep.ownedFaces);
-    check('reevaluation : aucun ancien exemplaire de visage compte en plus',
-      Object.keys(held).filter(k => k.startsWith('a:') && cat.bundleOf?.[k.slice(2)]).length, 0);
-  }
 
   /* ------------------------------ vignettes ----------------------------- */
   group('Vignettes');

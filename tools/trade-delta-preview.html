@@ -11,7 +11,7 @@ body{margin:0;background:#2d0061;color:#fff;font:14px Arial,sans-serif}main{max-
 // Only the external API is mocked. The actual reader, analysis and UI run here.
 let offline = false;
 const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks','',657,800,0,0,0,0],222:['Snow Leopard Fedora','',1485,1600,0,0,1,0],301:['Coolface','',7563,9000,0,0,1,0],305:['Camoface','',7563,12500,0,0,1,0],306:['White Ninja Headband of the Void','',1742,2100,0,0,0,0],302:['Verdant Crown','',3769,4200,0,0,0,0],401:['Gold Clockwork Headphones','',4813,5500,0,0,0,0]},Object.fromEntries([101,102,103,201,202,203].map((id,i)=>[id,['test','',100,[1500,4000,1800,500,8000,600][i],0,0,id===202?1:0,0]])))};
-globalThis.chrome = {runtime:{getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
+globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
   if (type === 'ronote:item-values') {
     const {findByName} = await import('/src/common/page-trade.js');
     const {resolveItem} = await import('/src/common/analysis.js');
