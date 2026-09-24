@@ -1,86 +1,120 @@
-# RoNote — Alertes de trades Roblox
+# RoNote — Roblox trade alerts & values
 
-[![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.14.0-brightgreen.svg)](CHANGELOG.md)
+**English** · *[Français](README.fr.md)*
 
-Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
-ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un
-trade complété, une **contre-offre**, un de tes envois **accepté / refusé / contré /
-expiré**, ou un trade annulé par une **erreur Roblox** (« Rejected due to an error »).
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.15.0-brightgreen.svg)](CHANGELOG.md)
 
-Le point central : **zéro fausse alerte.** Le suivi ne se base ni sur le pseudo, ni
-sur la position dans la liste, ni sur le nombre de trades — uniquement sur
-l'**identifiant unique du trade**.
+A browser extension (Chrome / Edge / Brave / Opera / Firefox) that tells you on your
+desktop about **everything that happens in your Roblox trades**: a new inbound
+trade, a completed trade, a **counter-offer**, one of your offers **accepted /
+declined / countered / expired**, or a trade cancelled by a **Roblox error**
+("Rejected due to an error").
 
-Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
+The core promise: **zero false alerts.** Tracking never relies on usernames, list
+positions or trade counts — only on each trade's **unique ID**.
+
+And the number that matters, everywhere, is the **value**, not the RAP.
+
+<p align="center">
+  <img src="store-assets/ronote-home.png" alt="RoNote popup, home tab" width="49%">
+  <img src="store-assets/ronote-trades.png" alt="Value and RAP differences on a Roblox trade page" width="49%">
+</p>
 
 ---
 
-## Ce que ça fait
+## Features
 
-- **Notifications bureau fiables**, avec un son différent par type d'événement
-- **Analyse de valeur** de chaque trade : value, RAP, Robux comptés **nets** des 30 % de taxe
-- **Écarts directement sur Roblox** : deux bandeaux compacts RAP / Value entre les offres, à la place du séparateur. Le RAP suit les totaux affichés par Roblox ; la Value utilise les cotes Rolimon’s des objets, avec repli sur leur RAP. Les Robux affichés sont inclus, sans taxer une seconde fois les montants déjà nets. Les titres « Items you gave / received » permettent la lecture même sans liens de profil. La barre reste en place quand on change de trade, et le RAP reste lisible si Rolimon’s est indisponible.
-- **Détection des pièges** : objets *projected*, cotes spéculatives, visages et objets de bundle sans cote
-- **Value sous les objets** : cote Rolimon’s actuelle sous chaque carte de trade, y compris dans Closed / Inactive. Un objet sans cote publiée affiche « — » ; le RAP natif reste intact.
-- **Onglet Portefeuille** : la valeur de ton compte et sa courbe, puis chacun de tes collectibles avec sa cote, sa demande et sa tendance (recherche, tri, vue galerie, montants masquables)
-- **Alerte de réévaluation** : prévenu quand Rolimon's révise la cote d'un objet que tu possèdes
-- **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses
-- **Français et anglais**, détectés automatiquement
-- **Refuser ou annuler** un trade en deux clics volontaires, depuis le détail
+### Alerts
+- **Reliable desktop notifications**, with a different sound for each kind of event
+- **Filters**: value threshold, ignored players, quiet hours
+- **Revaluation alerts**: get notified when Rolimon's changes the value of an item you own
+- **Decline or cancel** a trade in two deliberate clicks, from its detail view
 
-RoNote **n'accepte jamais** un trade et n'en crée pas : ces actions transfèrent des
-objets, un clic mal placé y serait irréversible.
+### Value analysis
+- **Every trade valued**: Rolimon's value, RAP, and Robux counted **net** of Roblox's 30% tax
+- **Trap detection**: *projected* items, speculative values, faces and bundle items with no value
+- **Rare items** get a small diamond, and Rolimon's **Lucky Cat** copy gets a golden cat
+
+### On roblox.com
+- **Trade pages**: a compact RAP / Value difference banner between the two offers,
+  and the Rolimon's value under every item, plus each offer's total
+- **Trade lists** (Inbound, Outbound, Completed): each trade's difference on the
+  right of its row, without opening it
+- **Limited item pages**: a **Value** row under "Best Price", with demand, trend and
+  a direct link to the item's Rolimon's page
+- **Your own background**: import any image as the roblox.com background, with a
+  veil in your theme's colour to keep text readable, and optional blur
+
+### Popup
+- **Portfolio**: your account value and its curve, then each of your collectibles
+  with its value, demand and trend (search, sort, gallery view, hideable amounts)
+- **Flex my inventory**: a shareable card with your account value, its 30-day curve
+  and your six biggest items
+- **Monthly recap**: value gained from trades, win rate, best trade and account
+  trend, on a card to copy or download
+- **Trade Flex**: a clean PNG card of a completed trade
+- **Coin flip**: can't decide on a trade? Pick your chip (green R$ or orange T) and let luck decide
+
+### Make it yours
+- **Themes**: RoNote, Minimal, Neon, Sunset, Ocean and Casino set the banner, lists,
+  badge and background in one click. Export your theme to a file and share it.
+- **Appearance settings**: colours, style, size and format for the banner, the list
+  column and the *projected* badge, with a live preview
+- **English and French**, detected automatically
+
+RoNote **never accepts** a trade and never creates one: those actions move items,
+and a misplaced click would be irreversible.
+
+<p align="center">
+  <img src="store-assets/ronote-stats.png" alt="Portfolio tab" width="49%">
+  <img src="store-assets/ronote-flex.png" alt="Trade Flex card" width="49%">
+</p>
 
 ## Installation
 
-### Depuis une Release (recommandé)
+### From a Release (recommended)
 
-Aucun outil à installer, ni Python ni Node.
+No tools needed — no Python, no Node.
 
-1. Va sur la page [Releases](https://github.com/cpu-alt/RoNote/releases) et télécharge
-   `ronote-chrome-vX.Y.Z.zip` (ou `ronote-firefox-…` pour Firefox).
-2. **Dézippe le fichier** dans un dossier que tu ne supprimeras pas : le navigateur
-   charge l'extension *depuis ce dossier*, il ne la copie pas ailleurs.
-3. **Chrome / Edge / Brave / Opera** — va sur `chrome://extensions`, active le
-   **Mode développeur** (en haut à droite), puis **Charger l'extension non
-   empaquetée** et sélectionne le dossier dézippé.
-4. **Firefox** (128 minimum) — va sur `about:debugging#/runtime/this-firefox`, puis
-   **Charger un module temporaire** et sélectionne `manifest.json` dans le dossier
-   dézippé.
+1. Go to the [Releases](https://github.com/cpu-alt/RoNote/releases) page and download
+   `ronote-chrome-vX.Y.Z.zip` (or `ronote-firefox-…` for Firefox).
+2. **Unzip it** into a folder you will keep: the browser loads the extension *from
+   that folder*, it does not copy it anywhere else.
+3. **Chrome / Edge / Brave / Opera** — open `chrome://extensions`, turn on
+   **Developer mode** (top right), click **Load unpacked** and select the unzipped folder.
+4. **Firefox** (128 or later) — open `about:debugging#/runtime/this-firefox`, click
+   **Load Temporary Add-on** and select `manifest.json` in the unzipped folder.
 
-> **Pourquoi le mode développeur ?** RoNote n'est pas encore publiée sur le Chrome
-> Web Store, et Chrome refuse d'installer une extension venue d'ailleurs sans lui.
-> Deux conséquences : un avertissement « Désactivez les extensions en mode
-> développeur » à chaque démarrage (tu peux le fermer), et **pas de mise à jour
-> automatique** — pour changer de version, retélécharge le zip et remplace le contenu
-> du dossier.
+> **Why developer mode?** RoNote is not on the Chrome Web Store yet, and Chrome only
+> installs extensions from elsewhere this way. Two consequences: a "Disable developer
+> mode extensions" warning at startup (you can close it), and **no automatic
+> updates** — to update, download the new zip and replace the folder's contents.
 >
-> Sous Firefox, un module temporaire **disparaît à la fermeture du navigateur**.
-> C'est une limite de Mozilla pour les extensions non signées.
+> On Firefox, a temporary add-on **is removed when the browser closes**. This is a
+> Mozilla limit for unsigned extensions.
 
-### Vérifier que ça marche
+### Check that it works
 
-Connecte-toi sur `roblox.com`, puis ouvre le popup : tu dois voir
-`Actif · vérifié il y a Xs` et ton pseudo. Le bouton **Tester** dans les réglages
-envoie une notification de démonstration avec le son.
+Log in on `roblox.com`, then open the popup: you should see
+`Active · checked Xs ago` and your username. The **Test it** button in the settings
+sends a demo notification with its sound.
 
-> Au tout premier démarrage, RoNote photographie silencieusement les trades déjà
-> présents : **aucune notification pour l'existant**. Seuls les trades qui arrivent
-> ensuite comptent.
+> On the very first run, RoNote silently records the trades that already exist:
+> **no notification for what's already there**. Only trades that arrive afterwards count.
 
-## Vie privée
+## Privacy
 
-**Aucune donnée ne sort de ton navigateur.** Pas de serveur RoNote, pas de compte,
-pas de télémétrie. Les seules requêtes vont vers les API publiques de Roblox et,
-si tu laisses l'option active, vers Rolimon's pour la table des valeurs — qui ne
-reçoit rien te concernant.
+**No data leaves your browser.** No RoNote server, no account, no telemetry. The only
+requests go to Roblox's public APIs and, if you keep the option on, to Rolimon's for
+the value table — which receives nothing about you. Imported images (background,
+badge) stay on your computer, and the share cards never show a username.
 
-Détail complet : **[Politique de confidentialité](PRIVACY.fr.md)** · *[English](PRIVACY.md)*
+Full details: **[Privacy policy](PRIVACY.md)** · *[Français](PRIVACY.fr.md)*
 
-## Construire depuis les sources
+## Building from source
 
-**Sans Node** (Python 3 suffit) :
+**Without Node** (Python 3 is enough):
 
 ```bash
 python tools/check.py
@@ -90,48 +124,67 @@ python tools/check.py
 python tools/build.py
 ```
 
-Ça produit `dist/chrome/`, `dist/firefox/` et les `.zip` correspondants. Charge
-ensuite `dist/chrome` comme décrit plus haut ; après un rebuild, le bouton
-**Actualiser** (⟳) de `chrome://extensions` suffit.
+This produces `dist/chrome/`, `dist/firefox/` and the matching `.zip` files. Load
+`dist/chrome` as described above; after a rebuild, the **Reload** (⟳) button in
+`chrome://extensions` is enough.
 
-**Avec Node**, les équivalents : `npm run check:node`, `npm run build:node`, `npm test`.
-Les icônes se régénèrent avec `npm run icons`, uniquement si tu les modifies.
+**With Node**, the equivalents: `npm run check:node`, `npm run build:node`, `npm test`.
+Icons are regenerated with `npm run icons`, only if you change them.
 
-Procédure complète, dépannage inclus : **[Construire depuis les sources, en détail](docs/technique.md#construire-depuis-les-sources-en-détail)**.
-
-### Tests
+### Tests and previews
 
 ```bash
 python tools/serve.py
 ```
 
-Puis, dans un navigateur :
+Then, in a browser:
 
 | | |
 |---|---|
-| <http://127.0.0.1:8777/tools/selftest.html> | les 98 tests |
-| <http://127.0.0.1:8777/tools/preview.html> | le vrai popup, branché sur un faux service worker |
+| <http://127.0.0.1:8777/tools/selftest.html> | the browser self-tests |
+| <http://127.0.0.1:8777/tools/preview/popup.html> | the real popup, wired to a fake service worker (`?lang=en` for English) |
+| <http://127.0.0.1:8777/tools/preview/options.html> | the real settings page |
+| <http://127.0.0.1:8777/tools/preview/item-page.html> | the Value row on a limited's page |
+| <http://127.0.0.1:8777/tools/preview/trade-delta.html> | the difference banner on a trade page |
 
-Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes : c'est ce qui
-permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque chose.
+The test data are **real API responses**, not mock-ups: that is how a renamed field
+at Roblox or Rolimon's gets caught.
 
-## Aller plus loin
+## Project layout
 
-- **[Notes techniques](docs/technique.md)** — pourquoi le code est écrit comme il est :
-  anti-doublon, interception réseau, résolution des vignettes, lecture des cotes
-- **[Journal des versions](CHANGELOG.md)** — ce qui a changé, version par version
+```
+src/                  the extension itself
+  manifest.json         Chrome / Edge / Brave / Opera (MV3)
+  manifest.firefox.json Firefox 128+
+  background/           service worker: polling, de-duplication, notifications
+  common/               shared modules: Roblox & Rolimon's APIs, analysis, i18n, settings
+  content/              scripts running on roblox.com (banner, lists, item page, background)
+  popup/                the popup: tabs, coin flip, share cards
+  options/              the settings page and themes
+tools/                build, checks, tests
+  preview/              the real pages wired to fake data, and store screenshot pages
+  fixtures/             real API responses used by tests and previews
+docs/                 technical notes and store publishing guides (French)
+store-assets/         screenshots and promo images
+```
 
-## Contribuer
+## Going further
 
-Les issues et les pull requests sont les bienvenues. Avant d'ouvrir une PR, fais
-tourner `python tools/check.py` et les 98 tests du navigateur.
+- **[Technical notes](docs/technique.md)** (French) — why the code is written the way
+  it is: de-duplication, network interception, thumbnail resolution, reading values
+- **[Changelog](CHANGELOG.md)** — what changed, version by version
 
-## Licence
+## Contributing
 
-[MIT](LICENSE) — libre d'utilisation, de modification et de redistribution, en
-gardant la mention de copyright.
+Issues and pull requests are welcome. Before opening a PR, run
+`python tools/check.py` and the browser self-tests.
 
-## Absence d'affiliation
+## License
 
-RoNote est un projet indépendant, **ni affilié, ni approuvé, ni sponsorisé par Roblox
-Corporation ni par Rolimon's**. « Roblox » est une marque de Roblox Corporation.
+[MIT](LICENSE) — free to use, modify and redistribute, as long as the copyright
+notice is kept.
+
+## No affiliation
+
+RoNote is an independent project, **not affiliated with, endorsed by or sponsored by
+Roblox Corporation or Rolimon's**. "Roblox" is a trademark of Roblox Corporation.

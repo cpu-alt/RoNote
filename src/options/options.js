@@ -1,10 +1,11 @@
 import { B } from '../common/shim.js';
-import { SOUNDS } from '../common/defaults.js';
+import { SOUNDS, DEFAULTS } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
 import { t, currentLang, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { RELEASES } from '../common/changelog.js';
 import { $, send, ask, applyLang, onStoredChange } from '../common/ui.js';
+import { THEMES, THEME_KEYS, matchTheme, paintBackground, themeFromFile } from './themes.js';
 
 /** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
 function showUnreachable() {
@@ -15,13 +16,29 @@ function showUnreachable() {
   }
 }
 
+/* Chaque reglage vit dans un champ du meme nom : les interrupteurs, les
+   listes (texte ou nombre) et les champs numeriques bornes. */
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'showItemDetails', 'pageDelta',
-  'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters', 'revalAlerts'];
-const NUMS = ['maxNotificationsPerPoll', 'minGainPercent', 'minTheirValue', 'counterWindowMinutes'];
+  'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
+  'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
+  'showRare', 'showLuckyCat', 'showItemDetails', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels'];
+const SELECTS = ['lang', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner'];
+const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
+// [min, max, décimales] : une saisie hors bornes est ramenée dedans.
+const NUMS = {
+  maxNotificationsPerPoll: [1, 20, 0], counterWindowMinutes: [5, 1440, 0],
+  minGainPercent: [-100, 500, 0], minTheirValue: [0, 1e9, 0],
+  speculativeRatio: [1, 10, 1],
+  // En dessous de 3 %, roli.js ne retient meme pas la revision.
+  revalMinPercent: [3, 100, 0]
+};
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
+// Ce qui redessine un aperçu dès que ça change, sans attendre la relecture.
+const LOOK_KEYS = new Set(['bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize', 'bannerPct',
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'projectedSize', 'projectedShape', 'projectedCorner', 'showLuckyCat', 'pageBgDim', 'pageBgBlur', ...THEME_KEYS]);
 
 let settings = null;
 let state = null;
@@ -29,11 +46,30 @@ let counts = {};
 let newest = {};
 let belowMark = {};
 
+/* ---------------------------- dépendances ----------------------------- */
+
+/**
+ * `data-needs="a b"` : la ligne n'a de sens que si les réglages a et b sont
+ * actifs. Sinon elle est grisée et ses champs désactivés — on voit pourquoi
+ * un réglage est sans effet au lieu de le chercher.
+ */
+const flag = (k) => (k === 'qh-enabled' ? settings.quietHours?.enabled : settings[k]);
+function applyNeeds() {
+  for (const row of document.querySelectorAll('[data-needs]')) {
+    const off = row.dataset.needs.split(' ').some(k => !flag(k));
+    row.classList.toggle('off', off);
+    for (const el of row.querySelectorAll('input, select, button, label.btn')) {
+      if (el.matches('label.btn')) el.classList.toggle('disabled', off);
+      else el.disabled = off;
+    }
+  }
+}
+
 /* ------------------------------- rendu -------------------------------- */
 
-/* Le badge « projected » de la page Roblox : couleur, taille, image importée.
-   Le dessin lui-même vient de content/projected-badge.js, le même que sur la
-   page : l'aperçu ne peut pas mentir. */
+/* Le badge « projected » de la page Roblox : couleur, taille, forme, coin,
+   image importée. Le dessin lui-même vient de content/projected-badge.js, le
+   même que sur la page : l'aperçu ne peut pas mentir. */
 const PROJ_COLORS = [
   ['#ffc400', 'Jaune'], ['#ff8a00', 'Orange'], ['#ff3b4a', 'Rouge'], ['#ff4fd8', 'Rose'],
   ['#9b5cff', 'Violet'], ['#1ed6ff', 'Cyan'], ['#2ee06f', 'Vert']
@@ -42,10 +78,16 @@ const PROJ_MAX_FILE = 8 * 1024 * 1024;    // au-delà, refusé avant même de le
 const PROJ_GIF_KEEP = 400 * 1024;         // un GIF léger garde son animation
 const PROJ_PX = 96;                       // le reste est ramené à 96 px de côté
 let projectedIcon = '';
+// Ton image en fond de roblox.com (content/page-bg.js), à part des réglages : trop lourde pour eux.
+let pageBgImage = '';
+const BG_MAX_FILE = 20 * 1024 * 1024;    // au-delà, refusé avant même de le lire
+const BG_PX = 1920;                      // plus grand côté, assez pour un écran large
+const BG_QUALITY = 0.82;
 
-const BANNER_GAIN = [['#22e57a', 'Vert'], ['#00e0b8', 'Turquoise'], ['#3ea8ff', 'Bleu'], ['#b6ff3b', 'Citron'], ['#ffc400', 'Jaune']];
-const BANNER_LOSS = [['#ff4d5e', 'Rouge'], ['#ff7a1a', 'Orange'], ['#ff3fb4', 'Rose'], ['#b05cff', 'Violet'], ['#ffc400', 'Jaune']];
+const GAIN_COLORS = [['#22e57a', 'Vert'], ['#00e0b8', 'Turquoise'], ['#3ea8ff', 'Bleu'], ['#b6ff3b', 'Citron'], ['#ffc400', 'Jaune'], ['#ffffff', 'Blanc']];
+const LOSS_COLORS = [['#ff4d5e', 'Rouge'], ['#ff7a1a', 'Orange'], ['#ff3fb4', 'Rose'], ['#b05cff', 'Violet'], ['#ffc400', 'Jaune'], ['#8e9cb3', 'Gris']];
 const previewColor = {};                  // couleur en cours de choix dans une roue, par réglage
+const live = () => ({ ...settings, ...previewColor });
 
 /** Une rangée de pastilles + une roue « autre couleur », pour le réglage `key`. */
 function renderSwatches(box, colors, key, current) {
@@ -65,13 +107,15 @@ function renderSwatches(box, colors, key, current) {
 
 /** Clics, roue en direct et roue validée : même câblage pour toutes les rangées. */
 function wireSwatches(box, onPreview) {
+  const pick = (key, color) => {
+    delete previewColor[key];
+    settings = { ...settings, [key]: color };
+    onPreview();
+    save({ [key]: color });
+  };
   box.addEventListener('click', e => {
     const b = e.target.closest('[data-color]');
-    if (!b) return;
-    delete previewColor[b.dataset.key];
-    settings = { ...settings, [b.dataset.key]: b.dataset.color };
-    onPreview();
-    save({ [b.dataset.key]: b.dataset.color });
+    if (b && !b.disabled) pick(b.dataset.key, b.dataset.color);
   });
   box.addEventListener('input', e => {
     if (e.target.type !== 'color') return;
@@ -79,11 +123,7 @@ function wireSwatches(box, onPreview) {
     onPreview();
   });
   box.addEventListener('change', e => {
-    if (e.target.type !== 'color') return;
-    delete previewColor[e.target.dataset.key];
-    settings = { ...settings, [e.target.dataset.key]: e.target.value };
-    onPreview();
-    save({ [e.target.dataset.key]: e.target.value });
+    if (e.target.type === 'color') pick(e.target.dataset.key, e.target.value);
   });
 }
 
@@ -91,19 +131,77 @@ function renderBanner() {
   const lib = globalThis.RoNoteBanner;
   const box = $('#banner-preview');
   if (!lib || !box) return;
-  const live = { ...settings, ...previewColor };
-  const o = lib.normalize(live);
+  const cur = live();
+  const o = lib.normalize(cur);
   if (!box.shadowRoot) {
     const root = box.attachShadow({ mode: 'open' });
     root.innerHTML = `<style></style><div class="row">
-      <div class="cell" data-tone="up"><span class="arrow" aria-hidden="true"></span><span>+2 480 RAP (+35%)</span></div>
-      <div class="cell" data-tone="down"><span class="arrow down" aria-hidden="true"></span><span>−149 Value (−4%)</span></div></div>`;
+      <div class="cell" data-tone="up" data-metric="RAP"><span class="arrow" aria-hidden="true"></span><span></span></div>
+      <div class="cell" data-tone="down" data-metric="Value"><span class="arrow down" aria-hidden="true"></span><span></span></div></div>`;
   }
-  box.shadowRoot.querySelector('style').textContent = lib.css(live);
-  renderSwatches($('#gain-swatches'), BANNER_GAIN, 'bannerGain', o.gain);
-  renderSwatches($('#loss-swatches'), BANNER_LOSS, 'bannerLoss', o.loss);
-  $('#bannerStyle').value = o.style;
-  $('#bannerSize').value = o.size;
+  const root = box.shadowRoot;
+  root.querySelector('style').textContent = lib.css(cur);
+  const [up, down] = root.querySelectorAll('.cell > span:last-child');
+  up.textContent = lib.amount(2480, 35.2, cur);
+  down.textContent = lib.amount(-1490, -4.1, cur);
+  renderSwatches($('#gain-swatches'), GAIN_COLORS, 'bannerGain', o.gain);
+  renderSwatches($('#loss-swatches'), LOSS_COLORS, 'bannerLoss', o.loss);
+  for (const [id, v] of [['bannerStyle', o.style], ['bannerSize', o.size], ['bannerShow', o.show], ['bannerFormat', o.format]]) $('#' + id).value = v;
+  $('#bannerPct').checked = o.pct;
+  // Les couleurs du bandeau sont aussi, par défaut, celles de la colonne des listes.
+  renderListLook();
+}
+
+/* Deux lignes de liste Roblox, dessinées avec le même code que la vraie page
+   (content/list-look.js) : l'aperçu ne peut pas mentir. */
+const LIST_DEMO = [
+  { name: 'Builderman', status: 'Open · 9/23/2026', a: { deltaRap: 2345, deltaValue: 1809, pctRap: 18.2, pctValue: 12.4 } },
+  { name: 'Stickmasterluke', status: 'Completed · 9/22/2026', a: { deltaRap: -980, deltaValue: -1532, pctRap: -8.3, pctValue: -6.1 } }
+];
+const LIST_PREVIEW_CSS = `
+  :host{display:block}
+  .list{border-radius:12px;overflow:hidden;background:linear-gradient(145deg,#3a1f66,#2a0f55);border:1px solid rgba(255,255,255,.08);
+    font-family:"Builder Sans","Gotham SSm",Arial,sans-serif}
+  .tile{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .tile+.tile{border-top:1px solid rgba(255,255,255,.08)}
+  .av{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.14);flex:none}
+  .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .name{font-weight:700;font-size:15px;line-height:20px;color:#fff}
+  .status,.ronote-lb{font-weight:500;font-size:12px;line-height:15px;color:rgb(228,227,233)}`;
+
+function renderListLook() {
+  const look = globalThis.RoNoteListLook;
+  const box = $('#list-preview');
+  if (!look || !box || !settings) return;
+  const o = look.normalize(live());
+  if (!box.shadowRoot) box.attachShadow({ mode: 'open' });
+  const root = box.shadowRoot;
+  root.innerHTML = `<style>${LIST_PREVIEW_CSS}${look.CSS}</style><div class="list"></div>`;
+  for (const d of LIST_DEMO) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = '<span class="av"></span><span class="txt"><span class="name"></span><span class="status"></span></span>';
+    tile.querySelector('.name').textContent = d.name;
+    tile.querySelector('.status').textContent = d.status;
+    const col = look.build(d.a, o);
+    col.style.fontSize = 12 * look.SIZES[o.size] + 'px';
+    // Comme sur la page : en texte seul et taille normale, chaque ligne est à
+    // la hauteur de celle d'en face (pseudo, puis statut).
+    if (o.style === 'text' && o.size === 'm') {
+      col.children[0].style.height = '20px';
+      if (col.children[1]) col.children[1].style.height = '15px';
+    }
+    tile.append(col);
+    root.querySelector('.list').append(tile);
+  }
+  for (const [id, v] of [['listShow', o.show], ['listFormat', o.format], ['listStyle', o.style], ['listSize', o.size]]) $('#' + id).value = v;
+  $('#listLabels').checked = o.labels;
+  $('#listColors').value = o.ownColors ? 'own' : 'banner';
+  $('#list-own').hidden = !o.ownColors;
+  if (o.ownColors) {
+    renderSwatches($('#list-gain-swatches'), GAIN_COLORS, 'listGain', o.gain);
+    renderSwatches($('#list-loss-swatches'), LOSS_COLORS, 'listLoss', o.loss);
+  }
 }
 
 function renderProjected() {
@@ -111,16 +209,100 @@ function renderProjected() {
   const box = $('#proj-preview');
   if (!badge || !box) return;
   const color = previewColor.projectedColor || settings.projectedColor || badge.DEFAULT_COLOR;
+  const shape = badge.SHAPES?.[settings.projectedShape] ? settings.projectedShape : 'rounded';
+  const corner = settings.projectedCorner === 'right' ? 'right' : 'left';
   if (!box.shadowRoot) box.attachShadow({ mode: 'open' });
-  badge.fill(box.shadowRoot, { color, size: settings.projectedSize || 'm', image: projectedIcon });
+  badge.fill(box.shadowRoot, { color, size: settings.projectedSize || 'm', shape, image: projectedIcon });
+  box.classList.toggle('right', corner === 'right');
 
   renderSwatches($('#proj-swatches'), PROJ_COLORS, 'projectedColor', color);
   $('#projectedSize').value = settings.projectedSize || 'm';
+  $('#projectedShape').value = shape;
+  $('#projectedCorner').value = corner;
   $('#proj-clear').hidden = !projectedIcon;
 }
 
-function projMessage(text, err = false) {
-  const el = $('#proj-msg');
+/* Les repères d'un objet (content/item-marks.js), et le tirage en cours. */
+let luckyCat = null;
+function renderMarks() {
+  const marks = globalThis.RoNoteMarks;
+  if (!marks) return;
+  for (const el of document.querySelectorAll('[data-mark]')) {
+    if (!el.childElementCount) el.innerHTML = el.dataset.mark === 'rare' ? marks.inline.rare() : marks.inline.lucky(null);
+  }
+  const box = $('#lucky-now');
+  box.hidden = !luckyCat?.uaid || settings?.showLuckyCat === false;
+  if (!box.hidden) {
+    box.textContent = t('Tirage en cours : {item}, tiré {ago}.', {
+      item: `${luckyCat.name || '?'}${luckyCat.serial ? ' #' + luckyCat.serial : ''}`,
+      ago: luckyCat.since ? timeAgo(luckyCat.since) : '—'
+    });
+  }
+}
+
+let shownBg = null;
+function renderBg() {
+  const box = $('#bg-preview');
+  if (!box) return;
+  // L'image fait des centaines de Ko : la reposer à chaque redessin des
+  // aperçus faisait réanalyser tout ce texte à chaque clic.
+  if (shownBg !== pageBgImage) { shownBg = pageBgImage; box.style.setProperty('--bg-img', pageBgImage ? `url("${pageBgImage}")` : 'none'); }
+  box.style.setProperty('--bg-dim', pageBgImage ? String((Number(settings.pageBgDim ?? DEFAULTS.pageBgDim) || 0) / 100) : '0');
+  // L'aperçu est ~8 fois plus petit que la page : son flou aussi.
+  box.style.setProperty('--bg-blur', `${(Number(settings.pageBgBlur ?? DEFAULTS.pageBgBlur) || 0) / 3}px`);
+  $('#bg-clear').hidden = !pageBgImage;
+}
+
+/** Les tuiles des thèmes, avec celui qui correspond aux réglages actuels. */
+function renderThemes() {
+  const box = $('#themes');
+  if (!box) return;
+  const active = matchTheme(settings)?.id || '';
+  box.innerHTML = THEMES.map(th => {
+    const s = th.settings;
+    return `<button class="theme" type="button" role="listitem" data-theme="${th.id}" aria-pressed="${th.id === active}">
+      <span class="th-sw" style="background:${th.swatch}">
+        <span class="th-pill"><b style="color:${s.bannerGain}">+2 480</b><b style="color:${s.bannerLoss}">−310</b></span>
+        <i class="th-badge" style="background:${s.projectedColor};border-radius:${s.projectedShape === 'circle' ? '50%' : s.projectedShape === 'square' ? '2px' : '4px'}"></i>
+      </span>
+      <span class="th-name">${escapeHtml(t(th.name))}${th.id === active ? ic('check') : ''}</span>
+      <small>${escapeHtml(t(th.desc))}</small>
+    </button>`;
+  }).join('') + (active ? '' : `<span class="th-custom">${ic('palette')}${t('Thème perso : tes propres réglages.')}</span>`);
+}
+
+let applyingTheme = false;
+async function applyTheme(id) {
+  const th = THEMES.find(x => x.id === id);
+  // Un double clic peindrait deux fonds et enverrait deux fois les réglages.
+  if (!th || applyingTheme) return;
+  applyingTheme = true;
+  try { await applyThemeNow(th); } finally { applyingTheme = false; }
+}
+async function applyThemeNow(th) {
+  message('#theme-msg', t('Application du thème…'));
+  // Laisse le message s'afficher avant de peindre le fond (≈ 100 ms de calcul).
+  await new Promise(r => setTimeout(r, 30));
+  for (const k of THEME_KEYS) delete previewColor[k];
+  // Le fond fait partie du thème : peint à la volée, ou retiré pour un thème sans fond.
+  pageBgImage = th.bg ? paintBackground(th.bg) : '';
+  await B.storage.local.set({ pageBgImage }).catch(() => {});
+  await set({ ...th.settings });
+  renderLooks();
+  message('#theme-msg', t('Thème « {name} » appliqué aux onglets Roblox ouverts.', { name: t(th.name) }));
+  flashSaved();
+}
+
+function renderLooks() {
+  renderThemes();
+  renderBg();
+  renderMarks();
+  renderProjected();
+  renderBanner();       // redessine aussi la colonne des listes
+}
+
+function message(sel, text, err = false) {
+  const el = $(sel);
   el.textContent = text;
   el.classList.toggle('err', err);
 }
@@ -146,6 +328,20 @@ async function toProjectedIcon(file) {
   bmp.close?.();
   return canvas.toDataURL('image/png');
 }
+/** L'image de fond, prête à stocker : 1920 px au plus, en JPEG. */
+async function toPageBg(file) {
+  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error(t('Format non pris en charge : PNG, JPG, GIF ou WebP.'));
+  if (file.size > BG_MAX_FILE) throw new Error(t('Image trop lourde (20 Mo maximum).'));
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, BG_PX / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bmp.width * k));
+  canvas.height = Math.max(1, Math.round(bmp.height * k));
+  canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close?.();
+  return canvas.toDataURL('image/jpeg', BG_QUALITY);
+}
+const validIcon = (v) => typeof v === 'string' && /^data:image\/(png|jpeg|gif|webp);base64,/.test(v) && v.length < 2e6;
 
 const SOUND_KEYS = ['inbound', 'accepted', 'declined', 'error', 'revalued'];
 
@@ -154,6 +350,8 @@ function fillSounds() {
     .map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('');
   for (const k of SOUND_KEYS) $('#snd-' + k).innerHTML = options;
 }
+
+const showVolume = (v) => { $('#volume-out').textContent = Math.round(Number(v) * 100) + ' %'; };
 
 function render() {
   // La langue du gabarit (voir `common/ui.js`) : changer de langue en cours de
@@ -168,24 +366,14 @@ function render() {
 }
 
 function fill() {
-  $('#lang').value = settings.lang || 'auto';
-  $('#valueBasis').value = settings.valueBasis || 'value';
-  // Sans cotes communautaires, il n'y a qu'un seul chiffre possible : le RAP.
-  $('#valueBasis').disabled = !settings.useRolimons;
-  $('#speculativeRatio').disabled = !settings.useRolimons;
-  // L'alerte croise les revisions avec l'inventaire que releve le portefeuille :
-  // sans cotes ou sans suivi, elle n'a rien a croiser.
-  const revalOk = settings.useRolimons && settings.trackPortfolio;
-  $('#revalAlerts').disabled = !revalOk;
-  $('#revalMinPercent').disabled = !revalOk;
-  $('#revalMinPercent').value = settings.revalMinPercent ?? 10;
-  $('#speculativeRatio').value = settings.speculativeRatio ?? 1.6;
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
-  for (const k of NUMS) { const el = $('#' + k); if (el) el.value = settings[k] ?? 0; }
+  for (const k of SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
+  for (const k of NUM_SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
+  for (const k of Object.keys(NUMS)) { const el = $('#' + k); if (el) el.value = settings[k] ?? DEFAULTS[k]; }
   for (const k of OUTCOME_KEYS) { const el = $('#no-' + k); if (el) el.checked = !!settings.notifyOutbound?.[k]; }
-  $('#pollSeconds').value = String(settings.pollSeconds);
   for (const k of SOUND_KEYS) $('#snd-' + k).value = settings.sounds?.[k] || 'none';
   $('#volume').value = settings.volume;
+  showVolume(settings.volume);
   $('#qh-enabled').checked = !!settings.quietHours.enabled;
   $('#qh-start').value = settings.quietHours.start;
   $('#qh-end').value = settings.quietHours.end;
@@ -193,14 +381,14 @@ function fill() {
   renderIgnored();
   renderDiag();
   renderNews();
-  renderProjected();
-  renderBanner();
+  renderLooks();
+  applyNeeds();
 }
 
 /**
  * Quoi de neuf : chaque version, de la plus récente à la plus ancienne. Les
  * deux premières sont dépliées, la version installée est marquée. Rendu une
- * fois par langue : la page se relit toutes les 20 s, la liste ne change pas.
+ * fois par langue : la liste ne change pas d'une relecture à l'autre.
  */
 function renderNews() {
   const box = $('#news');
@@ -233,13 +421,9 @@ function renderIgnored() {
     return;
   }
   box.innerHTML = settings.ignoredUsers.map(u =>
-    `<span class="chip">${escapeHtml(u.name || ('#' + u.id))}<button data-id="${u.id}" title="${t('Retirer')}" aria-label="${t('Retirer')}">${ic('x')}</button></span>`
+    `<span class="chip"><a href="https://www.roblox.com/users/${Number(u.id)}/profile" target="_blank" rel="noopener">${escapeHtml(u.name || ('#' + u.id))}</a>`
+    + `<button type="button" data-id="${Number(u.id)}" title="${t('Retirer')}" aria-label="${t('Retirer')}">${ic('x')}</button></span>`
   ).join('');
-  box.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', async () => {
-    const r = await ask({ type: 'ronote:unmute', userId: Number(b.dataset.id) });
-    if (!r?.settings) { showUnreachable(); return; }
-    settings = r.settings; renderIgnored();
-  }));
 }
 
 function renderDiag() {
@@ -274,6 +458,40 @@ function renderDiag() {
   ].join('');
 }
 
+/* ------------------------------ recherche ----------------------------- */
+
+const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Filtre les réglages : ne restent que les lignes qui contiennent le texte
+ * tapé (sans tenir compte des accents), et les sections qui en ont. Une
+ * section dont le titre correspond reste entière.
+ */
+function runSearch() {
+  const q = fold($('#search').value.trim());
+  // Chaque mot tapé doit commencer un mot du réglage, et un mot court doit
+  // l'être en entier : « son » trouve le son, pas « raison » ni « sont ».
+  const words = q.split(/\s+/).filter(Boolean)
+    .map(w => new RegExp('(?:^|[^a-z0-9])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + (w.length <= 3 ? '(?![a-z0-9])' : '')));
+  const matches = (text) => words.every(re => re.test(text));
+  $('.main').classList.toggle('searching', !!q);
+  let hits = 0;
+  for (const sec of document.querySelectorAll('main section.card')) {
+    const whole = !q || matches(fold(sec.querySelector('h2').textContent));
+    let any = whole;
+    for (const row of sec.querySelectorAll('.row')) {
+      const hit = whole || matches(fold(row.textContent + ' ' + (row.dataset.keys || '')));
+      row.classList.toggle('miss', !hit);
+      if (hit) { any = true; if (q) row.closest('details.advanced')?.setAttribute('open', ''); }
+    }
+    sec.hidden = !any;
+    if (any && q) hits++;
+    const link = document.querySelector(`#nav a[href="#${sec.id}"]`);
+    if (link) link.hidden = !any;
+  }
+  $('#no-hit').hidden = !q || hits > 0;
+}
+
 /* ------------------------------ sauvegarde ---------------------------- */
 
 let savedTimer = null;
@@ -291,72 +509,163 @@ async function save(patch) {
   if (!r?.settings) { showUnreachable(); return; }
   settings = r.settings;
   flashSaved();
+  applyNeeds();
   renderDiag();
 }
 
+/** Un changement local : l'aperçu et les dépendances suivent tout de suite. */
+function set(patch) {
+  settings = { ...settings, ...patch };
+  applyNeeds();
+  if (Object.keys(patch).some(k => LOOK_KEYS.has(k))) renderLooks();
+  return save(patch);
+}
+
+function download(name, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+const today = () => new Date().toISOString().slice(0, 10);
+
+/** Réglages remplacés d'un bloc (import, remise à zéro) : tout se redessine. */
+async function replaceAll(next, keep, icon) {
+  const r = await ask({ type: 'ronote:settings-replace', settings: next, keep });
+  if (!r?.settings) { showUnreachable(); return false; }
+  if (icon !== undefined) {
+    projectedIcon = icon;
+    await B.storage.local.set({ projectedIcon: icon }).catch(() => {});
+  }
+  for (const k of Object.keys(previewColor)) delete previewColor[k];
+  settings = r.settings;
+  render();
+  flashSaved();
+  return true;
+}
+
 function wire() {
-  for (const k of BOOLS) $('#' + k)?.addEventListener('change', e => save({ [k]: e.target.checked }));
-  for (const k of NUMS) $('#' + k)?.addEventListener('change', e => save({ [k]: Number(e.target.value) || 0 }));
+  for (const k of BOOLS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.checked }));
+  for (const k of SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.value }));
+  for (const k of NUM_SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: Number(e.target.value) }));
+  for (const [k, [min, max, dec]] of Object.entries(NUMS)) {
+    $('#' + k)?.addEventListener('change', e => {
+      const raw = Number(String(e.target.value).replace(',', '.'));
+      const fallback = settings[k] ?? DEFAULTS[k];
+      const f = 10 ** dec;
+      const v = Number.isFinite(raw) && e.target.value !== '' ? Math.min(max, Math.max(min, Math.round(raw * f) / f)) : fallback;
+      e.target.value = v;
+      set({ [k]: v });
+    });
+  }
   for (const k of OUTCOME_KEYS) {
     $('#no-' + k)?.addEventListener('change', e => save({ notifyOutbound: { [k]: e.target.checked } }));
   }
-  $('#lang').addEventListener('change', e => save({ lang: e.target.value }));
-  $('#valueBasis').addEventListener('change', e => save({ valueBasis: e.target.value }));
-  $('#speculativeRatio').addEventListener('change', e => {
-    const v = Math.min(10, Math.max(1, Number(e.target.value) || 1.6));
-    e.target.value = v;
-    save({ speculativeRatio: v });
-  });
-  // En dessous de 3 %, roli.js ne retient meme pas la revision.
-  $('#revalMinPercent').addEventListener('change', e => {
-    const v = Math.min(100, Math.max(3, Math.round(Number(e.target.value)) || 10));
-    e.target.value = v;
-    save({ revalMinPercent: v });
-  });
-  $('#pollSeconds').addEventListener('change', e => save({ pollSeconds: Number(e.target.value) }));
 
-  // Pastilles de couleur : dessinées au premier rendu, d'où la délégation.
+  // --- apparence ---------------------------------------------------------
   wireSwatches($('#proj-swatches'), renderProjected);
   wireSwatches($('#gain-swatches'), renderBanner);
   wireSwatches($('#loss-swatches'), renderBanner);
-  for (const k of ['bannerStyle', 'bannerSize']) {
-    $('#' + k).addEventListener('change', e => {
-      settings = { ...settings, [k]: e.target.value };
-      renderBanner();
-      save({ [k]: e.target.value });
+  wireSwatches($('#list-gain-swatches'), renderListLook);
+  wireSwatches($('#list-loss-swatches'), renderListLook);
+  $('#listColors').addEventListener('change', e => {
+    // Des couleurs propres partent de celles du bandeau : rien ne saute à l'œil.
+    const b = globalThis.RoNoteBanner?.normalize(settings);
+    const patch = e.target.value === 'own'
+      ? { listGain: b?.gain || '#22e57a', listLoss: b?.loss || '#ff4d5e' }
+      : { listGain: '', listLoss: '' };
+    delete previewColor.listGain; delete previewColor.listLoss;
+    set(patch);
+    renderListLook();
+  });
+  const resetter = (id, patch) => $(id).addEventListener('click', () => {
+    for (const k of Object.keys(patch)) delete previewColor[k];
+    set(patch);
+    renderLooks();
+  });
+  const defaultsOf = (keys) => Object.fromEntries(keys.map(k => [k, DEFAULTS[k]]));
+  resetter('#banner-reset', defaultsOf(['bannerGain', 'bannerLoss', 'bannerStyle', 'bannerSize', 'bannerShow', 'bannerFormat', 'bannerPct']));
+  resetter('#list-reset', defaultsOf(['listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'listGain', 'listLoss']));
+  resetter('#bg-reset', defaultsOf(['pageBgDim', 'pageBgBlur']));
+  resetter('#proj-reset', defaultsOf(['projectedColor', 'projectedSize', 'projectedShape', 'projectedCorner']));
+
+  for (const id of ['proj-file', 'bg-file', 'theme-file', 'settings-file']) {
+    $(`label[for="${id}"]`).addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#' + id).click(); }
     });
   }
-  $('#banner-reset').addEventListener('click', () => {
-    const d = globalThis.RoNoteBanner?.DEFAULTS;
-    if (!d) return;
-    const patch = { bannerGain: d.gain, bannerLoss: d.loss, bannerStyle: d.style, bannerSize: d.size };
-    for (const k of Object.keys(patch)) delete previewColor[k];
-    settings = { ...settings, ...patch };
-    renderBanner();
-    save(patch);
-  });
-  $('#projectedSize').addEventListener('change', e => {
-    settings = { ...settings, projectedSize: e.target.value };
-    renderProjected();
-    save({ projectedSize: e.target.value });
-  });
-  $('label[for="proj-file"]').addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#proj-file').click(); }
-  });
   $('#proj-file').addEventListener('change', async e => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     try {
-      projMessage(t("Préparation de l'image…"));
+      message('#proj-msg', t("Préparation de l'image…"));
       projectedIcon = await toProjectedIcon(file);
       await B.storage.local.set({ projectedIcon });
       renderProjected();
-      projMessage(t('Image appliquée aux onglets Roblox ouverts.'));
+      message('#proj-msg', t('Image appliquée aux onglets Roblox ouverts.'));
       flashSaved();
     } catch (err) {
-      projMessage(err?.message || t('Image illisible.'), true);
+      message('#proj-msg', err?.message || t('Image illisible.'), true);
     }
+  });
+  $('#themes').addEventListener('click', e => {
+    const b = e.target.closest('button[data-theme]');
+    if (b) applyTheme(b.dataset.theme);
+  });
+  $('#theme-export').addEventListener('click', async () => {
+    const got = await B.storage.local.get(['pageBgImage', 'projectedIcon']).catch(() => ({}));
+    const file = {
+      app: 'RoNote', kind: 'ronote-theme', name: matchTheme(settings)?.name || t('Mon thème'),
+      exportedAt: new Date().toISOString(),
+      settings: Object.fromEntries(THEME_KEYS.map(k => [k, settings[k] ?? DEFAULTS[k]])),
+      pageBgImage: got?.pageBgImage || '',
+      projectedIcon: got?.projectedIcon || ''
+    };
+    download(`ronote-theme-${today()}.json`, new Blob([JSON.stringify(file)], { type: 'application/json' }));
+    message('#theme-msg', t('Thème exporté : envoie le fichier à qui tu veux.'));
+  });
+  $('#theme-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    let theme = null;
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error('size');
+      theme = themeFromFile(JSON.parse(await file.text()));
+    } catch { theme = null; }
+    if (!theme) { message('#theme-msg', t("Ce fichier n'est pas un thème RoNote."), true); return; }
+    for (const k of THEME_KEYS) delete previewColor[k];
+    if (theme.pageBgImage !== undefined) { pageBgImage = theme.pageBgImage; await B.storage.local.set({ pageBgImage }).catch(() => {}); }
+    if (theme.projectedIcon !== undefined) { projectedIcon = theme.projectedIcon; await B.storage.local.set({ projectedIcon }).catch(() => {}); }
+    await set(theme.settings);
+    renderLooks();
+    message('#theme-msg', theme.name ? t('Thème « {name} » importé.', { name: theme.name }) : t('Thème importé.'));
+    flashSaved();
+  });
+  $('#bg-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      message('#bg-msg', t("Préparation de l'image…"));
+      pageBgImage = await toPageBg(file);
+      await B.storage.local.set({ pageBgImage });
+      renderBg();
+      message('#bg-msg', t('Image appliquée aux onglets Roblox ouverts.'));
+      flashSaved();
+    } catch (err) {
+      message('#bg-msg', err?.message || t('Image illisible.'), true);
+    }
+  });
+  $('#bg-clear').addEventListener('click', async () => {
+    pageBgImage = '';
+    await B.storage.local.set({ pageBgImage: '' }).catch(() => {});
+    renderBg();
+    message('#bg-msg', t('Fond de Roblox rétabli.'));
+    flashSaved();
   });
   $('#proj-clear').addEventListener('click', async () => {
     projectedIcon = '';
@@ -364,9 +673,11 @@ function wire() {
     // meme evenement de changement, et le triangle revient aussitot.
     await B.storage.local.set({ projectedIcon: '' }).catch(() => {});
     renderProjected();
-    projMessage(t('Retour au triangle.'));
+    message('#proj-msg', t('Retour au triangle.'));
     flashSaved();
   });
+
+  // --- son ---------------------------------------------------------------
   for (const k of SOUND_KEYS) {
     $('#snd-' + k).addEventListener('change', e => save({ sounds: { [k]: e.target.value } }));
   }
@@ -374,25 +685,137 @@ function wire() {
   // le meme chemin qu'une vraie alerte, ce qui teste aussi ce chemin.
   document.querySelectorAll('button[data-play]').forEach(b => b.addEventListener('click', async () => {
     const sound = $('#snd-' + b.dataset.play).value;
-    b.disabled = true;
-    const r = await send({ type: 'ronote:play', sound });
-    b.disabled = false;
+    b.classList.add('busy');
+    const r = await send({ type: 'ronote:play', sound }).catch(() => null);
+    b.classList.remove('busy');
     b.title = r?.ok ? t('Écouter') : t('Aucun son n\'est parti : vérifie le volume et que le navigateur n\'est pas coupé.');
   }));
+  $('#volume').addEventListener('input', e => showVolume(e.target.value));
   $('#volume').addEventListener('change', e => save({ volume: Number(e.target.value) }));
 
-  const qh = () => save({
-    quietHours: {
+  // --- heures silencieuses ----------------------------------------------
+  const qh = () => {
+    const quietHours = {
       enabled: $('#qh-enabled').checked,
       start: $('#qh-start').value || '23:00',
       end: $('#qh-end').value || '08:00',
       stillNotify: $('#qh-still').checked
-    }
-  });
+    };
+    settings = { ...settings, quietHours };
+    applyNeeds();
+    save({ quietHours });
+  };
   ['#qh-enabled', '#qh-start', '#qh-end', '#qh-still'].forEach(s => $(s).addEventListener('change', qh));
 
   $('#btn-test').addEventListener('click', () => send({ type: 'ronote:test' }));
 
+  // --- utilisateurs ignorés ---------------------------------------------
+  const mute = async () => {
+    const input = $('#mute-name');
+    const query = input.value.trim();
+    if (!query) { input.focus(); return; }
+    const btn = $('#btn-mute');
+    btn.disabled = true;
+    message('#mute-msg', t('Recherche…'));
+    const r = await ask({ type: 'ronote:mute', query });
+    btn.disabled = false;
+    if (r?.settings) {
+      settings = r.settings;
+      renderIgnored();
+      input.value = '';
+      message('#mute-msg', '');
+      flashSaved();
+    } else if (r?.error === 'unknown' || r?.error === 'identifiant invalide') {
+      message('#mute-msg', t('Aucun joueur Roblox ne porte ce nom.'), true);
+    } else {
+      message('#mute-msg', t('Roblox ne répond pas, réessaie dans un instant.'), true);
+    }
+  };
+  $('#btn-mute').addEventListener('click', mute);
+  $('#mute-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); mute(); } });
+  $('#ignored').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-id]');
+    if (!b) return;
+    const r = await ask({ type: 'ronote:unmute', userId: Number(b.dataset.id) });
+    if (!r?.settings) { showUnreachable(); return; }
+    settings = r.settings;
+    renderIgnored();
+    flashSaved();
+  });
+
+  // --- sauvegarde des réglages ------------------------------------------
+  $('#btn-settings-export').addEventListener('click', async () => {
+    const got = await B.storage.local.get('projectedIcon').catch(() => ({}));
+    const file = {
+      app: 'RoNote',
+      version: B.runtime.getManifest?.().version || '',
+      exportedAt: new Date().toISOString(),
+      settings,
+      ...(validIcon(got?.projectedIcon) ? { projectedIcon: got.projectedIcon } : {})
+    };
+    download(`ronote-reglages-${today()}.json`, new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
+    message('#backup-msg', t('Réglages exportés.'));
+  });
+  $('#settings-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const bad = () => message('#backup-msg', t("Ce fichier n'est pas un export de réglages RoNote."), true);
+    let data;
+    try {
+      if (file.size > 3 * 1024 * 1024) throw new Error('size');
+      data = JSON.parse(await file.text());
+    } catch { bad(); return; }
+    const next = data?.settings && typeof data.settings === 'object' ? data.settings : data;
+    if (!next || typeof next !== 'object' || Array.isArray(next)) { bad(); return; }
+    if (!confirm(t('Remplacer tous tes réglages par ceux de ce fichier ?'))) return;
+    // Un fichier sans liste d'ignorés ne vide pas la tienne.
+    const keep = Array.isArray(next.ignoredUsers) ? [] : ['ignoredUsers'];
+    const icon = 'projectedIcon' in data ? (validIcon(data.projectedIcon) ? data.projectedIcon : '') : undefined;
+    if (await replaceAll(next, keep, icon)) message('#backup-msg', t('Réglages importés.'));
+  });
+  $('#btn-settings-reset').addEventListener('click', async () => {
+    if (!confirm(t("Remettre tous les réglages par défaut ?\n\nLa langue et les utilisateurs ignorés sont gardés. Les images importées (badge, fond) sont retirées."))) return;
+    if (await replaceAll({}, ['lang', 'ignoredUsers'], '')) {
+      pageBgImage = '';
+      await B.storage.local.set({ pageBgImage: '' }).catch(() => {});
+      renderBg();
+      message('#backup-msg', t('Réglages remis par défaut.'));
+    }
+  });
+
+  // --- données ------------------------------------------------------------
+  $('#btn-reset').addEventListener('click', async (e) => {
+    if (!confirm(t("Réinitialiser le suivi ?\n\nLes trades actuellement présents seront enregistrés comme « déjà vus » et ne déclencheront aucune notification. Les trades épinglés seront désépinglés."))) return;
+    e.target.textContent = '…';
+    await send({ type: 'ronote:reset-dedup' });
+    await load();
+    e.target.textContent = t('Réinitialiser');
+  });
+
+  $('#btn-clear').addEventListener('click', async () => {
+    if (!confirm(t('Vider le journal ?'))) return;
+    await send({ type: 'ronote:history-clear' });
+    flashSaved();
+  });
+
+  $('#btn-export').addEventListener('click', async () => {
+    const history = (await ask({ type: 'ronote:history' }))?.history;
+    if (!history) { showUnreachable(); return; }
+    const rows = [['date', 'type', 'tradeId', 'statut', 'partenaire', 'partenaireId',
+      'valeur_donnee', 'valeur_recue', 'ecart_pct', 'objets_sans_cote', 'reponse_au_trade', 'notifie', 'filtre',
+      'objet', 'cote_avant', 'cote_apres', 'quantite', 'impact']];
+    for (const h of history) {
+      rows.push([new Date(h.at).toISOString(), h.kind, h.tradeId ?? '', h.status ?? '', h.partner ?? '', h.partnerId ?? '',
+        h.give ?? '', h.get ?? '', h.pct == null ? '' : h.pct.toFixed(2), h.unknown ?? '', h.counterTo ?? '',
+        h.notified ? 'oui' : 'non', h.skipped ?? '',
+        h.name ?? '', h.from ?? '', h.to ?? '', h.count ?? '', h.delta ?? '']);
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    download(`ronote-journal-${today()}.csv`, new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  });
+
+  // --- dépannage ----------------------------------------------------------
   $('#btn-diag').addEventListener('click', async (e) => {
     const id = ($('#diag-id').value || '').replace(/[^0-9]/g, '');
     if (!id) { $('#diag-id').focus(); return; }
@@ -415,20 +838,6 @@ function wire() {
     setTimeout(() => { e.target.textContent = t('Copier'); }, 1500);
   });
 
-  $('#btn-reset').addEventListener('click', async (e) => {
-    if (!confirm(t("Réinitialiser le suivi ?\n\nLes trades actuellement présents seront enregistrés comme « déjà vus » et ne déclencheront aucune notification. Les trades épinglés seront désépinglés."))) return;
-    e.target.textContent = '…';
-    await send({ type: 'ronote:reset-dedup' });
-    await load();
-    e.target.textContent = t('Réinitialiser');
-  });
-
-  $('#btn-clear').addEventListener('click', async () => {
-    if (!confirm(t('Vider le journal ?'))) return;
-    await send({ type: 'ronote:history-clear' });
-    flashSaved();
-  });
-
   $('#btn-page-diag').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     const { pageDiag } = await B.storage.local.get('pageDiag').catch(() => ({}));
@@ -442,25 +851,13 @@ function wire() {
     }
     setTimeout(() => { btn.textContent = t('Copier'); }, 2500);
   });
-  $('#btn-export').addEventListener('click', async () => {
-    const history = (await ask({ type: 'ronote:get' }))?.history;
-    if (!history) { showUnreachable(); return; }
-    const rows = [['date', 'type', 'tradeId', 'statut', 'partenaire', 'partenaireId',
-      'valeur_donnee', 'valeur_recue', 'ecart_pct', 'objets_sans_cote', 'reponse_au_trade', 'notifie', 'filtre',
-      'objet', 'cote_avant', 'cote_apres', 'quantite', 'impact']];
-    for (const h of history || []) {
-      rows.push([new Date(h.at).toISOString(), h.kind, h.tradeId ?? '', h.status ?? '', h.partner ?? '', h.partnerId ?? '',
-        h.give ?? '', h.get ?? '', h.pct == null ? '' : h.pct.toFixed(2), h.unknown ?? '', h.counterTo ?? '',
-        h.notified ? 'oui' : 'non', h.skipped ?? '',
-        h.name ?? '', h.from ?? '', h.to ?? '', h.count ?? '', h.delta ?? '']);
-    }
-    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ronote-journal-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+  // --- recherche ----------------------------------------------------------
+  $('#search').addEventListener('input', runSearch);
+  $('#search').addEventListener('keydown', e => { if (e.key === 'Escape') { e.target.value = ''; runSearch(); } });
+  // Ctrl+F reste celui du navigateur ; « / » va droit à la recherche.
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && !e.target.matches?.('input, select, textarea')) { e.preventDefault(); $('#search').focus(); }
   });
 }
 
@@ -508,17 +905,24 @@ async function load() {
 
 fillIcons(document);
 fillSounds();
+if (globalThis.RoNoteMarks) document.head.append(Object.assign(document.createElement('style'), { textContent: globalThis.RoNoteMarks.INLINE_CSS }));
 wire();
 wireNav();
 load();
 
 /**
- * La page se met a jour quand le stockage change, pas toutes les 20 s : la
+ * La page se met a jour quand le stockage change, pas a intervalle fixe : la
  * relecture periodique reveillait le service worker tant que l'onglet restait
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
 B.storage.local.get('projectedIcon').then(got => { projectedIcon = got?.projectedIcon || ''; if (settings) renderProjected(); }).catch(() => {});
+B.storage.local.get('pageBgImage').then(got => { pageBgImage = got?.pageBgImage || ''; if (settings) renderBg(); }).catch(() => {});
+onStoredChange(['pageBgImage'], 100, (v) => { pageBgImage = v.pageBgImage || ''; if (settings) renderBg(); });
 onStoredChange(['projectedIcon'], 100, (v) => { projectedIcon = v.projectedIcon || ''; if (settings) renderProjected(); });
+const setLuckyCat = (v) => { luckyCat = v?.uaid ? v : null; if (settings) renderMarks(); };
+B.storage.local.get('luckyCat').then(got => setLuckyCat(got?.luckyCat)).catch(() => {});
+send({ type: 'ronote:lucky-cat' }).then(r => { if (r?.luckyCat) setLuckyCat(r.luckyCat); }).catch(() => {});
+onStoredChange(['luckyCat'], 100, (v) => setLuckyCat(v.luckyCat));
 // Les « il y a 3 min » du diagnostic avancent sans rien relire.
 setInterval(() => { if (!document.hidden && state) renderDiag(); }, 30000);

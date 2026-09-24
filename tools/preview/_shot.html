@@ -59,12 +59,12 @@
   </div>
   <p id="log"></p>
 
-  <script type="module" src="./preview.js"></script>
+  <script type="module" src="./popup.js"></script>
   <script>
     // Captures du Store (1280 × 800), par Chrome headless :
     //   ?tab=home&lang=en&promo=1
     //   ?tab=inbound&player=1&lang=en&promo=1   -> la fiche du joueur
-    // Tous les paramètres de preview.js passent tels quels (scroll, series…).
+    // Tous les paramètres de popup.js passent tels quels (scroll, series…).
     const COPY_EN = {
       home: {
         kicker: 'Home',
@@ -133,7 +133,7 @@
     const tab = qs.get('tab') || 'inbound';
     const scene = qs.get('player') ? 'player' : tab;
     if (scene === 'player') document.body.classList.add('wide');
-    // `lang` sert deux fois : preview.js le lit pour l'interface du popup,
+    // `lang` sert deux fois : popup.js le lit pour l'interface du popup,
     // et il choisit ici la legende, sinon la capture serait bilingue.
     const COPY = qs.get('lang') === 'en' ? COPY_EN : COPY_FR;
     const c = COPY[scene] || COPY.inbound;
@@ -142,7 +142,7 @@
       c.title.split('\n').map(s => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))).join('<br>');
     document.getElementById('sub').textContent = c.sub;
 
-    // preview.js ecrit le popup dans l'iframe en top-level await, et popup.js
+    // popup.js ecrit le popup dans l'iframe en top-level await, et popup.js
     // ne pose ses listeners d'onglet qu'une fois son module execute. Cliquer
     // des que l'element existe part donc trop tot : on reclique jusqu'a ce que
     // l'onglet porte vraiment `.active`, sinon la legende et la capture se

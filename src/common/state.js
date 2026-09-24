@@ -38,6 +38,41 @@ export function withDefaults(s) {
   };
 }
 
+/**
+ * Un fichier de reglages importe, reduit a ce que RoNote connait : chaque cle
+ * doit exister dans DEFAULTS et garder son type. Le reste est ignore sans
+ * bruit, pour qu'un vieux fichier ou un fichier retouche ne casse rien.
+ */
+export function sanitizeSettings(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [k, def] of Object.entries(DEFAULTS)) {
+    const v = raw[k];
+    if (v === undefined || v === null) continue;
+    if (k === 'ignoredUsers') {
+      if (Array.isArray(v)) {
+        out.ignoredUsers = v.filter(u => Number(u?.id) > 0)
+          .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40) }));
+      }
+    } else if (typeof def === 'object' && !Array.isArray(def)) {
+      if (typeof v !== 'object' || Array.isArray(v)) continue;
+      const sub = {};
+      for (const [sk, sd] of Object.entries(def)) if (typeof v[sk] === typeof sd) sub[sk] = v[sk];
+      out[k] = sub;
+    } else if (typeof v === typeof def && (typeof v !== 'number' || Number.isFinite(v))) {
+      out[k] = typeof v === 'string' ? v.slice(0, 40) : v;
+    }
+  }
+  return out;
+}
+
+/** Remplace tous les reglages (import, remise a zero), completes des defauts. */
+export async function replaceSettings(raw) {
+  const next = withDefaults(sanitizeSettings(raw));
+  await B.storage.local.set({ [KEY_SETTINGS]: next });
+  return next;
+}
+
 export async function getSettings() {
   const { [KEY_SETTINGS]: s } = await B.storage.local.get(KEY_SETTINGS);
   return withDefaults(s);
@@ -181,8 +216,8 @@ export async function getHistory() {
   return Array.isArray(h) ? h : [];
 }
 
-export async function pushHistory(entries, limit = DEFAULTS.historyLimit) {
-  if (!entries?.length) return;
+export async function pushHistory(entries, limit = DEFAULTS.historyLimit, trim = false) {
+  if (!entries?.length && !trim) return;
   const hist = await getHistory();
   await B.storage.local.set({ [KEY_HISTORY]: [...entries, ...hist].slice(0, limit) });
 }

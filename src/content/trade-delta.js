@@ -41,17 +41,30 @@
   // Settings > Value analysis. Read once, then followed live.
   let enabled = true;
   // The projected badge's look (Settings > Value analysis), image included.
-  const look = { color: '', size: 'm', image: '' };
-  const lookOf = (st) => ({ color: st?.projectedColor || '', size: st?.projectedSize || 'm' });
+  const look = { color: '', size: 'm', shape: 'rounded', corner: 'left', image: '' };
+  const lookOf = (st) => ({ color: st?.projectedColor || '', size: st?.projectedSize || 'm',
+    shape: st?.projectedShape || 'rounded', corner: st?.projectedCorner === 'right' ? 'right' : 'left' });
+  const lookKey = (l) => [l.color, l.size, l.shape, l.corner].join('|');
+  // The Rolimon's value under each item and the two totals (Settings > Appearance).
+  let itemValues = true;
+  // Rare diamond and Lucky Cat (content/item-marks.js), in the corner opposite
+  // the projected badge. `lucky` is the copy drawn by Rolimon's, kept by the worker.
+  let showRare = true, showLucky = true, lucky = null, luckyAskedAt = 0;
+  const setLucky = (v) => { const next = v?.uaid ? v : null; if (next?.uaid !== lucky?.uaid) { lucky = next; schedule(); } };
   // The banner's colours, style and size: the whole settings object is kept,
   // content/delta-banner.js picks what it needs.
   let bannerSettings = {};
-  const bannerKey = (st) => ['bannerGain', 'bannerLoss', 'bannerStyle', 'bannerSize'].map(k => st?.[k] || '').join('|');
+  const bannerKey = (st) => ['bannerGain', 'bannerLoss', 'bannerStyle', 'bannerSize', 'bannerShow', 'bannerFormat', 'bannerPct']
+    .map(k => String(st?.[k] ?? '')).join('|');
   function restyleBanner() {
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
-  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon']).then(got => {
+  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat']).then(got => {
     enabled = got?.settings?.pageDelta !== false;
+    itemValues = got?.settings?.pageItemValues !== false;
+    showRare = got?.settings?.showRare !== false;
+    showLucky = got?.settings?.showLuckyCat !== false;
+    lucky = got?.luckyCat?.uaid ? got.luckyCat : null;
     Object.assign(look, lookOf(got?.settings), { image: got?.projectedIcon || '' });
     bannerSettings = got?.settings || {};
     restyleBanner();
@@ -60,11 +73,21 @@
   if (alive()) B.storage?.onChanged?.addListener((changes, area) => {
     if (area !== 'local' || dead) return;
     if (changes.projectedIcon) { look.image = changes.projectedIcon.newValue || ''; restyleFlags(); }
+    if (changes.luckyCat) setLucky(changes.luckyCat.newValue);
+    // New Rolimon's table: re-ask now rather than at the next one-minute retry.
+    if (changes.roli && enabled) { cache.clear(); retryAt = 0; schedule(); }
     if (!changes.settings) return;
     const nextSettings = changes.settings.newValue || {};
-    if (bannerKey(nextSettings) !== bannerKey(bannerSettings)) { bannerSettings = nextSettings; restyleBanner(); }
+    if (bannerKey(nextSettings) !== bannerKey(bannerSettings)) {
+      bannerSettings = nextSettings; restyleBanner();
+      if (host?.isConnected && shownAnalysis !== undefined) render(shownAnalysis, analysisPending);
+    }
     const nextLook = lookOf(changes.settings.newValue);
-    if (nextLook.color !== look.color || nextLook.size !== look.size) { Object.assign(look, nextLook); restyleFlags(); }
+    if (lookKey(nextLook) !== lookKey(look)) { Object.assign(look, nextLook); restyleFlags(); }
+    const nextItems = nextSettings.pageItemValues !== false;
+    if (nextItems !== itemValues) { itemValues = nextItems; retryAt = 0; schedule(); }
+    const nextRare = nextSettings.showRare !== false, nextLucky = nextSettings.showLuckyCat !== false;
+    if (nextRare !== showRare || nextLucky !== showLucky) { showRare = nextRare; showLucky = nextLucky; luckyAskedAt = 0; schedule(); }
     const next = changes.settings.newValue?.pageDelta !== false;
     if (next === enabled) return;
     enabled = next; cache.clear(); good.clear();
@@ -110,6 +133,45 @@
     badge.node.remove();
     badge.shelf?.remove();
     dropFlag(badge);
+    dropMarks(badge);
+  }
+  // The serial Roblox prints on a card (« #1371 »), to recognise the Lucky Cat copy.
+  function serialOf(card) {
+    for (const leaf of card.querySelectorAll('*')) {
+      if (leaf.childElementCount || leaf.closest('[data-rn]')) continue;
+      const text = (leaf.textContent || '').trim();
+      if (/^#\s*\d+$/.test(text)) return text.replace(/\D/g, '');
+    }
+    return '';
+  }
+  const marksCorner = () => (look.corner === 'right' ? 'left' : 'right');
+  function showMarks(badge, card, rare, isLucky) {
+    const marks = { rare: showRare && !!rare, lucky: showLucky && isLucky ? lucky : null };
+    if ((!marks.rare && !marks.lucky) || !globalThis.RoNoteMarks) { dropMarks(badge); return; }
+    const key = `${marks.rare ? 1 : 0}|${marks.lucky?.uaid || ''}`;
+    if (badge.marks?.isConnected && badge.marks.parentElement === card && badge.marksKey === key) return;
+    dropMarks(badge);
+    const host = document.createElement('span');
+    host.dataset.rn = 'item-marks';
+    const corner = document.createElement('span');
+    const row = sideBySide(card);
+    host.style.cssText = row
+      ? 'display:block;position:static;flex:none;margin:0 6px 0 0;align-self:center;line-height:0;'
+      : 'display:block;position:relative;width:100%;height:0;margin:0;padding:0;pointer-events:none;';
+    corner.style.cssText = row
+      ? 'position:static;display:block;line-height:0;'
+      : `position:absolute;top:7px;${marksCorner()}:7px;z-index:3;pointer-events:auto;line-height:0;`;
+    globalThis.RoNoteMarks.fill(corner.attachShadow({ mode: 'closed' }), marks);
+    host.append(corner);
+    card.prepend(host);
+    badge.marks = host;
+    badge.marksKey = key;
+    badge.marksCorner = row ? null : corner;
+  }
+  function dropMarks(badge) {
+    badge.marks?.remove();
+    badge.marks = null;
+    badge.marksCorner = null;
   }
   function showFlag(badge, card, projected) {
     if (!projected) { dropFlag(badge); return; }
@@ -127,18 +189,27 @@
       : 'display:block;position:relative;width:100%;height:0;margin:0;padding:0;pointer-events:none;';
     corner.style.cssText = row
       ? 'position:static;display:block;line-height:0;pointer-events:none;'
-      : 'position:absolute;top:7px;left:7px;z-index:3;pointer-events:none;line-height:0;';
+      : `position:absolute;top:7px;${look.corner}:7px;z-index:3;pointer-events:none;line-height:0;`;
     const root = corner.attachShadow({ mode: 'closed' });
     globalThis.RoNoteBadge.fill(root, look, warnTitle);
     flag.append(corner);
     card.prepend(flag);
     badge.flag = flag;
     badge.flagRoot = root;
+    badge.flagCorner = row ? null : corner;
   }
-  // A new colour, size or image: redraw the badges in place, without moving them.
+  // A new colour, size, shape, corner or image: redraw the badges in place.
   function restyleFlags() {
     for (const badge of [...badges.values(), ...invBadges.values()]) {
       if (badge.flagRoot) globalThis.RoNoteBadge?.fill(badge.flagRoot, look, warnTitle);
+      if (badge.flagCorner) {
+        badge.flagCorner.style.left = look.corner === 'left' ? '7px' : '';
+        badge.flagCorner.style.right = look.corner === 'right' ? '7px' : '';
+      }
+      if (badge.marksCorner) {
+        badge.marksCorner.style.left = marksCorner() === 'left' ? '7px' : '';
+        badge.marksCorner.style.right = marksCorner() === 'right' ? '7px' : '';
+      }
     }
   }
   function dropFlag(badge) {
@@ -151,6 +222,8 @@
   const CHIP_CSS = `
     :host{display:block;clear:both;width:max-content;max-width:100%;margin:-2px 0 0;line-height:1;color:inherit}
     :host([data-below]) .v{padding:0;gap:4px;line-height:1.1;background:none;border:0;box-shadow:none}
+    :host([data-inline]){display:inline-flex;vertical-align:middle;clear:none;width:auto;flex:none;margin:0 0 0 .75em}
+    :host([data-inline]) .v{padding:0;gap:4px;line-height:inherit;background:none;border:0;box-shadow:none}
     :host([data-over]){position:absolute;top:7px;left:7px;z-index:3;margin:0;pointer-events:auto}
     :host([data-over]) .v{padding:1px 7px 1px 6px;gap:3px;font-size:11px;line-height:16px;
       background:rgba(12,16,34,.82);border-color:rgba(125,185,255,.7);box-shadow:0 2px 8px rgba(0,0,0,.45)}
@@ -182,8 +255,16 @@
 
   function seat(badge, card) {
     const node = badge.node;
-    if (badge.mode === 'below') {
-      node.dataset.below = '1'; delete node.dataset.over;
+    if (badge.mode === 'inline') {
+      // No room for a line of its own (one-line basket rows): the Value goes
+      // on the RAP's line, right after the amount. Never inside the amount's
+      // own element: the page reader looks for it as a childless leaf.
+      node.dataset.inline = '1'; delete node.dataset.below; delete node.dataset.over;
+      node.style.display = '';
+      badge.label.textContent = '';
+      if (node.previousElementSibling !== badge.anchor) badge.anchor.after(node);
+    } else if (badge.mode === 'below') {
+      node.dataset.below = '1'; delete node.dataset.over; delete node.dataset.inline;
       badge.label.textContent = '';
       // A sibling of the RAP row gives the two amounts exactly the same start,
       // including when the number itself is wrapped in several spans.
@@ -214,7 +295,8 @@
       badge = { node, pill, label, value };
       map.set(card, badge);
     }
-    if (badge.mode !== 'overlay') badge.mode = line ? 'below' : 'overlay';
+    if (badge.mode === 'inline' && !anchor) badge.mode = 'overlay';
+    if (badge.mode !== 'overlay' && badge.mode !== 'inline') badge.mode = line ? 'below' : 'overlay';
     if (badge.anchor !== anchor) badge.anchor = anchor;
     if (badge.line !== line) badge.line = line;
     if (anchor && (badge.typeAnchor !== anchor || !badge.typed)) {
@@ -226,21 +308,27 @@
       ]) if (value) badge.node.style.setProperty(name, value);
       badge.typeAnchor = anchor; badge.typed = true;
     }
-    const where = badge.mode === 'overlay' ? badge.shelf : line?.parentElement;
+    const where = badge.mode === 'overlay' ? badge.shelf : badge.mode === 'inline' ? anchor.parentElement : line?.parentElement;
     if (!badge.node.isConnected || badge.node.parentElement !== where ||
-        (badge.mode === 'below' && badge.node.previousElementSibling !== line)) seat(badge, card);
+        (badge.mode === 'below' && badge.node.previousElementSibling !== line) ||
+        (badge.mode === 'inline' && badge.node.previousElementSibling !== anchor)) seat(badge, card);
     return badge;
   }
 
   function paintBadge(badge, text, state, title, card) {
+    // Values turned off: the chip stays in place, hidden, for the projected flag.
+    if (!itemValues) { badge.node.style.display = 'none'; badge.checked = false; return; }
+    if (badge.mode !== 'overlay' && badge.node.style.display === 'none') badge.node.style.display = '';
     const grew = badge.value.textContent !== text;
     if (grew) badge.value.textContent = text;
     if (badge.pill.dataset.state !== state) badge.pill.dataset.state = state;
     badge.pill.title = title;
-    // Checked when the text changes: a longer number may no longer fit.
+    // Checked when the text changes: a longer number may no longer fit. Below
+    // the RAP first, then on its line, and hidden only if neither fits.
     if (card && (grew || !badge.checked) && badge.mode !== 'overlay' && !chipVisible(badge, card)) {
-      badge.mode = 'overlay';
+      badge.mode = badge.mode === 'below' && badge.anchor?.isConnected ? 'inline' : 'overlay';
       seat(badge, card);
+      if (badge.mode === 'inline' && !chipVisible(badge, card)) { badge.mode = 'overlay'; seat(badge, card); }
     }
     badge.checked = true;
   }
@@ -284,6 +372,7 @@
 
   function renderTotals(page, analysis, pending = false) {
     const keep = new Set();
+    if (!itemValues) page = null;
     for (const [index, side] of (page?.sides || []).entries()) {
       const total = ensureTotal(side);
       if (!total) continue;
@@ -326,6 +415,8 @@
           (fr ? 'Cote temporairement indisponible' : 'Value temporarily unavailable'), card);
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
           ? info.projected : !!projectedKnown.get(itemKey(item)));
+        showMarks(badge, card, matched && !!info.rare, !!globalThis.RoNoteMarks?.isLucky(lucky,
+          { uaid: matched ? info.matchedUaid : null, assetId: item.assetId || info?.assetId, serial: serialOf(card) }));
       }
     }
     for (const [card, badge] of badges) if (!keep.has(card)) { dropBadge(badge); badges.delete(card); }
@@ -358,6 +449,7 @@
       else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', fr ? 'RAP actuel utilisé : aucune Value publiée pour cet objet.' : 'Current RAP used: no published value for this item.', card);
       else paintBadge(badge, info?.known ? '—' : '…', info?.known ? 'none' : 'wait', fr ? 'Pas de Value publiée pour cet objet' : 'No published value for this item', card);
       showFlag(badge, card, !!info?.projected);
+      showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
     for (const [card, badge] of invBadges) if (!keep.has(card)) { dropBadge(badge); invBadges.delete(card); }
   }
@@ -399,7 +491,7 @@
           const retryAt = Date.now() + 8000;
           invInfo.set(r.key, { known: false, retryAt });
           retryUnknownAt = Math.max(retryUnknownAt, retryAt);
-        } else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected });
+        } else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected, rare: !!r.rare });
       }
       if (invInfo.size > 3000) invInfo.delete(invInfo.keys().next().value);
 
@@ -970,9 +1062,9 @@
       const pct = available && a.give[field] > 0 ? delta / a.give[field] * 100 : null;
       cell.dataset.tone = delta < 0 ? 'down' : delta > 0 ? 'up' : 'neutral';
       cell.children[0].className = `arrow ${delta < 0 ? 'down' : delta > 0 ? '' : 'flat'}`;
-      const text = available
-        ? `${signed(delta)} (${pct === null ? '—' : signed(Math.round(pct)) + '%'})`
-        : `${label} · ${pending && field === 'value' ? '…' : '—'}`;
+      const text = !available ? `${label} · ${pending && field === 'value' ? '…' : '—'}`
+        : globalThis.RoNoteBanner ? globalThis.RoNoteBanner.amount(delta, pct, bannerSettings)
+        : `${signed(delta)} (${pct === null ? '—' : signed(Math.round(pct)) + '%'})`;
       if (cell.children[1].textContent !== text) cell.children[1].textContent = text;
       cell.title = available ? explanation +
         (a.valueStale ? (fr ? ' Cotes en cache, actualisation temporairement indisponible.' : 'Cached prices; refresh temporarily unavailable.') : '') +
@@ -986,6 +1078,11 @@
     if (!alive()) return;
     lastUrl = location.href;
     if (!enabled || !onPage() || document.hidden) { clear(); clearInventories(); return; }
+    // The Lucky Cat moves every few hours: the worker re-reads it when it is old.
+    if (showLucky && Date.now() - luckyAskedAt > 10 * 60 * 1000) {
+      luckyAskedAt = Date.now();
+      B.runtime.sendMessage({ type: 'ronote:lucky-cat' }).then(r => setLucky(r?.luckyCat)).catch(() => {});
+    }
     let page;
     try { page = dom.readTradePage(); } catch { clear(); return; }
     mountProfileLink(page);
@@ -1074,14 +1171,17 @@
   }).observe(document.documentElement, { childList: true, characterData: true, attributes: true, attributeFilter: ['href', 'title'], subtree: true });
   globalThis.addEventListener('popstate', schedule);
   globalThis.addEventListener('hashchange', schedule);
-  globalThis.addEventListener('resize', schedule);
+  // Only on a trade page: elsewhere on Roblox, scrolling or resizing used to
+  // re-run the whole update every 40 ms just to find there was nothing to do.
+  const scheduleOnPage = () => { if (onPage() || host) schedule(); };
+  globalThis.addEventListener('resize', scheduleOnPage);
   globalThis.addEventListener('ronote:detail-ready', () => { generation++; cache.clear(); retryAt = 0; schedule(); });
   // React immediately to the Robux field while a trade is being composed.
   // Changing an input's live value does not necessarily mutate its attribute.
   document.addEventListener('input', event => {
     if (enabled && onPage() && event.target?.matches?.('input')) { retryAt = 0; schedule(); }
   }, true);
-  document.addEventListener('scroll', schedule, true);
+  document.addEventListener('scroll', scheduleOnPage, { capture: true, passive: true });
   // Back on the tab with a grey banner: ask again right away.
   const refreshIncomplete = () => {
     if (!document.hidden && shownPage && !shownAnalysis?.valueAvailable) { retryAt = 0; }

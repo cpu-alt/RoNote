@@ -13,11 +13,11 @@
 <script type="module">
 /**
  * Aperçu de la page de réglages, alimentée par un faux service worker. Comme
- * pour le popup (preview.html), c'est la vraie page : options.html, .css, .js.
+ * pour le popup (popup.html), c'est la vraie page : options.html, .css, .js.
  *   ?lang=en      interface en anglais
  *   ?scroll=900   défile jusqu'à cette hauteur
  */
-const { DEFAULTS } = await import('../src/common/defaults.js');
+const { DEFAULTS } = await import('../../src/common/defaults.js');
 const q = new URLSearchParams(location.search);
 
 const settings = structuredClone(DEFAULTS);
@@ -46,6 +46,22 @@ const mock = {
             settings[k] = v && typeof v === 'object' && !Array.isArray(v) ? { ...settings[k], ...v } : v;
           }
           return { settings };
+        case 'ronote:settings-replace': {
+          const keep = Object.fromEntries((msg.keep || []).map(k => [k, settings[k]]));
+          for (const k of Object.keys(settings)) delete settings[k];
+          Object.assign(settings, structuredClone(DEFAULTS), msg.settings || {}, keep);
+          return { settings };
+        }
+        case 'ronote:mute': {
+          const q = String(msg.query || '');
+          if (!/^[A-Za-z0-9_]{3,20}$/.test(q)) return { error: 'unknown' };
+          settings.ignoredUsers = [...settings.ignoredUsers, { id: 1000 + settings.ignoredUsers.length, name: q }];
+          return { settings };
+        }
+        case 'ronote:lucky-cat':
+          return { luckyCat: { uaid: 2504983744, assetId: 233609198, serial: 1371, name: 'Mrs. Rabbit', since: Date.now() - 3 * 3600e3 } };
+        case 'ronote:history':
+          return { history: [] };
         case 'ronote:unmute':
           settings.ignoredUsers = settings.ignoredUsers.filter(u => u.id !== msg.userId);
           return { settings };
@@ -58,8 +74,8 @@ const mock = {
 };
 window.__ronoteMock = mock;
 
-const base = new URL('../src/options/', location.href).href;
-let html = await fetch('../src/options/options.html').then(r => r.text());
+const base = new URL('../../src/options/', location.href).href;
+let html = await fetch('../../src/options/options.html').then(r => r.text());
 html = html.replace('<head>', `<head><base href="${base}"><script>globalThis.chrome = parent.__ronoteMock;<\/script>`);
 
 const frame = document.getElementById('f');

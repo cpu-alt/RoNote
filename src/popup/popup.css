@@ -379,6 +379,9 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   filter: none; pointer-events: none;
 }
 .chip .proj-ic { width: 10px; height: 10px; filter: none; }
+/* Diamant « rare » et Lucky Cat : dans le coin opposé au triangle projected. */
+.tc-mk { position: absolute; top: -4px; left: -4px; display: flex; gap: 2px; font-size: 11px; pointer-events: none; }
+.det-n b .rn-mark, .w-nl .rn-mark { font-size: 12px; margin-left: 2px; }
 
 .tc-amt { margin-top: 7px; font-size: 15px; font-weight: 800; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .tc-blind { color: var(--face); }
@@ -1236,3 +1239,172 @@ button.icon .ic { width: 16px; height: 16px; }
 .w-val span .ic, .w-cval .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
 .w-name small .ic, .w-fact .ic { width: 11px; height: 11px; vertical-align: -1.5px; }
 .w-rev .ic { width: 14px; height: 14px; vertical-align: -2.5px; }
+
+/* ============================== pile ou face ============================ */
+/* Onglet icône, comme l'accueil. La scène reprend la carte du Portefeuille :
+   verre bleu nuit, halo bleu, et un jeton aux couleurs de RoNote. */
+.tabs .tab.coin-tab { flex: 0 0 34px; padding: 7px 0; }
+.tab.coin-tab .ic { width: 15px; height: 15px; vertical-align: -3px; }
+
+.cf { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+
+.cf-table {
+  position: relative; flex: none; height: 200px; overflow: hidden;
+  border-radius: 18px; border: 1px solid #2a3552;
+  background:
+    radial-gradient(60% 55% at 50% 62%, #4d9fff26, transparent 70%),
+    radial-gradient(120% 90% at 100% 0%, #3552a860, transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, #7b3fe430, transparent 60%),
+    linear-gradient(160deg, #182038, #0e1321);
+  box-shadow: 0 12px 32px #0008, inset 0 1px 0 #ffffff12;
+  perspective: 900px;
+  contain: layout paint;
+}
+.cf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 2px 2px 0; }
+.cf-label { font-size: 10.5px; font-weight: 750; letter-spacing: .6px; text-transform: uppercase; color: var(--dim); }
+.cf-sub { margin-top: 3px; font-size: 12px; color: var(--faint); }
+.cf-mute.off { opacity: .45; }
+
+.cf-toss { position: absolute; left: 50%; top: 44px; width: 120px; height: 120px; margin-left: -60px; transform-style: preserve-3d; will-change: transform; }
+/* Le halo est un calque fixe sous la pièce : un filtre sur la pièce
+   elle-même serait recalculé à chaque image de la rotation. */
+.cf-glow { position: absolute; left: 50%; top: 104px; width: 190px; height: 190px; margin: -95px 0 0 -95px; border-radius: 50%;
+  background: radial-gradient(#4d9fff33, transparent 65%); pointer-events: none; }
+.cf-toss.up { animation: cf-up ease-in-out both; }
+@keyframes cf-up {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-30px) scale(1.08); }
+  82% { transform: translateY(0) scale(1); }
+  89% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+.cf-shadow {
+  position: absolute; left: 50%; bottom: 16px; width: 104px; height: 14px; margin-left: -52px; border-radius: 50%;
+  background: radial-gradient(#4d9fff55, #0000 70%);
+}
+.cf-shadow.up { animation: cf-shadow ease-in-out both; }
+@keyframes cf-shadow { 40% { transform: scale(.55); opacity: .45; } 82%, 100% { transform: none; opacity: 1; } }
+
+.cf-coin { position: absolute; inset: 0; transform-style: preserve-3d; will-change: transform; }
+/* La tranche : blanc et bleu nuit alternés, comme le bord d'un jeton. */
+.cf-edge { position: absolute; inset: 2px; border-radius: 50%; background: repeating-conic-gradient(#e6ecf6 0 11.25deg, #33466e 11.25deg 22.5deg); }
+.cf-face { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; }
+.cf-heads { transform: translateZ(5.5px); }
+.cf-tails { transform: rotateX(180deg) translateZ(5.5px); }
+.cf-face .cf-chipsvg { width: 100%; height: 100%; display: block; }
+.cf-face::after { /* reflet */
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 32% 24%, #ffffff40, transparent 42%), linear-gradient(120deg, #0000 40%, #ffffff22 50%, #0000 60%);
+}
+
+.cf-confetti { position: absolute; left: 50%; top: 55%; pointer-events: none; }
+.cf-confetti i { position: absolute; width: 6px; height: 6px; border-radius: 50%; animation: cf-conf ease-out forwards; }
+@keyframes cf-conf {
+  from { transform: translate(0, 0) scale(1); opacity: 1; }
+  60% { opacity: 1; }
+  to { transform: translate(var(--x), calc(var(--y) + 150px)) scale(.4); opacity: 0; }
+}
+
+.cf-result { min-height: 52px; text-align: center; display: grid; place-content: center; justify-items: center; gap: 5px; }
+.cf-hint { color: var(--dim); font-size: 12.5px; }
+.cf-big { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; color: var(--fg); }
+.cf-verdict {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; background: #ffffff12;
+}
+.cf-verdict .ic { width: 14px; height: 14px; }
+.cf-result.win .cf-verdict { color: var(--win); background: #2fd07026; }
+.cf-result.loss .cf-verdict { color: var(--loss); background: #ff5f6626; }
+.cf-result.pop { animation: cf-pop .4s var(--ease); }
+@keyframes cf-pop { from { transform: translateY(6px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Le choix du côté : un sélecteur comme celui des onglets. */
+.cf-picks { display: flex; gap: 3px; padding: 3px; border-radius: 13px; background: #0b0f19cc; border: 1px solid #ffffff10; }
+.cf-chip {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 10px;
+  border-radius: 10px; border: 1px solid transparent; background: none; color: var(--faint);
+  font-size: 12.5px; font-weight: 700; cursor: pointer; transition: color .2s, background .2s, border-color .2s;
+}
+.cf-chip:hover:not(:disabled) { color: var(--dim); }
+.cf-chip.on { color: var(--fg); border-color: #33466e; background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff14; }
+.cf-chip:disabled { cursor: default; }
+.cf-chip .cf-chipsvg { width: 20px; height: 20px; flex: none; }
+.cf-chip:not(.on) .cf-chipsvg { opacity: .55; filter: saturate(.6); }
+
+.cf-go {
+  flex: none; padding: 11px; border: 0; border-radius: 12px; cursor: pointer;
+  font-size: 13.5px; font-weight: 750; color: #fff;
+  background: linear-gradient(180deg, #5aa8ff, #3b82f6);
+  box-shadow: 0 8px 22px #4d9fff40, inset 0 1px 0 #ffffff40;
+  transition: filter .2s, transform .12s, box-shadow .2s;
+}
+.cf-go:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 8px 26px #4d9fff66, inset 0 1px 0 #ffffff40; }
+.cf-go:active:not(:disabled) { transform: scale(.98); }
+.cf-go:disabled { filter: saturate(.4) brightness(.75); cursor: default; }
+
+.cf-log { display: flex; flex-direction: column; gap: 8px; }
+.cf-row { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.cf-mini { width: 20px; height: 20px; display: block; }
+.cf-mini .cf-chipsvg { width: 100%; height: 100%; display: block; }
+.cf-mini.new { animation: cf-pop .4s var(--ease); }
+.cf-stats { display: flex; justify-content: center; align-items: center; gap: 14px; color: var(--faint); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.cf-stats b { color: var(--fg); }
+.cf-reset { background: none; border: 0; color: var(--faint); font-size: 11px; cursor: pointer; text-decoration: underline; }
+.cf-reset:hover { color: var(--dim); }
+
+/* ============================= bilan du mois ============================ */
+.rc-open {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 10px 12px;
+  border-radius: 13px; border: 1px solid #2a3552; cursor: pointer; text-align: left; color: var(--fg);
+  background: radial-gradient(120% 140% at 0% 0%, #4d9fff1f, transparent 55%), linear-gradient(160deg, #1b2340, #131a2c);
+  transition: border-color .2s, transform .12s;
+}
+.rc-open:hover { border-color: #4d9fff66; }
+.rc-open:active { transform: scale(.99); }
+.rc-open .ic { width: 18px; height: 18px; flex: none; color: var(--accent); }
+.rc-open span { font-size: 13px; font-weight: 750; }
+.rc-open small { flex: 1; color: var(--dim); font-size: 11.5px; }
+.rc-open .ic:last-child { width: 14px; height: 14px; color: var(--faint); transform: rotate(-90deg); }
+
+.rc-nav { display: flex; align-items: center; gap: 6px; }
+.rc-month { flex: 1; text-align: center; font-size: 14px; font-weight: 800; }
+.rc-step {
+  width: 30px; height: 30px; border-radius: 10px; cursor: pointer; display: grid; place-items: center;
+  background: #ffffff08; border: 1px solid #ffffff12; color: var(--dim);
+}
+.rc-step .ic { width: 14px; height: 14px; transform: rotate(90deg); }
+.rc-step.next .ic { transform: rotate(-90deg); }
+.rc-step:hover:not(:disabled) { color: var(--fg); border-color: #ffffff30; }
+.rc-step:disabled { opacity: .3; cursor: default; }
+.rc-body { display: flex; flex-direction: column; gap: 10px; }
+.rc-card { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 10px 30px #0008; }
+.rc-actions { display: flex; gap: 8px; }
+.rc-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px;
+  border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
+  font-size: 13px; font-weight: 750; cursor: pointer; transition: filter .2s, transform .12s;
+}
+.rc-btn .ic { width: 16px; height: 16px; }
+.rc-btn.main { border-color: #5aa8ff; color: #fff; background: linear-gradient(180deg, #5aa8ff, #3b82f6); box-shadow: 0 6px 18px #4d9fff40; }
+.rc-btn:hover { filter: brightness(1.08); }
+.rc-btn:active { transform: scale(.98); }
+.rc-note { color: var(--faint); font-size: 11px; text-align: center; line-height: 1.4; }
+
+/* Feuille de partage : inventaire ou bilan du mois. */
+.rc-modes { display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: #0b0f19cc; border: 1px solid #ffffff10; }
+.rc-modes button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px;
+  border: 1px solid transparent; border-radius: 9px; background: none; cursor: pointer;
+  color: var(--faint); font-size: 12px; font-weight: 700; transition: color .2s, background .2s;
+}
+.rc-modes button .ic { width: 14px; height: 14px; }
+.rc-modes button:hover { color: var(--dim); }
+.rc-modes button.on { color: var(--fg); border-color: #33466e; background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006; }
+.rc-nav[hidden] { display: none; }
+.w-share { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.w-share .rc-open { padding: 10px; gap: 8px; }
+.w-share .rc-open span { flex: 1; white-space: nowrap; font-size: 12.5px; }
+.w-share .rc-open small { display: none; }
+.w-share .rc-open { margin: 0; }
+.w-share .rc-open:first-child { border-color: #33466e; background: radial-gradient(120% 140% at 0% 0%, #4d9fff26, transparent 55%), linear-gradient(160deg, #1b2340, #131a2c); }
+.w-share .rc-open:first-child > .ic:first-child { color: var(--accent); }

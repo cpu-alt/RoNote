@@ -2,7 +2,7 @@ import { B, safe } from '../common/shim.js';
 import * as api from '../common/api.js';
 import { ApiError } from '../common/api.js';
 import {
-  getSettings, saveSettings, getState, setState, getStreams, saveStreams,
+  getSettings, saveSettings, replaceSettings, getState, setState, getStreams, saveStreams,
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
   getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
@@ -957,6 +957,7 @@ async function tick(reason = 'manual') {
     }
     await saveDetailCache();
     await flushThumbs({ force: true });
+    await refreshLuckyCat(settings);
   } catch (e) {
     console.error('[RoNote] tick:', e);
   } finally {
@@ -964,6 +965,38 @@ async function tick(reason = 'manual') {
     runningSince = 0;
     if (settings) scheduleSoftTick(settings);
   }
+}
+
+/**
+ * Le Lucky Cat de Rolimon's change d'exemplaire toutes les 4 a 24 h : la page
+ * est relue au plus toutes les 10 min, et le resultat range sous `luckyCat`,
+ * ou le popup et les pages Roblox le lisent directement. Un echec garde le
+ * dernier tirage connu ; au-dela d'un jour, il ne vaut plus rien.
+ */
+const LUCKY_TTL = 10 * 60 * 1000;
+const LUCKY_MAX_AGE = 24 * 60 * 60 * 1000;
+let luckyAsking = null;
+async function refreshLuckyCat(settings) {
+  if (!settings.useRolimons || settings.showLuckyCat === false) return null;
+  const { luckyCat } = await B.storage.local.get('luckyCat');
+  const fresh = luckyCat?.checkedAt && Date.now() - luckyCat.checkedAt < LUCKY_TTL;
+  if (fresh) return luckyCat;
+  luckyAsking = luckyAsking || (async () => {
+    try {
+      const cat = await api.getLuckyCat();
+      const next = { ...cat, checkedAt: Date.now(), at: Date.now() };
+      await B.storage.local.set({ luckyCat: next });
+      return next;
+    } catch (e) {
+      console.warn('[RoNote] Lucky Cat:', e?.message || e);
+      const kept = luckyCat?.at && Date.now() - luckyCat.at < LUCKY_MAX_AGE ? luckyCat : null;
+      // Pas de nouvel essai avant le delai normal, meme en cas d'echec.
+      const next = kept ? { ...kept, checkedAt: Date.now() } : { checkedAt: Date.now() };
+      await B.storage.local.set({ luckyCat: next });
+      return next;
+    } finally { luckyAsking = null; }
+  })();
+  return luckyAsking;
 }
 
 /** Envoi groupe : au-dela du plafond, une notification resume par type. */
@@ -1167,9 +1200,27 @@ async function handleMessage(msg) {
         const item = resolveItem({ ...ids, recentAveragePrice: Number(i.rap) || 0 }, cat);
         const listed = !item.noValue && !item.unknown;
         return { key: i.key, known: true, value: listed ? item.value : null,
-          projected: !!item.projected, noValue: !!item.noValue };
+          projected: !!item.projected, rare: !!item.rare, noValue: !!item.noValue };
       });
       return { items, ready: !!cat.ready };
+    }
+    // La page d'un objet sur Roblox (content/item-page.js) : sa cote et de
+    // quoi ouvrir sa fiche Rolimon's. Rien pour un objet absent du catalogue
+    // Rolimon's, c'est-a-dire tout ce qui n'est pas un limited.
+    case 'ronote:item-page': {
+      const settings = await getSettings();
+      if (settings.itemPageValue === false || settings.useRolimons === false) return { off: true };
+      const cat = await getCatalog(settings);
+      const ids = { assetId: Number(msg.assetId) || 0, bundleId: Number(msg.bundleId) || 0 };
+      if (!ids.assetId && !ids.bundleId) return { known: false, ready: !!cat.ready };
+      const item = resolveItem(ids, cat);
+      if (item.unknown) return { known: false, ready: !!cat.ready };
+      // Rolimon's range ses fiches par identifiant d'asset : un visage passe
+      // en bundle garde celle de son ancien asset.
+      const roliId = item.legacyAssetId || (item.isBundle ? 0 : item.assetId);
+      return { known: true, ready: !!cat.ready, roliId,
+        value: item.noValue ? null : item.value, rap: item.rap || 0,
+        demand: item.demand, trend: item.trend, projected: item.projected, rare: item.rare };
     }
     case 'ronote:get':
       return uiData(msg);
@@ -1349,11 +1400,19 @@ async function handleMessage(msg) {
       }
     }
     case 'ronote:mute': {
-      const id = Number(msg.userId);
+      let id = Number(msg.userId);
+      let name = String(msg.name || '');
+      // Depuis les reglages : un pseudo ou un identifiant tape a la main.
+      if (!id && msg.query) {
+        let hit = null;
+        try { hit = await api.findUser(msg.query); } catch { return { error: 'unreachable' }; }
+        if (!hit) return { error: 'unknown' };
+        ({ id, name } = hit);
+      }
       if (!id) return { error: 'identifiant invalide' };
       const settings = await getSettings();
       if (settings.ignoredUsers.some(u => Number(u.id) === id)) return { settings };
-      return { settings: await saveSettings({ ignoredUsers: [...settings.ignoredUsers, { id, name: String(msg.name || '') }] }) };
+      return { settings: await saveSettings({ ignoredUsers: [...settings.ignoredUsers, { id, name }] }) };
     }
 
     case 'ronote:portfolio': {
@@ -1426,9 +1485,23 @@ async function handleMessage(msg) {
     case 'ronote:settings': {
       const settings = await saveSettings(msg.patch || {});
       setLang(settings.lang);
+      // Un journal raccourci l'est tout de suite, pas au prochain evenement.
+      if (msg.patch?.historyLimit) await pushHistory([], settings.historyLimit, true);
       await configureAlarm(settings);
       await setBadge((await getState()).inboundCount, settings, false);
       if (msg.patch?.enabled) tick('settings');
+      return { settings };
+    }
+    // Import d'un fichier de reglages, ou remise a zero (settings: {}) : tout
+    // est remplace, sauf les cles de `keep` reprises des reglages actuels.
+    case 'ronote:settings-replace': {
+      const cur = await getSettings();
+      const raw = { ...(msg.settings || {}) };
+      for (const k of msg.keep || []) if (k in cur) raw[k] = cur[k];
+      const settings = await replaceSettings(raw);
+      setLang(settings.lang);
+      await configureAlarm(settings);
+      await setBadge((await getState()).inboundCount, settings, false);
       return { settings };
     }
     case 'ronote:test': {
@@ -1488,6 +1561,12 @@ async function handleMessage(msg) {
       return { report: report.concat(await api.probeTradeDetail(msg.tradeId)) };
     }
 
+    // Une page Roblox ou le popup s'ouvre : le tirage en cours, relu s'il date.
+    case 'ronote:lucky-cat':
+      return { luckyCat: await refreshLuckyCat(await getSettings()) };
+    // L'export CSV veut tout le journal, pas les 100 lignes du popup.
+    case 'ronote:history':
+      return { history: await getHistory() };
     case 'ronote:history-clear':
       await clearHistory();
       return { ok: true };

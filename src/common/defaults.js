@@ -55,13 +55,36 @@ export const DEFAULTS = {
   revalAlerts: true,
   revalMinPercent: 10,
   showItemDetails: true,      // liste depliable des objets sous chaque trade
+
+  // --- Reperes sur les objets (popup et pages Roblox) ---------------------
+  showRare: true,             // petit diamant sur les objets « rares » de Rolimon's
+  showLuckyCat: true,         // l'exemplaire tire par le Lucky Cat de Rolimon's
+
+  // --- Apparence sur roblox.com -------------------------------------------
   pageDelta: true,            // ecarts RAP / Value et cote des objets sur la page des trades Roblox
-  projectedColor: '#ffc400',  // fond du badge « projected » sur la page Roblox
+  pageItemValues: true,       // cote Rolimon's sous chaque objet et total des deux offres
+  pageBgDim: 60,              // ton image en fond de roblox.com (cle `pageBgImage`) : force du voile, en %
+  pageBgBlur: 0,              // ... et flou de l'image, en px
+  itemPageValue: true,        // value et lien Rolimon's sur la page d'un limited Roblox
   bannerGain: '#22e57a',      // bandeau des ecarts sur la page Roblox : couleur d'un gain
   bannerLoss: '#ff4d5e',      // ... d'une perte
   bannerStyle: 'soft',        // soft | vivid | neon | solid
   bannerSize: 'm',            // s | m | l
+  bannerShow: 'both',         // both | value | rap
+  bannerFormat: 'full',       // full (+2 345) | short (+2,3k)
+  bannerPct: true,            // le pourcentage entre parentheses
+  listBadges: true,           // ecarts RAP / Value sur chaque ligne des listes de trades Roblox
+  listShow: 'both',           // both | value | rap
+  listFormat: 'full',         // full (+2 345) | short (+2,3k) | pct (+12 %)
+  listStyle: 'text',          // text | soft | vivid | neon | solid (les styles du bandeau)
+  listSize: 'm',              // s | m | l
+  listLabels: true,           // les libelles « RAP » / « Value » devant les chiffres
+  listGain: '',               // couleurs propres a la colonne ; vide = celles du bandeau
+  listLoss: '',
+  projectedColor: '#ffc400',  // fond du badge « projected » sur la page Roblox
   projectedSize: 'm',         // s | m | l ; l'image importee est a part (cle projectedIcon)
+  projectedShape: 'rounded',  // rounded | circle | square
+  projectedCorner: 'left',    // left | right : coin haut de la vignette
 
   // --- Filtres (uniquement pour les trades RECUS) ------------------------
   onlyWins: false,            // ne notifier que si gain de valeur

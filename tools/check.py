@@ -231,7 +231,7 @@ if not wild:
 #
 # Les scripts de contenu ne sont pas des modules ; les scripts de page
 # s'executent contre leur propre document et sont couverts par les apercus
-# (tools/preview.html et tools/preview-options.html).
+# (tools/preview/popup.html et tools/preview/options.html).
 PAGE_SCRIPTS = {"popup/popup.js", "options/options.js", "offscreen/offscreen.js"}
 selftest = (ROOT / "tools" / "selftest.js").read_text(encoding="utf-8")
 covered = 0

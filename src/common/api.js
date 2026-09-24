@@ -792,6 +792,28 @@ export async function getUserProfile(userId) {
   };
 }
 
+/**
+ * Un joueur par son pseudo ou son identifiant, pour l'ignorer a la main.
+ * Rend `null` si Roblox ne connait personne sous ce nom.
+ */
+export async function findUser(query) {
+  const q = String(query || '').trim().replace(/^@/, '');
+  if (/^\d{1,15}$/.test(q)) {
+    const p = await getUserProfile(q).catch(e => { if (e?.status === 404 || e?.status === 400) return null; throw e; });
+    return p?.name ? { id: p.id, name: p.name } : null;
+  }
+  if (!/^[A-Za-z0-9_]{3,20}$/.test(q)) return null;
+  const url = `${USERS}/usernames/users`;
+  const r = await through(url, () => fetchWithTimeout(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ usernames: [q], excludeBannedUsers: false })
+  }));
+  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, gateFor(url).label);
+  const hit = (await r.json())?.data?.[0];
+  return hit?.id ? { id: Number(hit.id), name: String(hit.name || q) } : null;
+}
+
 /* ============================== Rolimon's =============================== */
 
 async function rolimons(url, what, retryOn429 = true) {
@@ -963,6 +985,45 @@ export async function getItemHistory(itemId) {
     throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
   }
   return parseItemHistory(await r.text());
+}
+
+/**
+ * Le Lucky Cat de Rolimon's : UN exemplaire (un UAID) d'un objet, tiré au sort
+ * toutes les 4 à 24 h ; qui le détient gagne un RoliBadge. Pas d'endpoint
+ * JSON : la page embarque `lucky_cat_uaid_history`, du plus récent au plus
+ * ancien. Le tirage en cours est celui dont l'attribution est la plus récente.
+ *
+ * @returns {{uaid: number, assetId: number, serial: number|null, name: string, since: number, owner: string} | null}
+ */
+export function parseLuckyCat(html) {
+  const m = /var\s+lucky_cat_uaid_history\s*=\s*(\[[^\n]*?\]);/.exec(html);
+  if (!m) return null;
+  let list;
+  try { list = JSON.parse(m[1]); } catch { return null; }
+  const cur = (Array.isArray(list) ? list : [])
+    .filter(e => Number(e?.uaid) > 0 && Number(e?.asset_id) > 0)
+    .sort((a, b) => Number(b.assignment_time) - Number(a.assignment_time))[0];
+  if (!cur) return null;
+  return {
+    uaid: Number(cur.uaid),
+    assetId: Number(cur.asset_id),
+    serial: Number(cur.serial) > 0 ? Number(cur.serial) : null,
+    name: String(cur.asset_name || ''),
+    since: Number(cur.assignment_time) * 1000 || 0,
+    owner: String(cur.last_known_owner_name || cur.initial_owner_name || '')
+  };
+}
+
+export async function getLuckyCat() {
+  const url = 'https://www.rolimons.com/luckycat';
+  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 20000));
+  if (!r.ok) {
+    if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 5);
+    throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
+  }
+  const cat = parseLuckyCat(await r.text());
+  if (!cat) throw new ApiError("Lucky Cat introuvable dans la page Rolimon's", 0);
+  return cat;
 }
 
 /* ================================ liens ================================= */

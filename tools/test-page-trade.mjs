@@ -100,7 +100,9 @@ const context = vm.createContext({
   document: { documentElement: { lang: 'fr' }, body: new Node(), hidden: false,
     createElement: () => new Node(), addEventListener: (type, fn) => { docListeners[type] = fn; } },
   chrome: { runtime: { id: 'test', getURL: path => 'chrome-extension://test/' + path,
-    sendMessage: msg => new Promise(resolve => requests.push({ msg, resolve })) } },
+    // Le Lucky Cat a sa propre question, hors du compte des analyses.
+    sendMessage: msg => msg.type === 'ronote:lucky-cat' ? Promise.resolve({ luckyCat: null })
+      : new Promise(resolve => requests.push({ msg, resolve })) } },
   RoNoteDom: { readTradePage: () => shown, signatureOf: p => p.tradeId + ':' + p.sides.map(s => s.robux || 0).join(','), plain: p => p,
     phaseOf: t => /would have/i.test(t) ? 'inactive' : /gave|received/i.test(t) ? 'done' : t ? 'open' : '' },
   MutationObserver: class { observe() {} disconnect() {} }, addEventListener(type, fn) { globalListeners[type] = fn; },

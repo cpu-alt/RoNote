@@ -9,6 +9,7 @@
  *  Réglages lus :
  *    projectedColor  couleur de fond (#rrggbb), jaune vif par défaut
  *    projectedSize   s | m | l
+ *    projectedShape  rounded | circle | square
  *    projectedIcon   (clé de stockage à part) image importée, en data: URL —
  *                    elle remplace le triangle
  * ==========================================================================
@@ -18,6 +19,7 @@
 
   const DEFAULT_COLOR = '#ffc400';
   const SIZES = { s: 20, m: 26, l: 34 };
+  const SHAPES = { rounded: 0.3, circle: 0.5, square: 0.12 };
 
   const hex = (c) => /^#[0-9a-f]{6}$/i.test(c || '') ? c.toLowerCase() : DEFAULT_COLOR;
   const rgb = (c) => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
@@ -30,7 +32,7 @@
 
   /**
    * Le contenu d'un shadow root : style + badge.
-   * @param {{color?: string, size?: string, image?: string}} opts
+   * @param {{color?: string, size?: string, shape?: string, image?: string}} opts
    */
   function html(opts = {}) {
     const color = hex(opts.color);
@@ -40,7 +42,7 @@
     const ink = light(color) ? '#1a1200' : '#ffffff';
     const top = mix(color, [255, 255, 255], 0.35);
     const deep = mix(color, [0, 0, 0], 0.18);
-    const radius = Math.round(px * 0.3);
+    const radius = Math.round(px * (SHAPES[opts.shape] ?? SHAPES.rounded));
     const style = `
       :host{all:initial}
       .b{box-sizing:border-box;width:${px}px;height:${px}px;border-radius:${radius}px;display:grid;place-items:center;
@@ -61,5 +63,5 @@
     root.innerHTML = `<style>${style}</style><div class="b"${title ? ` title="${title.replace(/"/g, '&quot;')}"` : ''}>${body}</div>`;
   }
 
-  globalThis.RoNoteBadge = { DEFAULT_COLOR, SIZES, html, fill };
+  globalThis.RoNoteBadge = { DEFAULT_COLOR, SIZES, SHAPES, html, fill };
 })();

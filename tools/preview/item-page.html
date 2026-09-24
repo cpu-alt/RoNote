@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoNote — page d'un objet</title>
+<style>
+body{margin:0;background:#2d0061;color:#fff;font:14px "Builder Sans",Arial,sans-serif}
+main{max-width:1000px;margin:24px auto;padding:0 16px;display:flex;gap:24px;flex-wrap:wrap}
+.thumb{width:400px;max-width:100%;aspect-ratio:1;background:#3f1580;border-radius:4px}
+#item-info-container-frontend{flex:1;min-width:300px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{font-size:32px;line-height:1.2;margin:0}.cart{font-size:26px}
+.by{margin:8px 0 12px;padding-bottom:12px;border-bottom:1px solid #6a4a8f;color:#e8def5}
+.row{display:flex;padding:6px 0;font-size:15px}.row>.l{width:150px;flex:none;color:#c8b5de}.row>.c{flex:1;color:#fff}
+.grid{display:grid;grid-template-columns:150px 1fr;row-gap:12px;font-size:15px}.grid>.l{color:#c8b5de}
+.price{font-size:18px;font-weight:800}.more{font-size:11px;font-weight:600;margin:2px 0 10px}
+.btn{display:block;width:100%;padding:12px;margin:0 0 10px;border:0;border-radius:8px;font-size:18px;font-weight:600}
+.buy{background:#335fff;color:#fff}.add{background:#fff;color:#111}
+.controls{width:100%}button.t{padding:6px 10px;margin:0 6px 6px 0;border:0;border-radius:4px;background:#553079;color:#fff;cursor:pointer}
+</style>
+<main>
+  <div class="controls">
+    <button class="t" data-k="normal">Limited coté</button><button class="t" data-k="proj">Projected + rare</button>
+    <button class="t" data-k="novalue">Sans value</button><button class="t" data-k="none">Pas un limited</button>
+    · <button class="t" data-l="rows">Rangées</button><button class="t" data-l="grid">Grille</button><button class="t" data-l="nobuy">Sans revendeur</button>
+  </div>
+  <div class="thumb"></div>
+  <div id="item-info-container-frontend">
+    <div class="head"><h1>Perfectly Legitimate Business Hat</h1><span class="cart">🛒</span></div>
+    <div class="by">By Roblox · Owned Items (2)</div>
+    <div id="details"></div>
+  </div>
+</main>
+<script>
+// Seule l'extension est simulée : le vrai script de contenu tourne ici.
+const q = new URLSearchParams(location.search);
+const pick = q.get('k') || 'normal', layout = q.get('l') || 'rows';
+history.replaceState(null, '', '/catalog/19027209/Perfectly-Legitimate-Business-Hat?' + q);
+const priceCell = `<div class="price">⏣ 3 596</div><div class="more">See More Resellers</div>
+  <div><button class="btn buy">Buy</button><button class="btn add">Add to cart</button></div>`;
+const facts = [['Tradable', 'Yes'], ['Holding Period', 'Yes'], ['Type', 'Head Accessories'], ['Created', 'Dec 09, 2009']];
+const details = document.getElementById('details');
+if (layout === 'grid') {
+  details.className = 'grid';
+  details.innerHTML = `<div class="l">Best Price</div><div class="c">${priceCell}</div>` +
+    facts.map(([l, c]) => `<div class="l">${l}</div><div class="c">${c}</div>`).join('');
+} else {
+  details.innerHTML = (layout === 'nobuy' ? '' : `<div class="row"><div class="l">Best Price</div><div class="c">${priceCell}</div></div>`) +
+    facts.map(([l, c]) => `<div class="row"><div class="l">${l}</div><div class="c">${c}</div></div>`).join('');
+}
+const cases = {
+  normal: { known: true, ready: true, roliId: 19027209, value: 3500, rap: 3542, demand: 3, trend: 2, projected: false, rare: false },
+  proj: { known: true, ready: true, roliId: 19027209, value: 125000, rap: 98012, demand: 4, trend: 3, projected: true, rare: true },
+  novalue: { known: true, ready: true, roliId: 19027209, value: null, rap: 812, demand: -1, trend: -1, projected: false, rare: false },
+  none: { known: false, ready: true }
+};
+// ?bg=60&blur=4 : une image de test en fond (content/page-bg.js).
+function testImage() {
+  const c = Object.assign(document.createElement('canvas'), { width: 1600, height: 900 });
+  const g = c.getContext('2d');
+  const sky = g.createLinearGradient(0, 0, 1600, 900);
+  sky.addColorStop(0, '#ff7a59'); sky.addColorStop(.5, '#c2379b'); sky.addColorStop(1, '#1b2a8f');
+  g.fillStyle = sky; g.fillRect(0, 0, 1600, 900);
+  g.fillStyle = '#ffd36b'; g.beginPath(); g.arc(1150, 380, 150, 0, 7); g.fill();
+  g.fillStyle = '#0d1440'; g.beginPath(); g.moveTo(0, 900); g.lineTo(0, 620); g.lineTo(380, 420); g.lineTo(700, 640);
+  g.lineTo(1050, 470); g.lineTo(1600, 700); g.lineTo(1600, 900); g.fill();
+  return c.toDataURL('image/jpeg', .82);
+}
+const bg = q.has('bg') ? { pageBgImage: testImage(), settings: { pageBgDim: Number(q.get('bg')) || 60, pageBgBlur: Number(q.get('blur')) || 0 } } : { settings: {} };
+globalThis.chrome = {
+  runtime: { id: 'preview', getURL: p => '/src/' + p, sendMessage: async () => cases[pick] },
+  storage: { local: { get: async () => bg }, onChanged: { addListener() {} } }
+};
+for (const b of document.querySelectorAll('button.t')) b.onclick = () => {
+  const n = new URLSearchParams(q); n.set('k', b.dataset.k || pick); n.set('l', b.dataset.l || layout);
+  location.href = '/tools/preview/item-page.html?' + n;
+};
+</script>
+<script src="/src/content/page-bg.js"></script>
+<script src="/src/content/item-marks.js"></script>
+<script src="/src/content/item-page.js"></script>
+</html>

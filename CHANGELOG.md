@@ -3,6 +3,36 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.15.0 — Roblox à ton image
+
+**RoNote va plus loin sur roblox.com et devient personnalisable.** Les écarts
+s'affichent sur les listes de trades, la value apparaît sur la page d'un
+limited, et l'apparence se règle d'un coup avec des thèmes, fond compris.
+
+- **Listes de trades** (Reçus, Envoyés, Terminés) : l'écart de RAP et de Value
+  de chaque trade à droite de sa ligne, sans l'ouvrir.
+- **Page d'un limited** : une rangée « Value » sous « Best Price », avec la
+  demande, la tendance et un lien direct vers sa fiche Rolimon's.
+- **Ton image en fond de roblox.com**, avec un voile de la couleur de ton thème
+  Roblox pour garder le texte lisible, et un flou au choix.
+- **Thèmes** : RoNote, Minimal, Néon, Sunset, Océan et Casino règlent d'un coup
+  le bandeau, les listes, le badge « projected » et le fond. Un thème s'exporte
+  dans un fichier pour être partagé.
+- **Flex mon inventaire** (Portefeuille) : une carte avec la value du compte, sa
+  courbe sur 30 jours et les six plus gros objets, à copier ou télécharger.
+- **Bilan du mois** (Journal et Portefeuille) : value gagnée en trade, taux de
+  victoire, meilleur trade et évolution du compte, sur une carte à partager.
+- **Pile ou face** (nouvel onglet du popup) : un jeton vert R$ ou orange T pour
+  trancher un trade qui fait hésiter.
+- **Repères** : un diamant sur les objets « rares » de Rolimon's, un chat doré
+  sur l'exemplaire tiré par le Lucky Cat.
+- **Réglages refaits** : moins de sections, une recherche (touche /), une
+  section Apparence avec aperçus en direct, la sauvegarde des réglages dans un
+  fichier, et les réglages sans effet grisés.
+- **Plus fluide** : les scripts de trade ne travaillent plus sur les autres
+  pages de Roblox (défilement, pages de jeux), et les cotes Rolimon's sont
+  relues toutes les 15 minutes au lieu de 3 heures.
+
 ## v2.14.0 — les visages, Rolimon's est à jour
 
 **Rolimon's compte enfin les visages correctement.** Depuis sa mise à jour de

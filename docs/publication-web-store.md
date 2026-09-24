@@ -162,7 +162,7 @@ python tools/serve.py
 puis, dans un autre terminal, Chrome en headless (`--window-size=1280,800
 --virtual-time-budget=12000 --screenshot=…`) sur :
 
-| Capture | URL (sous `http://127.0.0.1:8777/tools/`) |
+| Capture | URL (sous `http://127.0.0.1:8777/tools/preview/`) |
 |---|---|
 | `ronote-trades.png` | `_shot-trades.html?lang=en` (`--virtual-time-budget=14000`) |
 | `ronote-flex.png` | `_shot-flex.html?lang=en` |

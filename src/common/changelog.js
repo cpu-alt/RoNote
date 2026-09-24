@@ -16,6 +16,44 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.15.0',
+    title: item('Écarts sur les listes, réglages refaits', 'Differences on the lists, settings redone'),
+    items: [
+      item("Listes de trades Roblox (Reçus, Envoyés, Terminés) : l'écart de RAP et de Value de chaque trade s'affiche à droite de sa ligne, sans l'ouvrir. La date passe sous le pseudo.",
+        "Roblox trade lists (Inbound, Outbound, Completed): each trade's RAP and Value difference shows on the right of its row, without opening it. The date moves under the username."),
+      item("Réglages réorganisés en moins de sections, avec une recherche (touche /). Un réglage sans effet, parce qu'il dépend d'un autre qui est coupé, apparaît grisé.",
+        'Settings reorganised into fewer sections, with a search box (/ key). A setting that has no effect, because it depends on another one that is off, is greyed out.'),
+      item("Nouvelle section Apparence : pour le bandeau, la colonne des listes et le badge « projected », contenu, format, style, taille, couleurs, forme et coin, avec un aperçu en direct.",
+        'New Appearance section: content, format, style, size, colours, shape and corner for the banner, the list column and the "projected" badge, with a live preview.'),
+      item("Un petit diamant signale les objets que Rolimon's classe « rares », dans le popup et sur les pages de trade Roblox.",
+        'A small diamond marks items Rolimon\'s rates as "rare", in the popup and on Roblox trade pages.'),
+      item("Page d'un limited sur Roblox : une rangée « Value » sous « Best Price », avec la demande, la tendance et un lien direct vers sa fiche Rolimon's.",
+        "A limited's page on Roblox: a \"Value\" row under \"Best Price\", with demand, trend and a direct link to its Rolimon's page."),
+      item("Thèmes RoNote (Réglages › Apparence) : RoNote, Minimal, Néon, Sunset, Océan et Casino règlent d'un coup le bandeau, les listes, le badge et le fond de Roblox. Ton thème s'exporte dans un fichier pour le partager.",
+        "RoNote themes (Settings › Appearance): RoNote, Minimal, Neon, Sunset, Ocean and Casino set the banner, lists, badge and Roblox background in one go. Your theme can be exported to a file to share it."),
+      item("Bilan du mois (onglets Journal et Portefeuille) : value gagnée, taux de victoire, meilleur trade et évolution du compte, sur une carte à copier ou télécharger.",
+        'Monthly recap (Journal and Portfolio tabs): value gained, win rate, best trade and account trend, on a card to copy or download.'),
+      item("Pile ou face (onglet pièce du popup) : choisis ton jeton, vert R$ ou orange T, et laisse le hasard trancher un trade qui te fait hésiter.",
+        "Coin flip (coin tab in the popup): pick your chip, green R$ or orange T, and let luck settle a trade you can't decide on."),
+      item("Flex mon inventaire (onglet Portefeuille) : une carte avec la value de ton compte, sa courbe sur 30 jours et tes six plus gros objets, à copier ou télécharger.",
+        "Flex my inventory (Portfolio tab): a card with your account value, its 30-day curve and your six biggest items, to copy or download."),
+      item("Ton image en fond de roblox.com (Réglages › Apparence), avec un voile de la couleur de ton thème pour garder le texte lisible, et un flou au choix.",
+        "Your own image as the roblox.com background (Settings › Appearance), with a veil in your theme's colour to keep text readable, and optional blur."),
+      item("Lucky Cat de Rolimon's : l'exemplaire tiré (celui qui donne le RoliBadge) porte un chat doré, dans le popup et sur les pages de trade. Le tirage est relu toutes les 10 minutes.",
+        "Rolimon's Lucky Cat: the drawn copy (the one that gives the RoliBadge) wears a golden cat, in the popup and on trade pages. The draw is re-read every 10 minutes."),
+      item("La cote Rolimon's sous chaque objet peut être masquée, sans couper le bandeau des écarts.",
+        "The Rolimon's value under each item can be hidden, without turning off the difference banner."),
+      item("Sauvegarde : exporte tes réglages dans un fichier, importe-les ailleurs, ou remets tout par défaut en un clic.",
+        'Backup: export your settings to a file, import them elsewhere, or reset everything to default in one click.'),
+      item("Un joueur peut être ignoré à la main, par son pseudo ou son identifiant.",
+        'A player can be ignored by hand, by username or ID.'),
+      item("La taille du journal se règle (100 à 1 000 événements), et l'export CSV contient bien tout le journal, plus seulement les 100 derniers événements.",
+        'The journal size can be set (100 to 1,000 events), and the CSV export now holds the whole journal, not just the last 100 events.'),
+      item("Les cotes Rolimon's sont relues toutes les 15 minutes au lieu de 3 heures, et une nouvelle table met à jour les onglets Roblox ouverts.",
+        "Rolimon's values are read every 15 minutes instead of 3 hours, and a new table updates the open Roblox tabs.")
+    ]
+  },
+  {
     version: '2.14.0',
     title: item("Visages : Rolimon's est à jour", "Faces: Rolimon's is up to date"),
     items: [

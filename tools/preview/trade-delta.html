@@ -10,8 +10,9 @@ body{margin:0;background:#2d0061;color:#fff;font:14px Arial,sans-serif}main{max-
 <script type="module">
 // Only the external API is mocked. The actual reader, analysis and UI run here.
 let offline = false;
-const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks','',657,800,0,0,0,0],222:['Snow Leopard Fedora','',1485,1600,0,0,1,0],301:['Coolface','',7563,9000,0,0,1,0],305:['Camoface','',7563,12500,0,0,1,0],306:['White Ninja Headband of the Void','',1742,2100,0,0,0,0],302:['Verdant Crown','',3769,4200,0,0,0,0],401:['Gold Clockwork Headphones','',4813,5500,0,0,0,0]},Object.fromEntries([101,102,103,201,202,203].map((id,i)=>[id,['test','',100,[1500,4000,1800,500,8000,600][i],0,0,id===202?1:0,0]])))};
+const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks','',657,800,0,0,0,0],222:['Snow Leopard Fedora','',1485,1600,0,0,1,0],301:['Coolface','',7563,9000,0,0,1,0],305:['Camoface','',7563,12500,0,0,1,0],306:['White Ninja Headband of the Void','',1742,2100,0,0,0,0],302:['Verdant Crown','',3769,4200,0,0,0,0],401:['Gold Clockwork Headphones','',4813,5500,0,0,0,0]},Object.fromEntries([101,102,103,201,202,203].map((id,i)=>[id,['test','',100,[1500,4000,1800,500,8000,600][i],0,0,id===202?1:0,id===201?1:0]])))};
 globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
+  if (type === 'ronote:lucky-cat') return { luckyCat: window.__lucky || null };
   if (type === 'ronote:item-values') {
     const {findByName} = await import('/src/common/page-trade.js');
     const {resolveItem} = await import('/src/common/analysis.js');
@@ -28,10 +29,19 @@ globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage
   const detail = pageDetail(page,null);
   return {analysis:detail ? analyzePage(page,detail,offline?null:catalog):null};
 }}};
+// Settings, read and followed live like on Roblox: `window.__rnSet({...})` changes them.
+const listeners = [];
+let stored = { settings: {} };
+chrome.storage = { local: { get: async () => stored, set: async () => {} }, onChanged: { addListener: fn => listeners.push(fn) } };
+window.__rnSet = (patch) => {
+  const oldValue = stored.settings;
+  stored = { ...stored, settings: { ...oldValue, ...patch } };
+  for (const fn of listeners) fn({ settings: { oldValue, newValue: stored.settings } }, 'local');
+};
 const fixture = ({ new: 'trade-new-page.html', rows: 'trade-new-rows.html', real: 'trade-new-real.html' })[new URLSearchParams(location.search).get('page')] || 'trade-page.html';
 const markup = await (await fetch('/tools/fixtures/' + fixture)).text();
 document.querySelector('#stage').innerHTML = markup;
-for(const file of ['tradedom.js','projected-badge.js','delta-banner.js','trade-delta.js']) {
+for(const file of ['tradedom.js','projected-badge.js','item-marks.js','delta-banner.js','trade-delta.js']) {
   if(file==='trade-delta.js') history.replaceState(null,'','/trades?preview=regression');
   await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/src/content/'+file;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 }

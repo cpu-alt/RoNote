@@ -11,12 +11,16 @@
  *    bannerLoss   couleur d'une perte
  *    bannerStyle  soft | vivid | neon | solid
  *    bannerSize   s | m | l
+ *    bannerShow   both | value | rap
+ *    bannerFormat full (+2,345) | short (+2.3K)
+ *    bannerPct    le pourcentage entre parenthèses (true / false)
  * ==========================================================================
  */
 (() => {
   if (globalThis.RoNoteBanner) return;
 
-  const DEFAULTS = { gain: '#22e57a', loss: '#ff4d5e', style: 'soft', size: 'm' };
+  const DEFAULTS = { gain: '#22e57a', loss: '#ff4d5e', style: 'soft', size: 'm', show: 'both', format: 'full', pct: true };
+  const SHOWS = ['both', 'value', 'rap'];
   const STYLES = ['soft', 'vivid', 'neon', 'solid'];
   const SIZES = { s: { font: 12, h: 30, arrow: 11 }, m: { font: 14, h: 38, arrow: 14 }, l: { font: 16, h: 46, arrow: 16 } };
 
@@ -33,8 +37,25 @@
       gain: hex(settings.bannerGain, DEFAULTS.gain),
       loss: hex(settings.bannerLoss, DEFAULTS.loss),
       style: STYLES.includes(settings.bannerStyle) ? settings.bannerStyle : DEFAULTS.style,
-      size: SIZES[settings.bannerSize] ? settings.bannerSize : DEFAULTS.size
+      size: SIZES[settings.bannerSize] ? settings.bannerSize : DEFAULTS.size,
+      show: SHOWS.includes(settings.bannerShow) ? settings.bannerShow : DEFAULTS.show,
+      format: settings.bannerFormat === 'short' ? 'short' : 'full',
+      pct: settings.bannerPct !== false
     };
+  }
+
+  // Chiffres à l'anglaise, comme Roblox les écrit sur la page des trades.
+  const full = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const short = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+  const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '');
+
+  /** Le texte d'une case : « +2,480 (+35%) », selon le format choisi. */
+  function amount(delta, pct, settings) {
+    const o = normalize(settings);
+    const a = Math.abs(delta);
+    const n = sign(delta) + (o.format === 'short' && a >= 1000 ? short.format(a) : full.format(a));
+    if (!o.pct) return n;
+    return `${n} (${pct === null || !Number.isFinite(pct) ? '—' : sign(Math.round(pct)) + Math.abs(Math.round(pct)) + '%'})`;
   }
 
   function tone(color, style) {
@@ -79,6 +100,7 @@
         transition:background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease}
       .cell::before{content:attr(data-metric);position:absolute;top:7px;left:0;right:0;text-align:center;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
       .cell[data-tone="neutral"]{color:#c7cbd8}
+      ${o.show === 'both' ? '' : `.row{grid-template-columns:1fr}.cell[data-metric="${o.show === 'value' ? 'RAP' : 'Value'}"]{display:none}`}
       ${cell('up', up)}
       ${cell('down', down)}
       .arrow{width:${z.arrow}px;height:${Math.round(z.arrow * 1.15)}px;flex:none;background:#8a91a0;
@@ -90,5 +112,7 @@
       @media(prefers-reduced-motion:reduce){.cell{transition:none}}`;
   }
 
-  globalThis.RoNoteBanner = { DEFAULTS, STYLES, SIZES, normalize, css };
+  // `tone` sert aussi aux écarts des listes (content/list-look.js) : mêmes
+  // styles, mêmes couleurs, un seul endroit où les définir.
+  globalThis.RoNoteBanner = { DEFAULTS, STYLES, SIZES, normalize, css, tone, amount };
 })();

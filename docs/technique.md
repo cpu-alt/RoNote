@@ -247,7 +247,7 @@ visages). Restreindre la recherche est ce qui évite le piège classique : *Zip 
 existe en visage (`24126147`) **et** en chapeau (`100931472`) ; comme le chapeau est
 toujours coté en v3, il ne peut pas être choisi par erreur.
 
-Ce pont est calculé une fois par rafraîchissement du catalogue (3 h), en mémoire,
+Ce pont est calculé une fois par rafraîchissement du catalogue (15 min), en mémoire,
 sans aucun appel supplémentaire. Il sert à trois endroits :
 
 - **la cote** d'un visage dans un trade ;
@@ -416,7 +416,7 @@ donnée du graphique du site, sur toute son ancienneté, disponible dès la prem
 vérification — sans rien reconstruire.
 
 Trois cadences distinctes, parce que les trois sources ne bougent pas au même
-rythme : profil et inventaire **10 min**, historique **30 min**, catalogue **3 h**.
+rythme : profil et inventaire **10 min**, historique **30 min**, catalogue **15 min**.
 Reconstruire tout ça à chaque vérification (toutes les 30 s) serait une attaque en
 règle sur les API de Rolimon's depuis ton IP. Le bouton **Recalculer maintenant**
 force le tout.
@@ -700,7 +700,7 @@ propre proposition, tu veux la voir même si elle est « perdante ».
 ## Réévaluation des objets possédés
 
 Rolimon's révise ses cotes, parfois de plusieurs dizaines de pourcents d'un coup.
-`roli.js` comparait déjà chaque nouvelle table à la précédente (toutes les 3 h) et
+`roli.js` comparait déjà chaque nouvelle table à la précédente (toutes les 15 min depuis la v2.15 ; 3 h avant) et
 gardait 7 jours de révisions, mais ne s'en servait que pour marquer 🔁 les objets
 d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
 
@@ -722,7 +722,7 @@ d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
 
 Le seuil (10 % par défaut, 3 % au minimum : en dessous, `roli.js` ne retient même
 pas la révision) vaut à la hausse comme à la baisse. L'alerte arrive au plus
-~3 h après la révision chez Rolimon's, la fraîcheur de la table.
+~15 min après la révision chez Rolimon's, la fraîcheur de la table.
 
 La détection est un module pur, testé à part (`tools/test-revalue.mjs`) et sur
 l'inventaire réel anonymisé dans les auto-tests.
@@ -914,9 +914,10 @@ Puis, dans un navigateur :
 | | |
 |---|---|
 | <http://127.0.0.1:8777/tools/selftest.html> | les 98 tests |
-| <http://127.0.0.1:8777/tools/preview.html> | le popup, en vrai (`?lang=en` pour l'anglais) |
+| <http://127.0.0.1:8777/tools/preview/popup.html> | le popup, en vrai (`?lang=en` pour l'anglais) |
+| <http://127.0.0.1:8777/tools/preview/options.html> | les réglages |
 
-`preview.html` ne remaquette rien : il charge **le vrai** `popup.html` /
+`preview/popup.html` ne remaquette rien : il charge **le vrai** `popup.html` /
 `popup.css` / `popup.js` dans une iframe, branché sur un faux service worker, avec
 les cotes réelles de Rolimon's et les vignettes réelles du CDN Roblox. Une maquette
 séparée finirait toujours par mentir sur le rendu réel. On peut donc itérer sur le
@@ -956,13 +957,20 @@ src/
     relay.js               pont page ↔ service worker
     tradedom.js            >> lecture du trade affiché (colonnes, objets, profils)
     scrape.js              repli : envoie le trade lu au service worker
-  popup/                   tableau de bord 5 onglets
-  options/                 réglages + diagnostic
+    trade-delta.js         bandeau des écarts et cotes sur la page d'un trade
+    trade-list.js          écarts sur les listes Reçus / Envoyés / Terminés
+    item-page.js           rangée « Value » sur la page d'un limited
+    page-bg.js             ton image en fond de roblox.com
+  popup/                   tableau de bord : onglets, pile ou face (coinflip.js),
+                           cartes à partager (recap.js)
+  options/                 réglages + diagnostic, thèmes (themes.js)
 tools/
   build.py / check.py      build et vérifications, sans Node
   serve.py                 serveur statique pour les deux pages ci-dessous
   selftest.html/.js        98 tests, dans un vrai navigateur
-  preview.html/.js         le vrai popup, branché sur un faux service worker
+  preview/                 les vraies pages, branchées sur un faux service worker :
+                           popup, options, item-page, trade-delta, trade-flex,
+                           et les pages de capture pour le store (_shot*, _promo)
   fixtures/                vraies réponses d'API (catalogues, inventaire réel)
   *.mjs                    équivalents Node historiques
 ```

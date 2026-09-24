@@ -53,7 +53,10 @@ const KEY = 'roli';
 const KEY_CHANGES = 'roliChanges';
 export const CACHE_VERSION = 4;
 
-const TTL = 3 * 60 * 60 * 1000;           // fraicheur de la table
+// Fraicheur de la table. Une revision de cote chez Rolimon's se voyait
+// jusqu'a 3 h plus tard dans les trades ; 15 min, c'est huit appels par
+// heure pour deux tables, bien loin de la limite de Rolimon's.
+const TTL = 15 * 60 * 1000;
 const VERY_STALE = 24 * 60 * 60 * 1000;   // au-dela, on ne filtre plus dessus
 const CHANGE_WINDOW = 7 * 24 * 60 * 60 * 1000;
 const CHANGE_CAP = 4000;

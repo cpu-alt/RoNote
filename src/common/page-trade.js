@@ -193,7 +193,8 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
       instances: samePageOffers(detail, captured) ? (captured.offers.find(o => Number(o.user?.id) === detail.offers[index].user.id)?.userAssets || [])
         .filter(i => Number(i.assetId || 0) === Number(raw.assetId || 0) && Number(i.bundleId || 0) === Number(raw.bundleId || 0))
         .map(i => ({ uaid: i.id, serial: i.serialNumber })) : [],
-      noValue: !!item?.noValue, projected: cat?.ready && item ? !!item.projected : null };
+      noValue: !!item?.noValue, projected: cat?.ready && item ? !!item.projected : null,
+      rare: cat?.ready && item ? !!item.rare : null };
   }); });
   a.pageTotals = page.sides.map((side, index) => index === detail.mine ? a.give.value : a.get.value);
   a.deltaRap = a.get.rap - a.give.rap;

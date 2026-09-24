@@ -95,6 +95,7 @@ try {
   await import('../src/common/icons.js');
   await import('../src/common/player.js');
   await import('../src/common/changelog.js');
+  await import('../src/common/revalue.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
@@ -380,7 +381,7 @@ try {
     'projected', 'rare', 'bundle', 'value', 'Notifications', 'Maintenance', 'Test',
     'Volume', 'Ping', '1 minute', '2 minutes', '5 minutes',
     'Value {v}', 'RAP {v}', 'bundle #{id}', 'Value {a} vs RAP {b}', 'Total value', 'proj',
-    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping']);
+    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style']);
   const reallyMissing = [...missingT].filter(x => !SAME.has(x));
   check(`${calls} appels a t() : tous traduits en anglais`, reallyMissing, []);
 
@@ -747,6 +748,43 @@ try {
     });
     check('chargement en parallele : jamais plus de 3 a la fois', peak, 3);
     check('chargement en parallele : chaque trade traite une fois', done.sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7]);
+  }
+
+  // --- Bilan du mois : un trade vu deux fois ne compte qu'une fois, et un
+  //     écart de moins de 1 % est un trade égal.
+  {
+    const recap = await import('../src/popup/recap.js');
+    const at = (d) => new Date(2026, 8, d, 12).getTime();   // septembre 2026
+    const history = [
+      { at: at(2), kind: 'completed', tradeId: 1, give: 1000, get: 1500, pct: 50 },
+      { at: at(2), kind: 'outbound_accepted', tradeId: 1, give: 1000, get: 1500, pct: 50 },
+      { at: at(5), kind: 'completed', tradeId: 2, give: 2000, get: 1600, pct: -20 },
+      { at: at(9), kind: 'outbound_accepted', tradeId: 3, give: 1000, get: 1005, pct: 0.5 },
+      { at: at(9), kind: 'inbound', tradeId: 4 },
+      { at: at(10), kind: 'revalued' },
+      { at: new Date(2026, 7, 30).getTime(), kind: 'completed', tradeId: 5, give: 1, get: 999, pct: 99800 }
+    ];
+    const wallet = [{ at: new Date(2026, 7, 31).getTime(), v: 100000 }, { at: at(20), v: 110000 }];
+    const s = recap.recapStats(history, wallet, 2026, 8);
+    check('bilan : trades du mois, sans doublon', [s.trades, s.wins, s.losses, s.evens], [3, 1, 1, 1]);
+    check('bilan : value gagnée et meilleur trade', [s.net, s.best?.net, s.winRate], [105, 500, 33]);
+    check('bilan : offres, réévaluations, value du compte', [s.received, s.revals, s.walletStart, s.walletEnd], [1, 1, 100000, 110000]);
+    const months = recap.recapMonths(history, wallet);
+    check('bilan : mois proposés, du plus récent au plus ancien', months[months.length - 1], [2026, 7]);
+  }
+
+  // --- Thèmes : chaque thème se reconnaît, et un fichier importé ne règle
+  //     que l'apparence.
+  {
+    const themes = await import('../src/options/themes.js');
+    check('thèmes : chacun est reconnu d\'après ses réglages',
+      themes.THEMES.map(th => themes.matchTheme(th.settings)?.id), themes.THEMES.map(th => th.id));
+    const file = themes.themeFromFile({ kind: 'ronote-theme', name: 'Test', settings: { bannerGain: '#00ff00', enabled: false, bannerSize: 3 },
+      pageBgImage: 'javascript:alert(1)' });
+    check('thèmes : import limité à l\'apparence, image refusée', [file.settings, file.pageBgImage], [{ bannerGain: '#00ff00' }, '']);
+    check('thèmes : un autre fichier est refusé', themes.themeFromFile({ settings: {} }), null);
+    check('thèmes : les fonds sont peints en JPEG', /^data:image\/jpeg;base64,/.test(themes.paintBackground('ocean')), true);
+    await import('../src/popup/coinflip.js');
   }
 } catch (e) {
   fail++;

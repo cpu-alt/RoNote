@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.14.0",
+  "version": "2.15.0",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -65,7 +65,8 @@
         "https://www.roblox.com/*"
       ],
       "js": [
-        "content/relay.js"
+        "content/relay.js",
+        "content/page-bg.js"
       ],
       "run_at": "document_start",
       "all_frames": false
@@ -77,10 +78,14 @@
       "js": [
         "content/tradedom.js",
         "content/projected-badge.js",
+        "content/item-marks.js",
         "content/delta-banner.js",
         "content/scrape.js",
         "content/trade-flex.js",
-        "content/trade-delta.js"
+        "content/trade-delta.js",
+        "content/list-look.js",
+        "content/trade-list.js",
+        "content/item-page.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

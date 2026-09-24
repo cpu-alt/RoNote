@@ -6,7 +6,8 @@ navigateur (les modules ES refusent d'etre charges depuis file://).
     python tools/serve.py                 -> http://127.0.0.1:8777/
 
     /tools/selftest.html      les auto-tests
-    /tools/preview.html       l'apercu du popup avec des donnees factices
+    /tools/preview/popup.html    l'apercu du popup avec des donnees factices
+    /tools/preview/options.html  l'apercu des reglages
 """
 import functools
 import http.server
@@ -52,5 +53,5 @@ if __name__ == "__main__":
         sys.exit(1)
     with server as httpd:
         print(f"http://127.0.0.1:{PORT}/tools/selftest.html")
-        print(f"http://127.0.0.1:{PORT}/tools/preview.html")
+        print(f"http://127.0.0.1:{PORT}/tools/preview/popup.html")
         httpd.serve_forever()

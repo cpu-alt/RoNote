@@ -60,9 +60,9 @@
   const attach = Element.prototype.attachShadow;
   Element.prototype.attachShadow = function (o) { return attach.call(this, { ...o, mode: 'open' }); };
 </script>
-<script src="../src/content/trade-flex.js"></script>
+<script src="../../src/content/trade-flex.js"></script>
 <script type="module">
-  const thumbs = await fetch('./fixtures/thumbs.json').then(r => r.json());
+  const thumbs = await fetch('../fixtures/thumbs.json').then(r => r.json());
   // [assetId, nom, RAP, value]
   const GIVE = [
     [1082932, 'Traffic Cone', 3411, 4000],

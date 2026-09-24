@@ -8,9 +8,22 @@ import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml } from '../common/ui.js';
+import { renderCoin, coinKey } from './coinflip.js';
+import { recapStats, recapMonths, drawRecap, drawWallet } from './recap.js';
 
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
+
+/* Repères d'un objet : diamant « rare » et Lucky Cat de Rolimon's, dessinés
+   par content/item-marks.js comme sur la page Roblox. `lucky` est l'exemplaire
+   tiré en ce moment, que le service worker range sous `luckyCat`. */
+const MARKS = globalThis.RoNoteMarks;
+let lucky = null;
+if (MARKS) document.head.append(Object.assign(document.createElement('style'), { textContent: MARKS.INLINE_CSS }));
+const showsRare = (i) => !!MARKS && data.settings?.showRare !== false && !!i.rare;
+const showsLucky = (i) => !!MARKS && data.settings?.showLuckyCat !== false && MARKS.isLucky(lucky, i);
+const marksHtml = (i) => (showsLucky(i) ? MARKS.inline.lucky(lucky) : '') + (showsRare(i) ? MARKS.inline.rare() : '');
+const marksSig = () => [data.settings?.showRare, data.settings?.showLuckyCat, lucky?.uaid || 0];
 
 let data = { settings: null, state: null, history: [], portfolio: [], report: null };
 let tab = 'home';
@@ -162,6 +175,7 @@ function itemTitle(i) {
   if (i.demandLabel) bits.push(t('Demande : {v}', { v: t(i.demandLabel) }));
   if (i.trendLabel) bits.push(t('Tendance : {v}', { v: t(i.trendLabel) }));
   if (i.rare) bits.push(t('RARE'));
+  if (showsLucky(i)) bits.push(t("LUCKY CAT — cet exemplaire donne le RoliBadge de Rolimon's"));
   if (i.speculative) bits.push(t('cote spéculative : très au-dessus des ventes réelles'));
   if (i.moved) {
     bits.push(t('cote révisée : {from} → {to} ({pct})',
@@ -230,7 +244,10 @@ function tilesHtml(side) {
     const tile = i.thumb
       ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}" decoding="async">`
       : `<div class="tc-tile ph ${cls}" title="${title}">${ic(itemIcon(i))}</div>`;
-    return i.projected ? `<span class="tc-tw">${tile}${projBadge()}</span>` : tile;
+    const marks = marksHtml(i);
+    return i.projected || marks
+      ? `<span class="tc-tw">${tile}${i.projected ? projBadge() : ''}${marks ? `<span class="tc-mk">${marks}</span>` : ''}</span>`
+      : tile;
   }).join('');
   const rest = side.items.slice(cut);
   const more = rest.length
@@ -335,7 +352,7 @@ function detailRow(i, big = false) {
 
   return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}">
     ${img}
-    <div class="det-n"><b>${i.projected ? projBadge() + ' ' : ''}${escapeHtml(i.name)}</b><span>${escapeHtml(itemTags(i))}</span></div>
+    <div class="det-n"><b>${i.projected ? projBadge() + ' ' : ''}${escapeHtml(i.name)}${marksHtml(i) ? ' ' + marksHtml(i) : ''}</b><span>${escapeHtml(itemTags(i))}</span></div>
     <div class="det-v">${right}</div>
   </a>`;
 }
@@ -583,6 +600,7 @@ function zoomHtml(c, kind) {
 
 /** Échap referme ce qui est au premier plan : le zoom d'abord, puis la fiche d'un joueur. */
 document.addEventListener('keydown', (e) => {
+  if (tab === 'coin' && !document.getElementById('zoom') && !document.getElementById('side') && !e.target.closest?.('.tabs')) coinKey(listEl, e);
   if (e.key !== 'Escape') return;
   if (document.getElementById('zoom')) closeZoom();
   else if (document.getElementById('side')) closePlayer();
@@ -1215,7 +1233,7 @@ function homeSignature() {
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
     data.state?.portfolioLast?.v, data.state?.portfolioLast?.at,
     data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
-    wallet.hidden, newsPending()]);
+    wallet.hidden, newsPending(), marksSig()]);
 }
 
 /**
@@ -1437,7 +1455,8 @@ function journalSummaryHtml(hist) {
     </div>
     ${done.length ? `<div class="ls-aside"><span>${t('Bilan')}</span><b class="${toneOf(net)}">${fmtSigned(net)}</b>
       <small>${plural(done.length, '{n} trade terminé', '{n} trades terminés')}</small></div>` : ''}
-  </section>`;
+  </section>
+  <button class="rc-open" id="rc-open">${ic('calendar')}<span>${t('Bilan du mois')}</span><small>${t('Une carte à partager')}</small>${ic('chevron')}</button>`;
 }
 
 function renderJournal(entering) {
@@ -1479,6 +1498,134 @@ function renderJournal(entering) {
   listEl.querySelectorAll('.jr[data-url]').forEach(el => el.addEventListener('click', () => {
     B.tabs.create({ url: el.dataset.url });
   }));
+  listEl.querySelector('#rc-open')?.addEventListener('click', () => openShare('month'));
+}
+
+/* ================== cartes à partager : inventaire, mois ================ */
+
+/** Les chiffres de la carte « Mon inventaire », tels que le Portefeuille les affiche. */
+function walletFlexData() {
+  const st = data.state || {};
+  const rep = data.report;
+  const pts = walletSeries().filter(p => p.v > 0);
+  const last = pts[pts.length - 1];
+  const since = (last?.at || Date.now()) - 30 * 864e5;
+  const ref = [...pts].reverse().find(p => p.at <= since) || pts[0];
+  const items = Array.isArray(rep?.items) ? rep.items : [];
+  const value = st.portfolioLast?.v || last?.v || 0;
+  return {
+    value,
+    rap: st.portfolioLast?.r || last?.r || 0,
+    rank: st.portfolioRank || 0,
+    count: items.length ? items.reduce((n, i) => n + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0),
+    change: ref && value && ref.v && ref !== last ? { d: value - ref.v, pct: (value - ref.v) / ref.v * 100 } : null,
+    curve: pts.filter(p => p.at >= since - 864e5).map(p => ({ at: p.at, v: p.v })),
+    top: [...items].sort((a, b) => b.total - a.total).slice(0, 6)
+      .map(i => ({ name: i.name, total: i.total, count: i.count, thumb: i.thumb }))
+  };
+}
+
+/**
+ * La feuille de partage, dans la surcouche du zoom (Échap et le clic à côté
+ * la referment). Deux cartes : « Mon inventaire » (Portefeuille) et « Bilan
+ * du mois » (journal complet demandé au service worker : le popup n'en
+ * reçoit que les 100 dernières lignes).
+ */
+async function openShare(mode = 'wallet') {
+  document.getElementById('zoom')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'zoom'; wrap.id = 'zoom';
+  wrap.innerHTML = `<div class="zoom-card w-sheet" role="dialog" aria-modal="true" aria-label="${t('Flex')}">
+    <header class="z-head">
+      <div class="head rc-modes" role="tablist">
+        <button data-mode="wallet" role="tab">${ic('sparkle')}${t('Mon inventaire')}</button>
+        <button data-mode="month" role="tab">${ic('calendar')}${t('Bilan du mois')}</button>
+      </div>
+      <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
+    </header>
+    <div class="z-body rc-body">
+      <div class="rc-nav" id="rc-nav">
+        <button class="rc-step" data-step="1" title="${t('Mois précédent')}">${ic('chevron')}</button>
+        <b class="rc-month" id="rc-month"></b>
+        <button class="rc-step next" data-step="-1" title="${t('Mois suivant')}">${ic('chevron')}</button>
+      </div>
+      <canvas class="rc-card" id="rc-card" width="1080" height="1350"></canvas>
+      <div class="rc-actions">
+        <button class="rc-btn" id="rc-copy">${ic('copy')}<span>${t('Copier')}</span></button>
+        <button class="rc-btn main" id="rc-save">${ic('download')}<span>${t('Télécharger')}</span></button>
+      </div>
+      <small class="rc-note" id="rc-note"></small>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
+  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
+  captureFocus(wrap, '.z-close');
+
+  const canvas = wrap.querySelector('#rc-card');
+  const note = wrap.querySelector('#rc-note');
+  const logo = B.runtime.getURL('icons/icon128.png');
+  const wallet = walletSeries();
+  let history = null, months = null, at = 0, drawing = 0;
+
+  async function show() {
+    const run = ++drawing;
+    wrap.querySelectorAll('.rc-modes button').forEach(b => {
+      const on = b.dataset.mode === mode;
+      b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
+    });
+    wrap.querySelector('#rc-nav').hidden = mode !== 'month';
+    if (mode === 'wallet') {
+      await drawWallet(canvas, walletFlexData(), logo);
+      if (run === drawing) note.textContent = t("Chiffres du Portefeuille, d'après Rolimon's. Aucun pseudo n'apparaît sur la carte.");
+      return;
+    }
+    if (!history) {
+      const res = await send({ type: 'ronote:history' }).catch(() => null);
+      history = res?.history || data.history || [];
+      months = recapMonths(history, wallet);
+    }
+    const [y, m] = months[at];
+    const label = new Date(y, m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+    wrap.querySelector('#rc-month').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    wrap.querySelector('[data-step="1"]').disabled = at >= months.length - 1;
+    wrap.querySelector('[data-step="-1"]').disabled = at <= 0;
+    const stats = recapStats(history, wallet, y, m);
+    await drawRecap(canvas, stats, logo);
+    if (run !== drawing) return;
+    const oldest = history.length ? Math.min(...history.map(h => h.at)) : Date.now();
+    note.textContent = oldest > stats.from && history.length >= (data.settings?.historyLimit || 300)
+      ? t('Ton journal ne remonte pas au début de ce mois : le bilan peut être incomplet. Sa taille se règle dans les réglages.')
+      : t("D'après ton journal RoNote. Aucun pseudo n'apparaît sur la carte.");
+  }
+  wrap.querySelectorAll('.rc-modes button').forEach(b => b.addEventListener('click', () => {
+    if (mode !== b.dataset.mode) { mode = b.dataset.mode; show(); }
+  }));
+  wrap.querySelectorAll('.rc-step').forEach(b => b.addEventListener('click', () => {
+    if (!months) return;
+    at = clamp(at + Number(b.dataset.step), 0, months.length - 1); show();
+  }));
+  const blob = () => new Promise(r => canvas.toBlob(r, 'image/png'));
+  wrap.querySelector('#rc-save').addEventListener('click', async () => {
+    if (mode === 'month' && !months) return;
+    const name = mode === 'wallet'
+      ? `ronote-inventaire-${new Date().toISOString().slice(0, 10)}.png`
+      : `ronote-bilan-${months[at][0]}-${String(months[at][1] + 1).padStart(2, '0')}.png`;
+    const url = URL.createObjectURL(await blob());
+    Object.assign(document.createElement('a'), { href: url, download: name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+  wrap.querySelector('#rc-copy').addEventListener('click', async (e) => {
+    const label = e.currentTarget.querySelector('span');
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob() })]);
+      label.textContent = t('Copiée !');
+    } catch {
+      label.textContent = t('Copie refusée');
+    }
+    setTimeout(() => { label.textContent = t('Copier'); }, 1800);
+  });
+  await show();
 }
 
 /* ============================= portefeuille ============================= */
@@ -1870,7 +2017,7 @@ function thumbHtml(i) {
 
 function itemBadges(i) {
   return [
-    i.rare ? `<span class="w-tag rare" title="${t('RARE')}">${ic('star')}</span>` : '',
+    showsRare(i) ? MARKS.inline.rare() : '',
     i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">${PROJ_ICON}</span>` : '',
     i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">${ic('face')}</span>` : ''
   ].join('');
@@ -2182,6 +2329,10 @@ function renderStats() {
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
         <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : '—'}</b></div>
     </section>
+    <div class="w-share">
+      <button class="rc-open" data-share="wallet">${ic('sparkle')}<span>${t('Flex mon inventaire')}</span><small>${t('Une carte à partager')}</small>${ic('chevron')}</button>
+      <button class="rc-open" data-share="month">${ic('calendar')}<span>${t('Bilan du mois')}</span><small></small>${ic('chevron')}</button>
+    </div>
     ${items ? allocationHtml(items) : ''}
     ${collectionHtml(rep, items, owned)}
     <div class="w-foot">
@@ -2248,6 +2399,7 @@ function renderStats() {
   });
   const recompute = listEl.querySelector('#btn-recompute');
   recompute?.addEventListener('click', () => recomputePortfolio(recompute));
+  listEl.querySelectorAll('[data-share]').forEach(b => b.addEventListener('click', () => openShare(b.dataset.share)));
 }
 
 /* =============================== la liste =============================== */
@@ -2278,7 +2430,7 @@ function listSignature(snap) {
     tab, listFilter[tab], data.settings?.showItemDetails, data.state?.inboundCount,
     Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
     snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)]),
-    armedNix,
+    armedNix, marksSig(),
     [more[tab]?.loading, more[tab]?.error, hasMore(tab), hydrating.has(tab)]
   ]);
 }
@@ -2308,6 +2460,9 @@ function renderList() {
   const entering = listEl.dataset.tab !== tab;
   listEl.dataset.tab = tab;
   if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
+  // La pièce ne se redessine qu'en arrivant sur l'onglet : un rafraîchissement
+  // de fond couperait un lancer en plein vol.
+  if (tab === 'coin') { lastListSig = ''; if (entering) renderCoin(listEl); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;
@@ -2833,6 +2988,19 @@ function applyChanges() {
   renderList();
   hydrateAll();
 }
+
+// Le Lucky Cat change d'exemplaire toutes les quelques heures : lu tout de
+// suite, puis redemandé au service worker, qui relit Rolimon's s'il date.
+const setLucky = (v) => {
+  const next = v?.uaid ? v : null;
+  if (next?.uaid === lucky?.uaid) return;
+  lucky = next;
+  lastListSig = '';
+  if (data.settings) renderList();
+};
+B.storage.local.get('luckyCat').then(got => setLucky(got?.luckyCat)).catch(() => {});
+send({ type: 'ronote:lucky-cat' }).then(r => setLucky(r?.luckyCat)).catch(() => {});
+onStoredChange(['luckyCat'], 100, (v) => setLucky(v.luckyCat));
 
 onStoredChange(STORED, 200, (values) => {
   Object.assign(pendingChanges, values);

@@ -76,6 +76,9 @@ export const ICONS = {
   list: path('M9 6.5h11M9 12h11M9 17.5h11') + path('M4.5 6.5v.1M4.5 12v.1M4.5 17.5v.1'),
   journal: '<rect x="5" y="3" width="14" height="18" rx="2.5"/>' + path('M9 8h6M9 12h6M9 16h3.5'),
   home: path('M3.5 11 12 4l8.5 7') + path('M6 9.5V19a1 1 0 0 0 1 1h3.5v-5.5h3V20H17a1 1 0 0 0 1-1V9.5'),
+  coin: circle(12, 12, 8.5) + circle(12, 12, 5.2) + path('M12 9.6v4.8'),
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2.5"/>' + path('M4 10h16M8.5 3v4M15.5 3v4'),
+  copy: '<rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2"/>' + path('M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5'),
   sparkle: path('M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z') + path('M18.5 15v5M16 17.5h5'),
 
   /* --- sections des reglages ------------------------------------------ */
@@ -86,7 +89,13 @@ export const ICONS = {
   moon: path('M19.5 14.6A7.9 7.9 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z'),
   'user-off': circle(10, 8, 3.8) + path('M3.5 20.5a6.8 6.8 0 0 1 10.5-5.6') + path('m16.5 15.5 5 5M21.5 15.5l-5 5'),
   pulse: path('M3 12.5h4l2.5-6 5 11.5 2.5-5.5h4'),
-  tool: path('M14.7 3.8a5 5 0 0 0-4.1 6.8L3.8 17.4a1.9 1.9 0 0 0 2.8 2.8l6.8-6.8a5 5 0 0 0 6.8-4.1l-3 .9-2.1-2.1z')
+  tool: path('M14.7 3.8a5 5 0 0 0-4.1 6.8L3.8 17.4a1.9 1.9 0 0 0 2.8 2.8l6.8-6.8a5 5 0 0 0 6.8-4.1l-3 .9-2.1-2.1z'),
+  palette: path('M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.9-.8 1.9-1.8 0-.5-.2-.9-.5-1.3-.3-.3-.5-.7-.5-1.2 0-1 .8-1.7 1.8-1.7h2.1a4.2 4.2 0 0 0 4.2-4.2C21 6.9 17 3.5 12 3.5z')
+    + circle(7.6, 11.6, 1.2, FILL) + circle(10.2, 7.7, 1.2, FILL) + circle(14.8, 7.9, 1.2, FILL),
+  search: circle(10.5, 10.5, 6) + path('M15 15l5.5 5.5'),
+  download: path('M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14'),
+  upload: path('M12 15.5V4.5M7.5 9 12 4.5 16.5 9M5 19.5h14'),
+  undo: path('M9 7.5 4.5 12 9 16.5') + path('M4.5 12H15a4.5 4.5 0 0 1 0 9h-2')
 };
 
 /** Une icone, prete a inserer en HTML. Nom inconnu : rien. */

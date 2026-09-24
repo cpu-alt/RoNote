@@ -12,17 +12,17 @@ globalThis.chrome = {
   runtime: { getURL: (p) => p }
 };
 
-const roli = await import('../src/common/roli.js');
-const apiMod = await import('../src/common/api.js');
-const analysis = await import('../src/common/analysis.js');
-const playerMod = await import('../src/common/player.js');
+const roli = await import('../../src/common/roli.js');
+const apiMod = await import('../../src/common/api.js');
+const analysis = await import('../../src/common/analysis.js');
+const playerMod = await import('../../src/common/player.js');
 
 const json = (p) => fetch(p).then(r => r.json());
 const [rawV3, rawV1, thumbs, fxPortfolio] = await Promise.all([
-  json('./fixtures/rolimons-v3-itemdetails.json'),
-  json('./fixtures/rolimons-itemdetails.json'),
-  json('./fixtures/thumbs.json'),
-  json('./fixtures/portfolio-sample.json')
+  json('../fixtures/rolimons-v3-itemdetails.json'),
+  json('../fixtures/rolimons-itemdetails.json'),
+  json('../fixtures/thumbs.json'),
+  json('../fixtures/portfolio-sample.json')
 ]);
 
 const cat = {
@@ -121,7 +121,7 @@ const lite = (c) => ({ tradeId: c.tradeId, partner: c.partner, created: c.create
 
 /* ------------------------------ portefeuille --------------------------- */
 
-const portfolioMod = await import('../src/common/portfolio.js');
+const portfolioMod = await import('../../src/common/portfolio.js');
 const report = portfolioMod.fromRolimons(portfolioMod.emptyReport(ME), fxPortfolio.playerinfo,
   { counts: fxPortfolio.playerassets, holds: [] }, cat);
 report.at = Date.now() - 4 * 60000;
@@ -183,6 +183,21 @@ const HISTORY = [
   { at: Date.now() - 2600 * 60000, kind: 'completed', tradeId: CARDS.completed[0].tradeId, partner: 'Shedletsky', pct: 240.4, give: 4000, get: 13601, notified: true }
 ];
 
+/** Deux mois de trades terminés et d'offres reçues, stables d'un chargement à l'autre. */
+function demoMonths() {
+  let seed = 42;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const out = [];
+  for (let i = 0; i < 60; i++) {
+    const at = Date.now() - rnd() * 60 * 864e5;
+    const give = Math.round(2000 + rnd() * 60000);
+    const pct = (rnd() - 0.38) * 40;
+    const kind = rnd() < 0.3 ? 'inbound' : rnd() < 0.5 ? 'outbound_accepted' : 'completed';
+    out.push({ at, kind, tradeId: 9e15 + i, partner: 'Demo', give, get: Math.round(give * (1 + pct / 100)), pct, notified: true });
+  }
+  return out;
+}
+
 /**
  * Historique d'objet simulé, au format du service worker : trois ans de
  * relevés, plus denses sur la période récente, avec des révisions de cote.
@@ -213,7 +228,7 @@ function demoItemHistory(itemId) {
 
 /* --------------------------- faux service worker ----------------------- */
 
-const PROMO_VERSION = PROMO ? (await json('../src/manifest.json')).version : null;
+const PROMO_VERSION = PROMO ? (await json('../../src/manifest.json')).version : null;
 const log = document.getElementById('log');
 const mockRuntime = {
   getURL: (p) => p,
@@ -237,6 +252,9 @@ const mockRuntime = {
       }
       case 'ronote:portfolio':
         return { state: STATE, portfolio: series, report };
+      // Tout le journal (bilan du mois) : le relevé du popup, plus deux mois de trades terminés.
+      case 'ronote:history':
+        return { history: [...HISTORY, ...demoMonths()] };
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };
@@ -271,6 +289,9 @@ const mockRuntime = {
         }
         return { faces: playerMod.playerFaces(report) };
       }
+      // Le Lucky Cat de l'aperçu : la Classic ROBLOX Fedora #4412 du deuxième trade.
+      case 'ronote:lucky-cat':
+        return { luckyCat: { uaid: 987654321, assetId: 1029025, serial: 4412, name: 'The Classic ROBLOX Fedora', since: Date.now() - 2 * 3600e3 } };
       case 'ronote:mute':
         if (!SETTINGS.ignoredUsers.some(u => Number(u.id) === Number(msg.userId))) {
           SETTINGS.ignoredUsers.push({ id: Number(msg.userId), name: msg.name || '' });
@@ -335,8 +356,8 @@ const shot = new URLSearchParams(location.search);
 
 /* ------------------------------ montage -------------------------------- */
 
-const base = new URL('../src/popup/', location.href).href;
-let html = await fetch('../src/popup/popup.html').then(r => r.text());
+const base = new URL('../../src/popup/', location.href).href;
+let html = await fetch('../../src/popup/popup.html').then(r => r.text());
 html = html
   .replace('<head>', `<head><base href="${base}">
     <script>globalThis.chrome = parent.__ronoteMock;<\/script>`);
