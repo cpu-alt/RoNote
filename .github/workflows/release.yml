@@ -88,6 +88,16 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
           PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
         run: |
+          # Un secret manquant : on le nomme, plutôt que l'erreur obscure de l'outil.
+          missing=""
+          [ -n "$CLIENT_ID" ] || missing="$missing CWS_CLIENT_ID"
+          [ -n "$CLIENT_SECRET" ] || missing="$missing CWS_CLIENT_SECRET"
+          [ -n "$REFRESH_TOKEN" ] || missing="$missing CWS_REFRESH_TOKEN"
+          [ -n "$PUBLISHER_ID" ] || missing="$missing CWS_PUBLISHER_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets manquants pour le Chrome Web Store :$missing (voir docs/publication-auto.md)"
+            exit 1
+          fi
           npx --yes chrome-webstore-upload-cli \
             --source "dist/ronote-chrome-$TAG.zip" \
             --extension-id "$CWS_EXTENSION_ID" \
