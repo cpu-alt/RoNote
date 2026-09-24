@@ -7,3 +7,6 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Identifiants OAuth Google (jamais dans le dépôt)
+client_secret*.json

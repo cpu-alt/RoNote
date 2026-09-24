@@ -57,6 +57,11 @@ premier envoi se fait à la main, avec [publication-web-store.md](publication-we
    type « Application de bureau ». Le guide pas à pas, avec la récupération du
    *refresh token* :
    <https://github.com/fregante/chrome-webstore-upload-keys>
+   **Raccourci** : `node tools/cws-token.mjs` demande l'ID et le secret client, ouvre
+   l'autorisation Google, puis enregistre `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET` et
+   `CWS_REFRESH_TOKEN` avec `gh` (sans jamais afficher le token) et relance la Release.
+   Mets l'écran de consentement **« En production »** : en mode « Test », Google fait
+   expirer le refresh token au bout de 7 jours.
 3. **Secrets GitHub** — dans le dépôt : *Settings › Secrets and variables › Actions ›
    New repository secret* :
 
