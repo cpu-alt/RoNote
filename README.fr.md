@@ -3,7 +3,7 @@
 *[English](README.md)* · **Français**
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.15.0-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.15.1-brightgreen.svg)](CHANGELOG.md)
 [![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur

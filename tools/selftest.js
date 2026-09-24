@@ -813,8 +813,12 @@ try {
     const bytes = new Uint8Array(await enc.finish().arrayBuffer());
     check('gif : en-tête et fin de fichier', [String.fromCharCode(...bytes.slice(0, 6)), bytes[bytes.length - 1]], ['GIF89a', 0x3B]);
     const img = new Image();
-    img.src = URL.createObjectURL(new Blob([bytes], { type: 'image/gif' }));
-    await img.decode();
+    // `load` plutôt que decode() : dans un onglet en arrière-plan, decode() peut attendre indéfiniment.
+    await new Promise((ok, ko) => {
+      img.onload = ok; img.onerror = () => ko(new Error('gif illisible'));
+      setTimeout(() => ko(new Error('gif : chargement trop long')), 5000);
+      img.src = URL.createObjectURL(new Blob([bytes], { type: 'image/gif' }));
+    });
     g.clearRect(0, 0, 40, 30); g.drawImage(img, 0, 0);
     const px = [...g.getImageData(20, 15, 1, 1).data].slice(0, 3).map(v => Math.round(v / 32));
     check('gif : relu par le navigateur, première image rouge', [img.width, img.height, px], [40, 30, [8, 0, 0]]);

@@ -67,7 +67,9 @@ const STATUS = {
 };
 
 /** La carte du Portefeuille. Sans objectif : un bouton pour en fixer un. */
-export function goalHtml(goal, series, now) {
+export function goalHtml(goal, series, now, hidden = false) {
+  // Mode anonyme : les montants masqués comme ailleurs, la progression en % reste lisible.
+  const money = (n) => (hidden ? `<span class="amt">${full(8888888)}</span>` : full(n));
   if (!goal) {
     return `<button class="rc-open g-new" data-goal="edit">${ic('flag')}<span>${t('Fixer un objectif')}</span><small>${t('Une value ou un objet à atteindre')}</small>${ic('chevron')}</button>`;
   }
@@ -75,13 +77,13 @@ export function goalHtml(goal, series, now) {
   const [tone, label] = STATUS[p.status];
   const title = goal.kind === 'item'
     ? `${goal.item?.thumb ? `<img class="g-thumb" src="${escapeHtml(goal.item.thumb)}" alt="">` : ''}<span>${escapeHtml(goal.item?.name || '?')}</span>`
-    : `<span>${full(p.target)}</span>`;
+    : `<span>${money(p.target)}</span>`;
   const lines = [];
-  if (p.status === 'done') lines.push(t('Tu y es : {v} de value.', { v: full(now) }));
+  if (p.status === 'done') lines.push(t('Tu y es : {v} de value.', { v: money(now) }));
   else {
-    lines.push(t('Reste {r}', { r: `<b>${full(p.remaining)}</b>` }) + (p.daysLeft > 0 ? ' · ' + t('{n} jours restants', { n: p.daysLeft }) : ''));
-    if (p.needed) lines.push(t('Il faut {x} / jour', { x: `<b>+${full(p.needed)}</b>` }) + (p.pace !== null ? ' · ' + t('ton rythme : {x} / jour', { x: `${p.pace >= 0 ? '+' : '−'}${full(Math.abs(p.pace))}` }) : ''));
-    else if (p.pace !== null) lines.push(t('Ton rythme : {x} / jour', { x: `<b>${p.pace >= 0 ? '+' : '−'}${full(Math.abs(p.pace))}</b>` }));
+    lines.push(t('Reste {r}', { r: `<b>${money(p.remaining)}</b>` }) + (p.daysLeft > 0 ? ' · ' + t('{n} jours restants', { n: p.daysLeft }) : ''));
+    if (p.needed) lines.push(t('Il faut {x} / jour', { x: `<b>+${money(p.needed)}</b>` }) + (p.pace !== null ? ' · ' + t('ton rythme : {x} / jour', { x: `${p.pace >= 0 ? '+' : '−'}${money(Math.abs(p.pace))}` }) : ''));
+    else if (p.pace !== null) lines.push(t('Ton rythme : {x} / jour', { x: `<b>${p.pace >= 0 ? '+' : '−'}${money(Math.abs(p.pace))}</b>` }));
     if (p.eta && p.eta - Date.now() > 3650 * DAY) lines.push(t('À ce rythme : dans plus de 10 ans.'));
     else if (p.eta) lines.push(t('À ce rythme : atteint vers le {d}', { d: day(p.eta) }));
     else if (p.pace !== null && p.pace <= 0) lines.push(t('À ce rythme, la value ne monte pas encore.'));
@@ -102,11 +104,12 @@ export function goalHtml(goal, series, now) {
  * objets du catalogue ; `onSave(goal)` enregistre. Rend le HTML et branche
  * ses contrôles dans `card`.
  */
-export function mountGoalEditor(card, { goal, now, search, onSave, onClose }) {
+export function mountGoalEditor(card, { goal, now, hidden = false, search, onSave, onClose }) {
   let kind = goal?.kind || 'value';
   let item = goal?.item || null;
   const dateVal = goal?.deadline ? new Date(goal.deadline - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10) : '';
-  const suggested = Math.ceil((now * 1.25 || 100000) / 10000) * 10000;
+  // En mode anonyme, ni la value actuelle ni une suggestion qui la trahirait.
+  const suggested = hidden ? '' : Math.ceil((now * 1.25 || 100000) / 10000) * 10000;
   card.innerHTML = `<header class="z-head">
       <div class="head"><b class="rc-month">${ic('flag')} ${t('Objectif')}</b></div>
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
@@ -117,8 +120,8 @@ export function mountGoalEditor(card, { goal, now, search, onSave, onClose }) {
         <button data-kind="item" role="tab">${t('Un objet')}</button>
       </div>
       <label class="g-field" data-for="value"><span>${t('Value à atteindre')}</span>
-        <input type="number" id="g-target" min="1" step="1000" placeholder="${suggested}" value="${goal?.kind === 'value' ? goal.target : ''}">
-        <small>${t('Aujourd\'hui : {v}', { v: full(now) })}</small></label>
+        <input type="number" id="g-target" min="1" step="1000" placeholder="${suggested}" value="${goal?.kind === 'value' && !hidden ? goal.target : ''}">
+        ${hidden ? '' : `<small>${t('Aujourd\'hui : {v}', { v: full(now) })}</small>`}</label>
       <div class="g-field" data-for="item"><span>${t('Objet à pouvoir s\'offrir')}</span>
         <input type="search" id="g-q" placeholder="${t('Nom ou acronyme (ex. DE)')}" autocomplete="off" spellcheck="false">
         <div class="g-results" id="g-results"></div>

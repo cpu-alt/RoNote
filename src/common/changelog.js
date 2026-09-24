@@ -16,6 +16,22 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.15.1',
+    title: item('Le Flex du portefeuille, et un vrai mode anonyme', 'Portfolio Flex, and a real anonymous mode'),
+    items: [
+      item("Flex (Portefeuille, à côté de l'œil) : une carte dans le style de Trade Flex, avec le gain en vedette, la value du compte, le graphique Rolimon's et une barre RAP · Rang · Objets.",
+        'Flex (Portfolio, next to the eye): a card in the Trade Flex style, with the gain up front, the account value, the Rolimon\'s chart and a RAP · Rank · Items bar.'),
+      item("Les périodes du graphique sont comptées comme sur Rolimon's : 1m part du même jour le mois précédent, depuis le dernier point de la courbe.",
+        "Chart periods are counted like on Rolimon's: 1m starts on the same day the previous month, from the curve's last point."),
+      item("Mode anonyme (l'œil de l'entête, ou la touche H) : montants remplacés par un faux nombre flouté, rang, objectif et pseudo masqués, pourcentages visibles.",
+        'Anonymous mode (the eye in the header, or the H key): amounts replaced by a blurred fake number, rank, goal and username hidden, percentages visible.'),
+      item('Carte Flex anonyme : le % à la place du gain, UP / DOWN / FLAT, sans un seul montant ni rang.',
+        'Anonymous Flex card: the % instead of the gain, UP / DOWN / FLAT, without a single amount or rank.'),
+      item('Le bilan du mois se retrouve dans le Journal ; le Portefeuille garde un seul bouton Flex.',
+        'The monthly recap lives in the Journal; the Portfolio keeps a single Flex button.')
+    ]
+  },
+  {
     version: '2.15.0',
     title: item('Écarts sur les listes, réglages refaits', 'Differences on the lists, settings redone'),
     items: [

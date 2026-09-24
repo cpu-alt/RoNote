@@ -1401,13 +1401,6 @@ button.icon .ic { width: 16px; height: 16px; }
 .rc-modes button:hover { color: var(--dim); }
 .rc-modes button.on { color: var(--fg); border-color: #33466e; background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006; }
 .rc-nav[hidden] { display: none; }
-.w-share { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-.w-share .rc-open { padding: 10px; gap: 8px; }
-.w-share .rc-open span { flex: 1; white-space: nowrap; font-size: 12.5px; }
-.w-share .rc-open small { display: none; }
-.w-share .rc-open { margin: 0; }
-.w-share .rc-open:first-child { border-color: #33466e; background: radial-gradient(120% 140% at 0% 0%, #4d9fff26, transparent 55%), linear-gradient(160deg, #1b2340, #131a2c); }
-.w-share .rc-open:first-child > .ic:first-child { color: var(--accent); }
 
 /* ================================ objectif ============================== */
 .g-new { margin: 0 0 10px; }
@@ -1477,3 +1470,41 @@ button.icon .ic { width: 16px; height: 16px; }
 .fx-add:hover > .ic { color: var(--fg); border-color: #4d9fff88; }
 .rc-btn:disabled { opacity: .7; cursor: progress; }
 .rc-body > * { flex-shrink: 0; }
+
+/* ============================== mode anonyme ============================ */
+/* Un faux nombre fixe, flouté : l'allure d'un montant, rien du vrai. */
+.amt { filter: blur(5px); user-select: none; pointer-events: none; transition: filter .25s; }
+body.anon #btn-anon { color: var(--accent); border-color: #4d9fff66; background: #4d9fff1a; box-shadow: 0 0 12px #4d9fff33; }
+body.anon #acct { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); }
+body.anon #acct .ic { width: 12px; height: 12px; }
+
+/* Portefeuille : Flex et mode anonyme, en haut du graphique. */
+.w-tools { display: inline-flex; align-items: center; gap: 6px; }
+.w-flex {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 9px; cursor: pointer;
+  border: 1px solid #33466e; color: var(--fg); font-size: 11.5px; font-weight: 750;
+  background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff14;
+  transition: border-color .2s, transform .12s, box-shadow .2s;
+}
+.w-flex .ic { width: 13px; height: 13px; color: var(--accent); }
+.w-flex:hover { border-color: #4d9fff88; box-shadow: 0 4px 16px #4d9fff33; }
+.w-flex:active { transform: scale(.96); }
+body.anon .w-eye { color: var(--accent); border-color: #4d9fff66; }
+
+/* Feuille de partage : l'interrupteur « Carte anonyme ». */
+.fx-anon {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px; border-radius: 12px; cursor: pointer; text-align: left;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); transition: border-color .2s, background .2s;
+}
+.fx-anon > .ic { width: 18px; height: 18px; flex: none; color: var(--faint); }
+.fx-anon span { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.fx-anon b { font-size: 12.5px; }
+.fx-anon small { font-size: 11px; color: var(--faint); }
+.fx-switch { flex: none; position: relative; width: 34px; height: 20px; border-radius: 10px; background: #2a3450; transition: background .2s; }
+.fx-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #c9d3e6; transition: transform .2s var(--ease); }
+.fx-anon[aria-pressed="true"] { border-color: #4d9fff66; background: #4d9fff12; }
+.fx-anon[aria-pressed="true"] > .ic { color: var(--accent); }
+.fx-anon[aria-pressed="true"] .fx-switch { background: var(--accent); }
+.fx-anon[aria-pressed="true"] .fx-switch::after { transform: translateX(14px); background: #fff; }
+/* Les gros chiffres en dégradé (texte découpé) ignorent le flou de leur enfant : on floute le bloc. */
+.w-amount:has(.amt), .p-amount:has(.amt), .h-amount:has(.amt), .w-sh-amount:has(.amt) { filter: blur(7px); user-select: none; }

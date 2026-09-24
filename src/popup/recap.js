@@ -5,8 +5,8 @@
  *  Les cartes PNG à partager, dans l'esprit de Trade Flex :
  *    - le bilan du mois : value gagnée sur les trades terminés, taux de
  *      victoire, meilleur trade, évolution du compte, offres reçues ;
- *    - « Mon inventaire » (Portefeuille) : value, RAP, rang, courbe sur
- *      30 jours et les six plus gros objets avec leurs vignettes.
+ *    - le Flex du portefeuille : sa value, sa variation et son graphique
+ *      Rolimon's, en paysage, dans le style de Trade Flex.
  *
  *  Les chiffres viennent du journal (tout le journal, pas les 100 lignes du
  *  popup) et de la courbe Rolimon's du compte. Le journal garde de 100 à
@@ -237,65 +237,163 @@ function spark(g, pts, x, y, w, h, color) {
   g.beginPath(); g.arc(px(last), py(last), 16, 0, Math.PI * 2); g.fillStyle = color + '33'; g.fill();
 }
 
-/* --------------------------- flex de l'inventaire ------------------------- */
+/* ------------------------- flex du portefeuille --------------------------- */
+
+/*
+ * Dans l'esprit de Trade Flex (content/trade-flex.js) : carte en paysage,
+ * rendue en 2× pour rester nette une fois partagée, liseré et halo de la
+ * couleur du résultat, gros chiffre à gauche, variation à droite. Au milieu,
+ * le graphique Rolimon's du Portefeuille ; en bas, une barre de chiffres.
+ * Pas d'objets : la carte parle du portefeuille, pas de son contenu.
+ */
+export const FLEX_W = 1200, FLEX_H = 760, FLEX_S = 2;
+/** La zone du graphique, en coordonnées de la carte (le popup y calcule les tracés). */
+export const FLEX_PLOT = { x: 72, y: 350, w: 1056, h: 176 };
+
+const TONE = { win: '#3ee6a0', loss: '#ff5c7a', even: '#a9b8d0' };
+const rgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+};
 
 /**
- * La carte « Mon inventaire » du Portefeuille, calée sur son graphique.
- * @param w { label, value, change: {d, pct, label}|null, curve: [{at, v}],
- *            tiles: [[libellé, nombre, préfixe ?]], top: [{name, total, count, thumb}] }
+ * @param w { label, value, anon, asOf, change: {d, pct, label}|null,
+ *            tiles: [[libellé, nombre ou texte, préfixe ?]],
+ *            chart: { lines: [{color, label, path, start, end}], top, bottom, from, to } | null }
  */
 export async function drawWallet(canvas, w, logoUrl, { clear = false } = {}) {
+  const Wd = FLEX_W, Hd = FLEX_H, PAD = 40;
+  canvas.width = Wd * FLEX_S; canvas.height = Hd * FLEX_S;
+  const g = canvas.getContext('2d');
+  g.setTransform(FLEX_S, 0, 0, FLEX_S, 0, 0);
   const tone = w.change ? (w.change.d > 0 ? 'win' : w.change.d < 0 ? 'loss' : 'even') : 'even';
-  const date = new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
-  const g = await frame(canvas, tone, t('MON INVENTAIRE'), date, logoUrl, clear);
+  const color = TONE[tone];
+  const box = (x, y, bw, bh, r, fill, stroke, lw = 1) => {
+    g.beginPath(); g.roundRect(x, y, bw, bh, r);
+    if (fill) { g.fillStyle = fill; g.fill(); }
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+  };
+  const glow = (x, y, r, c, a) => {
+    const f = g.createRadialGradient(x, y, 0, x, y, r);
+    f.addColorStop(0, rgba(c, a)); f.addColorStop(1, rgba(c, 0));
+    g.fillStyle = f; g.fillRect(0, 0, Wd, Hd);
+  };
+  const pctText = (p) => `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p).toFixed(1)}%`;
 
-  // Le chiffre et la courbe du graphique, sur sa période.
-  panel(g, 72, 180, W - 144, 400, 36);
-  text(g, w.label, 112, 248, { size: 28, weight: 700, color: C.dim });
-  const hero = w.value ? full(w.value) : '—';
-  text(g, hero, 108, 380, { size: fit(g, hero, W - 224, 136, 900), weight: 900 });
-  if (w.change) {
-    const col = C[tone];
-    const pill = `${signed(w.change.d)}  ·  ${w.change.pct > 0 ? '+' : ''}${w.change.pct.toFixed(1)} %  ·  ${w.change.label}`;
-    g.font = `800 28px ${FONT}`;
-    const pw = g.measureText(pill).width + 44;
-    rounded(g, 112, 408, pw, 52, 26); g.fillStyle = col + '26'; g.fill();
-    text(g, pill, 134, 444, { size: 28, weight: 800, color: col });
+  // Fond : nuit profonde (ou le fond choisi, posé dessous), halos, liseré.
+  if (!clear) {
+    const bg = g.createLinearGradient(0, 0, Wd, Hd);
+    bg.addColorStop(0, '#0c1428'); bg.addColorStop(1, '#060a14');
+    g.fillStyle = bg; g.fillRect(0, 0, Wd, Hd);
+    glow(80, Hd - 60, 560, '#3b82f6', .14);
   }
-  spark(g, w.curve, 112, 478, W - 224, 80, C[tone] === C.even ? C.accent : C[tone]);
+  glow(Wd - 120, 60, 520, color, clear ? .16 : .22);
+  const edge = g.createLinearGradient(0, 0, 0, Hd);
+  edge.addColorStop(0, rgba(color, .9)); edge.addColorStop(.55, rgba(color, .25)); edge.addColorStop(1, rgba(color, .5));
+  box(10, 10, Wd - 20, Hd - 20, 30, null, edge, 2);
 
-  // Les autres chiffres : ceux que la courbe du haut ne montre pas.
-  const tiles = w.tiles.map(([label, n, prefix = '']) => [label, n ? prefix + full(n) : '—']);
-  const tw = (W - 144 - 2 * 24) / 3;
+  // En-tête : la marque.
+  const logo = await loadImage(logoUrl);
+  if (logo) { g.save(); g.beginPath(); g.roundRect(PAD, 40, 40, 40, 11); g.clip(); g.drawImage(logo, PAD, 40, 40, 40); g.restore(); }
+  text(g, 'RONOTE', PAD + 54, 58, { size: 15, weight: 800, color: '#e8eef8', spacing: 2.5 });
+  text(g, 'PORTFOLIO FLEX', PAD + 54, 78, { size: 13, weight: 600, color: '#8795ad', spacing: 2 });
+
+  // Le gain, en vedette : libellé, gros chiffre en dégradé, pastille du %.
+  // En mode anonyme, le % prend la place du montant.
+  const gainWord = { win: t('GAIN'), loss: t('PERTE'), even: t('VARIATION') }[tone];
+  const kicker = w.change ? `${gainWord} ${t('SUR')} ${w.change.label.toUpperCase()}` : t('VARIATION');
+  text(g, kicker, PAD, 136, { size: 16, weight: 800, color, spacing: 2.5 });
+  const heroText = !w.change ? '—' : w.anon ? pctText(w.change.pct) : signed(w.change.d);
+  const heroSize = fit(g, heroText, 560, 112, 850);
+  const heroGrad = g.createLinearGradient(PAD, 150, PAD + 520, 240);
+  heroGrad.addColorStop(0, color); heroGrad.addColorStop(1, 'rgba(255,255,255,.95)');
+  g.save(); g.shadowColor = rgba(color, .45); g.shadowBlur = 36;
+  text(g, heroText, PAD - 4, 236, { size: heroSize, weight: 850, color: heroGrad, spacing: -2 });
+  g.restore();
+  if (w.change) {
+    // La pastille : la flèche et le %, ou le verdict en mode anonyme.
+    g.font = `850 ${heroSize}px ${FONT}`;
+    if ('letterSpacing' in g) g.letterSpacing = '-2px';
+    const hx = PAD - 4 + g.measureText(heroText).width + 22;
+    if ('letterSpacing' in g) g.letterSpacing = '0px';
+    const arrow = tone === 'win' ? '▲' : tone === 'loss' ? '▼' : '•';
+    const chip = w.anon ? `${arrow} ${{ win: 'UP', loss: 'DOWN', even: 'FLAT' }[tone]}` : `${arrow} ${pctText(w.change.pct)}`;
+    g.font = `800 28px ${FONT}`;
+    const cw2 = g.measureText(chip).width + 36;
+    box(hx, 176, cw2, 52, 26, rgba(color, .15), rgba(color, .45), 1.5);
+    text(g, chip, hx + cw2 / 2, 212, { size: 28, weight: 800, color, align: 'center' });
+  }
+
+  // À droite, discret : ce que vaut le compte.
+  text(g, w.label.toUpperCase(), Wd - PAD, 160, { size: 13, weight: 700, color: '#8795ad', align: 'right', spacing: 1.5 });
+  if (w.anon) text(g, t('Montants masqués'), Wd - PAD, 196, { size: 24, weight: 700, color: '#93a1b8', align: 'right' });
+  else text(g, w.value ? full(w.value) : '—', Wd - PAD, 200, { size: 34, weight: 800, color: '#f3f6fc', align: 'right' });
+  text(g, t('au {d}', { d: new Date(w.asOf || Date.now()).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }) }),
+    Wd - PAD, 230, { size: 15, weight: 600, color: '#7f8ca3', align: 'right' });
+
+  // Le graphique, dans un panneau de verre.
+  const px = PAD - 8, pw = Wd - 2 * (PAD - 8);
+  box(px, 264, pw, 320, 24, clear ? 'rgba(8,12,22,.74)' : 'rgba(255,255,255,.035)', 'rgba(255,255,255,.08)');
+  if (w.chart) plot(g, w.chart, px, pw, 264);
+  else text(g, t('Pas encore de courbe Rolimon’s.'), Wd / 2, 430, { size: 20, weight: 600, color: '#7f8ca3', align: 'center' });
+
+  // La barre de chiffres, comme les totaux d'une offre.
+  const tiles = w.tiles.map(([label, n, prefix = '']) => [label, typeof n === 'string' ? n : n ? prefix + full(n) : '—']);
+  box(px, 600, pw, 84, 20, clear ? 'rgba(8,12,22,.74)' : 'rgba(255,255,255,.04)', 'rgba(255,255,255,.07)');
+  const cw = pw / tiles.length;
   tiles.forEach(([label, value], i) => {
-    const x = 72 + i * (tw + 24);
-    panel(g, x, 606, tw, 150, 28);
-    text(g, label, x + 30, 656, { size: 24, weight: 700, color: C.dim });
-    text(g, value, x + 30, 722, { size: fit(g, value, tw - 60, 50, 850), weight: 850 });
+    const cx = px + cw * i;
+    if (i) { g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(cx, 616, 1, 52); }
+    text(g, label.toUpperCase(), cx + 28, 632, { size: 13, weight: 700, color: '#8795ad', spacing: 1.5 });
+    text(g, value, cx + 28, 664, { size: fit(g, value, cw - 56, 26, 800), weight: 800, color: '#f3f6fc' });
   });
 
-  // Les six plus gros objets, vignettes comprises.
-  text(g, t('Top objets'), 72, 812, { size: 26, weight: 800, color: C.dim, spacing: 1 });
-  const top = (w.top || []).slice(0, 6);
-  const imgs = await Promise.all(top.map(i => loadImage(i.thumb, true)));
-  const cw = (W - 144 - 2 * 24) / 3, ch = 206;
-  top.forEach((item, i) => {
-    const x = 72 + (i % 3) * (cw + 24), y = 836 + Math.floor(i / 3) * (ch + 20);
-    panel(g, x, y, cw, ch, 26);
-    const box = 112, bx = x + (cw - box) / 2, by = y + 14;
-    rounded(g, bx, by, box, box, 18); g.fillStyle = '#ffffff0c'; g.fill();
-    if (imgs[i]) g.drawImage(imgs[i], bx, by, box, box);
-    if (item.count > 1) {
-      rounded(g, bx + box - 52, by + 4, 50, 32, 16); g.fillStyle = '#05080fd0'; g.fill();
-      text(g, '×' + item.count, bx + box - 27, by + 28, { size: 20, weight: 800, align: 'center' });
-    }
-    let name = item.name || '';
-    g.font = `700 22px ${FONT}`;
-    while (name.length > 3 && g.measureText(name).width > cw - 36) name = name.slice(0, -2).trimEnd() + '…';
-    text(g, name, x + cw / 2, y + 158, { size: 22, weight: 700, color: C.dim, align: 'center' });
-    text(g, full(item.total), x + cw / 2, y + 192, { size: 28, weight: 850, align: 'center' });
-  });
-  if (!top.length) text(g, t('Rien à montrer pour l’instant.'), W / 2, 960, { size: 26, weight: 600, color: C.faint, align: 'center' });
+  // Pied : d'où viennent les chiffres, et la date du relevé.
+  const date = new Date(w.asOf || Date.now()).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' });
+  text(g, w.anon ? t("Courbe Rolimon's · montants, rang et pseudo masqués") : t("Courbe Rolimon's · pseudo masqué"),
+    PAD, Hd - 38, { size: 15, weight: 500, color: '#7f8ca3' });
+  text(g, date, Wd - PAD, Hd - 38, { size: 15, weight: 600, color: '#7f8ca3', align: 'right' });
+}
 
-  text(g, t('Fait avec RoNote'), W / 2, 1316, { size: 20, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+/**
+ * Le graphique du Portefeuille : les courbes choisies (tracés déjà calculés
+ * par le popup, même modèle et même lissage), l'aire de la première, les
+ * repères, la légende et les dates de la période.
+ */
+function plot(g, c, px, pw, top) {
+  const { x, y, w, h } = FLEX_PLOT;
+  // Légende à gauche, période à droite.
+  let lx = px + 24;
+  for (const line of c.lines) {
+    g.beginPath(); g.arc(lx + 5, top + 34, 5, 0, Math.PI * 2); g.fillStyle = line.color; g.fill();
+    text(g, line.label, lx + 18, top + 40, { size: 17, weight: 700, color: '#e8eef8' });
+    g.font = `700 17px ${FONT}`;
+    lx += 18 + g.measureText(line.label).width + 22;
+  }
+  text(g, `${c.from}  →  ${c.to}`, px + pw - 24, top + 40, { size: 15, weight: 600, color: '#8795ad', align: 'right' });
+  // Repères discrets.
+  g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 1; g.setLineDash([4, 6]);
+  for (const f of [0, .5, 1]) { g.beginPath(); g.moveTo(x, y + f * h); g.lineTo(x + w, y + f * h); g.stroke(); }
+  g.setLineDash([]);
+  text(g, c.top, x, y - 8, { size: 13, weight: 700, color: '#7f8ca3' });
+  text(g, c.bottom, x, y + h + 20, { size: 13, weight: 700, color: '#7f8ca3' });
+  // Aire sous la première courbe, puis les courbes, la première par-dessus.
+  const [first] = c.lines;
+  const area = new Path2D(first.path);
+  area.lineTo(first.end[0], y + h); area.lineTo(first.start[0], y + h); area.closePath();
+  const fill = g.createLinearGradient(0, y, 0, y + h);
+  fill.addColorStop(0, rgba(first.color, .38)); fill.addColorStop(1, rgba(first.color, 0));
+  g.fillStyle = fill; g.fill(area);
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  for (const line of [...c.lines].reverse()) {
+    g.save();
+    if (line === first) { g.shadowColor = rgba(line.color, .6); g.shadowBlur = 14; }
+    g.strokeStyle = line.color; g.lineWidth = line === first ? 3.5 : 2.5; g.globalAlpha = line === first ? 1 : .85;
+    g.stroke(new Path2D(line.path));
+    g.restore();
+  }
+  for (const line of c.lines) {
+    g.beginPath(); g.arc(line.end[0], line.end[1], 9, 0, Math.PI * 2); g.fillStyle = rgba(line.color, .25); g.fill();
+    g.beginPath(); g.arc(line.end[0], line.end[1], 4.5, 0, Math.PI * 2); g.fillStyle = line.color; g.fill();
+  }
 }

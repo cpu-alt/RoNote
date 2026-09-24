@@ -9,7 +9,7 @@ import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '.
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml } from '../common/ui.js';
 import { renderCoin, coinKey } from './coinflip.js';
-import { recapStats, recapMonths, drawRecap, drawWallet } from './recap.js';
+import { recapStats, recapMonths, drawRecap, drawWallet, FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { BACKGROUNDS, loadBackground, compose, thumbnail } from './flexbg.js';
 import { GifEncoder } from './gif.js';
@@ -113,7 +113,9 @@ const untilHtml = (at) => `<span data-until="${msOf(at)}">${timeUntil(msOf(at))}
 
 function renderHeader() {
   const { settings, state } = data;
-  $('#acct').textContent = state?.userName ? '@' + state.userName : t('Non connecté');
+  // Mode anonyme : le pseudo disparaît aussi (partage d'écran, stream).
+  if (wallet.hidden && state?.userName) $('#acct').innerHTML = `${ic('eye-off')} ${t('Mode anonyme')}`;
+  else $('#acct').textContent = state?.userName ? '@' + state.userName : t('Non connecté');
 
   const inb = state?.inboundCount || 0;
   $('#cnt-inbound').textContent = inb || '';
@@ -603,6 +605,10 @@ function zoomHtml(c, kind) {
 
 /** Échap referme ce qui est au premier plan : le zoom d'abord, puis la fiche d'un joueur. */
 document.addEventListener('keydown', (e) => {
+  // H : mode anonyme, de n'importe où (sauf en tapant du texte).
+  if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest?.('input, textarea, select')) {
+    e.preventDefault(); toggleAnon(); return;
+  }
   if (tab === 'coin' && !document.getElementById('zoom') && !document.getElementById('side') && !e.target.closest?.('.tabs')) coinKey(listEl, e);
   if (e.key !== 'Escape') return;
   if (document.getElementById('zoom')) closeZoom();
@@ -858,7 +864,7 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     hero += '<div class="p-skel"></div>';
   } else if (roli && !roli.private && roli.value) {
     hero += `<div class="p-top"><div class="p-amount">${amount(roli.value)}</div>${variation}</div>
-      <div class="p-sub">${[t('RAP {v}', { v: amount(roli.rap) }), roli.rank ? t('rang #{n}', { n: fmtFull(roli.rank) }) : ''].filter(Boolean).join(' · ')}</div>`;
+      <div class="p-sub">${[t('RAP {v}', { v: amount(roli.rap) }), roli.rank ? t('rang {n}', { n: rankText(roli.rank) }) : ''].filter(Boolean).join(' · ')}</div>`;
   } else if (!roli?.private && lastPt?.v) {
     hero += `<div class="p-top"><div class="p-amount">${amount(lastPt.v)}</div>${variation}</div>
       <div class="p-sub">${t('RAP {v}', { v: amount(lastPt.r) })} · ${t("d'après l'historique Rolimon's")}</div>`;
@@ -1535,6 +1541,7 @@ function openGoal() {
   mountGoalEditor(card, {
     goal: walletGoal,
     now: walletView().nowOf.v,
+    hidden: wallet.hidden,
     search: (query) => send({ type: 'ronote:catalog-search', query }).then(r => r?.items || []).catch(() => []),
     onSave: async (goal) => { await B.storage.local.set({ walletGoal: goal }).catch(() => {}); closeZoom(); },
     onClose: closeZoom
@@ -1546,6 +1553,26 @@ function openGoal() {
 /* ================== cartes à partager : inventaire, mois ================ */
 
 /**
+ * Le début d'une période, compté comme le graphique de Rolimon's (Highcharts) :
+ * à rebours depuis SON dernier point, en mois du calendrier (UTC). « 1m » du
+ * 24 septembre part donc du 24 août, pas de « 30 jours avant maintenant » —
+ * sinon la variation ne tombait pas sur celle du site.
+ */
+function rolimonsRangeStart(key) {
+  const pts = data.portfolio || [];
+  const max = pts.length ? pts[pts.length - 1].at : Date.now();
+  const d = new Date(max);
+  switch (key) {
+    case '1w': return max - 7 * 864e5;
+    case '1m': d.setUTCMonth(d.getUTCMonth() - 1); return d.getTime();
+    case '3m': d.setUTCMonth(d.getUTCMonth() - 3); return d.getTime();
+    case '6m': d.setUTCMonth(d.getUTCMonth() - 6); return d.getTime();
+    case '1y': d.setUTCFullYear(d.getUTCFullYear() - 1); return d.getTime();
+    default: return 0;
+  }
+}
+
+/**
  * Ce que montre le graphique du Portefeuille : période choisie (1s … Tout),
  * courbe principale (Value, RAP ou collectibles), valeur actuelle et
  * variation sur la période. Le graphique et la carte Flex lisent tous deux
@@ -1555,7 +1582,7 @@ function walletView(all = walletSeries()) {
   const st = data.state || {};
   const last = st.portfolioLast;
   const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
-  const since = range.days ? Date.now() - range.days * 864e5 : 0;
+  const since = rolimonsRangeStart(range.key);
   const inRange = all.filter(p => p.at >= since);
   const keys = wallet.series;
   const primary = keys[0];
@@ -1572,27 +1599,67 @@ function walletView(all = walletSeries()) {
 }
 
 /** La période du graphique, en toutes lettres, pour la carte. */
-const RANGE_LONG = { '1w': '7 jours', '1m': '30 jours', '3m': '3 mois', '6m': '6 mois', '1y': '1 an', all: 'depuis le début' };
+const RANGE_LONG = { '1w': '7 jours', '1m': '1 mois', '3m': '3 mois', '6m': '6 mois', '1y': '1 an', all: 'depuis le début' };
 
-/** Les chiffres de la carte « Mon inventaire » : exactement ceux du graphique affiché. */
-function walletFlexData() {
+/**
+ * La carte « Mon inventaire » : le graphique Rolimon's du Portefeuille, et
+ * rien d'autre. Chiffres et courbes viennent tous de la courbe que publie
+ * Rolimon's (une mesure par jour) — pas du relevé en direct de RoNote — sur
+ * la période et avec les courbes choisies dans le Portefeuille. Le tracé est
+ * celui du graphique (même modèle, même lissage), agrandi pour la carte.
+ */
+function walletFlexData(anon = false) {
   const st = data.state || {};
-  const rep = data.report;
-  const view = walletView();
-  const items = Array.isArray(rep?.items) ? rep.items : [];
-  const count = items.length ? items.reduce((n, i) => n + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0);
-  const tile = { v: [t('Value'), view.nowOf.v], r: [t('RAP'), view.nowOf.r], rank: [t('Rang'), st.portfolioRank || 0, '#'], n: [t('Objets'), count] };
-  // La courbe principale est en haut : les tuiles montrent les deux autres chiffres utiles.
-  const tiles = (view.primary === 'v' ? ['r', 'rank', 'n'] : view.primary === 'r' ? ['v', 'rank', 'n'] : ['v', 'r', 'rank']).map(k => tile[k]);
-  const pts = downsample(view.inRange).filter(p => Number.isFinite(p[view.primary]));
+  const roli = (data.portfolio || []).filter(p => p.v > 0).sort((a, b) => a.at - b.at);
+  const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
+  const since = rolimonsRangeStart(range.key);
+  const inRange = roli.filter(p => p.at >= since);
+  const pts = downsample(inRange.length >= 2 ? inRange : roli.slice(-2));
+  const keys = wallet.series;
+  const primary = keys[0];
+  const last = roli[roli.length - 1] || {};
+  const head = pts[0] || last;
+  const now = last[primary] || 0;
+  const delta = now - (head[primary] || now);
+  const pct = head[primary] ? delta / head[primary] * 100 : 0;
+  const rank = st.portfolioRank || 0;
+  const tile = { v: [t('Value'), last.v], r: [t('RAP'), last.r], rank: [t('Rang'), rank, '#'], n: [t('Objets'), last.n] };
+  // Carte anonyme : chaque chiffre devient sa variation sur la période, et le rang disparaît.
+  const change = (k) => {
+    const a = head[k], b = last[k];
+    return a ? fmtPct((b - a) / a * 100) : '—';
+  };
+  const tiles = anon
+    ? [[t('Value'), change('v')], [t('RAP'), change('r')], [t('Objets'), last.n]]
+    : (primary === 'v' ? ['r', 'rank', 'n'] : primary === 'r' ? ['v', 'rank', 'n'] : ['v', 'r', 'rank']).map(k => tile[k]);
+
+  // Le graphique, avec le modèle du Portefeuille, ramené à la zone de la carte.
+  let chart = null;
+  if (pts.length >= 2) {
+    const m = chartModel(pts, keys, WALLET_SERIES);
+    const { x, y, w, h } = FLEX_PLOT;
+    const xy = (i, v) => [x + m.xs[i] * w, y + (1 - (v - m.min) / m.span) * h];
+    const max = m.min + m.span;
+    // Anonyme : les repères du graphique parlent en % depuis le début de la période.
+    const base = m.lines[0].base;
+    const label = (v) => m.percent ? fmtPct(v) : anon && WALLET_SERIES[primary].money ? fmtPct(base ? (v - base) / base * 100 : 0) : WALLET_SERIES[primary].money ? fmtNum(v) : fmtFull(v);
+    chart = {
+      lines: m.lines.map(l => {
+        const pts2 = l.vals.map((v, i) => xy(i, v));
+        return { color: WALLET_SERIES[l.key].color, label: t(WALLET_SERIES[l.key].label), path: smoothPath(pts2), end: pts2[pts2.length - 1], start: pts2[0] };
+      }),
+      top: label(max), bottom: label(m.min),
+      from: fmtDate(pts[0].at), to: fmtDate(pts[pts.length - 1].at),
+      box: FLEX_PLOT
+    };
+  }
   return {
-    label: t(HERO_LABEL[view.primary]),
-    value: view.now,
-    change: pts.length > 1 || view.delta ? { d: view.delta, pct: view.pct, label: t(RANGE_LONG[view.range.key] || '30 jours') } : null,
-    curve: pts.map(p => ({ at: p.at, v: p[view.primary] })),
-    tiles,
-    top: [...items].sort((a, b) => b.total - a.total).slice(0, 6)
-      .map(i => ({ name: i.name, total: i.total, count: i.count, thumb: i.thumb }))
+    label: t(HERO_LABEL[primary]),
+    value: now,
+    anon,
+    asOf: last.at || null,
+    change: pts.length >= 2 ? { d: delta, pct, label: t(RANGE_LONG[range.key] || '30 jours') } : null,
+    chart, tiles
   };
 }
 
@@ -1609,10 +1676,7 @@ async function openShare(mode = 'wallet') {
   wrap.className = 'zoom'; wrap.id = 'zoom';
   wrap.innerHTML = `<div class="zoom-card w-sheet" role="dialog" aria-modal="true" aria-label="${t('Flex')}">
     <header class="z-head">
-      <div class="head rc-modes" role="tablist">
-        <button data-mode="wallet" role="tab">${ic('sparkle')}${t('Mon inventaire')}</button>
-        <button data-mode="month" role="tab">${ic('calendar')}${t('Bilan du mois')}</button>
-      </div>
+      <div class="head"><b class="rc-month">${mode === 'wallet' ? `${ic('sparkle')} ${t('Flex mon portefeuille')}` : `${ic('calendar')} ${t('Bilan du mois')}`}</b></div>
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body rc-body">
@@ -1622,6 +1686,7 @@ async function openShare(mode = 'wallet') {
         <button class="rc-step next" data-step="-1" title="${t('Mois suivant')}">${ic('chevron')}</button>
       </div>
       <canvas class="rc-card" id="rc-card" width="1080" height="1350"></canvas>
+      ${mode === 'wallet' ? `<button class="fx-anon" id="fx-anon" aria-pressed="false">${ic('eye-off')}<span><b>${t('Carte anonyme')}</b><small>${t('Aucun montant : tes variations en % et ta courbe.')}</small></span><i class="fx-switch"></i></button>` : ''}
       <div class="fx-label">${t('Fond')}</div>
       <div class="fx-bgs" id="fx-bgs" role="listbox" aria-label="${t('Fond')}"></div>
       <input type="file" id="fx-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
@@ -1642,7 +1707,7 @@ async function openShare(mode = 'wallet') {
   const note = wrap.querySelector('#rc-note');
   const saveBtn = wrap.querySelector('#rc-save');
   const logo = B.runtime.getURL('icons/icon128.png');
-  const wallet = walletSeries();
+  const series = walletSeries();   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
   let history = null, months = null, at = 0, drawing = 0;
   // Le choix ne garde que son nom ; une image importée vit à part (flexBgCustom), une seule fois.
   const stored = await B.storage.local.get(['flexBg', 'flexBgCustom']).catch(() => ({}));
@@ -1670,30 +1735,28 @@ async function openShare(mode = 'wallet') {
 
   async function show() {
     const run = ++drawing;
-    wrap.querySelectorAll('.rc-modes button').forEach(b => {
-      const on = b.dataset.mode === mode;
-      b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
-    });
     wrap.querySelector('#rc-nav').hidden = mode !== 'month';
     saveBtn.querySelector('span').textContent = bg?.animated ? t('Télécharger le GIF') : t('Télécharger');
     const target = bg ? fg : canvas;
     const opts = { clear: !!bg };
     let text;
     if (mode === 'wallet') {
-      await drawWallet(target, walletFlexData(), logo, opts);
-      text = t("Mêmes chiffres que le graphique du Portefeuille : change la période ou la courbe pour changer la carte. Aucun pseudo n'apparaît dessus.");
+      await drawWallet(target, walletFlexData(anonCard), logo, opts);
+      text = anonCard
+        ? t("Carte anonyme : aucun montant ni rang, seulement tes variations et ta courbe. Aucun pseudo.")
+        : t("Le graphique Rolimon's du Portefeuille, chiffres compris : change la période ou les courbes pour changer la carte. Aucun pseudo n'apparaît dessus.");
     } else {
       if (!history) {
         const res = await send({ type: 'ronote:history' }).catch(() => null);
         history = res?.history || data.history || [];
-        months = recapMonths(history, wallet);
+        months = recapMonths(history, series);
       }
       const [y, m] = months[at];
       const label = new Date(y, m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
       wrap.querySelector('#rc-month').textContent = label.charAt(0).toUpperCase() + label.slice(1);
       wrap.querySelector('[data-step="1"]').disabled = at >= months.length - 1;
       wrap.querySelector('[data-step="-1"]').disabled = at <= 0;
-      const stats = recapStats(history, wallet, y, m);
+      const stats = recapStats(history, series, y, m);
       await drawRecap(target, stats, logo, opts);
       const oldest = history.length ? Math.min(...history.map(h => h.at)) : Date.now();
       text = oldest > stats.from && history.length >= (data.settings?.historyLimit || 300)
@@ -1753,9 +1816,11 @@ async function openShare(mode = 'wallet') {
   });
 
   /* --- partage ------------------------------------------------------------- */
-  wrap.querySelectorAll('.rc-modes button').forEach(b => b.addEventListener('click', () => {
-    if (mode !== b.dataset.mode) { mode = b.dataset.mode; show(); }
-  }));
+  // La carte anonyme suit le mode anonyme du popup, et se change ici sans y toucher.
+  let anonCard = wallet.hidden;
+  const anonBtn = wrap.querySelector('#fx-anon');
+  anonBtn?.setAttribute('aria-pressed', String(anonCard));
+  anonBtn?.addEventListener('click', () => { anonCard = !anonCard; anonBtn.setAttribute('aria-pressed', String(anonCard)); show(); });
   wrap.querySelectorAll('.rc-step').forEach(b => b.addEventListener('click', () => {
     if (!months) return;
     at = clamp(at + Number(b.dataset.step), 0, months.length - 1); show();
@@ -1770,9 +1835,9 @@ async function openShare(mode = 'wallet') {
   };
   const png = () => new Promise(r => canvas.toBlob(r, 'image/png'));
 
-  /** La carte animée, en GIF : 480 × 600, une image toutes les ~100 ms. */
+  /** La carte animée, en GIF : 600 px de large (sa hauteur suit la carte), une image toutes les ~100 ms. */
   async function gif() {
-    const w = 480, h = 600;
+    const w = 600, h = Math.round(600 * fg.height / fg.width);
     const frames = Math.max(8, Math.min(48, Math.round(bg.period / 100)));
     const delay = bg.period / frames;
     const small = Object.assign(document.createElement('canvas'), { width: w, height: h });
@@ -1902,6 +1967,25 @@ try {
 } catch { /* valeurs par défaut */ }
 wallet.series = orderedSeries(wallet.series, WALLET_SERIES);
 
+/** Le mode anonyme s'applique à tout le popup : classe du document, bouton de l'entête, pseudo. */
+function applyAnon() {
+  document.body.classList.toggle('anon', wallet.hidden);
+  const b = document.getElementById('btn-anon');
+  if (b) {
+    b.innerHTML = ic(wallet.hidden ? 'eye-off' : 'eye');
+    b.title = wallet.hidden ? t('Quitter le mode anonyme (H)') : t('Mode anonyme : masquer montants et pseudo (H)');
+    b.setAttribute('aria-pressed', String(wallet.hidden));
+  }
+}
+function toggleAnon() {
+  wallet.hidden = !wallet.hidden;
+  saveWallet();
+  applyAnon();
+  if (data.state) renderHeader();
+  lastListSig = ''; walletSig = '';
+  if (!zoomed && !document.getElementById('zoom')) renderList();
+}
+
 function saveWallet() {
   try {
     localStorage.setItem(WALLET_KEY, JSON.stringify(Object.fromEntries(WALLET_PREFS.map(k => [k, wallet[k]]))));
@@ -1912,16 +1996,24 @@ function saveWallet() {
  * Le mode discret masque les montants, jamais les pourcentages : on garde la
  * tendance sous les yeux sans exposer le solde (partage d'écran, stream).
  */
-const amount = (n) => (wallet.hidden ? '••••••' : fmtFull(n));
-const amountShort = (n) => (wallet.hidden ? '•••' : fmtNum(n));
-const amountSigned = (n, full = false) => (wallet.hidden ? '•••' : fmtSigned(n, full));
+/**
+ * Mode anonyme : un montant masqué devient un faux nombre FIXE, flouté. Il a
+ * l'allure d'un chiffre (la mise en page ne bouge pas), mais rien du vrai
+ * n'est dans la page — pas même son nombre de chiffres, qui trahirait
+ * l'ordre de grandeur. Les pourcentages, eux, restent lisibles.
+ */
+const masked = (s) => `<span class="amt" aria-label="${t('montant masqué')}">${s}</span>`;
+const amount = (n) => (wallet.hidden ? masked(fmtFull(8888888)) : fmtFull(n));
+const amountShort = (n) => (wallet.hidden ? masked(fmtNum(8880000)) : fmtNum(n));
+const amountSigned = (n, full = false) => (wallet.hidden ? masked(fmtSigned(88888, full)) : fmtSigned(n, full));
+const rankText = (r) => (!r ? '' : wallet.hidden ? masked('#' + fmtFull(8888)) : '#' + fmtFull(r));
 const sharePct = (p) => (p >= 10 ? String(Math.round(p)) : p.toFixed(1)) + '%';
 
 const seriesText = (def, n) => (def.money ? amount(n) : fmtFull(n));
 const seriesShort = (def, n) => (def.money ? amountShort(n) : fmtNum(n));
 const seriesSigned = (def, n) => (def.money ? amountSigned(n, true) : fmtSigned(n, true));
 const pillText = (def, delta, pct) =>
-  `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${seriesSigned(def, delta)} · ${fmtPct(pct)}`;
+  `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${wallet.hidden && def.money ? '' : seriesSigned(def, delta) + ' · '}${fmtPct(pct)}`;
 
 /* ------------------------------- le mouvement ---------------------------- */
 
@@ -1938,7 +2030,7 @@ let heroFrame = 0;
 function countUp(el, from, to, format, ms = 800) {
   cancelAnimationFrame(heroFrame);
   if (!el) return;
-  if (REDUCED_MOTION || wallet.hidden || from === to || !Number.isFinite(from)) { el.textContent = format(to); return; }
+  if (REDUCED_MOTION || wallet.hidden || from === to || !Number.isFinite(from)) { el.innerHTML = format(to); return; }
   const start = performance.now();
   const step = (now) => {
     const k = Math.min(1, (now - start) / ms);
@@ -2489,7 +2581,10 @@ function renderStats() {
     <section class="w-hero" data-tone="${tone}">
       <div class="w-top">
         ${seriesChips(WALLET_SERIES, keys, 'data-series')}
-        <button class="w-eye" data-eye title="${wallet.hidden ? t('Afficher les montants') : t('Masquer les montants')}">${ic(wallet.hidden ? 'eye-off' : 'eye')}</button>
+        <span class="w-tools">
+          <button class="w-flex" data-share="wallet" title="${t('Partager une carte de ton portefeuille')}">${ic('sparkle')}${t('Flex')}</button>
+          <button class="w-eye" data-eye title="${wallet.hidden ? t('Quitter le mode anonyme (H)') : t('Mode anonyme : masquer montants et pseudo (H)')}">${ic(wallet.hidden ? 'eye-off' : 'eye')}</button>
+        </span>
       </div>
       <div class="w-label">${t(HERO_LABEL[primary])}</div>
       <div class="w-amount" id="w-amount">${seriesText(pdef, now)}</div>
@@ -2504,16 +2599,12 @@ function renderStats() {
     </section>
     <section class="w-tiles">
       <div class="w-tile"><span>${WALLET_SERIES[other].label}</span><b>${amountShort(cur[other])}</b></div>
-      <div class="w-tile"><span>${t('Rang')}</span><b>${st.portfolioRank ? '#' + fmtFull(st.portfolioRank) : '—'}</b></div>
+      <div class="w-tile"><span>${t('Rang')}</span><b>${rankText(st.portfolioRank) || '—'}</b></div>
       <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : '—'}</b></div>
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
         <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : '—'}</b></div>
     </section>
-    <div class="w-share">
-      <button class="rc-open" data-share="wallet">${ic('sparkle')}<span>${t('Flex mon inventaire')}</span><small>${t('Une carte à partager')}</small>${ic('chevron')}</button>
-      <button class="rc-open" data-share="month">${ic('calendar')}<span>${t('Bilan du mois')}</span><small></small>${ic('chevron')}</button>
-    </div>
-    ${goalHtml(walletGoal, all, nowOf.v)}
+    ${goalHtml(walletGoal, all, nowOf.v, wallet.hidden)}
     ${items ? allocationHtml(items) : ''}
     ${collectionHtml(rep, items, owned)}
     <div class="w-foot">
@@ -2536,7 +2627,7 @@ function renderStats() {
     onScrub: (i) => {
       cancelAnimationFrame(heroFrame);
       if (i === null) {
-        amountEl.textContent = seriesText(pdef, now);
+        amountEl.innerHTML = seriesText(pdef, now);
         pillEl.innerHTML = pillText(pdef, delta, pct);
         pillEl.className = `w-pill ${tone}`;
         whenEl.textContent = whenText;
@@ -2544,7 +2635,7 @@ function renderStats() {
       }
       const base = pts[0][primary] || 0;
       const value = pts[i][primary] || 0;
-      amountEl.textContent = seriesText(pdef, value);
+      amountEl.innerHTML = seriesText(pdef, value);
       pillEl.innerHTML = pillText(pdef, value - base, base ? ((value - base) / base) * 100 : 0);
       pillEl.className = 'w-pill ' + toneOf(value - base);
       whenEl.textContent = fmtDate(pts[i].at);
@@ -2564,7 +2655,7 @@ function renderStats() {
     pref('series', toggleSeries(wallet.series, el.dataset.series, WALLET_SERIES), 'chart')));
   listEl.querySelectorAll('[data-range]').forEach(el => el.addEventListener('click', () => pref('range', el.dataset.range, 'chart')));
   listEl.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => pref('filter', el.dataset.filter, 'items')));
-  listEl.querySelector('[data-eye]')?.addEventListener('click', () => pref('hidden', !wallet.hidden, null));
+  listEl.querySelector('[data-eye]')?.addEventListener('click', toggleAnon);
   listEl.querySelector('[data-view]')?.addEventListener('click', () => pref('view', wallet.view === 'grid' ? 'list' : 'grid', 'items'));
   listEl.querySelector('#w-sort')?.addEventListener('change', (e) => { wallet.sort = e.target.value; saveWallet(); renderItems({ animate: true }); });
   // La frappe rapide ne refiltre et ne redessine qu'une fois la main levée.
@@ -3121,6 +3212,9 @@ document.querySelectorAll('.tab').forEach(el => {
     hydrate();
   });
 });
+
+$('#btn-anon').addEventListener('click', toggleAnon);
+applyAnon();
 
 $('#btn-refresh').addEventListener('click', async (e) => {
   const btn = e.currentTarget;

@@ -3,7 +3,7 @@
 **English** · *[Français](README.fr.md)*
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.15.0-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.15.1-brightgreen.svg)](CHANGELOG.md)
 [![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 A browser extension (Chrome / Edge / Brave / Opera / Firefox) that tells you on your
@@ -51,14 +51,17 @@ And the number that matters, everywhere, is the **value**, not the RAP.
 ### Popup
 - **Portfolio**: your account value and its curve, then each of your collectibles
   with its value, demand and trend (search, sort, gallery view, hideable amounts)
-- **Flex my inventory**: a shareable card with your account value, its curve and
-  your six biggest items — it follows the chart's period and curve
+- **Flex my portfolio**: a card in the Trade Flex style with your value, its change
+  and your Rolimon's chart — it follows the chart's period and curves
 - **Flex backgrounds**: built-in images, animated backgrounds (Aurora, Stars,
   Synthwave, Bokeh) or your own image or GIF; animated cards download as a **GIF**
 - **Goal**: a value or an item to reach, with or without a deadline, with your
   current pace, the pace you need and an estimated date
-- **Monthly recap**: value gained from trades, win rate, best trade and account
-  trend, on a card to copy or download
+- **Anonymous mode** (eye button or the H key): every amount becomes a blurred fake
+  number, rank and username are hidden, percentages stay visible — made for
+  screen sharing and streams; the Flex card has an anonymous version too
+- **Monthly recap** (Journal): value gained from trades, win rate, best trade and
+  account trend, on a card to copy or download
 - **Trade Flex**: a clean PNG card of a completed trade
 - **Coin flip**: can't decide on a trade? Pick your chip (green R$ or orange T) and let luck decide
 

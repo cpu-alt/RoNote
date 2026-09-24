@@ -3,6 +3,29 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.15.1 — le Flex du portefeuille, et un vrai mode anonyme
+
+**Le Flex du portefeuille refait, dans le style de Trade Flex, et un mode
+anonyme qui ne laisse plus rien passer.**
+
+- **Flex** (Portefeuille, à côté de l'œil) : une carte en paysage, dans le style
+  de Trade Flex. Le **gain** en vedette (« GAIN SUR 1 MOIS », +52 370, ▲ +2,9 %),
+  la value du compte à côté, le graphique Rolimon's et une barre RAP · Rang ·
+  Objets. Plus d'objets sous la carte, et plus de choix Inventaire / Bilan : un
+  bouton, une carte. Le bilan du mois reste dans le Journal.
+- **Les chiffres de Rolimon's** : la carte prend la courbe publiée par
+  Rolimon's, sur la période et avec les courbes choisies dans le Portefeuille.
+- **Périodes comptées comme sur Rolimon's** : 1m part du même jour le mois
+  précédent (24 août → 24 sept.), 3m / 6m / 1a en mois du calendrier, depuis le
+  dernier point de la courbe. Avant, RoNote comptait 30 jours depuis
+  maintenant, et la variation ne tombait pas sur celle du site.
+- **Mode anonyme** (l'œil de l'entête, ou la touche H) : chaque montant devient
+  un faux nombre fixe, flouté — il n'y a plus rien du vrai dans la page, pas
+  même son nombre de chiffres. Rang, objectif et pseudo sont masqués aussi ; les
+  pourcentages restent lisibles.
+- **Carte Flex anonyme** : le % à la place du gain, UP / DOWN / FLAT, variations
+  de la value et du RAP, sans un seul montant ni rang.
+
 ## v2.15.0 — Roblox à ton image
 
 **RoNote va plus loin sur roblox.com et devient personnalisable.** Les écarts
