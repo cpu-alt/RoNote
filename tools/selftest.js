@@ -786,6 +786,62 @@ try {
     check('thèmes : les fonds sont peints en JPEG', /^data:image\/jpeg;base64,/.test(themes.paintBackground('ocean')), true);
     await import('../src/popup/coinflip.js');
   }
+
+  // --- Objectif : progression, rythme sur 30 jours, et verdict.
+  {
+    const goals = await import('../src/popup/goal.js');
+    const now = new Date(2026, 8, 24).getTime(), day = 864e5;
+    const series = [{ at: now - 60 * day, v: 900000 }, { at: now - 30 * day, v: 1000000 }, { at: now, v: 1300000 }];
+    const p = goals.goalProgress({ kind: 'value', target: 2000000, deadline: now + 50 * day }, series, 1300000, now);
+    check('objectif : progression et reste', [Math.round(p.pct), p.remaining, p.daysLeft], [65, 700000, 50]);
+    check('objectif : rythme sur 30 j et rythme nécessaire', [Math.round(p.pace), Math.round(p.needed), p.status], [10000, 14000, 'behind']);
+    const item = goals.goalProgress({ kind: 'item', item: { value: 1000000 } }, series, 1300000, now);
+    check('objectif : un objet déjà à portée est atteint', [item.status, item.pct, item.remaining], ['done', 100, 0]);
+    const late = goals.goalProgress({ kind: 'value', target: 2e6, deadline: now - day }, series, 1300000, now);
+    check('objectif : date dépassée', late.status, 'late');
+  }
+
+  // --- GIF : ce que l'encodeur écrit, le navigateur le relit.
+  {
+    const { GifEncoder } = await import('../src/popup/gif.js');
+    const c = Object.assign(document.createElement('canvas'), { width: 40, height: 30 });
+    const g = c.getContext('2d', { willReadFrequently: true });
+    const frames = ['#ff0000', '#00c000', '#2050ff'].map(col => { g.fillStyle = col; g.fillRect(0, 0, 40, 30); return g.getImageData(0, 0, 40, 30); });
+    const enc = new GifEncoder(40, 30);
+    enc.palette(frames);
+    for (const f of frames) await enc.add(f, 120);
+    const bytes = new Uint8Array(await enc.finish().arrayBuffer());
+    check('gif : en-tête et fin de fichier', [String.fromCharCode(...bytes.slice(0, 6)), bytes[bytes.length - 1]], ['GIF89a', 0x3B]);
+    const img = new Image();
+    img.src = URL.createObjectURL(new Blob([bytes], { type: 'image/gif' }));
+    await img.decode();
+    g.clearRect(0, 0, 40, 30); g.drawImage(img, 0, 0);
+    const px = [...g.getImageData(20, 15, 1, 1).data].slice(0, 3).map(v => Math.round(v / 32));
+    check('gif : relu par le navigateur, première image rouge', [img.width, img.height, px], [40, 30, [8, 0, 0]]);
+    if ('ImageDecoder' in globalThis) {
+      const dec = new ImageDecoder({ data: bytes, type: 'image/gif' });
+      await dec.tracks.ready;
+      check('gif : trois images', dec.tracks.selectedTrack.frameCount, 3);
+    }
+  }
+
+  // --- Fonds animés : t = 1 redonne t = 0, sinon le GIF sauterait à chaque tour.
+  {
+    const fb = await import('../src/popup/flexbg.js');
+    const fg = Object.assign(document.createElement('canvas'), { width: 60, height: 75 });
+    const a = Object.assign(document.createElement('canvas'), { width: 60, height: 75 });
+    const b = Object.assign(document.createElement('canvas'), { width: 60, height: 75 });
+    const same = [];
+    for (const def of fb.BACKGROUNDS.filter(x => x.animated)) {
+      const bg = await fb.loadBackground({ id: def.id });
+      fb.compose(a, fg, bg, 0); fb.compose(b, fg, bg, 1);
+      const da = a.getContext('2d').getImageData(0, 0, 60, 75).data, db = b.getContext('2d').getImageData(0, 0, 60, 75).data;
+      let diff = 0;
+      for (let i = 0; i < da.length; i++) diff = Math.max(diff, Math.abs(da[i] - db[i]));
+      same.push(diff <= 2);
+    }
+    check('fonds animés : chacun boucle sans saut', same, same.map(() => true));
+  }
 } catch (e) {
   fail++;
   const pre = document.createElement('pre');

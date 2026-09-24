@@ -10,6 +10,9 @@ import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml } from '../common/ui.js';
 import { renderCoin, coinKey } from './coinflip.js';
 import { recapStats, recapMonths, drawRecap, drawWallet } from './recap.js';
+import { goalHtml, mountGoalEditor } from './goal.js';
+import { BACKGROUNDS, loadBackground, compose, thumbnail } from './flexbg.js';
+import { GifEncoder } from './gif.js';
 
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
@@ -1501,25 +1504,93 @@ function renderJournal(entering) {
   listEl.querySelector('#rc-open')?.addEventListener('click', () => openShare('month'));
 }
 
+/* ========================= objectif du Portefeuille ===================== */
+
+let walletGoal = null;
+let goalRefreshed = false;
+
+/** Un objectif « objet » suit la cote de l'objet : relue une fois par ouverture du popup. */
+async function refreshGoalItem() {
+  if (goalRefreshed || walletGoal?.kind !== 'item' || !walletGoal.item) return;
+  goalRefreshed = true;
+  const { assetId, bundleId } = walletGoal.item;
+  const r = await send({ type: 'ronote:catalog-search', ids: [{ assetId, bundleId }] }).catch(() => null);
+  const fresh = r?.items?.[0];
+  if (!fresh?.value || (fresh.value === walletGoal.item.value && fresh.thumb === walletGoal.item.thumb)) return;
+  await B.storage.local.set({ walletGoal: { ...walletGoal, target: fresh.value,
+    item: { ...walletGoal.item, value: fresh.value, thumb: fresh.thumb || walletGoal.item.thumb } } }).catch(() => {});
+}
+
+/** La fenêtre de l'objectif, dans la surcouche du zoom. */
+function openGoal() {
+  document.getElementById('zoom')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'zoom'; wrap.id = 'zoom';
+  const card = document.createElement('div');
+  card.className = 'zoom-card w-sheet';
+  card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true');
+  wrap.append(card);
+  document.body.appendChild(wrap);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
+  mountGoalEditor(card, {
+    goal: walletGoal,
+    now: walletView().nowOf.v,
+    search: (query) => send({ type: 'ronote:catalog-search', query }).then(r => r?.items || []).catch(() => []),
+    onSave: async (goal) => { await B.storage.local.set({ walletGoal: goal }).catch(() => {}); closeZoom(); },
+    onClose: closeZoom
+  });
+  fillIcons(card);
+  captureFocus(wrap, '.z-close');
+}
+
 /* ================== cartes à partager : inventaire, mois ================ */
 
-/** Les chiffres de la carte « Mon inventaire », tels que le Portefeuille les affiche. */
+/**
+ * Ce que montre le graphique du Portefeuille : période choisie (1s … Tout),
+ * courbe principale (Value, RAP ou collectibles), valeur actuelle et
+ * variation sur la période. Le graphique et la carte Flex lisent tous deux
+ * ceci : ils ne peuvent pas afficher deux chiffres différents.
+ */
+function walletView(all = walletSeries()) {
+  const st = data.state || {};
+  const last = st.portfolioLast;
+  const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
+  const since = range.days ? Date.now() - range.days * 864e5 : 0;
+  const inRange = all.filter(p => p.at >= since);
+  const keys = wallet.series;
+  const primary = keys[0];
+  const pdef = WALLET_SERIES[primary];
+  // Le relevé du moment prime sur le dernier point historique.
+  const cur = last || all[all.length - 1] || { v: 0, r: 0 };
+  const nowOf = { v: cur.v || 0, r: cur.r || 0, n: all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0) };
+  const head = inRange[0] || all[0] || {};
+  const now = nowOf[primary];
+  const start = Number.isFinite(head[primary]) ? head[primary] : now;
+  const delta = now - start;
+  const pct = start ? (delta / start) * 100 : 0;
+  return { range, inRange, keys, primary, pdef, cur, nowOf, now, start, delta, pct };
+}
+
+/** La période du graphique, en toutes lettres, pour la carte. */
+const RANGE_LONG = { '1w': '7 jours', '1m': '30 jours', '3m': '3 mois', '6m': '6 mois', '1y': '1 an', all: 'depuis le début' };
+
+/** Les chiffres de la carte « Mon inventaire » : exactement ceux du graphique affiché. */
 function walletFlexData() {
   const st = data.state || {};
   const rep = data.report;
-  const pts = walletSeries().filter(p => p.v > 0);
-  const last = pts[pts.length - 1];
-  const since = (last?.at || Date.now()) - 30 * 864e5;
-  const ref = [...pts].reverse().find(p => p.at <= since) || pts[0];
+  const view = walletView();
   const items = Array.isArray(rep?.items) ? rep.items : [];
-  const value = st.portfolioLast?.v || last?.v || 0;
+  const count = items.length ? items.reduce((n, i) => n + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0);
+  const tile = { v: [t('Value'), view.nowOf.v], r: [t('RAP'), view.nowOf.r], rank: [t('Rang'), st.portfolioRank || 0, '#'], n: [t('Objets'), count] };
+  // La courbe principale est en haut : les tuiles montrent les deux autres chiffres utiles.
+  const tiles = (view.primary === 'v' ? ['r', 'rank', 'n'] : view.primary === 'r' ? ['v', 'rank', 'n'] : ['v', 'r', 'rank']).map(k => tile[k]);
+  const pts = downsample(view.inRange).filter(p => Number.isFinite(p[view.primary]));
   return {
-    value,
-    rap: st.portfolioLast?.r || last?.r || 0,
-    rank: st.portfolioRank || 0,
-    count: items.length ? items.reduce((n, i) => n + i.count, 0) + (rep.unrated || 0) : (st.collectibles || 0),
-    change: ref && value && ref.v && ref !== last ? { d: value - ref.v, pct: (value - ref.v) / ref.v * 100 } : null,
-    curve: pts.filter(p => p.at >= since - 864e5).map(p => ({ at: p.at, v: p.v })),
+    label: t(HERO_LABEL[view.primary]),
+    value: view.now,
+    change: pts.length > 1 || view.delta ? { d: view.delta, pct: view.pct, label: t(RANGE_LONG[view.range.key] || '30 jours') } : null,
+    curve: pts.map(p => ({ at: p.at, v: p[view.primary] })),
+    tiles,
     top: [...items].sort((a, b) => b.total - a.total).slice(0, 6)
       .map(i => ({ name: i.name, total: i.total, count: i.count, thumb: i.thumb }))
   };
@@ -1529,7 +1600,8 @@ function walletFlexData() {
  * La feuille de partage, dans la surcouche du zoom (Échap et le clic à côté
  * la referment). Deux cartes : « Mon inventaire » (Portefeuille) et « Bilan
  * du mois » (journal complet demandé au service worker : le popup n'en
- * reçoit que les 100 dernières lignes).
+ * reçoit que les 100 dernières lignes). Sous la carte, le choix du fond :
+ * un fond animé ou un GIF donne une carte animée, exportée en GIF.
  */
 async function openShare(mode = 'wallet') {
   document.getElementById('zoom')?.remove();
@@ -1550,6 +1622,9 @@ async function openShare(mode = 'wallet') {
         <button class="rc-step next" data-step="-1" title="${t('Mois suivant')}">${ic('chevron')}</button>
       </div>
       <canvas class="rc-card" id="rc-card" width="1080" height="1350"></canvas>
+      <div class="fx-label">${t('Fond')}</div>
+      <div class="fx-bgs" id="fx-bgs" role="listbox" aria-label="${t('Fond')}"></div>
+      <input type="file" id="fx-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
       <div class="rc-actions">
         <button class="rc-btn" id="rc-copy">${ic('copy')}<span>${t('Copier')}</span></button>
         <button class="rc-btn main" id="rc-save">${ic('download')}<span>${t('Télécharger')}</span></button>
@@ -1563,10 +1638,35 @@ async function openShare(mode = 'wallet') {
   captureFocus(wrap, '.z-close');
 
   const canvas = wrap.querySelector('#rc-card');
+  const fg = document.createElement('canvas');        // la carte seule, sur fond transparent
   const note = wrap.querySelector('#rc-note');
+  const saveBtn = wrap.querySelector('#rc-save');
   const logo = B.runtime.getURL('icons/icon128.png');
   const wallet = walletSeries();
   let history = null, months = null, at = 0, drawing = 0;
+  // Le choix ne garde que son nom ; une image importée vit à part (flexBgCustom), une seule fois.
+  const stored = await B.storage.local.get(['flexBg', 'flexBgCustom']).catch(() => ({}));
+  let choice = { id: stored?.flexBg?.id || 'default' };
+  if (choice.id === 'custom') choice = stored?.flexBgCustom ? { id: 'custom', data: stored.flexBgCustom } : { id: 'default' };
+  let bg = await loadBackground(choice).catch(() => null);
+  let raf = 0, busy = false;
+
+  const stopAnim = () => { cancelAnimationFrame(raf); raf = 0; };
+  function animate() {
+    stopAnim();
+    if (!bg) return;
+    if (!bg.animated || REDUCED_MOTION) { compose(canvas, fg, bg, 0); return; }
+    const t0 = performance.now();
+    let last = 0;
+    const tick = (now) => {
+      if (!wrap.isConnected) return;
+      raf = requestAnimationFrame(tick);
+      if (now - last < 33) return;                   // ~30 images/s : largement assez pour un aperçu
+      last = now;
+      compose(canvas, fg, bg, ((now - t0) / bg.period) % 1);
+    };
+    raf = requestAnimationFrame(tick);
+  }
 
   async function show() {
     const run = ++drawing;
@@ -1575,29 +1675,84 @@ async function openShare(mode = 'wallet') {
       b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
     });
     wrap.querySelector('#rc-nav').hidden = mode !== 'month';
+    saveBtn.querySelector('span').textContent = bg?.animated ? t('Télécharger le GIF') : t('Télécharger');
+    const target = bg ? fg : canvas;
+    const opts = { clear: !!bg };
+    let text;
     if (mode === 'wallet') {
-      await drawWallet(canvas, walletFlexData(), logo);
-      if (run === drawing) note.textContent = t("Chiffres du Portefeuille, d'après Rolimon's. Aucun pseudo n'apparaît sur la carte.");
-      return;
+      await drawWallet(target, walletFlexData(), logo, opts);
+      text = t("Mêmes chiffres que le graphique du Portefeuille : change la période ou la courbe pour changer la carte. Aucun pseudo n'apparaît dessus.");
+    } else {
+      if (!history) {
+        const res = await send({ type: 'ronote:history' }).catch(() => null);
+        history = res?.history || data.history || [];
+        months = recapMonths(history, wallet);
+      }
+      const [y, m] = months[at];
+      const label = new Date(y, m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+      wrap.querySelector('#rc-month').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+      wrap.querySelector('[data-step="1"]').disabled = at >= months.length - 1;
+      wrap.querySelector('[data-step="-1"]').disabled = at <= 0;
+      const stats = recapStats(history, wallet, y, m);
+      await drawRecap(target, stats, logo, opts);
+      const oldest = history.length ? Math.min(...history.map(h => h.at)) : Date.now();
+      text = oldest > stats.from && history.length >= (data.settings?.historyLimit || 300)
+        ? t('Ton journal ne remonte pas au début de ce mois : le bilan peut être incomplet. Sa taille se règle dans les réglages.')
+        : t("D'après ton journal RoNote. Aucun pseudo n'apparaît sur la carte.");
     }
-    if (!history) {
-      const res = await send({ type: 'ronote:history' }).catch(() => null);
-      history = res?.history || data.history || [];
-      months = recapMonths(history, wallet);
-    }
-    const [y, m] = months[at];
-    const label = new Date(y, m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
-    wrap.querySelector('#rc-month').textContent = label.charAt(0).toUpperCase() + label.slice(1);
-    wrap.querySelector('[data-step="1"]').disabled = at >= months.length - 1;
-    wrap.querySelector('[data-step="-1"]').disabled = at <= 0;
-    const stats = recapStats(history, wallet, y, m);
-    await drawRecap(canvas, stats, logo);
     if (run !== drawing) return;
-    const oldest = history.length ? Math.min(...history.map(h => h.at)) : Date.now();
-    note.textContent = oldest > stats.from && history.length >= (data.settings?.historyLimit || 300)
-      ? t('Ton journal ne remonte pas au début de ce mois : le bilan peut être incomplet. Sa taille se règle dans les réglages.')
-      : t("D'après ton journal RoNote. Aucun pseudo n'apparaît sur la carte.");
+    if (bg) { canvas.width = fg.width; canvas.height = fg.height; }
+    animate();
+    note.textContent = text;
   }
+
+  /* --- le choix du fond ---------------------------------------------------- */
+  const tiles = wrap.querySelector('#fx-bgs');
+  async function renderTiles() {
+    const got = await B.storage.local.get('flexBgCustom').catch(() => ({}));
+    const custom = got?.flexBgCustom;
+    const list = [...BACKGROUNDS.map(b => ({ ...b, choice: { id: b.id } })),
+      ...(custom ? [{ id: 'custom', name: t('Ton image'), animated: /^data:image\/gif/.test(custom), choice: { id: 'custom', data: custom } }] : [])];
+    tiles.innerHTML = list.map((b, i) => `<button class="fx-bg" role="option" data-i="${i}" aria-selected="${b.id === choice.id}" title="${escapeHtml(t(b.name))}">
+        <img alt=""><span>${escapeHtml(t(b.name))}</span>${b.animated ? '<em>GIF</em>' : ''}</button>`).join('')
+      + `<button class="fx-bg fx-add" id="fx-add" title="${t('Importer une image ou un GIF')}">${ic('upload')}<span>${t('Importer')}</span></button>`;
+    tiles.querySelectorAll('[data-i]').forEach(async (el) => {
+      const b = list[Number(el.dataset.i)];
+      el.addEventListener('click', () => pick(b.choice));
+      el.querySelector('img').src = await thumbnail(b.choice).catch(() => '');
+    });
+    tiles.querySelector('#fx-add').addEventListener('click', () => wrap.querySelector('#fx-file').click());
+  }
+  async function pick(next) {
+    choice = next;
+    tiles.querySelectorAll('[data-i]').forEach(el => el.setAttribute('aria-selected', 'false'));
+    bg = await loadBackground(choice).catch(() => null);
+    await B.storage.local.set({ flexBg: { id: choice.id } }).catch(() => {});
+    await renderTiles();
+    show();
+  }
+  wrap.querySelector('#fx-file').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { note.textContent = t('Format non pris en charge : PNG, JPG, GIF ou WebP.'); return; }
+    if (file.size > 6 * 1024 * 1024) { note.textContent = t('Image trop lourde (6 Mo maximum).'); return; }
+    // Un GIF garde toutes ses images ; une photo est ramenée à la taille de la carte.
+    let dataUrl;
+    if (file.type === 'image/gif') dataUrl = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(file); });
+    else {
+      const bmp = await createImageBitmap(file).catch(() => null);
+      if (!bmp) { note.textContent = t('Image illisible.'); return; }
+      const k = Math.min(1, 1350 / Math.max(bmp.width, bmp.height));
+      const c = Object.assign(document.createElement('canvas'), { width: Math.round(bmp.width * k), height: Math.round(bmp.height * k) });
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      dataUrl = c.toDataURL('image/jpeg', 0.88);
+    }
+    await B.storage.local.set({ flexBgCustom: dataUrl }).catch(() => {});
+    pick({ id: 'custom', data: dataUrl });
+  });
+
+  /* --- partage ------------------------------------------------------------- */
   wrap.querySelectorAll('.rc-modes button').forEach(b => b.addEventListener('click', () => {
     if (mode !== b.dataset.mode) { mode = b.dataset.mode; show(); }
   }));
@@ -1605,26 +1760,65 @@ async function openShare(mode = 'wallet') {
     if (!months) return;
     at = clamp(at + Number(b.dataset.step), 0, months.length - 1); show();
   }));
-  const blob = () => new Promise(r => canvas.toBlob(r, 'image/png'));
-  wrap.querySelector('#rc-save').addEventListener('click', async () => {
-    if (mode === 'month' && !months) return;
-    const name = mode === 'wallet'
-      ? `ronote-inventaire-${new Date().toISOString().slice(0, 10)}.png`
-      : `ronote-bilan-${months[at][0]}-${String(months[at][1] + 1).padStart(2, '0')}.png`;
-    const url = URL.createObjectURL(await blob());
+  const fileName = (ext) => mode === 'wallet'
+    ? `ronote-inventaire-${new Date().toISOString().slice(0, 10)}.${ext}`
+    : `ronote-bilan-${months[at][0]}-${String(months[at][1] + 1).padStart(2, '0')}.${ext}`;
+  const download = (blob, name) => {
+    const url = URL.createObjectURL(blob);
     Object.assign(document.createElement('a'), { href: url, download: name }).click();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const png = () => new Promise(r => canvas.toBlob(r, 'image/png'));
+
+  /** La carte animée, en GIF : 480 × 600, une image toutes les ~100 ms. */
+  async function gif() {
+    const w = 480, h = 600;
+    const frames = Math.max(8, Math.min(48, Math.round(bg.period / 100)));
+    const delay = bg.period / frames;
+    const small = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    const g = small.getContext('2d', { willReadFrequently: true });
+    const label = saveBtn.querySelector('span');
+    const shots = [];
+    for (let i = 0; i < frames; i++) {
+      compose(small, fg, bg, i / frames);
+      shots.push(g.getImageData(0, 0, w, h));
+      label.textContent = t('Préparation… {p} %', { p: Math.round(i / frames * 40) });
+      if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));
+    }
+    const enc = new GifEncoder(w, h);
+    enc.palette(shots.filter((_, i) => i % 3 === 0));
+    for (let i = 0; i < shots.length; i++) {
+      await enc.add(shots[i], delay);
+      label.textContent = t('Préparation… {p} %', { p: 40 + Math.round((i + 1) / shots.length * 60) });
+    }
+    return enc.finish();
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    if (busy || (mode === 'month' && !months)) return;
+    busy = true;
+    saveBtn.disabled = true;
+    try {
+      if (bg?.animated) download(await gif(), fileName('gif'));
+      else download(await png(), fileName('png'));
+    } finally {
+      busy = false;
+      saveBtn.disabled = false;
+      saveBtn.querySelector('span').textContent = bg?.animated ? t('Télécharger le GIF') : t('Télécharger');
+    }
   });
   wrap.querySelector('#rc-copy').addEventListener('click', async (e) => {
     const label = e.currentTarget.querySelector('span');
     try {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob() })]);
+      // Le presse-papiers n'accepte que le PNG : une carte animée y part figée.
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
       label.textContent = t('Copiée !');
     } catch {
       label.textContent = t('Copie refusée');
     }
     setTimeout(() => { label.textContent = t('Copier'); }, 1800);
   });
+  renderTiles();
   await show();
 }
 
@@ -2272,27 +2466,13 @@ function renderStats() {
   // vignettes et sa courbe, au lieu d'être reconstruit toutes les 30 s.
   const sig = JSON.stringify([
     rep?.at, rep?.items?.length, all.length, all[all.length - 1]?.at, last?.v, last?.r, last?.at,
-    st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k])
+    st.portfolioRank, walletFetching, WALLET_PREFS.map(k => wallet[k]), walletGoal
   ]);
   if (listEl.querySelector('.w-hero') && sig === walletSig) return;
   walletSig = sig;
 
-  const range = RANGES.find(r => r.key === wallet.range) || RANGES[1];
-  const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const inRange = all.filter(p => p.at >= since);
+  const { range, inRange, keys, primary, pdef, cur, nowOf, now, start, delta, pct } = walletView(all);
   const pts = downsample(inRange);
-  const keys = wallet.series;
-  const primary = keys[0];
-  const pdef = WALLET_SERIES[primary];
-
-  // Le relevé du moment prime sur le dernier point historique.
-  const cur = last || all[all.length - 1] || { v: 0, r: 0 };
-  const nowOf = { v: cur.v || 0, r: cur.r || 0, n: all.length ? all[all.length - 1].n || 0 : (st.collectibles || 0) };
-  const head = inRange[0] || all[0] || {};
-  const now = nowOf[primary];
-  const start = Number.isFinite(head[primary]) ? head[primary] : now;
-  const delta = now - start;
-  const pct = start ? (delta / start) * 100 : 0;
   const tone = toneOf(delta);
   const whenText = t('sur {p}', { p: range.days ? t(range.label) : t("tout l'historique") });
 
@@ -2333,6 +2513,7 @@ function renderStats() {
       <button class="rc-open" data-share="wallet">${ic('sparkle')}<span>${t('Flex mon inventaire')}</span><small>${t('Une carte à partager')}</small>${ic('chevron')}</button>
       <button class="rc-open" data-share="month">${ic('calendar')}<span>${t('Bilan du mois')}</span><small></small>${ic('chevron')}</button>
     </div>
+    ${goalHtml(walletGoal, all, nowOf.v)}
     ${items ? allocationHtml(items) : ''}
     ${collectionHtml(rep, items, owned)}
     <div class="w-foot">
@@ -2400,6 +2581,10 @@ function renderStats() {
   const recompute = listEl.querySelector('#btn-recompute');
   recompute?.addEventListener('click', () => recomputePortfolio(recompute));
   listEl.querySelectorAll('[data-share]').forEach(b => b.addEventListener('click', () => openShare(b.dataset.share)));
+  listEl.querySelectorAll('[data-goal]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.goal === 'edit') { openGoal(); return; }
+    if (confirm(t('Supprimer cet objectif ?'))) await B.storage.local.set({ walletGoal: null }).catch(() => {});
+  }));
 }
 
 /* =============================== la liste =============================== */
@@ -3001,6 +3186,13 @@ const setLucky = (v) => {
 B.storage.local.get('luckyCat').then(got => setLucky(got?.luckyCat)).catch(() => {});
 send({ type: 'ronote:lucky-cat' }).then(r => setLucky(r?.luckyCat)).catch(() => {});
 onStoredChange(['luckyCat'], 100, (v) => setLucky(v.luckyCat));
+const setGoal = (v) => {
+  walletGoal = v && typeof v === 'object' ? v : null;
+  if (tab === 'stats' && !zoomed) renderList();
+  refreshGoalItem();
+};
+B.storage.local.get('walletGoal').then(got => setGoal(got?.walletGoal)).catch(() => {});
+onStoredChange(['walletGoal'], 50, (v) => setGoal(v.walletGoal));
 
 onStoredChange(STORED, 200, (values) => {
   Object.assign(pendingChanges, values);

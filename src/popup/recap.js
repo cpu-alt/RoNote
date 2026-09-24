@@ -121,9 +121,10 @@ const loadImage = (src, cors = false) => new Promise(res => {
 });
 
 /** Fond, halos à la couleur du verdict, grille et en-tête : commun à toutes les cartes. */
-async function frame(canvas, tone, kicker, title, logoUrl) {
+async function frame(canvas, tone, kicker, title, logoUrl, clear = false) {
   canvas.width = W; canvas.height = H;
   const g = canvas.getContext('2d');
+  if (clear) return header(g, kicker, title, logoUrl);   // fond fourni à part (flexbg.js)
   const glow = tone === 'win' ? '#1fd08a' : tone === 'loss' ? '#ff4d6d' : '#4d7dff';
 
   // Fond : nuit profonde, halo à la couleur du verdict, fine grille.
@@ -139,6 +140,10 @@ async function frame(canvas, tone, kicker, title, logoUrl) {
   for (let x = 0; x <= W; x += 54) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
   for (let y = 0; y <= H; y += 54) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
 
+  return header(g, kicker, title, logoUrl);
+}
+
+async function header(g, kicker, title, logoUrl) {
   const logo = await loadImage(logoUrl);
   if (logo) { rounded(g, 72, 70, 64, 64, 16); g.save(); g.clip(); g.drawImage(logo, 72, 70, 64, 64); g.restore(); }
   text(g, 'RoNote', 156, 112, { size: 38, weight: 800 });
@@ -148,10 +153,10 @@ async function frame(canvas, tone, kicker, title, logoUrl) {
 }
 
 /** Dessine la carte du mois sur `canvas` (redimensionné en 1080 × 1350). */
-export async function drawRecap(canvas, s, logoUrl) {
+export async function drawRecap(canvas, s, logoUrl, { clear = false } = {}) {
   const tone = s.trades ? (s.net > 0 ? 'win' : s.net < 0 ? 'loss' : 'even') : 'even';
   const month = new Date(s.y, s.m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
-  const g = await frame(canvas, tone, t('BILAN DU MOIS'), month.charAt(0).toUpperCase() + month.slice(1), logoUrl);
+  const g = await frame(canvas, tone, t('BILAN DU MOIS'), month.charAt(0).toUpperCase() + month.slice(1), logoUrl, clear);
 
   // Le chiffre du mois.
   panel(g, 72, 180, W - 144, 300, 36);
@@ -235,22 +240,23 @@ function spark(g, pts, x, y, w, h, color) {
 /* --------------------------- flex de l'inventaire ------------------------- */
 
 /**
- * La carte « Mon inventaire » du Portefeuille.
- * @param w { value, rap, count, rank, change: {d, pct}|null, curve: [{at, v}], top: [{name, total, count, thumb}] }
+ * La carte « Mon inventaire » du Portefeuille, calée sur son graphique.
+ * @param w { label, value, change: {d, pct, label}|null, curve: [{at, v}],
+ *            tiles: [[libellé, nombre, préfixe ?]], top: [{name, total, count, thumb}] }
  */
-export async function drawWallet(canvas, w, logoUrl) {
+export async function drawWallet(canvas, w, logoUrl, { clear = false } = {}) {
   const tone = w.change ? (w.change.d > 0 ? 'win' : w.change.d < 0 ? 'loss' : 'even') : 'even';
   const date = new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
-  const g = await frame(canvas, tone, t('MON INVENTAIRE'), date, logoUrl);
+  const g = await frame(canvas, tone, t('MON INVENTAIRE'), date, logoUrl, clear);
 
-  // La value du compte et sa courbe sur 30 jours.
+  // Le chiffre et la courbe du graphique, sur sa période.
   panel(g, 72, 180, W - 144, 400, 36);
-  text(g, t('Value du compte'), 112, 248, { size: 28, weight: 700, color: C.dim });
+  text(g, w.label, 112, 248, { size: 28, weight: 700, color: C.dim });
   const hero = w.value ? full(w.value) : '—';
   text(g, hero, 108, 380, { size: fit(g, hero, W - 224, 136, 900), weight: 900 });
   if (w.change) {
     const col = C[tone];
-    const pill = `${signed(w.change.d)}  ·  ${w.change.pct > 0 ? '+' : ''}${w.change.pct.toFixed(1)} %  ·  ${t('30 jours')}`;
+    const pill = `${signed(w.change.d)}  ·  ${w.change.pct > 0 ? '+' : ''}${w.change.pct.toFixed(1)} %  ·  ${w.change.label}`;
     g.font = `800 28px ${FONT}`;
     const pw = g.measureText(pill).width + 44;
     rounded(g, 112, 408, pw, 52, 26); g.fillStyle = col + '26'; g.fill();
@@ -258,8 +264,8 @@ export async function drawWallet(canvas, w, logoUrl) {
   }
   spark(g, w.curve, 112, 478, W - 224, 80, C[tone] === C.even ? C.accent : C[tone]);
 
-  // RAP, rang, objets.
-  const tiles = [[t('RAP'), w.rap ? full(w.rap) : '—'], [t('Rang'), w.rank ? '#' + full(w.rank) : '—'], [t('Objets'), w.count ? full(w.count) : '—']];
+  // Les autres chiffres : ceux que la courbe du haut ne montre pas.
+  const tiles = w.tiles.map(([label, n, prefix = '']) => [label, n ? prefix + full(n) : '—']);
   const tw = (W - 144 - 2 * 24) / 3;
   tiles.forEach(([label, value], i) => {
     const x = 72 + i * (tw + 24);

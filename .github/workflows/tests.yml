@@ -1,0 +1,37 @@
+# Vérifications et tests à chaque push sur main et sur chaque pull request :
+# les mêmes commandes qu'en local (voir README > Building from source).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Vérifications (Node)
+        run: node tools/check.mjs
+
+      - name: Vérifications (Python)
+        run: python tools/check.py
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: python tools/build.py

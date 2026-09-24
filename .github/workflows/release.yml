@@ -1,0 +1,89 @@
+# Une Release à chaque tag de version :
+#
+#     git tag v2.15.0 && git push origin v2.15.0
+#
+# 1. vérifie que le tag est bien la version du manifeste, puis vérifications et tests ;
+# 2. construit les zips Chrome et Firefox et crée la Release GitHub, avec les notes
+#    tirées de CHANGELOG.md ;
+# 3. publie sur le Chrome Web Store et sur addons.mozilla.org, SI les secrets
+#    correspondants existent (voir docs/publication-auto.md). Sans eux, ces deux
+#    étapes sont simplement sautées.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Le tag correspond à la version du manifeste
+        run: |
+          v=$(python -c "import json; print(json.load(open('src/manifest.json', encoding='utf-8'))['version'])")
+          vf=$(python -c "import json; print(json.load(open('src/manifest.firefox.json', encoding='utf-8'))['version'])")
+          if [ "v$v" != "$GITHUB_REF_NAME" ] || [ "$v" != "$vf" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME, manifeste v$v, manifeste Firefox v$vf : ils doivent être identiques."
+            exit 1
+          fi
+
+      - name: Vérifications et tests
+        run: |
+          node tools/check.mjs
+          python tools/check.py
+          npm test
+
+      - name: Build
+        run: python tools/build.py
+
+      - name: Notes de version
+        run: python tools/release_notes.py "$GITHUB_REF_NAME" > notes.md
+
+      - name: Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/ronote-chrome-$GITHUB_REF_NAME.zip" \
+            "dist/ronote-firefox-$GITHUB_REF_NAME.zip" \
+            --title "RoNote $GITHUB_REF_NAME" --notes-file notes.md
+
+      - name: Chrome Web Store
+        if: env.CWS_EXTENSION_ID != ''
+        env:
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+        run: |
+          npx --yes chrome-webstore-upload-cli \
+            --source "dist/ronote-chrome-$GITHUB_REF_NAME.zip" \
+            --extension-id "$CWS_EXTENSION_ID" \
+            --publisher-id "$PUBLISHER_ID"
+
+      - name: Firefox Add-ons
+        if: env.AMO_JWT_ISSUER != ''
+        env:
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx --yes web-ext sign \
+            --source-dir dist/firefox \
+            --channel listed \
+            --api-key "$AMO_JWT_ISSUER" \
+            --api-secret "$AMO_JWT_SECRET"

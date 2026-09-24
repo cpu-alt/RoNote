@@ -156,6 +156,13 @@
         <span class="btnrow"><select id="snd-revalued"></select><button class="btn" data-play="revalued" type="button" title="Écouter"><i data-ic="play"></i></button></span></div>
       <label class="row" data-needs="sound" data-keys="son sound"><span><b>Volume</b></span>
         <span class="btnrow volume"><input type="range" id="volume" min="0" max="1" step="0.05"><output id="volume-out"></output></span></label>
+
+      <h3>Tes sons</h3>
+      <div class="row" data-needs="sound" data-keys="son sound audio mp3 importer import perso custom"><span><b>Importer un son</b><small>MP3, WAV, OGG ou M4A, 1 Mo maximum. Il apparaît dans chaque liste ci-dessus, et s'arrête après 8 secondes.</small></span>
+        <span class="btnrow"><label class="btn" for="snd-file" tabindex="0"><i data-ic="upload"></i>Importer</label>
+          <input type="file" id="snd-file" accept="audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4,audio/x-m4a,audio/aac,audio/webm" hidden></span></div>
+      <small class="proj-msg" id="snd-msg"></small>
+      <div id="custom-sounds" class="snd-list"></div>
     </section>
 
     <!-- =============================== Filtres ============================= -->

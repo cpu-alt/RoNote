@@ -76,6 +76,7 @@ export const ICONS = {
   list: path('M9 6.5h11M9 12h11M9 17.5h11') + path('M4.5 6.5v.1M4.5 12v.1M4.5 17.5v.1'),
   journal: '<rect x="5" y="3" width="14" height="18" rx="2.5"/>' + path('M9 8h6M9 12h6M9 16h3.5'),
   home: path('M3.5 11 12 4l8.5 7') + path('M6 9.5V19a1 1 0 0 0 1 1h3.5v-5.5h3V20H17a1 1 0 0 0 1-1V9.5'),
+  flag: path('M5.5 21V4') + path('M5.5 4.5h11.5l-2.5 4 2.5 4H5.5'),
   coin: circle(12, 12, 8.5) + circle(12, 12, 5.2) + path('M12 9.6v4.8'),
   calendar: '<rect x="4" y="5" width="16" height="15" rx="2.5"/>' + path('M4 10h16M8.5 3v4M15.5 3v4'),
   copy: '<rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2"/>' + path('M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5'),

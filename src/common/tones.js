@@ -6,6 +6,24 @@
  * qu'aux tests et a la page de reglages.
  */
 
+/** Un son importe ne joue jamais plus longtemps que ca : une alerte, pas un morceau. */
+export const CUSTOM_MAX_MS = 8000;
+
+/**
+ * Joue un son importe (data: URL). Meme contrainte que playToneInPage : elle
+ * est injectee telle quelle dans un onglet sous Firefox, donc autonome.
+ */
+export function playAudioInPage(data, volume, maxMs) {
+  try {
+    const a = new Audio(data);
+    a.volume = Math.max(0, Math.min(1, Number(volume) || 0.6));
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+    setTimeout(() => { try { a.pause(); } catch (_) { /* ignore */ } }, Number(maxMs) || 8000);
+    return true;
+  } catch (_) { return false; }
+}
+
 /** Motifs disponibles, dans l'ordre ou ils sont proposes. */
 export const TONE_NAMES = ['chime', 'ping', 'coins', 'alert', 'success', 'down'];
 

@@ -252,6 +252,25 @@ const mockRuntime = {
       }
       case 'ronote:portfolio':
         return { state: STATE, portfolio: series, report };
+      // Objectif du Portefeuille : même recherche que le service worker, sur le vrai catalogue.
+      case 'ronote:catalog-search': {
+        const flat = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+        let ids = msg.ids || [];
+        if (!msg.ids) {
+          const q = flat(msg.query);
+          const hits = [];
+          for (const [id, e] of Object.entries(cat.assets)) {
+            const r = roli.readEntry(e);
+            const name = flat(r?.name), acro = flat(r?.acronym);
+            const score = acro === q ? 0 : name.startsWith(q) ? 1 : name.includes(q) ? 2 : -1;
+            if (score >= 0) hits.push({ score, value: r.value, id: Number(id) });
+          }
+          ids = hits.sort((a, b) => a.score - b.score || b.value - a.value).slice(0, 8).map(h => ({ assetId: h.id }));
+        }
+        const items = ids.map(i => analysis.resolveItem(i, cat)).filter(i => !i.unknown);
+        return { ready: true, items: items.map(i => ({ assetId: i.assetId, bundleId: i.bundleId, name: i.name, acronym: i.acronym,
+          value: i.value, thumb: thumbs[String(i.assetId)] || null })) };
+      }
       // Tout le journal (bilan du mois) : le relevé du popup, plus deux mois de trades terminés.
       case 'ronote:history':
         return { history: [...HISTORY, ...demoMonths()] };
@@ -331,9 +350,22 @@ const mockRuntime = {
   }
 };
 
+// Un stockage en mémoire qui prévient ses écouteurs, comme le vrai : ce que
+// le popup y range (objectif, …) revient à l'écran.
+const memory = {}, storeListeners = [];
 const mockChrome = {
   runtime: mockRuntime,
-  storage: { local: { get: async () => ({}), set: async () => {} } },
+  storage: {
+    local: {
+      get: async (k) => Object.fromEntries((Array.isArray(k) ? k : [k]).filter(x => x in memory).map(x => [x, memory[x]])),
+      set: async (obj) => {
+        const changes = {};
+        for (const [k, v] of Object.entries(obj)) { changes[k] = { oldValue: memory[k], newValue: v }; memory[k] = v; }
+        storeListeners.forEach(fn => fn(changes, 'local'));
+      }
+    },
+    onChanged: { addListener: (fn) => storeListeners.push(fn) }
+  },
   tabs: { create: ({ url }) => { log.textContent = '→ ouvrirait ' + url; } }
 };
 globalThis.__ronoteMock = mockChrome;

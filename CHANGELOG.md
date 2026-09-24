@@ -19,9 +19,18 @@ limited, et l'apparence se règle d'un coup avec des thèmes, fond compris.
   le bandeau, les listes, le badge « projected » et le fond. Un thème s'exporte
   dans un fichier pour être partagé.
 - **Flex mon inventaire** (Portefeuille) : une carte avec la value du compte, sa
-  courbe sur 30 jours et les six plus gros objets, à copier ou télécharger.
+  courbe et les six plus gros objets, à copier ou télécharger.
 - **Bilan du mois** (Journal et Portefeuille) : value gagnée en trade, taux de
   victoire, meilleur trade et évolution du compte, sur une carte à partager.
+- **Fonds des cartes Flex** : des images fournies (Néon, Sunset, Océan, Casino),
+  des fonds animés (Aurore, Étoiles, Synthwave, Bokeh), ou ton image ou ton GIF.
+  Une carte animée se télécharge en **GIF**.
+- **La carte Flex suit le graphique** : même période (7 jours… depuis le début)
+  et même courbe (Value, RAP ou collectibles) que le Portefeuille.
+- **Objectif** (Portefeuille) : une value ou un objet à atteindre, avec ou sans
+  date limite. Progression, rythme actuel, rythme nécessaire et date estimée.
+- **Tes sons** pour les notifications : importe un MP3, WAV, OGG ou M4A et
+  choisis-le pour n'importe quel type d'événement.
 - **Pile ou face** (nouvel onglet du popup) : un jeton vert R$ ou orange T pour
   trancher un trade qui fait hésiter.
 - **Repères** : un diamant sur les objets « rares » de Rolimon's, un chat doré

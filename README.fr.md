@@ -4,6 +4,7 @@
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.15.0-brightgreen.svg)](CHANGELOG.md)
+[![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
 ton PC pour **tout ce qui bouge dans tes trades Roblox** : un trade qui arrive, un
@@ -122,6 +123,7 @@ permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque c
 - **[Notes techniques](docs/technique.md)** — pourquoi le code est écrit comme il est :
   anti-doublon, interception réseau, résolution des vignettes, lecture des cotes
 - **[Journal des versions](CHANGELOG.md)** — ce qui a changé, version par version
+- **[Publier une version](docs/publication-auto.md)** — un tag, et GitHub construit les zips, crée la Release et publie sur les stores
 
 ## Contribuer
 

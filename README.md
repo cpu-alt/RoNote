@@ -4,6 +4,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.15.0-brightgreen.svg)](CHANGELOG.md)
+[![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 A browser extension (Chrome / Edge / Brave / Opera / Firefox) that tells you on your
 desktop about **everything that happens in your Roblox trades**: a new inbound
@@ -26,7 +27,8 @@ And the number that matters, everywhere, is the **value**, not the RAP.
 ## Features
 
 ### Alerts
-- **Reliable desktop notifications**, with a different sound for each kind of event
+- **Reliable desktop notifications**, with a different sound for each kind of event —
+  built-in sounds or **your own** (import an MP3, WAV, OGG or M4A)
 - **Filters**: value threshold, ignored players, quiet hours
 - **Revaluation alerts**: get notified when Rolimon's changes the value of an item you own
 - **Decline or cancel** a trade in two deliberate clicks, from its detail view
@@ -49,8 +51,12 @@ And the number that matters, everywhere, is the **value**, not the RAP.
 ### Popup
 - **Portfolio**: your account value and its curve, then each of your collectibles
   with its value, demand and trend (search, sort, gallery view, hideable amounts)
-- **Flex my inventory**: a shareable card with your account value, its 30-day curve
-  and your six biggest items
+- **Flex my inventory**: a shareable card with your account value, its curve and
+  your six biggest items — it follows the chart's period and curve
+- **Flex backgrounds**: built-in images, animated backgrounds (Aurora, Stars,
+  Synthwave, Bokeh) or your own image or GIF; animated cards download as a **GIF**
+- **Goal**: a value or an item to reach, with or without a deadline, with your
+  current pace, the pace you need and an estimated date
 - **Monthly recap**: value gained from trades, win rate, best trade and account
   trend, on a card to copy or download
 - **Trade Flex**: a clean PNG card of a completed trade
@@ -161,7 +167,8 @@ src/                  the extension itself
   content/              scripts running on roblox.com (banner, lists, item page, background)
   popup/                the popup: tabs, coin flip, share cards
   options/              the settings page and themes
-tools/                build, checks, tests
+.github/workflows/    tests on every push, Release (and store publishing) on every version tag
+tools/                build, checks, tests, release notes
   preview/              the real pages wired to fake data, and store screenshot pages
   fixtures/             real API responses used by tests and previews
 docs/                 technical notes and store publishing guides (French)
@@ -173,11 +180,15 @@ store-assets/         screenshots and promo images
 - **[Technical notes](docs/technique.md)** (French) — why the code is written the way
   it is: de-duplication, network interception, thumbnail resolution, reading values
 - **[Changelog](CHANGELOG.md)** — what changed, version by version
+- **[Releasing](docs/publication-auto.md)** (French) — tag a version and GitHub Actions
+  builds the zips, creates the Release and, once set up, publishes to the Chrome Web
+  Store and Firefox Add-ons
 
 ## Contributing
 
 Issues and pull requests are welcome. Before opening a PR, run
-`python tools/check.py` and the browser self-tests.
+`python tools/check.py` and the browser self-tests; GitHub runs the checks and the
+Node tests on every pull request.
 
 ## License
 

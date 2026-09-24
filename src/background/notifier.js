@@ -1,5 +1,5 @@
 import { B, HAS_OFFSCREEN, IS_FIREFOX, safe } from '../common/shim.js';
-import { playToneInPage } from '../common/tones.js';
+import { playToneInPage, playAudioInPage, CUSTOM_MAX_MS } from '../common/tones.js';
 import { SOUND_GROUPS, soundGroupOf } from '../common/defaults.js';
 import { fmtNum, fmtPct, fmtSigned, inQuietHours, sleep, serialQueue } from '../common/utils.js';
 import { verdict } from '../common/analysis.js';
@@ -93,8 +93,8 @@ async function ensureOffscreen({ recreate = false } = {}) {
   return creating;
 }
 
-async function playOffscreen(sound, volume) {
-  const msg = { type: 'ronote:play-sound', sound, volume };
+async function playOffscreen(sound, volume, data = null) {
+  const msg = { type: 'ronote:play-sound', sound, volume, data };
   for (let attempt = 0; attempt < 3; attempt++) {
     // Dernier essai : on repart d'un document neuf, au cas ou l'existant
     // serait la sans ecouter (script pas charge, page en erreur).
@@ -108,7 +108,7 @@ async function playOffscreen(sound, volume) {
 }
 
 /** Repli quand offscreen n'existe pas (Firefox) : on joue le son dans un onglet. */
-async function playViaTab(sound, volume) {
+async function playViaTab(sound, volume, data = null) {
   if (!B.tabs?.query || !B.scripting?.executeScript) return false;
   const tabs = await safe(() => B.tabs.query({ url: ['*://*.roblox.com/*', 'http://*/*', 'https://*/*'] }), []);
   const candidates = (tabs || []).filter(t => t.id && !t.discarded).sort((a, b) => {
@@ -117,9 +117,10 @@ async function playViaTab(sound, volume) {
     return ra - rb || (b.active ? 1 : 0) - (a.active ? 1 : 0);
   });
   for (const t of candidates.slice(0, 3)) {
-    const r = await safe(() => B.scripting.executeScript({
-      target: { tabId: t.id }, args: [sound, volume], func: playToneInPage
-    }), null);
+    const r = await safe(() => B.scripting.executeScript(data
+      ? { target: { tabId: t.id }, args: [data, volume, CUSTOM_MAX_MS], func: playAudioInPage }
+      : { target: { tabId: t.id }, args: [sound, volume], func: playToneInPage }
+    ), null);
     if (r?.[0]?.result) return true;
   }
   return false;
@@ -132,9 +133,19 @@ async function playViaTab(sound, volume) {
  */
 export async function playSound(settings, name = null, { force = false } = {}) {
   if (!settings.sound && !force) return false;
-  const sound = name || settings.sounds?.inbound || 'chime';
+  let sound = name || settings.sounds?.inbound || 'chime';
   if (sound === 'none') return false;
   const vol = settings.volume ?? 0.6;
+  // Un son importe (Reglages > Son) : « custom:<id> ». Supprime ou illisible,
+  // on joue le carillon plutot que rien.
+  let data = null;
+  const custom = /^custom:([a-z0-9]+)$/i.exec(sound);
+  if (custom) {
+    const got = await safe(() => B.storage.local.get('customSounds'), {});
+    data = (got?.customSounds || []).find(x => x.id === custom[1])?.data || null;
+    sound = 'chime';
+    if (data && (await playOffscreen(sound, vol, data) || await playViaTab(sound, vol, data))) return true;
+  }
   if (await playOffscreen(sound, vol)) return true;
   return playViaTab(sound, vol);
 }

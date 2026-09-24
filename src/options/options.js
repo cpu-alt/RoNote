@@ -345,10 +345,49 @@ const validIcon = (v) => typeof v === 'string' && /^data:image\/(png|jpeg|gif|we
 
 const SOUND_KEYS = ['inbound', 'accepted', 'declined', 'error', 'revalued'];
 
+/* Les sons importés (clé `customSounds`) : [{ id, name, data }], joués par
+   le service worker sous le nom « custom:<id> ». */
+let customSounds = [];
+const SND_MAX_FILE = 1024 * 1024;
+const SND_MAX_COUNT = 8;
+
 function fillSounds() {
-  const options = Object.entries(SOUNDS)
+  const builtIn = Object.entries(SOUNDS)
     .map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('');
-  for (const k of SOUND_KEYS) $('#snd-' + k).innerHTML = options;
+  const mine = customSounds.length
+    ? `<optgroup label="${t('Tes sons')}">${customSounds.map(s =>
+      `<option value="custom:${s.id}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>` : '';
+  for (const k of SOUND_KEYS) {
+    const el = $('#snd-' + k);
+    el.innerHTML = builtIn + mine;
+    if (settings) el.value = settings.sounds?.[k] || 'none';
+  }
+  renderCustomSounds();
+}
+
+function renderCustomSounds() {
+  const box = $('#custom-sounds');
+  if (!box) return;
+  box.innerHTML = customSounds.map(s => `<span class="snd-chip">
+    <button class="icon" type="button" data-snd-play="${s.id}" title="${t('Écouter')}">${ic('play')}</button>
+    <span>${escapeHtml(s.name)}</span>
+    <button class="icon" type="button" data-snd-del="${s.id}" title="${t('Supprimer')}">${ic('x')}</button></span>`).join('');
+}
+
+/** Un fichier audio lisible, en data: URL. Refuse ce que le navigateur ne sait pas jouer. */
+async function toCustomSound(file) {
+  if (!/^audio\//.test(file.type)) throw new Error(t('Format non pris en charge : MP3, WAV, OGG ou M4A.'));
+  if (file.size > SND_MAX_FILE) throw new Error(t('Son trop lourd (1 Mo maximum).'));
+  const data = await readAsDataUrl(file);
+  await new Promise((ok, ko) => {
+    const a = new Audio();
+    a.preload = 'metadata';
+    a.onloadedmetadata = ok;
+    a.onerror = () => ko(new Error(t('Ce fichier audio est illisible.')));
+    a.src = data;
+  });
+  const name = file.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 32) || t('Son');
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, data };
 }
 
 const showVolume = (v) => { $('#volume-out').textContent = Math.round(Number(v) * 100) + ' %'; };
@@ -591,7 +630,7 @@ function wire() {
   resetter('#bg-reset', defaultsOf(['pageBgDim', 'pageBgBlur']));
   resetter('#proj-reset', defaultsOf(['projectedColor', 'projectedSize', 'projectedShape', 'projectedCorner']));
 
-  for (const id of ['proj-file', 'bg-file', 'theme-file', 'settings-file']) {
+  for (const id of ['proj-file', 'bg-file', 'theme-file', 'settings-file', 'snd-file']) {
     $(`label[for="${id}"]`).addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#' + id).click(); }
     });
@@ -678,6 +717,37 @@ function wire() {
   });
 
   // --- son ---------------------------------------------------------------
+  $('#snd-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (customSounds.length >= SND_MAX_COUNT) { message('#snd-msg', t('{n} sons au maximum : supprimes-en un d\'abord.', { n: SND_MAX_COUNT }), true); return; }
+    try {
+      const snd = await toCustomSound(file);
+      customSounds = [...customSounds, snd];
+      await B.storage.local.set({ customSounds });
+      fillSounds();
+      message('#snd-msg', t('« {name} » ajouté : choisis-le dans une des listes ci-dessus.', { name: snd.name }));
+      flashSaved();
+    } catch (err) {
+      message('#snd-msg', err?.message || t('Ce fichier audio est illisible.'), true);
+    }
+  });
+  $('#custom-sounds').addEventListener('click', async e => {
+    const play = e.target.closest('[data-snd-play]');
+    if (play) { send({ type: 'ronote:play', sound: 'custom:' + play.dataset.sndPlay }).catch(() => {}); return; }
+    const del = e.target.closest('[data-snd-del]');
+    if (!del) return;
+    const id = del.dataset.sndDel;
+    customSounds = customSounds.filter(s => s.id !== id);
+    await B.storage.local.set({ customSounds });
+    // Un événement qui jouait ce son revient à son son d'origine.
+    const back = {};
+    for (const k of SOUND_KEYS) if (settings.sounds?.[k] === 'custom:' + id) back[k] = DEFAULTS.sounds[k];
+    if (Object.keys(back).length) await save({ sounds: back });
+    fillSounds();
+    message('#snd-msg', t('Son supprimé.'));
+  });
   for (const k of SOUND_KEYS) {
     $('#snd-' + k).addEventListener('change', e => save({ sounds: { [k]: e.target.value } }));
   }
@@ -917,6 +987,11 @@ load();
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
 B.storage.local.get('projectedIcon').then(got => { projectedIcon = got?.projectedIcon || ''; if (settings) renderProjected(); }).catch(() => {});
+B.storage.local.get('customSounds').then(got => {
+  customSounds = Array.isArray(got?.customSounds) ? got.customSounds : [];
+  fillSounds();
+}).catch(() => {});
+onStoredChange(['customSounds'], 100, (v) => { customSounds = Array.isArray(v.customSounds) ? v.customSounds : []; fillSounds(); });
 B.storage.local.get('pageBgImage').then(got => { pageBgImage = got?.pageBgImage || ''; if (settings) renderBg(); }).catch(() => {});
 onStoredChange(['pageBgImage'], 100, (v) => { pageBgImage = v.pageBgImage || ''; if (settings) renderBg(); });
 onStoredChange(['projectedIcon'], 100, (v) => { projectedIcon = v.projectedIcon || ''; if (settings) renderProjected(); });

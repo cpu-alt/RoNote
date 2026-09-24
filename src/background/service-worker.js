@@ -6,7 +6,7 @@ import {
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
   getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
-import { getCatalog } from '../common/roli.js';
+import { getCatalog, readEntry } from '../common/roli.js';
 import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, addKnownInstances } from '../common/page-trade.js';
 import { setLang, t, currentLang, dictFor } from '../common/i18n.js';
 import {
@@ -1221,6 +1221,40 @@ async function handleMessage(msg) {
       return { known: true, ready: !!cat.ready, roliId,
         value: item.noValue ? null : item.value, rap: item.rap || 0,
         demand: item.demand, trend: item.trend, projected: item.projected, rare: item.rare };
+    }
+    // Chercher un objet du catalogue Rolimon's (objectif du Portefeuille) :
+    // par acronyme exact, début du nom, puis nom contenant la recherche. Ou
+    // relire la cote d'objets déjà choisis (`ids`).
+    case 'ronote:catalog-search': {
+      const settings = await getSettings();
+      const cat = await getCatalog(settings);
+      if (!cat.ready) return { items: [], ready: false };
+      const flat = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+      let picked = [];
+      if (Array.isArray(msg.ids)) {
+        picked = msg.ids.slice(0, 10).map(i => ({ assetId: Number(i.assetId) || 0, bundleId: Number(i.bundleId) || 0 }));
+      } else {
+        const q = flat(msg.query);
+        if (q.length < 2) return { items: [], ready: true };
+        const hits = [];
+        for (const [kind, table] of [['asset', cat.assets || {}], ['bundle', cat.bundles || {}]]) {
+          for (const [id, entry] of Object.entries(table)) {
+            const e = readEntry(entry);
+            if (!e?.name) continue;
+            const name = flat(e.name), acro = flat(e.acronym);
+            const score = acro === q ? 0 : name.startsWith(q) ? 1 : name.includes(q) ? 2 : -1;
+            if (score >= 0) hits.push({ score, value: e.value || 0, ids: kind === 'asset' ? { assetId: Number(id), bundleId: 0 } : { assetId: 0, bundleId: Number(id) } });
+          }
+        }
+        picked = hits.sort((a, b) => a.score - b.score || b.value - a.value).slice(0, 8).map(h => h.ids);
+      }
+      const items = picked.map(ids => resolveItem(ids, cat)).filter(i => !i.unknown);
+      const thumbs = await safe(() => resolveThumbs(items.map(thumbKeysFor)), []);
+      return {
+        ready: true,
+        items: items.map((i, n) => ({ assetId: i.assetId, bundleId: i.bundleId, name: i.name, acronym: i.acronym,
+          value: i.value, projected: i.projected, thumb: thumbs?.[n] || null }))
+      };
     }
     case 'ronote:get':
       return uiData(msg);
