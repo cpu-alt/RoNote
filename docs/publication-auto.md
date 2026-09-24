@@ -31,6 +31,15 @@ Le workflow vérifie que le tag et les deux manifestes disent la même version, 
 les tests, construit `ronote-chrome-vX.Y.Z.zip` et `ronote-firefox-vX.Y.Z.zip` et crée
 la Release avec ces deux fichiers. Sans les secrets ci-dessous, il s'arrête là.
 
+**Republier une version déjà taguée** (par exemple juste après avoir ajouté les
+secrets des stores) : onglet *Actions › Release › Run workflow*, avec le tag, ou :
+
+```bash
+gh workflow run release.yml -f tag=v2.15.1
+```
+
+La Release GitHub existante est laissée telle quelle ; seuls les stores reçoivent la version.
+
 ---
 
 ## 2. Chrome Web Store (une fois)
@@ -39,8 +48,9 @@ La publication automatique ne fait que **mettre à jour** une fiche existante : 
 premier envoi se fait à la main, avec [publication-web-store.md](publication-web-store.md).
 
 1. **Identifiants de la fiche** — dans la [console développeur](https://chrome.google.com/webstore/devconsole) :
-   l'**ID de l'extension** (32 lettres, dans l'URL de la fiche) et l'**ID d'éditeur**
-   (Paramètres du compte).
+   l'**ID d'éditeur** est dans l'URL de la console
+   (`…/devconsole/<ID d'éditeur>`), l'**ID de l'extension** (32 lettres) dans l'URL de
+   sa fiche, une fois le premier envoi fait.
 2. **Accès à l'API** — dans la [Google Cloud Console](https://console.cloud.google.com/) :
    un projet, l'API « Chrome Web Store API » activée, un écran de consentement OAuth
    (type Externe, ton adresse en utilisateur de test), puis un identifiant OAuth de

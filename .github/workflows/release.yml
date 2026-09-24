@@ -1,18 +1,27 @@
 # Une Release à chaque tag de version :
 #
-#     git tag v2.15.0 && git push origin v2.15.0
+#     git tag v2.15.1 && git push origin v2.15.1
 #
 # 1. vérifie que le tag est bien la version du manifeste, puis vérifications et tests ;
 # 2. construit les zips Chrome et Firefox et crée la Release GitHub, avec les notes
-#    tirées de CHANGELOG.md ;
+#    tirées de CHANGELOG.md (une Release déjà créée est laissée telle quelle) ;
 # 3. publie sur le Chrome Web Store et sur addons.mozilla.org, SI les secrets
 #    correspondants existent (voir docs/publication-auto.md). Sans eux, ces deux
 #    étapes sont simplement sautées.
+#
+# Lancement à la main (onglet Actions > Release > Run workflow, ou
+# `gh workflow run release.yml -f tag=v2.15.1`) : republie une version déjà
+# taguée, par exemple après avoir ajouté les secrets des stores.
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version à publier (ex. v2.15.1)'
+        required: true
 
 permissions:
   contents: write
@@ -21,10 +30,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
+      TAG: ${{ inputs.tag || github.ref_name }}
       CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
       AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v5
         with:
@@ -38,8 +50,8 @@ jobs:
         run: |
           v=$(python -c "import json; print(json.load(open('src/manifest.json', encoding='utf-8'))['version'])")
           vf=$(python -c "import json; print(json.load(open('src/manifest.firefox.json', encoding='utf-8'))['version'])")
-          if [ "v$v" != "$GITHUB_REF_NAME" ] || [ "$v" != "$vf" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME, manifeste v$v, manifeste Firefox v$vf : ils doivent être identiques."
+          if [ "v$v" != "$TAG" ] || [ "$v" != "$vf" ]; then
+            echo "::error::Tag $TAG, manifeste v$v, manifeste Firefox v$vf : ils doivent être identiques."
             exit 1
           fi
 
@@ -53,16 +65,20 @@ jobs:
         run: python tools/build.py
 
       - name: Notes de version
-        run: python tools/release_notes.py "$GITHUB_REF_NAME" > notes.md
+        run: python tools/release_notes.py "$TAG" > notes.md
 
       - name: Release GitHub
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "dist/ronote-chrome-$GITHUB_REF_NAME.zip" \
-            "dist/ronote-firefox-$GITHUB_REF_NAME.zip" \
-            --title "RoNote $GITHUB_REF_NAME" --notes-file notes.md
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "La Release $TAG existe déjà : elle est laissée telle quelle."
+          else
+            gh release create "$TAG" \
+              "dist/ronote-chrome-$TAG.zip" \
+              "dist/ronote-firefox-$TAG.zip" \
+              --title "RoNote $TAG" --notes-file notes.md
+          fi
 
       - name: Chrome Web Store
         if: env.CWS_EXTENSION_ID != ''
@@ -73,7 +89,7 @@ jobs:
           PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
         run: |
           npx --yes chrome-webstore-upload-cli \
-            --source "dist/ronote-chrome-$GITHUB_REF_NAME.zip" \
+            --source "dist/ronote-chrome-$TAG.zip" \
             --extension-id "$CWS_EXTENSION_ID" \
             --publisher-id "$PUBLISHER_ID"
 
