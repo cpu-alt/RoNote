@@ -68,6 +68,7 @@ jobs:
         run: python tools/release_notes.py "$TAG" > notes.md
 
       - name: Release GitHub
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -104,7 +105,8 @@ jobs:
             --publisher-id "$PUBLISHER_ID"
 
       - name: Firefox Add-ons
-        if: env.AMO_JWT_ISSUER != ''
+        # Indépendant de l'étape Chrome : un refus du Web Store ne bloque pas Firefox.
+        if: ${{ !cancelled() && steps.release.outcome == 'success' && env.AMO_JWT_ISSUER != '' }}
         env:
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
         run: |

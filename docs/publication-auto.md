@@ -84,7 +84,8 @@ heures à quelques jours). La fiche garde sa visibilité (non répertoriée ou p
    [publication-firefox.md](publication-firefox.md) : c'est lui qui crée la fiche
    (description, captures, catégorie).
 2. Les clés d'API : <https://addons.mozilla.org/developers/addon/api/key/>.
-3. Secrets GitHub :
+3. Secrets GitHub — le plus simple : `node tools/amo-keys.mjs`, qui demande les deux
+   clés et les enregistre avec `gh`. Sinon, à la main :
 
 | Secret | Valeur |
 |---|---|
