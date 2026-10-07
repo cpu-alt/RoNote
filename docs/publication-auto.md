@@ -40,6 +40,14 @@ gh workflow run release.yml -f tag=v2.15.1
 
 La Release GitHub existante est laissée telle quelle ; seuls les stores reçoivent la version.
 
+Si le zip Chrome est déjà parti mais que la soumission a été refusée (fiche incomplète),
+le store n'accepte pas un second envoi du même numéro (« The uploaded package was
+invalid »). Une fois la fiche corrigée, ne refaire que la soumission :
+
+```bash
+gh workflow run release.yml -f tag=v2.15.1 -f cws_publish_only=true
+```
+
 ---
 
 ## 2. Chrome Web Store (une fois)

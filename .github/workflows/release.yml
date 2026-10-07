@@ -22,6 +22,10 @@ on:
       tag:
         description: 'Version à publier (ex. v2.15.1)'
         required: true
+      cws_publish_only:
+        description: 'Chrome : le zip est déjà sur le store, seulement soumettre à la review'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -88,6 +92,7 @@ jobs:
           CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
           PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          PUBLISH_ONLY: ${{ inputs.cws_publish_only }}
         run: |
           # Un secret manquant : on le nomme, plutôt que l'erreur obscure de l'outil.
           missing=""
@@ -99,10 +104,18 @@ jobs:
             echo "::error::Secrets manquants pour le Chrome Web Store :$missing (voir docs/publication-auto.md)"
             exit 1
           fi
-          npx --yes chrome-webstore-upload-cli \
-            --source "dist/ronote-chrome-$TAG.zip" \
-            --extension-id "$CWS_EXTENSION_ID" \
-            --publisher-id "$PUBLISHER_ID"
+          # Le store refuse deux fois le même numéro de version (« The uploaded package
+          # was invalid ») : si l'envoi a déjà réussi, on ne refait que la soumission.
+          if [ "$PUBLISH_ONLY" = "true" ]; then
+            npx --yes chrome-webstore-upload-cli publish \
+              --extension-id "$CWS_EXTENSION_ID" \
+              --publisher-id "$PUBLISHER_ID"
+          else
+            npx --yes chrome-webstore-upload-cli \
+              --source "dist/ronote-chrome-$TAG.zip" \
+              --extension-id "$CWS_EXTENSION_ID" \
+              --publisher-id "$PUBLISHER_ID"
+          fi
 
       - name: Firefox Add-ons
         # Indépendant de l'étape Chrome : un refus du Web Store ne bloque pas Firefox.
