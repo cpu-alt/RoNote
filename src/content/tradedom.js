@@ -86,7 +86,7 @@ function nameOf(a) {
 
 const USER_LINK = 'a[href*="/users/"]';
 
-// Exact amounts only: never interpret 1.4K or a serial number as a price.
+// Montants exacts seulement : jamais un 1.4K ou un numéro de série pris pour un prix.
 function count(text) {
   const s = String(text ?? '').trim();
   if (!/^(?:\d+|\d{1,3}(?:[, .\u00a0\u202f]\d{3})+)$/.test(s)) return null;
@@ -108,11 +108,11 @@ function roleOf(text) {
 }
 
 /**
- * Where the trade stands, read from the tense of an offer heading:
- *   done      "Items you gave / received"            (Completed tab)
+ * Où en est le trade, d'après le temps du titre d'une offre :
+ *   done      "Items you gave / received"            (onglet Completed)
  *   inactive  "Items you would have given / received"
  *   open      "Items you will give / give / receive…" (Inbound, Outbound)
- * '' when the heading says nothing about it.
+ * '' quand le titre n'en dit rien.
  */
 function phaseOf(text) {
   const s = headingText(text);
@@ -125,10 +125,10 @@ function phaseOf(text) {
 
 function headingFor(root) {
   let own = [...root.querySelectorAll(HEADING)].filter(h => h.offsetParent !== null && roleOf(h.textContent));
-  // Closed uses plain text containers on some versions of Roblox.
+  // Certaines versions de Roblox écrivent les trades fermés dans de simples conteneurs de texte.
   if (!own.length) own = [...root.querySelectorAll('*')].filter(h => h.offsetParent !== null && roleOf(h.textContent));
   if (own.length && new Set(own.map(h => roleOf(h.textContent))).size === 1) return own[0];
-  // Some versions place the heading immediately before the item grid.
+  // Certaines versions posent le titre juste avant la grille des objets.
   for (let n = root.previousElementSibling; n; n = n.previousElementSibling) {
     if (n.querySelector?.(ITEM_LINK)) break;
     if (roleOf(n.textContent)) return n;
@@ -175,15 +175,15 @@ function itemOnPage(a, root) {
   for (let node = a; node && node !== root; node = node.parentElement) {
     const links = [...node.querySelectorAll(ITEM_LINK)];
     if (links.some(link => idOf(link) && key(idOf(link)) !== key(id))) break;
-    // Past its own card, a node holding another thumbnail is a whole grid:
-    // its prices belong to the neighbours (cards without links included).
+    // Au-delà de sa propre carte, un nœud qui contient une autre vignette est une
+    // grille entière : ses prix sont ceux des voisines (cartes sans lien comprises).
     if (node !== a && node.querySelectorAll('img').length > Math.max(1, a.querySelectorAll('img').length)) break;
     if (card === a && node.matches?.('.item-card,.item-card-container,li')) card = node;
     const prices = [...node.querySelectorAll('[class*="robux" i]')];
     for (const price of prices) {
       rap = numericIn(price);
       if (rap !== null) priceEl = amountLeaf(price);
-      // An icon may have a sibling amount, but not a sibling card/name.
+      // Une icône peut avoir un montant pour voisin, pas une carte ni un nom.
       if (rap === null && !price.parentElement?.querySelector(ITEM_LINK)) {
         rap = numericIn(price.parentElement);
         if (rap !== null) priceEl = amountLeaf(price.parentElement);
@@ -191,7 +191,7 @@ function itemOnPage(a, root) {
       if (rap !== null) { card = node; break; }
     }
     if (rap !== null) break;
-    // A recognised card is the limit: nothing above it describes this item.
+    // Une carte reconnue est la limite : rien au-dessus ne décrit cet objet.
     if (card !== a && card === node) break;
   }
   return { ...id, name: nameOf(a), link: a, card, rap, priceEl };
@@ -217,7 +217,7 @@ function sideOnPage(g) {
   };
 }
 
-// Synchronous RAP while the worker resolves Rolimon's values.
+// RAP synchrone, en attendant que le worker trouve les values Rolimon's.
 function visibleAnalysis(page) {
   const give = page.sides.find(s => s.role === 'give');
   const get = page.sides.find(s => s.role === 'get');
@@ -375,8 +375,8 @@ function composerTitle() {
   const heading = [...document.querySelectorAll(HEADING)].find(el =>
     el.offsetParent !== null && TRADE_WITH.test((el.textContent || '').trim()));
   if (heading) return heading;
-  // Roblox has also shipped this title as plain nested divs. Start from its
-  // text node and keep the smallest visible parent containing the @handle.
+  // Roblox a aussi publié ce titre en simples div imbriquées : on part de son
+  // nœud texte et on garde le plus petit parent visible qui contient le @pseudo.
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     if (!TRADE_WITH.test((n.nodeValue || '').trim())) continue;
@@ -432,11 +432,11 @@ const STATUS_TEXT = /^(?:holding|on hold|en attente|bloqu[ée]e?|#\d+|serial.*|l
 function tileCards(root) {
   const leaves = [...root.querySelectorAll('*')].filter(e => !e.childElementCount && !e.closest('[data-rn]') &&
     e.offsetParent !== null && count(e.textContent) !== null && !e.closest('input,textarea,select'));
-  const amounts = new Map();                 // element -> amounts below it
+  const amounts = new Map();                 // élément -> montants sous lui
   for (const leaf of leaves) {
     for (let n = leaf; n && n !== root; n = n.parentElement) amounts.set(n, (amounts.get(n) || 0) + 1);
   }
-  const cards = new Map();                   // card -> its amount leaf
+  const cards = new Map();                   // carte -> la feuille de son montant
   for (const leaf of leaves) {
     for (let node = leaf; node.parentElement && node.parentElement !== root; node = node.parentElement) {
       if (amounts.get(node) !== 1) break;

@@ -95,7 +95,7 @@
   function onListPage() {
     const p = location.pathname;
     if (!/^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/trades\/?$/i.test(p)) return false;
-    // URLSearchParams#has is case-sensitive; Roblox's own param is "tradeId".
+    // URLSearchParams#has respecte la casse ; le paramètre de Roblox est « tradeId ».
     for (const key of new URLSearchParams(location.search).keys()) {
       if (key.toLowerCase() === 'tradeid') return false;
     }

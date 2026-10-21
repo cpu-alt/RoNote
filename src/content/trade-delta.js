@@ -1,12 +1,12 @@
-// Classic isolated-world script: no imports blocked by Roblox's CSP.
+// Script classique du monde isolé : aucun import que la CSP de Roblox pourrait bloquer.
 (() => {
   const B = globalThis.browser ?? globalThis.chrome;
   const dom = globalThis.RoNoteDom;
   if (!dom || globalThis.__rnDelta) return;
   globalThis.__rnDelta = true;
-  // Reloading or updating the extension leaves this copy running in the open
-  // tabs, cut off from it: every chrome.* call then throws "Extension context
-  // invalidated". Such an orphan removes what it placed and stops for good.
+  // Recharger ou mettre à jour l'extension laisse cette copie tourner dans les
+  // onglets ouverts, coupée d'elle : chaque appel chrome.* lève alors « Extension
+  // context invalidated ». Une copie orpheline retire ce qu'elle a posé et s'arrête.
   let dead = false, observer = null, ticker = 0;
   const alive = () => {
     if (dead) return false;
@@ -16,18 +16,64 @@
   };
   const assetUrl = (path) => { try { return B.runtime.getURL(path); } catch { return ''; } };
   const fr = (document.documentElement.lang || navigator.language || '').startsWith('fr');
-  // Grouped like Roblox's own figures: "14 996" in French, "14,996" in English.
+  // Groupés comme les chiffres de Roblox : « 14 996 » en français, « 14,996 » en anglais.
   const number = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 });
   const deltaNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
   const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + deltaNumber.format(Math.abs(n));
-  // The trades list (/trades) and the page to build a trade, opened from a
-  // profile (/users/123/trade), with or without a language prefix (/fr/...).
+  // Les textes de la page, dans la langue de Roblox : écrits une fois ici.
+  const TEXT = fr ? {
+    projected: 'Projected : RAP gonflé par des reventes, chiffre peu fiable',
+    currentValue: 'Cote Rolimon’s actuelle',
+    rapUsed: 'RAP actuel utilisé : aucune Value publiée pour cet objet.',
+    valueMissing: 'Cote temporairement indisponible',
+    noValue: 'Pas de Value publiée pour cet objet',
+    totalLabel: 'Value Rolimon’s :',
+    totalOk: 'Total selon les cotes Rolimon’s, Robux inclus',
+    totalMissing: 'Total Value temporairement indisponible',
+    copyHistory: 'Historique de cet exemplaire sur Rolimon’s',
+    copyUnknown: 'Historique indisponible : identifiant de cet exemplaire non reçu.',
+    showSerials: 'Afficher les serials', blurSerials: 'Flouter les serials',
+    profile: (who) => `Ouvrir le profil de ${who || 'ce joueur'} sur Rolimon’s`,
+    flex: 'Créer une image du trade',
+    catalog: 'Cotes Rolimon’s pas encore chargées.',
+    stale: 'Cotes Rolimon’s trop anciennes.',
+    noFigure: 'Aucun chiffre pour : ',
+    unreachable: 'Extension injoignable : recharge la page.',
+    insufficient: 'Données insuffisantes pour calculer cet écart.',
+    explanation: 'Reçu − donné, par rapport à ce que tu donnes. Robux inclus ; les montants reçus déjà nets ne sont pas taxés une seconde fois.',
+    cached: ' Cotes en cache, actualisation temporairement indisponible.',
+    rapForUnvalued: ' RAP utilisé pour les objets sans value.'
+  } : {
+    projected: 'Projected: RAP inflated by resales, unreliable figure',
+    currentValue: 'Current Rolimon’s value',
+    rapUsed: 'Current RAP used: no published value for this item.',
+    valueMissing: 'Value temporarily unavailable',
+    noValue: 'No published value for this item',
+    totalLabel: 'Rolimon’s Value:',
+    totalOk: 'Total using Rolimon’s values, including Robux',
+    totalMissing: 'Total Value temporarily unavailable',
+    copyHistory: 'This copy’s history on Rolimon’s',
+    copyUnknown: 'History unavailable: this copy’s ID has not been received.',
+    showSerials: 'Show serials', blurSerials: 'Blur serials',
+    profile: (who) => `Open ${who || 'this player'} on Rolimon’s`,
+    flex: 'Create a trade image',
+    catalog: 'Rolimon’s values not loaded yet.',
+    stale: 'Rolimon’s values too old.',
+    noFigure: 'No figure for: ',
+    unreachable: 'Extension unreachable: reload the page.',
+    insufficient: 'Insufficient data to calculate this difference.',
+    explanation: 'Received − given, relative to what you give. Includes Robux; received amounts already shown net are not taxed again.',
+    cached: ' Cached prices; refresh temporarily unavailable.',
+    rapForUnvalued: ' RAP used for items without a value.'
+  };
+  // La liste des trades (/trades) et la page de création d'un trade, ouverte
+  // depuis un profil (/users/123/trade), avec ou sans préfixe de langue (/fr/…).
   const onPage = () => /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/(?:trades|users\/\d+\/trade)(?:\/|$)/i.test(location.pathname);
   let host, profileLink, tools, signature = '', generation = 0, timer, retryAt = 0, lastUrl = location.href;
-  // An incomplete answer (catalogue still loading, trade detail not captured
-  // yet because Roblox redrew it from its own cache) is asked again soon, then
-  // less and less often: waiting a full minute left the banner grey until the
-  // page was refreshed.
+  // Une réponse incomplète (catalogue encore en chargement, détail du trade pas
+  // encore capté parce que Roblox l'a redessiné depuis son propre cache) se
+  // redemande vite, puis de moins en moins souvent : attendre une minute entière
+  // laissait le bandeau gris jusqu'au rechargement de la page.
   const RETRY_STEPS = [1500, 3000, 6000, 12000, 25000];
   let retries = 0;
   const nextRetry = () => Date.now() + (RETRY_STEPS[retries++] ?? 60000);
@@ -35,24 +81,24 @@
   const badges = new Map();
   const totalBadges = new Map();
   let shownPage, shownAnalysis, analysisPending = false;
-  // The last complete answer per trade: a later reply without the Value (the
-  // worker woke without its caches, Roblox is rate limiting) must not erase it.
+  // La dernière réponse complète de chaque trade : une réponse plus tardive sans la
+  // Value (worker réveillé sans ses caches, limite de débit Roblox) ne l'efface pas.
   const good = new Map();
-  // Settings > Value analysis. Read once, then followed live.
+  // Réglages > Analyse des values. Lu une fois, puis suivi en direct.
   let enabled = true;
-  // The projected badge's look (Settings > Value analysis), image included.
+  // L'allure du badge projected (Réglages > Analyse des values), image comprise.
   const look = { color: '', size: 'm', shape: 'rounded', corner: 'left', image: '' };
   const lookOf = (st) => ({ color: st?.projectedColor || '', size: st?.projectedSize || 'm',
     shape: st?.projectedShape || 'rounded', corner: st?.projectedCorner === 'right' ? 'right' : 'left' });
   const lookKey = (l) => [l.color, l.size, l.shape, l.corner].join('|');
-  // The Rolimon's value under each item and the two totals (Settings > Appearance).
+  // La value Rolimon's sous chaque objet et les deux totaux (Réglages > Apparence).
   let itemValues = true;
-  // Rare diamond and Lucky Cat (content/item-marks.js), in the corner opposite
-  // the projected badge. `lucky` is the copy drawn by Rolimon's, kept by the worker.
+  // Diamant « rare » et Lucky Cat (content/item-marks.js), dans le coin opposé au
+  // badge projected. `lucky` est l'exemplaire tiré par Rolimon's, gardé par le worker.
   let showRare = true, showLucky = true, lucky = null, luckyAskedAt = 0;
   const setLucky = (v) => { const next = v?.uaid ? v : null; if (next?.uaid !== lucky?.uaid) { lucky = next; schedule(); } };
-  // The banner's colours, style and size: the whole settings object is kept,
-  // content/delta-banner.js picks what it needs.
+  // Couleurs, style et taille du bandeau : tous les réglages sont gardés,
+  // content/delta-banner.js y prend ce qu'il lui faut.
   let bannerSettings = {};
   const bannerKey = (st) => ['bannerGain', 'bannerLoss', 'bannerStyle', 'bannerSize', 'bannerShow', 'bannerFormat', 'bannerPct']
     .map(k => String(st?.[k] ?? '')).join('|');
@@ -74,7 +120,7 @@
     if (area !== 'local' || dead) return;
     if (changes.projectedIcon) { look.image = changes.projectedIcon.newValue || ''; restyleFlags(); }
     if (changes.luckyCat) setLucky(changes.luckyCat.newValue);
-    // New Rolimon's table: re-ask now rather than at the next one-minute retry.
+    // Nouvelle table Rolimon's : on redemande tout de suite, sans attendre la minute.
     if (changes.roli && enabled) { cache.clear(); retryAt = 0; schedule(); }
     if (!changes.settings) return;
     const nextSettings = changes.settings.newValue || {};
@@ -95,16 +141,12 @@
   });
   const itemKey = i => i.bundleId ? 'b' + i.bundleId : 'a' + i.assetId;
 
-  // Yellow warning in the top-right corner of a "projected" item: its RAP was
-  // pushed up by resales between accomplices, so its figures can't be trusted.
-  //
-  // Placed at once and never moved: a zero-height box of ours at the top of
-  // the card gives the corner, whatever Roblox's styles are and whether the
-  // thumbnail has loaded. Roblox's own elements are never restyled.
-  const warnTitle = fr ? 'Projected : RAP gonflé par des reventes, chiffre peu fiable' : 'Projected: RAP inflated by resales, unreliable figure';
+  // Avertissement jaune dans le coin d'un objet « projected » : son RAP a été
+  // gonflé par des reventes entre complices, ses chiffres ne sont pas fiables.
+  const warnTitle = TEXT.projected;
 
-  // Items already known to be projected (or not), kept between visits: the
-  // warning shows on the first frame instead of after the worker's answer.
+  // Objets déjà connus pour être projected (ou non), gardés d'une visite à
+  // l'autre : l'avertissement s'affiche dès la première image, sans attendre le worker.
   const PROJ_KEY = 'pageProjected';
   let projectedKnown = new Map();
   let projectedSave = null;
@@ -122,7 +164,7 @@
     if (!changed || projectedSave) return;
     projectedSave = setTimeout(() => {
       projectedSave = null;
-      // Only the positives are worth keeping; unknown items simply wait.
+      // Seuls les positifs valent d'être gardés ; un objet inconnu attend, simplement.
       const out = {};
       for (const [k, v] of [...projectedKnown].slice(-600)) if (v) out[k] = 1;
       if (alive()) B.storage?.local?.set({ [PROJ_KEY]: out }).catch(() => {});
@@ -135,7 +177,7 @@
     dropFlag(badge);
     dropMarks(badge);
   }
-  // The serial Roblox prints on a card (« #1371 »), to recognise the Lucky Cat copy.
+  // Le numéro de série que Roblox écrit sur une carte (« #1371 »), pour reconnaître l'exemplaire Lucky Cat.
   function serialOf(card) {
     for (const leaf of card.querySelectorAll('*')) {
       if (leaf.childElementCount || leaf.closest('[data-rn]')) continue;
@@ -145,28 +187,42 @@
     return '';
   }
   const marksCorner = () => (look.corner === 'right' ? 'left' : 'right');
+  /**
+   * Un coin de la carte pour nos repères, posé d'un coup et jamais déplacé :
+   * une boîte de hauteur nulle en tête de carte, quels que soient les styles
+   * de Roblox et que la vignette soit chargée ou non. Une carte en ligne
+   * (vignette, nom et prix côte à côte) écraserait cette boîte parmi les
+   * autres : le repère termine alors la ligne. `corner` n'est rendu qu'en
+   * surimpression, pour que restyleFlags puisse le changer de côté.
+   */
+  function cornerBox(card, name, side, clickable) {
+    const box = document.createElement('span');
+    box.dataset.rn = name;
+    const corner = document.createElement('span');
+    const row = sideBySide(card);
+    const events = clickable ? '' : 'pointer-events:none;';
+    box.style.cssText = row
+      ? `display:block;position:static;flex:none;margin:0 6px 0 0;align-self:center;line-height:0;${events}`
+      : 'display:block;position:relative;width:100%;height:0;margin:0;padding:0;pointer-events:none;';
+    corner.style.cssText = row
+      ? `position:static;display:block;line-height:0;${events}`
+      : `position:absolute;top:7px;${side}:7px;z-index:3;pointer-events:${clickable ? 'auto' : 'none'};line-height:0;`;
+    const root = corner.attachShadow({ mode: 'closed' });
+    box.append(corner);
+    card.prepend(box);
+    return { box, corner: row ? null : corner, root };
+  }
   function showMarks(badge, card, rare, isLucky) {
     const marks = { rare: showRare && !!rare, lucky: showLucky && isLucky ? lucky : null };
     if ((!marks.rare && !marks.lucky) || !globalThis.RoNoteMarks) { dropMarks(badge); return; }
     const key = `${marks.rare ? 1 : 0}|${marks.lucky?.uaid || ''}`;
     if (badge.marks?.isConnected && badge.marks.parentElement === card && badge.marksKey === key) return;
     dropMarks(badge);
-    const host = document.createElement('span');
-    host.dataset.rn = 'item-marks';
-    const corner = document.createElement('span');
-    const row = sideBySide(card);
-    host.style.cssText = row
-      ? 'display:block;position:static;flex:none;margin:0 6px 0 0;align-self:center;line-height:0;'
-      : 'display:block;position:relative;width:100%;height:0;margin:0;padding:0;pointer-events:none;';
-    corner.style.cssText = row
-      ? 'position:static;display:block;line-height:0;'
-      : `position:absolute;top:7px;${marksCorner()}:7px;z-index:3;pointer-events:auto;line-height:0;`;
-    globalThis.RoNoteMarks.fill(corner.attachShadow({ mode: 'closed' }), marks);
-    host.append(corner);
-    card.prepend(host);
-    badge.marks = host;
+    const { box, corner, root } = cornerBox(card, 'item-marks', marksCorner(), true);
+    globalThis.RoNoteMarks.fill(root, marks);
+    badge.marks = box;
     badge.marksKey = key;
-    badge.marksCorner = row ? null : corner;
+    badge.marksCorner = corner;
   }
   function dropMarks(badge) {
     badge.marks?.remove();
@@ -178,27 +234,13 @@
     if (badge.flag?.isConnected && badge.flag.parentElement === card) return;
     dropFlag(badge);
     if (!globalThis.RoNoteBadge) return;
-    const flag = document.createElement('span');
-    flag.dataset.rn = 'item-projected';
-    const corner = document.createElement('span');
-    // A card laid out as a row (thumbnail, name, price side by side): a box of
-    // ours would be squeezed in among them, so the badge ends the row instead.
-    const row = sideBySide(card);
-    flag.style.cssText = row
-      ? 'display:block;position:static;flex:none;margin:0 6px 0 0;align-self:center;line-height:0;pointer-events:none;'
-      : 'display:block;position:relative;width:100%;height:0;margin:0;padding:0;pointer-events:none;';
-    corner.style.cssText = row
-      ? 'position:static;display:block;line-height:0;pointer-events:none;'
-      : `position:absolute;top:7px;${look.corner}:7px;z-index:3;pointer-events:none;line-height:0;`;
-    const root = corner.attachShadow({ mode: 'closed' });
+    const { box, corner, root } = cornerBox(card, 'item-projected', look.corner, false);
     globalThis.RoNoteBadge.fill(root, look, warnTitle);
-    flag.append(corner);
-    card.prepend(flag);
-    badge.flag = flag;
+    badge.flag = box;
     badge.flagRoot = root;
-    badge.flagCorner = row ? null : corner;
+    badge.flagCorner = corner;
   }
-  // A new colour, size, shape, corner or image: redraw the badges in place.
+  // Nouvelle couleur, taille, forme, coin ou image : les badges se redessinent sur place.
   function restyleFlags() {
     for (const badge of [...badges.values(), ...invBadges.values()]) {
       if (badge.flagRoot) globalThis.RoNoteBadge?.fill(badge.flagRoot, look, warnTitle);
@@ -217,8 +259,8 @@
     badge.flag = null;
     badge.flagRoot = null;
   }
-  // The Value sits on its own small line below the RAP, aligned with Roblox's
-  // Robux icon. If a fixed-height card clips it, it moves onto the thumbnail.
+  // La Value a sa petite ligne sous le RAP, alignée sur l'icône Robux de Roblox.
+  // Si une carte de hauteur fixe la coupe, elle passe sur la vignette.
   const CHIP_CSS = `
     :host{display:block;clear:both;width:max-content;max-width:100%;margin:-2px 0 0;line-height:1;color:inherit}
     :host([data-below]) .v{padding:0;gap:4px;line-height:1.1;background:none;border:0;box-shadow:none}
@@ -237,8 +279,8 @@
     .v[data-state="wait"],.v[data-state="none"]{color:#b8bfd0;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);box-shadow:none}
     .v[data-state="wait"] img,.v[data-state="none"] img{filter:grayscale(1);opacity:.65}
     .v[data-state="wait"]{opacity:.7}`;
-  // Is the chip really visible? Inside its card, on its RAP's line, and not
-  // cut by any ancestor that hides overflow (fixed-height cards, ellipsis).
+  // La pastille est-elle vraiment visible ? Dans sa carte, sur la ligne de son RAP,
+  // et coupée par aucun ancêtre qui masque ses débordements (cartes de hauteur fixe, points de suspension).
   function chipVisible(badge, card) {
     const n = badge.node.getBoundingClientRect();
     if (!n.width || !n.height) return false;
@@ -256,9 +298,9 @@
   function seat(badge, card) {
     const node = badge.node;
     if (badge.mode === 'inline') {
-      // No room for a line of its own (one-line basket rows): the Value goes
-      // on the RAP's line, right after the amount. Never inside the amount's
-      // own element: the page reader looks for it as a childless leaf.
+      // Pas la place d'une ligne à elle (paniers sur une ligne) : la Value se met sur
+      // la ligne du RAP, juste après le montant. Jamais dans l'élément du montant :
+      // le lecteur de page le cherche comme une feuille sans enfant.
       node.dataset.inline = '1'; delete node.dataset.below; delete node.dataset.over;
       node.style.display = '';
       badge.label.textContent = '';
@@ -266,12 +308,12 @@
     } else if (badge.mode === 'below') {
       node.dataset.below = '1'; delete node.dataset.over; delete node.dataset.inline;
       badge.label.textContent = '';
-      // A sibling of the RAP row gives the two amounts exactly the same start,
-      // including when the number itself is wrapped in several spans.
+      // Placée juste après la ligne du RAP, la Value commence exactement au même
+      // endroit, même quand le nombre est découpé en plusieurs spans.
       if (node.previousElementSibling !== badge.line) badge.line.after(node);
     } else if (badge.mode === 'overlay') {
-      // A compact basket has no room for another line. Never cover its
-      // thumbnail or controls with a floating Value pill.
+      // Un panier compact n'a pas la place d'une autre ligne. On ne couvre jamais
+      // sa vignette ni ses boutons d'une pastille flottante.
       node.style.display = 'none';
       badge.shelf?.remove();
       return;
@@ -316,15 +358,15 @@
   }
 
   function paintBadge(badge, text, state, title, card) {
-    // Values turned off: the chip stays in place, hidden, for the projected flag.
+    // Values coupées : la pastille reste en place, cachée, pour le badge projected.
     if (!itemValues) { badge.node.style.display = 'none'; badge.checked = false; return; }
     if (badge.mode !== 'overlay' && badge.node.style.display === 'none') badge.node.style.display = '';
     const grew = badge.value.textContent !== text;
     if (grew) badge.value.textContent = text;
     if (badge.pill.dataset.state !== state) badge.pill.dataset.state = state;
     badge.pill.title = title;
-    // Checked when the text changes: a longer number may no longer fit. Below
-    // the RAP first, then on its line, and hidden only if neither fits.
+    // Vérifié quand le texte change : un nombre plus long peut ne plus tenir. Sous
+    // le RAP d'abord, puis sur sa ligne, et cachée seulement si rien ne tient.
     if (card && (grew || !badge.checked) && badge.mode !== 'overlay' && !chipVisible(badge, card)) {
       badge.mode = badge.mode === 'below' && badge.anchor?.isConnected ? 'inline' : 'overlay';
       seat(badge, card);
@@ -342,7 +384,7 @@
       node.dataset.rn = 'total-value';
       node.style.cssText = 'box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;margin-top:6px;padding:0;font:inherit;color:inherit;font-variant-numeric:tabular-nums;';
       const label = document.createElement('span');
-      label.textContent = fr ? 'Value Rolimon’s :' : 'Rolimon’s Value:';
+      label.textContent = TEXT.totalLabel;
       const amount = document.createElement('span');
       amount.style.cssText = 'display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;font:inherit;font-weight:600;white-space:nowrap;';
       const icon = document.createElement('img');
@@ -355,7 +397,7 @@
       totalBadges.set(side.root, total);
     }
     total.row = row;
-    // Match the actual Roblox label and amount, including theme typography.
+    // Même libellé et même montant que Roblox, typographie du thème comprise.
     const sourceAmount = [...(row.querySelectorAll?.('*') || [])].reverse().find(el =>
       !el.childElementCount && /\d/.test(el.textContent || '')) || row.lastElementChild;
     for (const [source, target] of [[side.totalLabel, total.label], [sourceAmount, total.amount]]) {
@@ -382,9 +424,7 @@
       const available = !!analysis?.valueAvailable && Number.isFinite(value);
       const text = available ? number.format(value) : pending ? '…' : '—';
       if (total.value.textContent !== text) total.value.textContent = text;
-      const title = available
-        ? (fr ? 'Total selon les cotes Rolimon’s, Robux inclus' : 'Total using Rolimon’s values, including Robux')
-        : (fr ? 'Total Value temporairement indisponible' : 'Total Value temporarily unavailable');
+      const title = available ? TEXT.totalOk : TEXT.totalMissing;
       if (total.amount.title !== title) total.amount.title = title;
       total.node.style.opacity = available ? '1' : pending ? '.7' : '.8';
     }
@@ -403,16 +443,14 @@
         keep.add(card);
         const badge = ensureBadge(badges, card, item.priceEl);
         const info = analysis?.pageItems?.[sideIndex]?.[index];
-        // An item read by name gets its id from the worker: match on the name.
+        // Un objet lu par son nom reçoit son identifiant du worker : on compare le nom.
         const matched = info && (itemKey(info) === itemKey(item) ||
           (!item.assetId && !item.bundleId && info.name && info.name === item.name));
         const available = matched && Number.isFinite(info.value) && info.value > 0;
         const rapFallback = matched && info.noValue && Number.isFinite(item.rap) && item.rap >= 0;
         paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : '—',
           available || rapFallback ? 'ok' : pending ? 'wait' : 'none',
-          available ? (fr ? 'Cote Rolimon’s actuelle' : 'Current Rolimon’s value') :
-          rapFallback ? (fr ? 'RAP actuel utilisé : aucune Value publiée pour cet objet.' : 'Current RAP used: no published value for this item.') :
-          (fr ? 'Cote temporairement indisponible' : 'Value temporarily unavailable'), card);
+          available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card);
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
           ? info.projected : !!projectedKnown.get(itemKey(item)));
         showMarks(badge, card, matched && !!info.rare, !!globalThis.RoNoteMarks?.isLucky(lucky,
@@ -422,12 +460,12 @@
     for (const [card, badge] of badges) if (!keep.has(card)) { dropBadge(badge); badges.delete(card); }
   }
   /* ----------------------------------------------------------------------
-   * The two inventories of the page to build a trade: value and projected
-   * badge on every item shown, page after page. Answers are kept per item,
-   * so scrolling back or changing page redraws at once, without asking again.
+   * Les deux inventaires de la page de création d'un trade : value et badge
+   * projected sur chaque objet affiché, page après page. Les réponses sont
+   * gardées par objet : remonter ou changer de page redessine aussitôt, sans redemander.
    * -------------------------------------------------------------------- */
   const invBadges = new Map();
-  const invInfo = new Map();          // item key -> { value, projected } from the worker
+  const invInfo = new Map();          // clé d'objet -> { value, projected } selon le worker
   let invAsking = false, invRetryAt = 0;
   const invKey = (i) => i.assetId ? 'a' + i.assetId : i.bundleId ? 'b' + i.bundleId
     : 'n:' + (i.names || [i.name]).join('|') + ':' + (i.rap ?? '');
@@ -445,9 +483,9 @@
       const info = invInfo.get(invKey(item));
       keep.add(card);
       const badge = ensureBadge(invBadges, card, item.priceEl);
-      if (info?.known && info.value) paintBadge(badge, number.format(info.value), 'ok', fr ? `Cote Rolimon’s actuelle : ${number.format(info.value)}` : `Current Rolimon’s value: ${number.format(info.value)}`, card);
-      else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', fr ? 'RAP actuel utilisé : aucune Value publiée pour cet objet.' : 'Current RAP used: no published value for this item.', card);
-      else paintBadge(badge, info?.known ? '—' : '…', info?.known ? 'none' : 'wait', fr ? 'Pas de Value publiée pour cet objet' : 'No published value for this item', card);
+      if (info?.known && info.value) paintBadge(badge, number.format(info.value), 'ok', TEXT.currentValue, card);
+      else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', TEXT.rapUsed, card);
+      else paintBadge(badge, info?.known ? '—' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
       showFlag(badge, card, !!info?.projected);
       showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
@@ -474,35 +512,29 @@
     let retryUnknownAt = 0;
     try {
       const res = await B.runtime.sendMessage({ type: 'ronote:item-values', items: missing.slice(0, 150) });
-      // Table not loaded yet: nothing is kept, the next pass asks again.
+      // Table pas encore chargée : rien n'est gardé, le passage suivant redemande.
       if (!res?.ready) {
         invRetryAt = Date.now() + 8000;
         setTimeout(schedule, 8050);
         return;
       }
+      // Inconnu ou absent de la réponse : redemandé dans 8 s.
+      const unknown = (key) => { retryUnknownAt = Date.now() + 8000; invInfo.set(key, { known: false, retryAt: retryUnknownAt }); };
       const returned = new Set((res.items || []).map(r => r.key));
-      for (const item of missing.slice(0, 150)) if (!returned.has(item.key)) {
-        const retryAt = Date.now() + 8000;
-        invInfo.set(item.key, { known: false, retryAt });
-        retryUnknownAt = retryAt;
-      }
+      for (const item of missing.slice(0, 150)) if (!returned.has(item.key)) unknown(item.key);
       for (const r of res.items || []) {
-        if (r.known === false) {
-          const retryAt = Date.now() + 8000;
-          invInfo.set(r.key, { known: false, retryAt });
-          retryUnknownAt = Math.max(retryUnknownAt, retryAt);
-        } else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected, rare: !!r.rare });
+        if (r.known === false) unknown(r.key);
+        else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected, rare: !!r.rare });
       }
       if (invInfo.size > 3000) invInfo.delete(invInfo.keys().next().value);
-
     } catch {
       if (!alive()) return;
       invRetryAt = Date.now() + 8000;
       setTimeout(schedule, 8050);
     } finally {
       invAsking = false;
-      // The visible cards may have changed while this request was running.
-      // Re-read them now so their own batch is never lost.
+      // Les cartes visibles ont pu changer pendant la requête : on les relit
+      // maintenant, pour qu'aucun lot ne se perde.
       schedule();
       if (retryUnknownAt) setTimeout(schedule, Math.max(50, retryUnknownAt - Date.now() + 50));
     }
@@ -512,26 +544,33 @@
     }
   }
 
-  let undo = [];
-  const nearbyLines = new Map();
-  function clearNearbyLines() {
-    for (const [el, properties] of nearbyLines) for (const [name, value, priority] of properties) {
+  /**
+   * Les styles que RoNote pose sur les éléments de Roblox (filets masqués,
+   * place des outils) : chaque propriété garde sa valeur d'origine, rendue
+   * telle quelle au départ. Rien de Roblox n'est jamais supprimé.
+   */
+  function borrowStyle(saved, el, name, value, priority = 'important') {
+    if (!saved.some(([e, n]) => e === el && n === name)) {
+      saved.push([el, name, el.style.getPropertyValue(name), el.style.getPropertyPriority(name)]);
+    }
+    el.style.setProperty(name, value, priority);
+  }
+  function returnStyles(saved) {
+    for (const [el, name, value, priority] of saved.splice(0)) {
       if (value) el.style.setProperty(name, value, priority); else el.style.removeProperty(name);
     }
-    nearbyLines.clear();
   }
+
+  let undo = [];
+  const nearbyLines = [];
+  const clearNearbyLines = () => returnStyles(nearbyLines);
   function tidyBannerBoundary() {
     if (!host?.isConnected) return;
     const h = host.getBoundingClientRect();
     if (!h.width || !h.height) return;
-    const hide = (el, property, value) => {
-      let saved = nearbyLines.get(el);
-      if (!saved) { saved = []; nearbyLines.set(el, saved); }
-      if (!saved.some(p => p[0] === property)) saved.push([property, el.style.getPropertyValue(property), el.style.getPropertyPriority(property)]);
-      el.style.setProperty(property, value, 'important');
-    };
-    // The remaining line can belong to a wrapper, or be a one-pixel
-    // background rather than an <hr>. Only inspect the immediate boundary.
+    const hide = (el, property, value) => borrowStyle(nearbyLines, el, property, value);
+    // Le filet qui reste peut appartenir à un conteneur, ou être un fond d'un
+    // pixel plutôt qu'un <hr>. Seule la frontière immédiate est examinée.
     for (let branch = host, depth = 0; branch?.parentElement && depth < 8; branch = branch.parentElement, depth++) {
       const parent = branch.parentElement;
       if (parent === document.body || parent === document.documentElement) break;
@@ -552,26 +591,28 @@
   const restore = () => { for (const reset of undo) reset(); undo = []; };
   let serialControl, flexControl, serialHidden = false;
   const serialNodes = new Map();
-  // Capture before the thumbnail's own link/React handlers. Some badges are
-  // nested inside the catalog anchor, others have pointer-events:none.
+  // En capture, avant le lien de la vignette et les écouteurs de React. Certains
+  // badges sont dans le lien du catalogue, d'autres ont pointer-events:none.
   document.addEventListener('click', event => {
     for (const node of event.composedPath?.() || []) {
       const rec = serialNodes.get(node);
       if (rec) { rec.click(event); return; }
     }
   }, true);
-  function resetSerials() {
-    for (const [el, rec] of serialNodes) {
-      el.style.filter = rec.filter;
-      el.style.cursor = rec.cursor;
-      el.style.pointerEvents = rec.pointerEvents;
-      el.removeEventListener('click', rec.click, true);
-      el.removeEventListener('keydown', rec.key, true);
-      for (const [name, value] of rec.attrs) {
-        if (value === null) el.removeAttribute(name); else el.setAttribute(name, value);
-      }
+  /** Un numéro de série rendu tel que Roblox l'avait affiché. */
+  function releaseSerial(el, rec) {
+    el.style.filter = rec.filter;
+    el.style.cursor = rec.cursor;
+    el.style.pointerEvents = rec.pointerEvents;
+    el.removeEventListener('click', rec.click, true);
+    el.removeEventListener('keydown', rec.key, true);
+    for (const [name, value] of rec.attrs) {
+      if (value === null) el.removeAttribute(name); else el.setAttribute(name, value);
     }
-    serialNodes.clear();
+    serialNodes.delete(el);
+  }
+  function resetSerials() {
+    for (const [el, rec] of serialNodes) releaseSerial(el, rec);
   }
   function mountSerialControl() {
     if (!profileLink?.isConnected) return;
@@ -591,7 +632,7 @@
   }
   function paintSerialControl() {
     if (!serialControl) return;
-    const label = serialHidden ? (fr ? 'Afficher les serials' : 'Show serials') : (fr ? 'Flouter les serials' : 'Blur serials');
+    const label = serialHidden ? TEXT.showSerials : TEXT.blurSerials;
     if (serialControl.title !== label) serialControl.title = label;
     serialControl.setAttribute('aria-label', label);
     serialControl.setAttribute('aria-pressed', String(serialHidden));
@@ -605,7 +646,7 @@
       const info = analysis?.pageItems?.[sideIndex]?.find(i => itemKey(i) === itemKey(item) || (i.name && i.name === item.name));
       const candidates = [...card.querySelectorAll('[class*="serial" i], [class*="limited" i], [data-serial-number], [class*="unique" i], [class*="collectible" i]')];
       for (const leaf of card.querySelectorAll('*')) if (!leaf.childElementCount && /^#\s*\d+$/.test((leaf.textContent || '').trim()) && !candidates.includes(leaf)) candidates.push(leaf);
-      // The star and serial are often siblings inside one small badge.
+      // L'étoile et le numéro sont souvent voisins dans un même petit badge.
       for (const el of [...candidates]) {
         const parent = el.parentElement;
         if (parent && parent !== card && /^#\s*\d+$/.test((parent.textContent || '').trim()) && !parent.querySelector?.('button') && !candidates.includes(parent)) candidates.push(parent);
@@ -642,63 +683,52 @@
         el.style.cursor = url ? 'pointer' : rec.cursor;
         if (url) {
           el.setAttribute('role', 'link'); el.setAttribute('tabindex', '0');
-          el.setAttribute('aria-label', fr ? 'Historique de cet exemplaire sur Rolimon’s' : 'This copy’s history on Rolimon’s');
+          el.setAttribute('aria-label', TEXT.copyHistory);
         } else {
           for (const [name, value] of rec.attrs) { if (name === 'title') continue; if (value === null) el.removeAttribute(name); else el.setAttribute(name, value); }
         }
-        const hint = url ? (fr ? 'Historique de cet exemplaire sur Rolimon’s' : 'This copy’s history on Rolimon’s') :
-          (fr ? 'Historique indisponible : identifiant de cet exemplaire non reçu.' : 'History unavailable: this copy’s ID has not been received.');
+        const hint = url ? TEXT.copyHistory : TEXT.copyUnknown;
         if (el.getAttribute('title') !== hint) el.setAttribute('title', hint);
       }
     }
-    for (const [el, rec] of serialNodes) if (!live.has(el)) {
-      el.style.filter = rec.filter; el.style.cursor = rec.cursor;
-      el.style.pointerEvents = rec.pointerEvents;
-      el.removeEventListener('click', rec.click, true); el.removeEventListener('keydown', rec.key, true);
-      for (const [name, value] of rec.attrs) { if (value === null) el.removeAttribute(name); else el.setAttribute(name, value); }
-      serialNodes.delete(el);
-    }
+    for (const [el, rec] of serialNodes) if (!live.has(el)) releaseSerial(el, rec);
   }
   /**
-   * The icons (Trade Flex, blur serials, Rolimon's profile) have ONE fixed
-   * place: pinned to the right edge of the "Trade with … @handle" heading,
-   * with their room reserved once and for all. They never move with the
-   * length of the name, and Roblox's own ellipsis cuts a long name before
-   * them. Anchored on the right, the Flex button (completed trades only)
-   * appears on the left without shifting the other two.
-   * The heading's position and padding are restored when the page changes.
+   * Les icônes (Trade Flex, serials floutés, profil Rolimon's) ont UNE place
+   * fixe : contre le bord droit du titre « Trade avec … @pseudo », leur place
+   * réservée une fois pour toutes. Elles ne bougent pas avec la longueur du nom :
+   * les points de suspension de Roblox coupent un nom long avant elles. Ancré à
+   * droite, le bouton Flex (trades terminés seulement) apparaît à gauche sans
+   * décaler les deux autres. Le titre retrouve sa position et sa marge quand la page change.
    */
-  const TOOLS_ROOM = 3 * 30 + 2 * 6 + 12;   // three buttons, their gaps, some air
-  let headingSaved = null;                   // [element, property, value, priority][]
+  const TOOLS_ROOM = 3 * 30 + 2 * 6 + 12;   // trois boutons, leurs écarts, un peu d'air
+  const headingSaved = [];   // voir borrowStyle
+  let toolsHeading = null;
   function releaseHeading() {
-    for (const [el, name, value, priority] of headingSaved || []) {
-      if (value) el.style.setProperty(name, value, priority); else el.style.removeProperty(name);
-    }
-    headingSaved = null;
+    returnStyles(headingSaved);
+    toolsHeading = null;
   }
   function placeTools(heading, handle) {
-    if (headingSaved && headingSaved[0][0] !== heading) releaseHeading();
-    if (!headingSaved) {
-      headingSaved = ['position', 'padding-right'].map(name =>
-        [heading, name, heading.style.getPropertyValue(name), heading.style.getPropertyPriority(name)]);
-      // Some layouts put the @handle on its own line: keep it next to the name.
+    if (toolsHeading && toolsHeading !== heading) releaseHeading();
+    if (!toolsHeading) {
+      toolsHeading = heading;
+      // Certaines mises en page posent le @pseudo sur sa propre ligne : il reste à côté du nom.
       if (handle && handle !== heading && heading.contains(handle) && getComputedStyle(handle).display === 'block') {
-        headingSaved.push([handle, 'display', handle.style.getPropertyValue('display'), handle.style.getPropertyPriority('display')]);
-        handle.style.setProperty('display', 'inline');
+        borrowStyle(headingSaved, handle, 'display', 'inline', '');
       }
       const cs = getComputedStyle(heading);
       const padding = parseFloat(cs.paddingRight) || 0;
-      if (cs.position === 'static') heading.style.setProperty('position', 'relative');
-      heading.style.setProperty('padding-right', `${padding + TOOLS_ROOM}px`, 'important');
+      if (cs.position === 'static') borrowStyle(headingSaved, heading, 'position', 'relative', '');
+      borrowStyle(headingSaved, heading, 'padding-right', `${padding + TOOLS_ROOM}px`);
       Object.assign(tools.style, { right: `${padding}px` });
     }
     if (tools.parentElement !== heading) heading.append(tools);
   }
   /**
-   * Trade Flex shows off a done deal: only a completed trade can be flexed,
-   * never an offer still pending or one that fell through. The offer headings
-   * say so ("Items you gave"); the Completed tab of the URL stands in when
-   * they don't.
+   * Trade Flex montre une affaire conclue : seul un trade terminé se flexe,
+   * jamais une offre en attente ou tombée à l'eau. Les titres des offres le
+   * disent (« Items you gave ») ; l'onglet Completed de l'URL prend le relais
+   * quand ils se taisent.
    */
   function isCompleted(page) {
     if (!page?.ok || page.composer) return false;
@@ -726,7 +756,7 @@
       external.setAttribute('aria-hidden', 'true');
       root.append(style, logo, external); profileLink.target = '_blank'; profileLink.rel = 'noopener noreferrer';
     }
-    const title = fr ? `Ouvrir le profil de ${page.handle || 'ce joueur'} sur Rolimon’s` : `Open ${page.handle || 'this player'} on Rolimon’s`;
+    const title = TEXT.profile(page.handle);
     const url = `https://www.rolimons.com/player/${page.partnerId}`;
     if (profileLink.href !== url) profileLink.href = url;
     if (profileLink.title !== title) { profileLink.title = title; profileLink.setAttribute('aria-label', title); }
@@ -740,14 +770,16 @@
     mountSerialControl();
     if (globalThis.RoNoteFlex && isCompleted(page)) {
       if (!flexControl) {
-        flexControl = document.createElement('button');flexControl.type='button';flexControl.dataset.rn='trade-flex';
-        flexControl.innerHTML='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
-        flexControl.title=fr?'Créer une image du trade':'Create a trade image';
-        flexControl.setAttribute('aria-label',flexControl.title);
-        flexControl.style.cssText=profileLink.style.cssText+'padding:0;cursor:pointer;color:#ffc94d;';
-        flexControl.addEventListener('click',()=>{if(isCompleted(shownPage))globalThis.RoNoteFlex.open(shownPage,shownAnalysis);});
+        flexControl = document.createElement('button');
+        flexControl.type = 'button';
+        flexControl.dataset.rn = 'trade-flex';
+        flexControl.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+        flexControl.title = TEXT.flex;
+        flexControl.setAttribute('aria-label', flexControl.title);
+        flexControl.style.cssText = profileLink.style.cssText + 'padding:0;cursor:pointer;color:#ffc94d;';
+        flexControl.addEventListener('click', () => { if (isCompleted(shownPage)) globalThis.RoNoteFlex.open(shownPage, shownAnalysis); });
       }
-      if (tools.firstElementChild!==flexControl)tools.prepend(flexControl);
+      if (tools.firstElementChild !== flexControl) tools.prepend(flexControl);
     } else if (flexControl?.isConnected) {
       flexControl.remove(); globalThis.RoNoteFlex?.close();
     }
@@ -769,7 +801,7 @@
     if (!el || el === host || (el.textContent || '').trim() || el.querySelector?.('a,button,input,img')) return false;
     if (el.tagName === 'HR' || el.getAttribute?.('role') === 'separator' ||
         /(?:^|[\s_-])(?:divider|separator)(?:$|[\s_-])/i.test(el.className || '')) return true;
-    // Roblox also uses empty divs with a CSS border instead of an HR.
+    // Roblox utilise aussi des div vides avec une bordure CSS au lieu d'un HR.
     if (typeof getComputedStyle !== 'function') return false;
     const css = getComputedStyle(el);
     return parseFloat(css.height) <= 4 &&
@@ -781,8 +813,8 @@
     while (a.parentElement !== parent) a = a.parentElement;
     while (b.parentElement !== parent) b = b.parentElement;
     const candidates = [];
-    // The line may sit a few levels down: the last thing of the first block,
-    // the first thing of the second.
+    // Le filet peut se cacher quelques niveaux plus bas : le dernier élément du
+    // premier bloc, le premier du second.
     for (let n = first.lastElementChild, d = 0; n && d < 4; n = n.lastElementChild, d++) candidates.push(n);
     for (let n = host && second.firstElementChild === host ? host.nextElementSibling : second.firstElementChild, d = 0; n && d < 4; n = n.firstElementChild, d++) candidates.push(n);
     for (let n = a.nextElementSibling; n && n !== b; n = n.nextElementSibling) candidates.push(n);
@@ -799,16 +831,16 @@
         if (before) el.style.setProperty(property, before, priority); else el.style.removeProperty(property);
       } });
     };
-    // Restore Roblox's own separator on navigation; never delete its nodes.
+    // Le séparateur de Roblox revient à la navigation ; ses nœuds ne sont jamais supprimés.
     override(first, 'border-bottom-width', '0px');
     override(second, 'border-top-width', '0px');
     for (const line of lines) override(line, 'display', 'none');
   }
 
-  // Containers where an added child doesn't land where it is inserted:
-  // a flex row lays it beside the others (pushing a column onto a new line),
-  // and a grid auto-places it after the cells Roblox has positioned — at the
-  // bottom, whatever its place in the DOM.
+  // Conteneurs où un enfant ajouté n'atterrit pas là où on l'insère : une rangée
+  // flex le pose à côté des autres (et repousse une colonne à la ligne), une
+  // grille le place après les cellules positionnées par Roblox — en bas, quelle
+  // que soit sa place dans le DOM.
   function sideBySide(el) {
     if (!el || typeof getComputedStyle !== 'function') return false;
     const css = getComputedStyle(el);
@@ -822,17 +854,17 @@
   }
 
   /* ----------------------------------------------------------------------
-   * Placing the banner on a page whose styles we don't know. Rather than
-   * guessing what a flex box or a grid will do with an added child, each
-   * candidate position is tried and MEASURED: kept only if the banner shows
-   * where it should, full width, without moving anything we watch.
+   * Placer le bandeau sur une page dont on ne connaît pas les styles. Plutôt que
+   * de deviner ce qu'une flexbox ou une grille fera d'un enfant ajouté, chaque
+   * position candidate est essayée et MESURÉE : gardée seulement si le bandeau
+   * apparaît où il doit, sur toute la largeur, sans rien déplacer de ce qu'on surveille.
    * -------------------------------------------------------------------- */
   let placement = '', lastPlaceTry = 0;
 
   /* ----------------------------------------------------------------------
-   * What RoNote sees on a trade page, kept for Settings > Maintenance >
-   * "Copy the trade page diagnostic": the real page's structure, to fix
-   * the reading without guessing. Local only, rewritten at most every 4 s.
+   * Ce que RoNote voit d'une page de trade, gardé pour Réglages > Maintenance >
+   * « Copier le diagnostic de la page » : la structure réelle de la page, pour
+   * corriger la lecture sans deviner. Local seulement, réécrit au plus toutes les 4 s.
    * -------------------------------------------------------------------- */
   let diagAt = 0;
   function skeleton(root, budget = 9000) {
@@ -906,7 +938,7 @@
     const before = watch.filter(Boolean).map(el => [el, box(el)]);
     for (const c of candidates) {
       if (!c?.parent?.isConnected) continue;
-      // In place of the divider: its line (element or border) is hidden, never removed.
+      // À la place du séparateur : son filet (élément ou bordure) est masqué, jamais supprimé.
       if (c.a && c.b) replaceLine(c.a, c.b, c.lines || []);
       c.parent.insertBefore(host, c.anchor && c.anchor.parentElement === c.parent ? c.anchor : null);
       fitHost();
@@ -925,7 +957,7 @@
     const [first, second] = page.sides.map(s => s.root);
     const watch = [page.sides[0].heading, page.sides[1].heading, ...(page.inventories || [])];
     if (page.inventories) {
-      // In place of the divider between "Your Inventory" and the partner's.
+      // À la place du séparateur entre « Your Inventory » et l'inventaire du partenaire.
       const [mine, theirs] = page.inventories;
       let lca = mine.parentElement;
       while (lca && !lca.contains(theirs)) lca = lca.parentElement;
@@ -933,7 +965,7 @@
         let a = mine, b = theirs;
         while (a.parentElement !== lca) a = a.parentElement;
         while (b.parentElement !== lca) b = b.parentElement;
-        // The bottom of my inventory: its last item, pager included.
+        // Le bas de mon inventaire : son dernier objet, pagination comprise.
         const mineEnd = a;
         const lines = a !== b ? boundary(a, b, lca) : [];
         const own = lines.find(l => l.parentElement === lca);
@@ -943,19 +975,19 @@
           cands.push({ name: 'before-theirs', parent: lca, anchor: b });
           cands.push({ name: 'end-of-mine', parent: a, anchor: null });
         }
-        // Every level between the partner's title and the shared container.
+        // Chaque niveau entre le titre du partenaire et le conteneur commun.
         for (let n = theirs; n && n !== lca; n = n.parentElement) {
           cands.push({ name: 'above-title-' + cands.length, parent: n.parentElement, anchor: n });
         }
         const landed = (h) => h.top >= box(mineEnd).top && between(h, mine, theirs) &&
-          // under the whole of my inventory, not just its title
+          // sous tout mon inventaire, pas seulement son titre
           [...mineEnd.querySelectorAll('img')].every(img => box(img).bottom <= h.top + 1);
-        // Every placement replaces the same inventory boundary, including
-        // fallback positions where the first candidate did not fit.
+        // Chaque placement remplace la même frontière entre inventaires, y compris les
+        // positions de repli quand le premier candidat ne tenait pas.
         if (placeMeasured(cands.map(c => ({ ...c, a, b, lines })), landed, watch)) return true;
       }
     }
-    // Otherwise between the "Total Value" of the offer and "Your Request".
+    // Sinon, entre le « Total Value » de l'offre et « Your Request ».
     const from = page.sides[0].totalLabel || first;
     const to = page.sides[1].heading || second;
     let lca = from.parentElement;
@@ -966,7 +998,7 @@
       if (n.parentElement) cands.push({ name: 'under-offer-total', parent: n.parentElement, anchor: n.nextSibling });
     }
     if (placeMeasured(cands, (h) => between(h, from, to), watch)) return true;
-    // Nothing measured right (hidden tab, page still loading): in the offer basket.
+    // Aucune mesure juste (onglet caché, page en chargement) : dans le panier de l'offre.
     if (!host) createHost();
     first.append(host);
     placement = 'fallback';
@@ -981,14 +1013,14 @@
     let parent = first.parentElement;
     while (parent && !parent.contains(second)) parent = parent.parentElement;
     if (!parent || parent === document.body || parent === document.documentElement) return false;
-    // Locate the actual boundary before choosing a fallback near the heading.
+    // On cherche la vraie frontière avant de se replier près du titre.
     const lines = boundary(first, second, parent);
     let anchor = second;
     while (anchor.parentElement !== parent) anchor = anchor.parentElement;
     const heading = page.sides[1].heading;
     if (heading && second.contains(heading)) { parent = heading.parentElement; anchor = heading; }
     if (lines.length) { anchor = lines[0]; parent = anchor.parentElement; }
-    // Same safety on an existing trade: inside the received offer instead.
+    // Même prudence sur un trade existant : dans l'offre reçue, plutôt.
     if (sideBySide(parent)) { parent = second; anchor = second.firstChild; lines.length = 0; }
     replaceLine(first, second, lines);
     if (!host?.isConnected) createHost();
@@ -1038,19 +1070,18 @@
   }
 
   function missingWhy(a, field) {
-    if (field === 'value' && a?.valueMissing === 'catalog') return fr ? 'Cotes Rolimon’s pas encore chargées.' : 'Rolimon’s values not loaded yet.';
-    if (field === 'value' && a?.valueMissing === 'stale') return fr ? 'Cotes Rolimon’s trop anciennes.' : 'Rolimon’s values too old.';
-    if (field === 'value' && a?.missingNames?.length) return (fr ? 'Aucun chiffre pour : ' : 'No figure for: ') + a.missingNames.join(', ');
-    // Only the worker's answer carries valueMissing: without it, it never replied.
-    if (field === 'value' && a && !('valueMissing' in a)) return fr ? 'Extension injoignable : recharge la page.' : 'Extension unreachable: reload the page.';
-    return fr ? 'Données insuffisantes pour calculer cet écart.' : 'Insufficient data to calculate this difference.';
+    if (field === 'value' && a?.valueMissing === 'catalog') return TEXT.catalog;
+    if (field === 'value' && a?.valueMissing === 'stale') return TEXT.stale;
+    if (field === 'value' && a?.missingNames?.length) return TEXT.noFigure + a.missingNames.join(', ');
+    // Seule la réponse du worker porte `valueMissing` : sans elle, il n'a jamais répondu.
+    if (field === 'value' && a && !('valueMissing' in a)) return TEXT.unreachable;
+    return TEXT.insufficient;
   }
 
   function render(a, pending = false) {
     shownAnalysis = a;
     learnProjected(a);
     if (shownPage) { renderItems(shownPage, a, pending); renderTotals(shownPage, a, pending); }
-    const explanation = fr ? 'Reçu − donné, par rapport à ce que tu donnes. Robux inclus ; les montants reçus déjà nets ne sont pas taxés une seconde fois.' : 'Received − given, relative to what you give. Includes Robux; received amounts already shown net are not taxed again.';
     for (const [index, field] of ['rap', 'value'].entries()) {
       const label = index ? 'Value' : 'RAP';
       const cell = host._row.children[index];
@@ -1066,9 +1097,9 @@
         : globalThis.RoNoteBanner ? globalThis.RoNoteBanner.amount(delta, pct, bannerSettings)
         : `${signed(delta)} (${pct === null ? '—' : signed(Math.round(pct)) + '%'})`;
       if (cell.children[1].textContent !== text) cell.children[1].textContent = text;
-      cell.title = available ? explanation +
-        (a.valueStale ? (fr ? ' Cotes en cache, actualisation temporairement indisponible.' : 'Cached prices; refresh temporarily unavailable.') : '') +
-        (field === 'value' && items.some(i => i.noValue) ? (fr ? ' RAP utilisé pour les objets sans value.' : ' RAP used for items without a value.') : '')
+      cell.title = available ? TEXT.explanation +
+        (a.valueStale ? TEXT.cached : '') +
+        (field === 'value' && items.some(i => i.noValue) ? TEXT.rapForUnvalued : '')
         : missingWhy(a, field);
     }
     tidyBannerBoundary();
@@ -1078,7 +1109,7 @@
     if (!alive()) return;
     lastUrl = location.href;
     if (!enabled || !onPage() || document.hidden) { clear(); clearInventories(); return; }
-    // The Lucky Cat moves every few hours: the worker re-reads it when it is old.
+    // Le Lucky Cat change toutes les quelques heures : le worker le relit s'il date.
     if (showLucky && Date.now() - luckyAskedAt > 10 * 60 * 1000) {
       luckyAskedAt = Date.now();
       B.runtime.sendMessage({ type: 'ronote:lucky-cat' }).then(r => setLucky(r?.luckyCat)).catch(() => {});
@@ -1090,8 +1121,8 @@
     if (!page.ok) { clear(); return; }
     const sig = location.href + '|' + dom.signatureOf(page);
     shownPage = page;
-    // The page wasn't laid out yet when the banner was placed: measure again,
-    // at most every 2 s, without dropping the analysis on its way.
+    // La page n'était pas encore mise en page quand le bandeau a été posé : on
+    // remesure, au plus toutes les 2 s, sans perdre l'analyse en route.
     if (page.composer && sig === signature && host?.isConnected && placement === 'fallback' && Date.now() - lastPlaceTry > 2000) {
       lastPlaceTry = Date.now();
       mountComposer(page);
@@ -1121,10 +1152,10 @@
     const current = generation;
     try {
       const result = await B.runtime.sendMessage({ type: 'ronote:page-analysis', page: dom.plain(page) });
-      // A slow response must never overwrite a newly selected trade.
+      // Une réponse lente n'écrase jamais un trade choisi entre-temps.
       if (current !== generation || !host?.isConnected) return;
-      // The page moved while the worker answered: ask again at once rather
-      // than sitting on the pending render until the 60 s cache expires.
+      // La page a bougé pendant que le worker répondait : on redemande aussitôt
+      // plutôt que de garder l'attente jusqu'à l'expiration du cache de 60 s.
       if (!onPage() || sig !== location.href + '|' + dom.signatureOf(dom.readTradePage())) { retryAt = 0; schedule(); return; }
       if (result?.why === 'off') { enabled = false; clear(); return; }
       analysisPending = false;
@@ -1139,7 +1170,7 @@
         if (good.size > 40) good.delete(good.keys().next().value);
       }
       render(analysis);
-      // Only a complete answer is kept for a minute; a missing Value is retried.
+      // Seule une réponse complète est gardée une minute ; une Value manquante se redemande.
       if (result?.analysis?.valueAvailable) {
         cache.set(sig, { analysis, at: Date.now() });
         if (cache.size > 20) cache.delete(cache.keys().next().value);
@@ -1153,7 +1184,7 @@
   function shutdown() {
     if (dead) return;
     dead = true;
-    // May run before the rest of the script is set up: nothing here may throw.
+    // Peut tourner avant que le reste du script soit prêt : rien ici ne doit lever d'erreur.
     try { observer?.disconnect(); clearInterval(ticker); clearTimeout(timer); clearTimeout(projectedSave); } catch { /* not set up yet */ }
     try { clear(); clearInventories(); } catch { /* not set up yet, or page already gone */ }
   }
@@ -1171,25 +1202,25 @@
   }).observe(document.documentElement, { childList: true, characterData: true, attributes: true, attributeFilter: ['href', 'title'], subtree: true });
   globalThis.addEventListener('popstate', schedule);
   globalThis.addEventListener('hashchange', schedule);
-  // Only on a trade page: elsewhere on Roblox, scrolling or resizing used to
-  // re-run the whole update every 40 ms just to find there was nothing to do.
+  // Seulement sur une page de trade : ailleurs sur Roblox, défiler ou
+  // redimensionner relançait toute la mise à jour toutes les 40 ms, pour rien.
   const scheduleOnPage = () => { if (onPage() || host) schedule(); };
   globalThis.addEventListener('resize', scheduleOnPage);
   globalThis.addEventListener('ronote:detail-ready', () => { generation++; cache.clear(); retryAt = 0; schedule(); });
-  // React immediately to the Robux field while a trade is being composed.
-  // Changing an input's live value does not necessarily mutate its attribute.
+  // Le champ Robux d'un trade en préparation compte tout de suite : changer la
+  // valeur d'un champ ne modifie pas forcément son attribut.
   document.addEventListener('input', event => {
     if (enabled && onPage() && event.target?.matches?.('input')) { retryAt = 0; schedule(); }
   }, true);
   document.addEventListener('scroll', scheduleOnPage, { capture: true, passive: true });
-  // Back on the tab with a grey banner: ask again right away.
+  // Retour sur l'onglet avec un bandeau gris : on redemande tout de suite.
   const refreshIncomplete = () => {
     if (!document.hidden && shownPage && !shownAnalysis?.valueAvailable) { retryAt = 0; }
     schedule();
   };
   document.addEventListener('visibilitychange', refreshIncomplete);
   globalThis.addEventListener('focus', refreshIncomplete);
-  // Also covers pushState navigation without DOM mutations and transient errors.
+  // Couvre aussi la navigation par pushState sans mutation du DOM, et les erreurs passagères.
   ticker = setInterval(() => {
     if (!alive()) return;
     if (!document.hidden && (onPage() || host) &&

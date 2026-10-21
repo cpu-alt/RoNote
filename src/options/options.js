@@ -283,10 +283,10 @@ async function applyThemeNow(th) {
   message('#theme-msg', t('Application du thème…'));
   // Laisse le message s'afficher avant de peindre le fond (≈ 100 ms de calcul).
   await new Promise(r => setTimeout(r, 30));
-  for (const k of THEME_KEYS) delete previewColor[k];
+  forgetPreview(THEME_KEYS);
   // Le fond fait partie du thème : peint à la volée, ou retiré pour un thème sans fond.
   pageBgImage = th.bg ? paintBackground(th.bg) : '';
-  await B.storage.local.set({ pageBgImage }).catch(() => {});
+  await storeImage('pageBgImage', pageBgImage);
   await set({ ...th.settings });
   renderLooks();
   message('#theme-msg', t('Thème « {name} » appliqué aux onglets Roblox ouverts.', { name: t(th.name) }));
@@ -314,10 +314,15 @@ const readAsDataUrl = (file) => new Promise((done, fail) => {
   r.readAsDataURL(file);
 });
 
+/** Une image que le navigateur sait lire, sous `max` octets ; sinon l'erreur à afficher. */
+function checkImage(file, max, tooBig) {
+  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error(t('Format non pris en charge : PNG, JPG, GIF ou WebP.'));
+  if (file.size > max) throw new Error(tooBig);
+}
+
 /** L'image importée, prête à stocker : carrée, légère, en data: URL. */
 async function toProjectedIcon(file) {
-  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error(t('Format non pris en charge : PNG, JPG, GIF ou WebP.'));
-  if (file.size > PROJ_MAX_FILE) throw new Error(t('Image trop lourde (8 Mo maximum).'));
+  checkImage(file, PROJ_MAX_FILE, t('Image trop lourde (8 Mo maximum).'));
   if (file.type === 'image/gif' && file.size <= PROJ_GIF_KEEP) return readAsDataUrl(file);
   const bmp = await createImageBitmap(file);
   const side = Math.min(bmp.width, bmp.height);
@@ -330,8 +335,7 @@ async function toProjectedIcon(file) {
 }
 /** L'image de fond, prête à stocker : 1920 px au plus, en JPEG. */
 async function toPageBg(file) {
-  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error(t('Format non pris en charge : PNG, JPG, GIF ou WebP.'));
-  if (file.size > BG_MAX_FILE) throw new Error(t('Image trop lourde (20 Mo maximum).'));
+  checkImage(file, BG_MAX_FILE, t('Image trop lourde (20 Mo maximum).'));
   const bmp = await createImageBitmap(file);
   const k = Math.min(1, BG_PX / Math.max(bmp.width, bmp.height));
   const canvas = document.createElement('canvas');
@@ -576,14 +580,32 @@ async function replaceAll(next, keep, icon) {
   if (!r?.settings) { showUnreachable(); return false; }
   if (icon !== undefined) {
     projectedIcon = icon;
-    await B.storage.local.set({ projectedIcon: icon }).catch(() => {});
+    await storeImage('projectedIcon', icon);
   }
-  for (const k of Object.keys(previewColor)) delete previewColor[k];
+  forgetPreview(Object.keys(previewColor));
   settings = r.settings;
   render();
   flashSaved();
   return true;
 }
+
+/**
+ * Un champ fichier : `fn` reçoit le fichier choisi. Le champ est vidé aussitôt,
+ * pour que choisir deux fois le même fichier relance bien l'import.
+ */
+function onFile(sel, fn) {
+  $(sel).addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) fn(file);
+  });
+}
+
+/** Les images importées (badge, fond) vivent à part des réglages : trop lourdes pour eux. */
+const storeImage = (key, value) => B.storage.local.set({ [key]: value }).catch(() => {});
+
+/** Les couleurs en cours de choix dans une roue cèdent la place aux vraies. */
+const forgetPreview = (keys) => { for (const k of keys) delete previewColor[k]; };
 
 function wire() {
   for (const k of BOOLS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.checked }));
@@ -615,12 +637,12 @@ function wire() {
     const patch = e.target.value === 'own'
       ? { listGain: b?.gain || '#22e57a', listLoss: b?.loss || '#ff4d5e' }
       : { listGain: '', listLoss: '' };
-    delete previewColor.listGain; delete previewColor.listLoss;
+    forgetPreview(['listGain', 'listLoss']);
     set(patch);
     renderListLook();
   });
   const resetter = (id, patch) => $(id).addEventListener('click', () => {
-    for (const k of Object.keys(patch)) delete previewColor[k];
+    forgetPreview(Object.keys(patch));
     set(patch);
     renderLooks();
   });
@@ -635,20 +657,26 @@ function wire() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#' + id).click(); }
     });
   }
-  $('#proj-file').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  // Badge et fond : même import, chacun sa conversion et son aperçu.
+  const importImage = (input, msg, convert, apply) => onFile(input, async file => {
     try {
-      message('#proj-msg', t("Préparation de l'image…"));
-      projectedIcon = await toProjectedIcon(file);
-      await B.storage.local.set({ projectedIcon });
-      renderProjected();
-      message('#proj-msg', t('Image appliquée aux onglets Roblox ouverts.'));
+      message(msg, t("Préparation de l'image…"));
+      apply(await convert(file));
+      message(msg, t('Image appliquée aux onglets Roblox ouverts.'));
       flashSaved();
     } catch (err) {
-      message('#proj-msg', err?.message || t('Image illisible.'), true);
+      message(msg, err?.message || t('Image illisible.'), true);
     }
+  });
+  importImage('#proj-file', '#proj-msg', toProjectedIcon, (icon) => {
+    projectedIcon = icon;
+    storeImage('projectedIcon', icon);
+    renderProjected();
+  });
+  importImage('#bg-file', '#bg-msg', toPageBg, (image) => {
+    pageBgImage = image;
+    storeImage('pageBgImage', image);
+    renderBg();
   });
   $('#themes').addEventListener('click', e => {
     const b = e.target.closest('button[data-theme]');
@@ -666,42 +694,24 @@ function wire() {
     download(`ronote-theme-${today()}.json`, new Blob([JSON.stringify(file)], { type: 'application/json' }));
     message('#theme-msg', t('Thème exporté : envoie le fichier à qui tu veux.'));
   });
-  $('#theme-file').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  onFile('#theme-file', async file => {
     let theme = null;
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('size');
       theme = themeFromFile(JSON.parse(await file.text()));
     } catch { theme = null; }
     if (!theme) { message('#theme-msg', t("Ce fichier n'est pas un thème RoNote."), true); return; }
-    for (const k of THEME_KEYS) delete previewColor[k];
-    if (theme.pageBgImage !== undefined) { pageBgImage = theme.pageBgImage; await B.storage.local.set({ pageBgImage }).catch(() => {}); }
-    if (theme.projectedIcon !== undefined) { projectedIcon = theme.projectedIcon; await B.storage.local.set({ projectedIcon }).catch(() => {}); }
+    forgetPreview(THEME_KEYS);
+    if (theme.pageBgImage !== undefined) { pageBgImage = theme.pageBgImage; await storeImage('pageBgImage', pageBgImage); }
+    if (theme.projectedIcon !== undefined) { projectedIcon = theme.projectedIcon; await storeImage('projectedIcon', projectedIcon); }
     await set(theme.settings);
     renderLooks();
     message('#theme-msg', theme.name ? t('Thème « {name} » importé.', { name: theme.name }) : t('Thème importé.'));
     flashSaved();
   });
-  $('#bg-file').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      message('#bg-msg', t("Préparation de l'image…"));
-      pageBgImage = await toPageBg(file);
-      await B.storage.local.set({ pageBgImage });
-      renderBg();
-      message('#bg-msg', t('Image appliquée aux onglets Roblox ouverts.'));
-      flashSaved();
-    } catch (err) {
-      message('#bg-msg', err?.message || t('Image illisible.'), true);
-    }
-  });
   $('#bg-clear').addEventListener('click', async () => {
     pageBgImage = '';
-    await B.storage.local.set({ pageBgImage: '' }).catch(() => {});
+    await storeImage('pageBgImage', '');
     renderBg();
     message('#bg-msg', t('Fond de Roblox rétabli.'));
     flashSaved();
@@ -710,17 +720,14 @@ function wire() {
     projectedIcon = '';
     // Une valeur vide plutot qu'un remove : les onglets Roblox recoivent le
     // meme evenement de changement, et le triangle revient aussitot.
-    await B.storage.local.set({ projectedIcon: '' }).catch(() => {});
+    await storeImage('projectedIcon', '');
     renderProjected();
     message('#proj-msg', t('Retour au triangle.'));
     flashSaved();
   });
 
   // --- son ---------------------------------------------------------------
-  $('#snd-file').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  onFile('#snd-file', async file => {
     if (customSounds.length >= SND_MAX_COUNT) { message('#snd-msg', t('{n} sons au maximum : supprimes-en un d\'abord.', { n: SND_MAX_COUNT }), true); return; }
     try {
       const snd = await toCustomSound(file);
@@ -826,10 +833,7 @@ function wire() {
     download(`ronote-reglages-${today()}.json`, new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
     message('#backup-msg', t('Réglages exportés.'));
   });
-  $('#settings-file').addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  onFile('#settings-file', async file => {
     const bad = () => message('#backup-msg', t("Ce fichier n'est pas un export de réglages RoNote."), true);
     let data;
     try {
@@ -848,7 +852,7 @@ function wire() {
     if (!confirm(t("Remettre tous les réglages par défaut ?\n\nLa langue et les utilisateurs ignorés sont gardés. Les images importées (badge, fond) sont retirées."))) return;
     if (await replaceAll({}, ['lang', 'ignoredUsers'], '')) {
       pageBgImage = '';
-      await B.storage.local.set({ pageBgImage: '' }).catch(() => {});
+      await storeImage('pageBgImage', '');
       renderBg();
       message('#backup-msg', t('Réglages remis par défaut.'));
     }
@@ -894,10 +898,9 @@ function wire() {
     out.hidden = false;
     out.textContent = t('Test en cours…');
     const r = await send({ type: 'ronote:diagnose', tradeId: id });
-    const NL = String.fromCharCode(10);
-    out.textContent = `Trade #${id}` + NL + NL + (r?.report || [])
-      .map(l => Object.entries(l).map(([k, v]) => `  ${k}: ${v}`).join(NL))
-      .join(NL + NL);
+    out.textContent = `Trade #${id}\n\n` + (r?.report || [])
+      .map(l => Object.entries(l).map(([k, v]) => `  ${k}: ${v}`).join('\n'))
+      .join('\n\n');
     e.target.textContent = t('Diagnostiquer');
     $('#btn-diag-copy').hidden = false;
   });
@@ -986,18 +989,16 @@ load();
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
-B.storage.local.get('projectedIcon').then(got => { projectedIcon = got?.projectedIcon || ''; if (settings) renderProjected(); }).catch(() => {});
-B.storage.local.get('customSounds').then(got => {
-  customSounds = Array.isArray(got?.customSounds) ? got.customSounds : [];
-  fillSounds();
-}).catch(() => {});
-onStoredChange(['customSounds'], 100, (v) => { customSounds = Array.isArray(v.customSounds) ? v.customSounds : []; fillSounds(); });
-B.storage.local.get('pageBgImage').then(got => { pageBgImage = got?.pageBgImage || ''; if (settings) renderBg(); }).catch(() => {});
-onStoredChange(['pageBgImage'], 100, (v) => { pageBgImage = v.pageBgImage || ''; if (settings) renderBg(); });
-onStoredChange(['projectedIcon'], 100, (v) => { projectedIcon = v.projectedIcon || ''; if (settings) renderProjected(); });
+/** Une clé du stockage lue une fois, puis suivie : `apply` reçoit sa valeur à chaque changement. */
+function follow(key, apply) {
+  B.storage.local.get(key).then(got => apply(got?.[key])).catch(() => {});
+  onStoredChange([key], 100, (v) => apply(v[key]));
+}
+follow('projectedIcon', (v) => { projectedIcon = v || ''; if (settings) renderProjected(); });
+follow('pageBgImage', (v) => { pageBgImage = v || ''; if (settings) renderBg(); });
+follow('customSounds', (v) => { customSounds = Array.isArray(v) ? v : []; fillSounds(); });
 const setLuckyCat = (v) => { luckyCat = v?.uaid ? v : null; if (settings) renderMarks(); };
-B.storage.local.get('luckyCat').then(got => setLuckyCat(got?.luckyCat)).catch(() => {});
+follow('luckyCat', setLuckyCat);
 send({ type: 'ronote:lucky-cat' }).then(r => { if (r?.luckyCat) setLuckyCat(r.luckyCat); }).catch(() => {});
-onStoredChange(['luckyCat'], 100, (v) => setLuckyCat(v.luckyCat));
 // Les « il y a 3 min » du diagnostic avancent sans rien relire.
 setInterval(() => { if (!document.hidden && state) renderDiag(); }, 30000);

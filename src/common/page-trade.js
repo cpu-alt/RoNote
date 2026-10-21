@@ -1,7 +1,7 @@
 import { analyze, netRobux } from './analysis.js';
 import { flatName, NAME } from './roli.js';
 
-// flat name -> { assetId } | { bundleId }, rebuilt when the table changes.
+// nom aplati -> { assetId } | { bundleId }, refait quand la table change.
 let nameIndex = null, nameIndexTs = -1;
 function indexOf(cat) {
   if (nameIndex && nameIndexTs === (cat?.ts || 0)) return nameIndex;
@@ -11,7 +11,7 @@ function indexOf(cat) {
     for (const [id, e] of Object.entries(entries || {})) {
       const k = flatName(e?.[NAME]);
       if (!k) continue;
-      // Two items with the same name: ambiguous, never guessed.
+      // Deux objets du même nom : ambigu, jamais deviné.
       nameIndex.set(k, nameIndex.has(k) ? null : { [key]: Number(id) });
     }
   };
@@ -21,9 +21,9 @@ function indexOf(cat) {
 }
 
 /**
- * Items read by their name only (trade being built): give them their id from
- * the Rolimon's table. A truncated name ("Perfectly Legitimate…") matches only
- * when a single known name starts with it.
+ * Objets lus par leur seul nom (trade en préparation) : leur identifiant vient
+ * de la table Rolimon's. Un nom tronqué (« Perfectly Legitimate… ») ne
+ * correspond que si un seul nom connu commence ainsi.
  */
 export function findByName(name, cat) {
   if (!cat?.ready) return null;
@@ -58,8 +58,9 @@ export function resolveNames(page, cat) {
 const amount = n => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
 const itemsKey = items => items.map(i => i.bundleId ? `b${i.bundleId}` : `a${i.assetId}`).sort().join(',');
 
-// An asset + serial identifies a copy even when the displayed trade has no
-// owner/trade ID. Do not couple history links to valuation/offer matching.
+// Un asset et son numéro de série désignent un exemplaire même quand le trade
+// affiché n'a ni propriétaire ni identifiant. Les liens d'historique ne
+// dépendent pas du rapprochement des offres pour les cotes.
 export function addKnownInstances(analysis, details) {
   const copies = new Map();
   for (const detail of details || []) for (const offer of detail?.offers || []) for (const item of offer.userAssets || []) {
@@ -76,8 +77,9 @@ export function addKnownInstances(analysis, details) {
     if (!entries) continue;
     item.instances = [...entries].filter(([, uaid]) => uaid).map(([serial, uaid]) => ({ serial, uaid }));
   }
-  // History does not need the logged-in user's identity. Match both baskets
-  // directly and require all matching snapshots to agree on the copy ID.
+  // L'historique n'a pas besoin de l'identité du compte connecté : les deux
+  // paniers sont comparés directement, et tous les relevés qui correspondent
+  // doivent désigner le même exemplaire.
   const sides = analysis.pageItems || [];
   if (sides.length === 2) {
     const matches = [];
@@ -100,8 +102,8 @@ export function addKnownInstances(analysis, details) {
   return analysis;
 }
 
-// Match both complete offers, with multiplicity. A response from a previously
-// selected trade must never determine the direction of the current one.
+// Les deux offres entières doivent correspondre, quantités comprises. La
+// réponse d'un trade choisi plus tôt ne décide jamais du sens du trade affiché.
 export function capturedForPage(page, captured, myId) {
   if (!myId || page?.sides?.length !== 2 || captured?.offers?.length !== 2) return null;
   const matches = page.sides.map(s => captured.offers.filter(o => itemsKey(s.items || []) === itemsKey(o.userAssets || [])));
@@ -140,8 +142,8 @@ export function pageDetail(page, myId) {
       name: String(i.name || '').slice(0, 120),
       recentAveragePrice: amount(i.rap) ? i.rap : 0
     }));
-    // In a basket being built, an item Rolimon's doesn't list is still known
-    // by its name and the RAP shown next to it: it counts at that RAP.
+    // Dans un panier en préparation, un objet que Rolimon's ne liste pas reste
+    // connu par son nom et le RAP affiché à côté : il compte pour ce RAP.
     if (userAssets.some(i => !Number.isSafeInteger(i.assetId) || i.assetId < 0 ||
         !Number.isSafeInteger(i.bundleId) || i.bundleId < 0 ||
         !(i.assetId || i.bundleId || (page.composer && i.recentAveragePrice > 0)))) return null;
@@ -151,8 +153,8 @@ export function pageDetail(page, myId) {
 }
 
 export function analyzePage(page, detail, cat, captured = null, { extra = null, bundleIds = null } = {}) {
-  // Captured responses can supplement missing per-item RAP, never override live
-  // DOM amounts or apply a second 30% deduction to a net amount on the page.
+  // Une réponse captée complète le RAP manquant d'un objet ; elle ne remplace
+  // jamais un montant affiché, ni ne retaxe de 30 % un montant déjà net.
   const raw = samePageOffers(detail, captured) ? {
     ...detail, offers: detail.offers.map(o => {
       const other = captured.offers.find(c => Number(c.user?.id) === o.user.id);
@@ -175,15 +177,15 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
     a[key].pageRap = amount(s.rapTotal);
   }
   a.rapAvailable = ['give', 'get'].every(k => a[k].pageRap || a[k].items.every(i => i.rap > 0));
-  // A basket whose total is known but whose items couldn't be identified
-  // would count as worth 0: no Value rather than a false one.
+  // Un panier dont le total est connu mais dont les objets n'ont pas été
+  // identifiés vaudrait 0 : pas de Value plutôt qu'une fausse.
   const blind = page.sides.some(s => amount(s.rapTotal) && s.rapTotal > (amount(s.robux) ? s.robux : 0) && !(s.items || []).length);
   a.valueAvailable = !blind && !a.incomplete && !!cat?.ready && !cat?.veryStale;
-  // Why the Value is missing, for the tooltip: otherwise "—" says nothing.
+  // Pourquoi la Value manque, pour l'infobulle : sinon « — » ne dit rien.
   a.valueMissing = a.valueAvailable ? '' : !cat?.ready ? 'catalog' : cat.veryStale ? 'stale' : 'items';
   a.missingNames = [...a.give.unknownItems, ...a.get.unknownItems].slice(0, 4);
   a.fromPage = true;
-  // Keep DOM order and original IDs, including assets resolved to bundles.
+  // Ordre du DOM et identifiants d'origine gardés, assets rattachés à un bundle compris.
   a.pageItems = page.sides.map((side, index) => { let k = 0; return side.items.map(raw => {
     const item = a[index === detail.mine ? 'give' : 'get'].items[k++];
     return { assetId: raw.assetId || 0, bundleId: raw.bundleId || 0, name: raw.byName ? raw.name : undefined,
@@ -202,7 +204,7 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
   return a;
 }
 
-// Only reuse authoritative item RAP when both displayed offers still match.
+// Le RAP d'un objet ne se reprend que si les deux offres affichées correspondent toujours.
 export function samePageOffers(detail, captured) {
   return captured?.offers?.length === 2 && detail.offers.every(o => {
     const other = captured.offers.find(c => Number(c.user?.id) === o.user.id);
