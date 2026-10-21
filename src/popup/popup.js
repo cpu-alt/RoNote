@@ -1,18 +1,22 @@
 import { B } from '../common/shim.js';
 import {
-  fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml, clamp
+  fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml
 } from '../common/utils.js';
 import { DEMAND_LABEL, TREND_LABEL } from '../common/roli.js';
 import { t, p as plural, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 import { withDefaults, withStateDefaults } from '../common/state.js';
-import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml } from '../common/ui.js';
+import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
 import { renderCoin, coinKey } from './coinflip.js';
-import { recapStats, recapMonths, drawRecap, drawWallet, FLEX_PLOT } from './recap.js';
+import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
-import { BACKGROUNDS, loadBackground, compose, thumbnail } from './flexbg.js';
-import { GifEncoder } from './gif.js';
+import { openShare } from './share.js';
+import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
+import {
+  setMoneyFormat, seriesText, orderedSeries, toggleSeries, downsample, chartModel, smoothPath,
+  chartHtml, legendHtml, mountChart, seriesChips, renderRangedChart
+} from './chart.js';
 
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
@@ -59,9 +63,13 @@ function listOf(kind) {
 /** Il reste des trades à charger sous cette liste. */
 const hasMore = (kind) => (data.state?.snapshot?.[kind] || []).length >= SNAPSHOT_SIZE && more[kind]?.cursor !== null;
 
-/** Un trade refusé ou annulé quitte aussi la suite chargée. */
+/** Un trade refusé ou annulé quitte ses cartes, ses échecs et la suite chargée. */
 function forgetTrade(id) {
-  for (const k of LIST_KINDS) more[k].trades = more[k].trades.filter(x => x.tradeId !== id);
+  for (const k of LIST_KINDS) {
+    cards[k].delete(id);
+    failures[k].delete(id);
+    more[k].trades = more[k].trades.filter(x => x.tradeId !== id);
+  }
 }
 const expanded = new Set();     // trades dont le detail des objets est deplie
 const shownCards = new Set();   // cartes deja montrees evaluees : leur arrivee ne se rejoue pas
@@ -91,6 +99,13 @@ const KIND_INFO = {
   declined_by_me:     { label: 'Refusé ou annulé depuis RoNote', tone: 'even' },
   revalued:           { label: 'Objet réévalué', tone: 'face' }
 };
+
+/** Ce qu'est une ligne du journal : l'accueil, le résumé et les filtres comptent pareil. */
+const isReceived = (h) => h.kind === 'inbound' || h.kind === 'counter';
+const isDone = (h) => h.kind === 'completed' || h.kind === 'outbound_accepted';
+const isMuted = (h) => !!h.skipped && h.kind !== 'declined_by_me';
+const isRated = (h) => h.get != null && h.give != null;
+const netOf = (list) => list.reduce((s, h) => s + (h.get - h.give), 0);
 
 const STATUS_LABEL = {
   Open: 'En attente', Pending: 'En cours', Processing: 'En cours',
@@ -385,9 +400,11 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     ? `<button class="tc-btn pin ${tracked ? 'on' : ''}" data-track="${c.tradeId}" data-on="${tracked ? '0' : '1'}"
          title="${escapeHtml(t(tracked ? 'Ne plus suivre ce trade' : 'Suivre ce trade (alerte si accepté, refusé ou contré)'))}">${ic('pin')}</button>`
     : '';
+  // Un refus armé survit au redessin de la liste (voir quickDecline).
+  const armed = armedNix === c.tradeId;
   const nix = a && isOpen && tab !== 'completed'
-    ? `<button class="tc-btn nix" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}"
-         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">${ic('x')}</button>`
+    ? `<button class="tc-btn nix${armed ? ' armed' : ''}" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}" data-armed="${armed ? 1 : 0}"
+         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">${armed ? t('Confirmer ?') : ic('x')}</button>`
     : '';
   const verdict = a
     ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${verdictIcon(c.verdict)} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
@@ -539,7 +556,7 @@ function emptyHtml(kind) {
 
 /** Retrouve une carte déjà chargée, quel que soit l'onglet. */
 function findCard(tradeId) {
-  for (const kind of ['inbound', 'outbound', 'completed']) {
+  for (const kind of LIST_KINDS) {
     const c = cards[kind].get(tradeId);
     if (c) return { card: c, kind };
   }
@@ -603,50 +620,27 @@ function zoomHtml(c, kind) {
   </div>`;
 }
 
-/** Échap referme ce qui est au premier plan : le zoom d'abord, puis la fiche d'un joueur. */
-document.addEventListener('keydown', (e) => {
-  // H : mode anonyme, de n'importe où (sauf en tapant du texte).
-  if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest?.('input, textarea, select')) {
-    e.preventDefault(); toggleAnon(); return;
-  }
-  if (tab === 'coin' && !document.getElementById('zoom') && !document.getElementById('side') && !e.target.closest?.('.tabs')) coinKey(listEl, e);
-  if (e.key !== 'Escape') return;
-  if (document.getElementById('zoom')) closeZoom();
-  else if (document.getElementById('side')) closePlayer();
-});
-
-/* --------------------------- focus des surcouches ------------------------ */
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
-const focusReturn = [];   // une pile : une fiche peut s'ouvrir par-dessus un zoom
-
 /**
- * Une surcouche prend le focus a l'ouverture, le garde tant qu'elle est la, et
- * le rend a son declencheur en partant. Sans ca, le clavier restait derriere
- * elle, dans une liste toujours tabulable : « Refuser le trade » n'etait
- * atteignable qu'en traversant tout le reste.
+ * Le clavier. Hors saisie de texte : H bascule le mode anonyme de n'importe
+ * où ; 1 à 7 choisissent un onglet et R vérifie maintenant, tant qu'aucune
+ * surcouche n'est ouverte. Échap referme ce qui est au premier plan : le zoom
+ * d'abord, puis la fiche d'un joueur.
  */
-function captureFocus(root, firstSel) {
-  focusReturn.push(document.activeElement);
-  (root.querySelector(firstSel) || root).focus?.();
-  root.addEventListener('keydown', (e) => {
-    if (e.key !== 'Tab') return;
-    const items = [...root.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
-    if (!items.length) return;
-    e.preventDefault();
-    const at = items.indexOf(document.activeElement);
-    const to = e.shiftKey
-      ? (at <= 0 ? items.length - 1 : at - 1)
-      : (at < 0 || at === items.length - 1 ? 0 : at + 1);
-    items[to].focus();
-  });
-}
-
-/** Rend le focus a l'element qui avait ouvert la surcouche, s'il est encore la. */
-function releaseFocus() {
-  const back = focusReturn.pop();
-  if (back?.isConnected) back.focus?.();
-}
+document.addEventListener('keydown', (e) => {
+  const zoom = document.getElementById('zoom'), side = document.getElementById('side');
+  const plain = !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest?.('input, textarea, select, [contenteditable]');
+  const key = e.key.toLowerCase();
+  if (plain && key === 'h') { e.preventDefault(); toggleAnon(); return; }
+  if (plain && !zoom && !side) {
+    const to = /^[1-9]$/.test(e.key) && document.querySelectorAll('.tab')[Number(e.key) - 1];
+    if (to) { e.preventDefault(); to.click(); return; }
+    if (key === 'r') { e.preventDefault(); $('#btn-refresh').click(); return; }
+  }
+  if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinKey(listEl, e);
+  if (e.key !== 'Escape') return;
+  if (zoom) closeZoom();
+  else if (side) closePlayer();
+});
 
 function closeZoom() {
   if (!document.getElementById('zoom')) { zoomed = null; return; }
@@ -663,25 +657,32 @@ function openZoom(tradeId) {
   // Trade pas encore évalué : rien à agrandir, on ouvre la page Roblox.
   if (!hit) { B.tabs.create({ url: tradeUrl(tradeId) }); return; }
 
-  document.getElementById('zoom')?.remove();
   zoomed = tradeId;
-
-  const wrap = document.createElement('div');
-  wrap.className = 'zoom';
-  wrap.id = 'zoom';
-  wrap.innerHTML = zoomHtml(hit.card, hit.kind);
-  document.body.appendChild(wrap);
-  bindImages(wrap);
-
-  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
-  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
-  captureFocus(wrap, '.z-close');
+  const wrap = openOverlay(zoomHtml(hit.card, hit.kind), closeZoom);
   wrap.querySelector('.z-open').addEventListener('click', () => {
     B.tabs.create({ url: hit.card.url || tradeUrl(tradeId) });
   });
   wrap.querySelector('[data-player]')?.addEventListener('click', (e) => openPlayer(Number(e.currentTarget.dataset.player)));
   const dec = wrap.querySelector('.z-decline');
   if (dec) dec.addEventListener('click', () => decline(dec, hit.card, dec.dataset.kind, wrap));
+}
+
+/**
+ * Refuser un trade reçu ou annuler un trade envoyé : le même appel côté
+ * Roblox. Réussi, le trade disparaît du popup sans attendre la vérification.
+ */
+async function sendDecline(tradeId, kind) {
+  const card = findCard(tradeId)?.card;
+  const res = await send({
+    type: 'ronote:decline', tradeId, kind: card?.kind || kind,
+    partner: card?.partner?.displayName || card?.partner?.name || '',
+    partnerId: card?.partner?.id || null
+  });
+  if (res?.ok) {
+    forgetTrade(tradeId);
+    if (res.state) data.state = res.state;
+  }
+  return res;
 }
 
 /**
@@ -715,19 +716,8 @@ async function decline(btn, card, kind, wrap) {
   clearTimeout(armTimer);
   btn.disabled = true;
   btn.textContent = t('Annulation…');
-  const res = await send({
-    type: 'ronote:decline',
-    tradeId: card.tradeId,
-    kind: card.kind || kind,
-    partner: card.partner?.displayName || card.partner?.name || '',
-    partnerId: card.partner?.id || null
-  });
-
+  const res = await sendDecline(card.tradeId, kind);
   if (res?.ok) {
-    for (const m of Object.values(cards)) m.delete(card.tradeId);
-    for (const m of Object.values(failures)) m.delete(card.tradeId);
-    forgetTrade(card.tradeId);
-    if (res.state) data.state = res.state;
     closeZoom();
     renderHeader();
     renderList();
@@ -778,14 +768,8 @@ async function quickDecline(btn, tradeId, kind) {
   armedNix = null;
   btn.disabled = true;
   btn.textContent = '…';
-  const hit = findCard(tradeId);
-  const partner = hit?.card?.partner?.displayName || hit?.card?.partner?.name || '';
-  const res = await send({ type: 'ronote:decline', tradeId, kind, partner, partnerId: hit?.card?.partner?.id || null });
+  const res = await sendDecline(tradeId, kind);
   if (res?.ok) {
-    for (const m of Object.values(cards)) m.delete(tradeId);
-    for (const m of Object.values(failures)) m.delete(tradeId);
-    forgetTrade(tradeId);
-    if (res.state) data.state = res.state;
     renderHeader();
     renderList();
     return;
@@ -817,7 +801,7 @@ const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) 
 /** Les trades de ce joueur que le popup a sous la main, tous onglets confondus. */
 function liveTradesWith(id) {
   const out = [];
-  for (const kind of ['inbound', 'outbound', 'completed']) {
+  for (const kind of LIST_KINDS) {
     for (const item of listOf(kind)) {
       if (Number(item.partner?.id) !== id) continue;
       out.push({ ...item, ...(cards[kind].get(item.tradeId) || {}), kind });
@@ -887,13 +871,12 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     res?.ignored ? `<span class="p-flag face" title="${escapeHtml(t("Ses trades ne déclenchent plus d'alerte."))}">${ic('user-off')} ${t('Ignoré')}</span>` : ''
   ].filter(Boolean).join('');
 
-  const tile = factHtml;
   const tiles = `<div class="w-facts">
-    ${tile(t('Offres reçues'), s.received)}
-    ${tile(t('Offres envoyées'), s.sent)}
-    ${tile(t('Gain moyen'), s.avgIn == null ? '—' : `<em class="${toneOf(s.avgIn, 3)}">${fmtPct(s.avgIn)}</em>`,
+    ${factHtml(t('Offres reçues'), s.received)}
+    ${factHtml(t('Offres envoyées'), s.sent)}
+    ${factHtml(t('Gain moyen'), s.avgIn == null ? '—' : `<em class="${toneOf(s.avgIn, 3)}">${fmtPct(s.avgIn)}</em>`,
       s.rated ? plural(s.rated, 'sur {n} offre', 'sur {n} offres') : '')}
-    ${tile(t('Trades conclus'), s.done,
+    ${factHtml(t('Trades conclus'), s.done,
       s.net != null ? `<em class="${toneOf(s.net)}">${t('bilan {v}', { v: amountSigned(s.net) })}</em>` : '')}
   </div>`;
 
@@ -935,46 +918,6 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
  * La courbe de son inventaire, comme celle du portefeuille : value, RAP et
  * collectibles superposables, et la variation de sa value sur la période.
  */
-/**
- * Le corps commun des deux graphiques a plages — celui de la fiche joueur et
- * celui de la fiche d'un objet. Ils ne different que par l'etat qui les pilote,
- * les attributs qui les nomment et ce qui se passe une fois traces ; tout le
- * reste (plage, echantillonnage, series disponibles, pastilles, courbe,
- * legende, recablage) etait ecrit deux fois, et divergeait deja.
- *
- * Rend false quand aucune serie n'a de quoi etre tracee : a l'appelant de dire
- * pourquoi, avec ses mots et sa mise en page.
- */
-function renderRangedChart({ box, points, series, state, attr, id, defs = null, markers = [], animate = false, redraw, after = null }) {
-  const avail = Object.fromEntries(Object.entries(series).filter(([k]) => points.some(p => p[k] > 0)));
-  if (!Object.keys(avail).length) return false;
-
-  const range = ITEM_RANGES.find(r => r.key === state.range) || ITEM_RANGES[2];
-  const since = range.days ? Date.now() - range.days * 864e5 : 0;
-  const pts = downsample(points.filter(p => p.at >= since));
-  const keys = orderedSeries(state.series, avail);
-  const shown = defs || avail;
-
-  box.innerHTML = `${seriesChips(avail, keys, `data-${attr}series`)}
-    ${chartHtml({ id, pts, keys, defs: shown, animate, markers })}
-    ${legendHtml(pts, keys, shown)}
-    <div class="w-ranges">${ITEM_RANGES.map(r =>
-      `<button class="${r.key === range.key ? 'on' : ''}" data-${attr}range="${r.key}">${t(r.label)}</button>`).join('')}</div>`;
-  mountChart({ id, pts, keys, defs: shown });
-
-  box.querySelectorAll(`[data-${attr}series]`).forEach(el => el.addEventListener('click', () => {
-    state.series = toggleSeries(keys, el.dataset[attr + 'series'], avail);
-    redraw(true);
-  }));
-  box.querySelectorAll(`[data-${attr}range]`).forEach(el => el.addEventListener('click', () => {
-    state.range = el.dataset[attr + 'range'];
-    redraw(true);
-  }));
-
-  after?.(pts, avail);
-  return true;
-}
-
 function renderPlayerChart(animate = false) {
   const box = document.getElementById('p-chart');
   if (!box) return;
@@ -1091,7 +1034,6 @@ function renderPlayer(animateChart = false) {
   document.getElementById('p-foot').innerHTML = playerFootHtml();
   // L'anneau de l'avatar prend la couleur de la relation : ses offres, en moyenne.
   document.getElementById('p-ring').className = `av-ring p-av ${s.rated ? toneOf(s.avgIn, 3) : ''}`;
-  bindImages(body);
   bindPlayer(document.getElementById('side'));
 }
 
@@ -1165,7 +1107,6 @@ function openPlayer(id) {
     <div class="z-body" id="p-body">${playerBodyHtml()}</div>
     <footer class="z-foot p-foot" id="p-foot">${playerFootHtml()}</footer>
   </div>`;
-  bindImages(side);
   bindPlayer(side);
   renderPlayerChart();
   side.querySelector('.z-close').addEventListener('click', closePlayer);
@@ -1278,12 +1219,12 @@ function renderHome(entering) {
   const since = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const today = hist.filter(h => h.at >= since);
 
-  const received = today.filter(h => h.kind === 'inbound' || h.kind === 'counter');
+  const received = today.filter(isReceived);
   const wins = received.filter(h => h.pct != null && toneOf(h.pct, 3) === 'win').length;
-  const done = today.filter(h => h.kind === 'completed' || h.kind === 'outbound_accepted');
-  const doneRated = done.filter(h => h.get != null && h.give != null);
-  const net = doneRated.reduce((s, h) => s + (h.get - h.give), 0);
-  const muted = today.filter(h => h.skipped && h.kind !== 'declined_by_me').length;
+  const done = today.filter(isDone);
+  const doneRated = done.filter(isRated);
+  const net = netOf(doneRated);
+  const muted = today.filter(isMuted).length;
   const revals = today.filter(h => h.kind === 'revalued');
   const revalEffect = revals.reduce((s, h) => s + (h.delta || 0), 0);
 
@@ -1317,13 +1258,12 @@ function renderHome(entering) {
       </button>`
     : '';
 
-  const tile = factHtml;
   const tiles = `<section class="w-facts h-tiles">
-    ${tile(t("Reçus aujourd'hui"), received.length, wins ? plural(wins, '{n} gagnant', '{n} gagnants') : '')}
-    ${tile(t("Conclus aujourd'hui"), done.length,
+    ${factHtml(t("Reçus aujourd'hui"), received.length, wins ? plural(wins, '{n} gagnant', '{n} gagnants') : '')}
+    ${factHtml(t("Conclus aujourd'hui"), done.length,
       doneRated.length ? `<em class="${toneOf(net)}">${t('bilan {v}', { v: amountSigned(net) })}</em>` : '')}
-    ${tile(t('Alertes filtrées'), muted)}
-    ${tile(t('Réévaluations'), revals.length,
+    ${factHtml(t('Alertes filtrées'), muted)}
+    ${factHtml(t('Réévaluations'), revals.length,
       revals.length ? `<em class="${toneOf(revalEffect)}">${t('effet {v}', { v: amountSigned(revalEffect) })}</em>` : '')}
   </section>`;
 
@@ -1375,26 +1315,17 @@ function renderHome(entering) {
   listEl.innerHTML = hero + news + tiles + todoHtml + recentHtml;
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
-  bindImages(listEl);
-  listEl.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => selectTab(el.dataset.go)));
-  listEl.querySelectorAll('[data-zoomid]').forEach(el => el.addEventListener('click', () => openZoom(Number(el.dataset.zoomid))));
-  listEl.querySelectorAll('.jr[data-url]').forEach(el => el.addEventListener('click', () => B.tabs.create({ url: el.dataset.url })));
-  listEl.querySelector('[data-news]')?.addEventListener('click', () => {
-    markNewsSeen();
-    B.tabs.create({ url: B.runtime.getURL('options/options.html#s-news') });
-    renderList();
-  });
 }
 
 /* =============================== journal ================================ */
 
 const JOURNAL_FILTERS = [
   ['all', 'Tous', () => true],
-  ['inbound', 'Reçus', (h) => h.kind === 'inbound' || h.kind === 'counter'],
-  ['done', 'Terminés', (h) => h.kind === 'completed' || h.kind === 'outbound_accepted'],
+  ['inbound', 'Reçus', isReceived],
+  ['done', 'Terminés', isDone],
   ['outbound', 'Envoyés', (h) => ['outbound_declined', 'outbound_countered', 'outbound_expired', 'trade_error', 'declined_by_me'].includes(h.kind)],
   ['revalued', 'Réévaluations', (h) => h.kind === 'revalued'],
-  ['muted', 'Filtrés', (h) => !!h.skipped && h.kind !== 'declined_by_me']
+  ['muted', 'Filtrés', isMuted]
 ];
 
 /** « Aujourd'hui », « Hier », puis la date en toutes lettres. */
@@ -1448,10 +1379,10 @@ function journalSummaryHtml(hist) {
   const since = Date.now() - 864e5;
   const recent = hist.filter(h => h.at >= since);
   const alerts = recent.filter(h => h.notified).length;
-  const muted = recent.filter(h => h.skipped && h.kind !== 'declined_by_me').length;
+  const muted = recent.filter(isMuted).length;
   const revals = recent.filter(h => h.kind === 'revalued').length;
-  const done = recent.filter(h => (h.kind === 'completed' || h.kind === 'outbound_accepted') && h.get != null && h.give != null);
-  const net = done.reduce((s, h) => s + (h.get - h.give), 0);
+  const done = recent.filter(h => isDone(h) && isRated(h));
+  const net = netOf(done);
   const stats = [
     muted ? `<span>${plural(muted, '{n} filtrée', '{n} filtrées')}</span>` : '',
     revals ? `<span class="face">${plural(revals, '{n} réévaluation', '{n} réévaluations')}</span>` : ''
@@ -1499,15 +1430,6 @@ function renderJournal(entering) {
     + `<div class="lchips">${chips}</div>`
     + (body || `<div class="ls-none">${t('Aucun événement dans cette catégorie.')}</div>`);
   if (entering) cascade(listEl.children, 8);
-
-  listEl.querySelectorAll('button[data-lfilter]').forEach(el => el.addEventListener('click', () => {
-    listFilter.history = el.dataset.lfilter;
-    renderList();
-  }));
-  listEl.querySelectorAll('.jr[data-url]').forEach(el => el.addEventListener('click', () => {
-    B.tabs.create({ url: el.dataset.url });
-  }));
-  listEl.querySelector('#rc-open')?.addEventListener('click', () => openShare('month'));
 }
 
 /* ========================= objectif du Portefeuille ===================== */
@@ -1529,15 +1451,8 @@ async function refreshGoalItem() {
 
 /** La fenêtre de l'objectif, dans la surcouche du zoom. */
 function openGoal() {
-  document.getElementById('zoom')?.remove();
-  const wrap = document.createElement('div');
-  wrap.className = 'zoom'; wrap.id = 'zoom';
-  const card = document.createElement('div');
-  card.className = 'zoom-card w-sheet';
-  card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true');
-  wrap.append(card);
-  document.body.appendChild(wrap);
-  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
+  const wrap = openOverlay('<div class="zoom-card w-sheet" role="dialog" aria-modal="true"></div>', closeZoom, { focus: false });
+  const card = wrap.firstElementChild;
   mountGoalEditor(card, {
     goal: walletGoal,
     now: walletView().nowOf.v,
@@ -1663,228 +1578,16 @@ function walletFlexData(anon = false) {
   };
 }
 
-/**
- * La feuille de partage, dans la surcouche du zoom (Échap et le clic à côté
- * la referment). Deux cartes : « Mon inventaire » (Portefeuille) et « Bilan
- * du mois » (journal complet demandé au service worker : le popup n'en
- * reçoit que les 100 dernières lignes). Sous la carte, le choix du fond :
- * un fond animé ou un GIF donne une carte animée, exportée en GIF.
- */
-async function openShare(mode = 'wallet') {
-  document.getElementById('zoom')?.remove();
-  const wrap = document.createElement('div');
-  wrap.className = 'zoom'; wrap.id = 'zoom';
-  wrap.innerHTML = `<div class="zoom-card w-sheet" role="dialog" aria-modal="true" aria-label="${t('Flex')}">
-    <header class="z-head">
-      <div class="head"><b class="rc-month">${mode === 'wallet' ? `${ic('sparkle')} ${t('Flex mon portefeuille')}` : `${ic('calendar')} ${t('Bilan du mois')}`}</b></div>
-      <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
-    </header>
-    <div class="z-body rc-body">
-      <div class="rc-nav" id="rc-nav">
-        <button class="rc-step" data-step="1" title="${t('Mois précédent')}">${ic('chevron')}</button>
-        <b class="rc-month" id="rc-month"></b>
-        <button class="rc-step next" data-step="-1" title="${t('Mois suivant')}">${ic('chevron')}</button>
-      </div>
-      <canvas class="rc-card" id="rc-card" width="1080" height="1350"></canvas>
-      ${mode === 'wallet' ? `<button class="fx-anon" id="fx-anon" aria-pressed="false">${ic('eye-off')}<span><b>${t('Carte anonyme')}</b><small>${t('Aucun montant : tes variations en % et ta courbe.')}</small></span><i class="fx-switch"></i></button>` : ''}
-      <div class="fx-label">${t('Fond')}</div>
-      <div class="fx-bgs" id="fx-bgs" role="listbox" aria-label="${t('Fond')}"></div>
-      <input type="file" id="fx-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-      <div class="rc-actions">
-        <button class="rc-btn" id="rc-copy">${ic('copy')}<span>${t('Copier')}</span></button>
-        <button class="rc-btn main" id="rc-save">${ic('download')}<span>${t('Télécharger')}</span></button>
-      </div>
-      <small class="rc-note" id="rc-note"></small>
-    </div>
-  </div>`;
-  document.body.appendChild(wrap);
-  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
-  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
-  captureFocus(wrap, '.z-close');
-
-  const canvas = wrap.querySelector('#rc-card');
-  const fg = document.createElement('canvas');        // la carte seule, sur fond transparent
-  const note = wrap.querySelector('#rc-note');
-  const saveBtn = wrap.querySelector('#rc-save');
-  const logo = B.runtime.getURL('icons/icon128.png');
-  const series = walletSeries();   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
-  let history = null, months = null, at = 0, drawing = 0;
-  // Le choix ne garde que son nom ; une image importée vit à part (flexBgCustom), une seule fois.
-  const stored = await B.storage.local.get(['flexBg', 'flexBgCustom']).catch(() => ({}));
-  let choice = { id: stored?.flexBg?.id || 'default' };
-  if (choice.id === 'custom') choice = stored?.flexBgCustom ? { id: 'custom', data: stored.flexBgCustom } : { id: 'default' };
-  let bg = await loadBackground(choice).catch(() => null);
-  let raf = 0, busy = false;
-
-  const stopAnim = () => { cancelAnimationFrame(raf); raf = 0; };
-  function animate() {
-    stopAnim();
-    if (!bg) return;
-    if (!bg.animated || REDUCED_MOTION) { compose(canvas, fg, bg, 0); return; }
-    const t0 = performance.now();
-    let last = 0;
-    const tick = (now) => {
-      if (!wrap.isConnected) return;
-      raf = requestAnimationFrame(tick);
-      if (now - last < 33) return;                   // ~30 images/s : largement assez pour un aperçu
-      last = now;
-      compose(canvas, fg, bg, ((now - t0) / bg.period) % 1);
-    };
-    raf = requestAnimationFrame(tick);
-  }
-
-  async function show() {
-    const run = ++drawing;
-    wrap.querySelector('#rc-nav').hidden = mode !== 'month';
-    saveBtn.querySelector('span').textContent = bg?.animated ? t('Télécharger le GIF') : t('Télécharger');
-    const target = bg ? fg : canvas;
-    const opts = { clear: !!bg };
-    let text;
-    if (mode === 'wallet') {
-      await drawWallet(target, walletFlexData(anonCard), logo, opts);
-      text = anonCard
-        ? t("Carte anonyme : aucun montant ni rang, seulement tes variations et ta courbe. Aucun pseudo.")
-        : t("Le graphique Rolimon's du Portefeuille, chiffres compris : change la période ou les courbes pour changer la carte. Aucun pseudo n'apparaît dessus.");
-    } else {
-      if (!history) {
-        const res = await send({ type: 'ronote:history' }).catch(() => null);
-        history = res?.history || data.history || [];
-        months = recapMonths(history, series);
-      }
-      const [y, m] = months[at];
-      const label = new Date(y, m, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
-      wrap.querySelector('#rc-month').textContent = label.charAt(0).toUpperCase() + label.slice(1);
-      wrap.querySelector('[data-step="1"]').disabled = at >= months.length - 1;
-      wrap.querySelector('[data-step="-1"]').disabled = at <= 0;
-      const stats = recapStats(history, series, y, m);
-      await drawRecap(target, stats, logo, opts);
-      const oldest = history.length ? Math.min(...history.map(h => h.at)) : Date.now();
-      text = oldest > stats.from && history.length >= (data.settings?.historyLimit || 300)
-        ? t('Ton journal ne remonte pas au début de ce mois : le bilan peut être incomplet. Sa taille se règle dans les réglages.')
-        : t("D'après ton journal RoNote. Aucun pseudo n'apparaît sur la carte.");
-    }
-    if (run !== drawing) return;
-    if (bg) { canvas.width = fg.width; canvas.height = fg.height; }
-    animate();
-    note.textContent = text;
-  }
-
-  /* --- le choix du fond ---------------------------------------------------- */
-  const tiles = wrap.querySelector('#fx-bgs');
-  async function renderTiles() {
-    const got = await B.storage.local.get('flexBgCustom').catch(() => ({}));
-    const custom = got?.flexBgCustom;
-    const list = [...BACKGROUNDS.map(b => ({ ...b, choice: { id: b.id } })),
-      ...(custom ? [{ id: 'custom', name: t('Ton image'), animated: /^data:image\/gif/.test(custom), choice: { id: 'custom', data: custom } }] : [])];
-    tiles.innerHTML = list.map((b, i) => `<button class="fx-bg" role="option" data-i="${i}" aria-selected="${b.id === choice.id}" title="${escapeHtml(t(b.name))}">
-        <img alt=""><span>${escapeHtml(t(b.name))}</span>${b.animated ? '<em>GIF</em>' : ''}</button>`).join('')
-      + `<button class="fx-bg fx-add" id="fx-add" title="${t('Importer une image ou un GIF')}">${ic('upload')}<span>${t('Importer')}</span></button>`;
-    tiles.querySelectorAll('[data-i]').forEach(async (el) => {
-      const b = list[Number(el.dataset.i)];
-      el.addEventListener('click', () => pick(b.choice));
-      el.querySelector('img').src = await thumbnail(b.choice).catch(() => '');
-    });
-    tiles.querySelector('#fx-add').addEventListener('click', () => wrap.querySelector('#fx-file').click());
-  }
-  async function pick(next) {
-    choice = next;
-    tiles.querySelectorAll('[data-i]').forEach(el => el.setAttribute('aria-selected', 'false'));
-    bg = await loadBackground(choice).catch(() => null);
-    await B.storage.local.set({ flexBg: { id: choice.id } }).catch(() => {});
-    await renderTiles();
-    show();
-  }
-  wrap.querySelector('#fx-file').addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { note.textContent = t('Format non pris en charge : PNG, JPG, GIF ou WebP.'); return; }
-    if (file.size > 6 * 1024 * 1024) { note.textContent = t('Image trop lourde (6 Mo maximum).'); return; }
-    // Un GIF garde toutes ses images ; une photo est ramenée à la taille de la carte.
-    let dataUrl;
-    if (file.type === 'image/gif') dataUrl = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(file); });
-    else {
-      const bmp = await createImageBitmap(file).catch(() => null);
-      if (!bmp) { note.textContent = t('Image illisible.'); return; }
-      const k = Math.min(1, 1350 / Math.max(bmp.width, bmp.height));
-      const c = Object.assign(document.createElement('canvas'), { width: Math.round(bmp.width * k), height: Math.round(bmp.height * k) });
-      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-      dataUrl = c.toDataURL('image/jpeg', 0.88);
-    }
-    await B.storage.local.set({ flexBgCustom: dataUrl }).catch(() => {});
-    pick({ id: 'custom', data: dataUrl });
+/** La feuille de partage (share.js), avec ce que le popup sait du compte. */
+function openSharing(mode = 'wallet') {
+  return openShare(mode, {
+    walletCard: walletFlexData,
+    series: walletSeries(),   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
+    history: data.history,
+    historyLimit: data.settings?.historyLimit,
+    anon: wallet.hidden,
+    close: closeZoom
   });
-
-  /* --- partage ------------------------------------------------------------- */
-  // La carte anonyme suit le mode anonyme du popup, et se change ici sans y toucher.
-  let anonCard = wallet.hidden;
-  const anonBtn = wrap.querySelector('#fx-anon');
-  anonBtn?.setAttribute('aria-pressed', String(anonCard));
-  anonBtn?.addEventListener('click', () => { anonCard = !anonCard; anonBtn.setAttribute('aria-pressed', String(anonCard)); show(); });
-  wrap.querySelectorAll('.rc-step').forEach(b => b.addEventListener('click', () => {
-    if (!months) return;
-    at = clamp(at + Number(b.dataset.step), 0, months.length - 1); show();
-  }));
-  const fileName = (ext) => mode === 'wallet'
-    ? `ronote-inventaire-${new Date().toISOString().slice(0, 10)}.${ext}`
-    : `ronote-bilan-${months[at][0]}-${String(months[at][1] + 1).padStart(2, '0')}.${ext}`;
-  const download = (blob, name) => {
-    const url = URL.createObjectURL(blob);
-    Object.assign(document.createElement('a'), { href: url, download: name }).click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  };
-  const png = () => new Promise(r => canvas.toBlob(r, 'image/png'));
-
-  /** La carte animée, en GIF : 600 px de large (sa hauteur suit la carte), une image toutes les ~100 ms. */
-  async function gif() {
-    const w = 600, h = Math.round(600 * fg.height / fg.width);
-    const frames = Math.max(8, Math.min(48, Math.round(bg.period / 100)));
-    const delay = bg.period / frames;
-    const small = Object.assign(document.createElement('canvas'), { width: w, height: h });
-    const g = small.getContext('2d', { willReadFrequently: true });
-    const label = saveBtn.querySelector('span');
-    const shots = [];
-    for (let i = 0; i < frames; i++) {
-      compose(small, fg, bg, i / frames);
-      shots.push(g.getImageData(0, 0, w, h));
-      label.textContent = t('Préparation… {p} %', { p: Math.round(i / frames * 40) });
-      if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));
-    }
-    const enc = new GifEncoder(w, h);
-    enc.palette(shots.filter((_, i) => i % 3 === 0));
-    for (let i = 0; i < shots.length; i++) {
-      await enc.add(shots[i], delay);
-      label.textContent = t('Préparation… {p} %', { p: 40 + Math.round((i + 1) / shots.length * 60) });
-    }
-    return enc.finish();
-  }
-
-  saveBtn.addEventListener('click', async () => {
-    if (busy || (mode === 'month' && !months)) return;
-    busy = true;
-    saveBtn.disabled = true;
-    try {
-      if (bg?.animated) download(await gif(), fileName('gif'));
-      else download(await png(), fileName('png'));
-    } finally {
-      busy = false;
-      saveBtn.disabled = false;
-      saveBtn.querySelector('span').textContent = bg?.animated ? t('Télécharger le GIF') : t('Télécharger');
-    }
-  });
-  wrap.querySelector('#rc-copy').addEventListener('click', async (e) => {
-    const label = e.currentTarget.querySelector('span');
-    try {
-      // Le presse-papiers n'accepte que le PNG : une carte animée y part figée.
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
-      label.textContent = t('Copiée !');
-    } catch {
-      label.textContent = t('Copie refusée');
-    }
-    setTimeout(() => { label.textContent = t('Copier'); }, 1800);
-  });
-  renderTiles();
-  await show();
 }
 
 /* ============================= portefeuille ============================= */
@@ -1912,12 +1615,6 @@ const ITEM_SERIES = {
   r: { label: 'RAP', color: '#2fd070', money: true },
   p: { label: 'Meilleur prix', color: '#ffb02e', money: true }
 };
-const ITEM_RANGES = [
-  { key: '1m', label: '1m', days: 30 },
-  { key: '3m', label: '3m', days: 90 },
-  { key: '1y', label: '1a', days: 365 },
-  { key: 'all', label: 'Tout', days: 0 }
-];
 
 const SORTS = [
   { key: 'value', label: 'Plus grosse value' },
@@ -1937,19 +1634,6 @@ const FILTERS = [
 
 const TREND_ICON = ['trend-down', 'zigzag', 'trend-flat', 'trend-up', 'wave'];
 const SLICE_COLORS = ['#4d9fff', '#2fd070', '#c792ea', '#ffb02e', '#ff7a85', '#3a4458'];
-const REDUCED_MOTION = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-
-/** Séries valides, dans l'ordre de référence — jamais aucune. */
-function orderedSeries(keys, defs) {
-  const list = Object.keys(defs).filter(k => Array.isArray(keys) && keys.includes(k));
-  return list.length ? list : [Object.keys(defs)[0]];
-}
-
-/** Ajoute ou retire une courbe ; la dernière affichée ne se retire pas. */
-function toggleSeries(keys, key, defs) {
-  const next = keys.includes(key) ? keys.filter(k => k !== key) : [...keys, key];
-  return next.length ? orderedSeries(next, defs) : keys;
-}
 
 /**
  * Préférences d'affichage du portefeuille. Elles ne regardent que ce popup :
@@ -1993,10 +1677,6 @@ function saveWallet() {
 }
 
 /**
- * Le mode discret masque les montants, jamais les pourcentages : on garde la
- * tendance sous les yeux sans exposer le solde (partage d'écran, stream).
- */
-/**
  * Mode anonyme : un montant masqué devient un faux nombre FIXE, flouté. Il a
  * l'allure d'un chiffre (la mise en page ne bouge pas), mais rien du vrai
  * n'est dans la page — pas même son nombre de chiffres, qui trahirait
@@ -2009,8 +1689,8 @@ const amountSigned = (n, full = false) => (wallet.hidden ? masked(fmtSigned(8888
 const rankText = (r) => (!r ? '' : wallet.hidden ? masked('#' + fmtFull(8888)) : '#' + fmtFull(r));
 const sharePct = (p) => (p >= 10 ? String(Math.round(p)) : p.toFixed(1)) + '%';
 
-const seriesText = (def, n) => (def.money ? amount(n) : fmtFull(n));
-const seriesShort = (def, n) => (def.money ? amountShort(n) : fmtNum(n));
+setMoneyFormat(amount, amountShort);
+
 const seriesSigned = (def, n) => (def.money ? amountSigned(n, true) : fmtSigned(n, true));
 const pillText = (def, delta, pct) =>
   `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${wallet.hidden && def.money ? '' : seriesSigned(def, delta) + ' · '}${fmtPct(pct)}`;
@@ -2046,231 +1726,6 @@ function cascade(elements, max = 20) {
     el.style.setProperty('--i', n);
     el.classList.add('w-in');
   });
-}
-
-/* ------------------------------ les courbes ------------------------------ */
-
-const CHART = { W: 400, H: 130, PT: 24, PB: 20, PR: 14, MAX: 220 };
-const plotX = (fx) => fx * (CHART.W - CHART.PR);
-const plotPct = (fx) => (plotX(fx) / CHART.W) * 100;
-const chartY = (v, min, span) =>
-  (CHART.PT + (1 - (v - min) / span) * (CHART.H - CHART.PT - CHART.PB)) / CHART.H;
-
-/** Au-delà de ~220 points la courbe n'y gagne rien : on échantillonne, premier et dernier compris. */
-function downsample(pts) {
-  if (pts.length <= CHART.MAX) return pts;
-  const step = (pts.length - 1) / (CHART.MAX - 1);
-  return Array.from({ length: CHART.MAX }, (_, i) => pts[Math.round(i * step)]);
-}
-
-function nearestIndex(pts, at) {
-  let lo = 0, hi = pts.length - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (pts[mid].at < at) lo = mid; else hi = mid;
-  }
-  return at - pts[lo].at <= pts[hi].at - at ? lo : hi;
-}
-
-/**
- * Les courbes, prêtes à tracer, placées dans le temps réel (pas au rang du
- * relevé : un historique résumé sur les années anciennes ne doit pas les
- * étirer). Des courbes de même unité partagent l'axe ; dès qu'on mêle Robux
- * et nombre d'objets, chacune passe en variation depuis le début de la
- * période — la seule façon honnête de les empiler.
- */
-function chartModel(pts, keys, defs) {
-  const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
-  const xs = pts.map(p => (t1 > t0 ? (p.at - t0) / (t1 - t0) : 0));
-  const percent = keys.length > 1 && new Set(keys.map(k => defs[k].money)).size > 1;
-  const lines = keys.map(key => {
-    const base = pts.find(p => p[key] > 0)?.[key] || 0;
-    const vals = pts.map(p => (percent ? (base ? (((p[key] || 0) - base) / base) * 100 : 0) : (p[key] || 0)));
-    return { key, base, vals };
-  });
-  const all = lines.flatMap(l => l.vals);
-  let min = Math.min(...all), max = Math.max(...all);
-  if (percent) { min = Math.min(min, 0); max = Math.max(max, 0); }
-  return { xs, lines, percent, min, span: (max - min) || 1 };
-}
-
-/**
- * Courbe lisse qui ne dépasse jamais les relevés (cubique monotone,
- * Fritsch-Carlson) : une révision de cote reste une marche franche, pas une
- * vague qui inventerait un creux avant la hausse.
- */
-function smoothPath(xy) {
-  const f = (n) => n.toFixed(1);
-  const n = xy.length;
-  if (n < 3) return 'M' + xy.map(p => `${f(p[0])},${f(p[1])}`).join('L');
-  const dx = [], m = [];
-  for (let i = 0; i < n - 1; i++) {
-    dx[i] = (xy[i + 1][0] - xy[i][0]) || 1e-6;
-    m[i] = (xy[i + 1][1] - xy[i][1]) / dx[i];
-  }
-  const tan = [m[0]];
-  for (let i = 1; i < n - 1; i++) tan[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
-  tan[n - 1] = m[n - 2];
-  for (let i = 0; i < n - 1; i++) {
-    if (m[i] === 0) { tan[i] = 0; tan[i + 1] = 0; continue; }
-    const a = tan[i] / m[i], b = tan[i + 1] / m[i], s = a * a + b * b;
-    if (s > 9) { const k = 3 / Math.sqrt(s); tan[i] = k * a * m[i]; tan[i + 1] = k * b * m[i]; }
-  }
-  let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = dx[i] / 3;
-    d += `C${f(xy[i][0] + h)},${f(xy[i][1] + tan[i] * h)} ${f(xy[i + 1][0] - h)},${f(xy[i + 1][1] - tan[i + 1] * h)} ${f(xy[i + 1][0])},${f(xy[i + 1][1])}`;
-  }
-  return d;
-}
-
-/**
- * Le graphique : courbes lissées et remplies, point du moment qui pulse,
- * plus haut et plus bas de la période, révisions de cote. Le survol est
- * branché ensuite par mountChart.
- */
-function chartHtml({ id, pts, keys, defs, animate = false, markers = [] }) {
-  if (pts.length < 2) return `<div class="w-nochart">${t('Pas encore assez de points sur cette période.')}</div>`;
-  const { W, H } = CHART;
-  const m = chartModel(pts, keys, defs);
-  const yPct = (v) => chartY(v, m.min, m.span) * 100;
-
-  let gradients = '';
-  const areas = [], lines = [], ends = [];
-  m.lines.forEach((l, n) => {
-    const def = defs[l.key];
-    const d = smoothPath(l.vals.map((v, i) => [plotX(m.xs[i]), chartY(v, m.min, m.span) * H]));
-    const gid = `${id}-g${n}`;
-    const solo = m.lines.length === 1;
-    gradients += `<linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="${def.color}" stop-opacity="${solo ? 0.36 : 0.15}"/>
-      <stop offset="100%" stop-color="${def.color}" stop-opacity="0"/></linearGradient>`;
-    // Le remplissage court jusqu'au bord, à plat depuis le dernier relevé :
-    // sans ça, il s'arrêtait net sous le point du moment, en arête verticale.
-    const lastY = (chartY(l.vals[l.vals.length - 1], m.min, m.span) * H).toFixed(1);
-    areas.push(`<path d="${d}L${W},${lastY}L${W},${H}L0,${H}Z" fill="url(#${gid})"/>`);
-    lines.push(`<path class="w-line" d="${d}" fill="none" stroke="${def.color}" stroke-width="${n ? 1.7 : 2.3}"
-      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 5px ${def.color}55)"/>`);
-    ends.push(`<i class="w-end" style="left:${plotPct(1)}%;top:${yPct(l.vals[l.vals.length - 1])}%;--c:${def.color}"></i>`);
-  });
-
-  const zeroY = (chartY(0, m.min, m.span) * H).toFixed(1);
-  const zero = m.percent ? `<line class="w-zero" x1="0" x2="${W}" y1="${zeroY}" y2="${zeroY}" vector-effect="non-scaling-stroke"/>` : '';
-
-  // Plus haut et plus bas : seulement pour une courbe seule, sinon illisible.
-  let extremes = '';
-  if (m.lines.length === 1) {
-    const vals = m.lines[0].vals;
-    let hi = 0, lo = 0;
-    vals.forEach((v, i) => { if (v > vals[hi]) hi = i; if (v < vals[lo]) lo = i; });
-    if (vals[hi] !== vals[lo]) {
-      const tag = (i, cls) => `<span class="w-ext ${cls}" style="left:${clamp(plotPct(m.xs[i]), 10, 88)}%;top:${yPct(vals[i])}%">${seriesShort(defs[keys[0]], vals[i])}</span>`;
-      extremes = tag(hi, 'hi') + tag(lo, 'lo');
-    }
-  }
-
-  // Révisions de la cote, posées sur la courbe de la value. Un objet ancien en
-  // compte des dizaines par an : seules les 10 plus fortes de la période.
-  const vLine = !m.percent ? m.lines.find(l => l.key === 'v') : null;
-  const swing = (c) => Math.abs(c.to - c.from) / (c.from || c.to || 1);
-  const marks = vLine
-    ? markers.filter(c => c.at >= pts[0].at && c.at <= pts[pts.length - 1].at)
-      .sort((a, b) => swing(b) - swing(a)).slice(0, 10).map(c => {
-      const i = nearestIndex(pts, c.at);
-      return `<i class="w-mark ${c.to >= c.from ? 'up' : 'down'}" style="left:${plotPct(m.xs[i])}%;top:${yPct(vLine.vals[i])}%"></i>`;
-    }).join('')
-    : '';
-
-  return `<div class="w-plot${animate && !REDUCED_MOTION ? ' reveal' : ''}" id="${id}">
-    <svg class="w-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-      <defs>${gradients}</defs>${zero}${areas.reverse().join('')}${lines.reverse().join('')}
-    </svg>
-    ${marks}${extremes}${ends.join('')}
-    <div class="w-cursor" hidden></div>
-    ${keys.map(k => `<i class="w-cdot" style="--c:${defs[k].color}" hidden></i>`).join('')}
-    <div class="w-tip" hidden></div>
-  </div>`;
-}
-
-/** Sous un graphique à plusieurs courbes : la variation de chacune sur la période. */
-function legendHtml(pts, keys, defs) {
-  if (keys.length < 2 || pts.length < 2) return '';
-  const m = chartModel(pts, keys, defs);
-  const items = keys.map(k => {
-    const def = defs[k];
-    const base = pts.find(p => p[k] > 0)?.[k] || 0;
-    const last = pts[pts.length - 1][k] || 0;
-    const pct = base ? ((last - base) / base) * 100 : 0;
-    return `<span><i style="background:${def.color}"></i>${t(def.label)} <em class="${toneOf(pct)}">${fmtPct(pct)}</em></span>`;
-  }).join('');
-  return `<div class="w-leg">${items}${m.percent ? `<small>${t('en % depuis le début de la période')}</small>` : ''}</div>`;
-}
-
-/**
- * Le survol : curseur, un point par courbe, infobulle avec la valeur de
- * chacune au jour pointé. Tout suit la souris image par image.
- */
-function mountChart({ id, pts, keys, defs, onScrub = null }) {
-  const plot = document.getElementById(id);
-  if (!plot || pts.length < 2) return;
-  const m = chartModel(pts, keys, defs);
-  const cursor = plot.querySelector('.w-cursor');
-  const tip = plot.querySelector('.w-tip');
-  const dots = [...plot.querySelectorAll('.w-cdot')];
-  const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
-  let frame = 0;
-  // Mesurees une fois : l'infobulle garde la meme forme d'un point a l'autre
-  // (une ligne par courbe), et le trace garde sa hauteur. Les lire apres avoir
-  // ecrit leur contenu forcait un calcul de mise en page a chaque image du
-  // survol — d'ou les saccades.
-  let tipH = 0, plotH = 0;
-
-  const show = (clientX) => {
-    const box = plot.getBoundingClientRect();
-    const fx = clamp((clientX - box.left) / (box.width * (CHART.W - CHART.PR) / CHART.W), 0, 1);
-    const i = nearestIndex(pts, t0 + fx * (t1 - t0));
-    const x = plotPct(m.xs[i]);
-    plot.classList.add('scrub');
-    cursor.hidden = tip.hidden = false;
-    cursor.style.left = x + '%';
-    dots.forEach((dot, n) => {
-      dot.hidden = false;
-      dot.style.left = x + '%';
-      dot.style.top = chartY(m.lines[n].vals[i], m.min, m.span) * 100 + '%';
-    });
-    tip.innerHTML = `<b>${fmtDate(pts[i].at)}</b>` + keys.map((k, n) => {
-      const def = defs[k];
-      const pct = m.percent ? `<em>${fmtPct(m.lines[n].vals[i])}</em>` : '';
-      return `<span><i style="background:${def.color}"></i>${t(def.label)}<strong>${seriesText(def, pts[i][k] || 0)}</strong>${pct}</span>`;
-    }).join('');
-    tip.style.left = clamp(x, 21, 79) + '%';
-    // L'infobulle ne doit pas cacher le point survolé : quand la courbe passe
-    // sous elle, elle descend en bas du graphique.
-    const highest = Math.min(...m.lines.map(l => chartY(l.vals[i], m.min, m.span)));
-    if (!tipH) tipH = tip.offsetHeight;
-    if (!plotH) plotH = plot.clientHeight;
-    const low = highest < (tipH + 8) / plotH;
-    tip.style.top = low ? 'auto' : '0';
-    tip.style.bottom = low ? '0' : 'auto';
-    onScrub?.(i);
-  };
-
-  plot.addEventListener('pointermove', (e) => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => show(e.clientX));
-  });
-  plot.addEventListener('pointerleave', () => {
-    cancelAnimationFrame(frame);
-    plot.classList.remove('scrub');
-    cursor.hidden = tip.hidden = true;
-    dots.forEach(dot => { dot.hidden = true; });
-    onScrub?.(null);
-  });
-}
-
-function seriesChips(defs, keys, attr) {
-  return `<div class="w-series">${Object.entries(defs).map(([k, d]) =>
-    `<button class="${keys.includes(k) ? 'on' : ''}" ${attr}="${k}" style="--c:${d.color}"><i></i>${t(d.label)}</button>`).join('')}</div>`;
 }
 
 /* ------------------------------ la répartition --------------------------- */
@@ -2368,7 +1823,6 @@ function renderItems({ animate = false } = {}) {
   box.innerHTML = list.length
     ? list.map(i => (wallet.view === 'grid' ? itemCardHtml(i) : itemRowHtml(i, sum))).join('')
     : `<div class="w-none">${none}</div>`;
-  bindImages(box);
   if (animate && !REDUCED_MOTION) cascade(box.children, wallet.view === 'grid' ? 12 : 16);
 }
 
@@ -2440,17 +1894,12 @@ function openItemSheet(key) {
     { label: 'Roblox', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
   ].filter(Boolean);
   const ch = i.change;
-  const fact = factHtml;
   const kind = i.isFace ? t('visage') : i.kind === 'bundle' ? t('bundle') : '';
 
-  document.getElementById('zoom')?.remove();
   zoomed = 'item:' + key;   // le rafraîchissement de fond attend la fermeture
   Object.assign(sheet, { key, roliId, data: null, changes: [], error: '' });
 
-  const wrap = document.createElement('div');
-  wrap.className = 'zoom';
-  wrap.id = 'zoom';
-  wrap.innerHTML = `<div class="zoom-card w-sheet" role="dialog" aria-modal="true">
+  const wrap = openOverlay(`<div class="zoom-card w-sheet" role="dialog" aria-modal="true">
     <header class="z-head">
       <div class="w-sh-head">
         <span class="w-sh-thumb">${thumbHtml(i)}</span>
@@ -2464,24 +1913,18 @@ function openItemSheet(key) {
       <div class="w-sh-sub">${i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')}${sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''}</div>
       <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
-        ${fact('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
-        ${fact('RAP', amount(i.rap))}
-        ${fact(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : '—')}
-        ${fact(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : '—')}
+        ${factHtml('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
+        ${factHtml('RAP', amount(i.rap))}
+        ${factHtml(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : '—')}
+        ${factHtml(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : '—')}
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
       ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
     </div>
     <footer class="z-foot">${links.map(l =>
       `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label} ${ic('external')}</button>`).join('')}</footer>
-  </div>`;
-  document.body.appendChild(wrap);
-  bindImages(wrap);
+  </div>`, closeZoom);
   renderSheetChart();
-
-  wrap.addEventListener('click', (e) => { if (e.target === wrap) closeZoom(); });
-  wrap.querySelector('.z-close').addEventListener('click', closeZoom);
-  captureFocus(wrap, '.z-close');
   wrap.querySelectorAll('button[data-url]').forEach(b => {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
   });
@@ -2614,7 +2057,6 @@ function renderStats() {
     </div>
     <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour), prolongée jusqu'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant.")}</div>`;
 
-  bindImages(listEl);
   renderItems({ animate: mode === 'all' || mode === 'items' });
   if (mode === 'all') cascade(listEl.children, 8);
 
@@ -2671,7 +2113,7 @@ function renderStats() {
   });
   const recompute = listEl.querySelector('#btn-recompute');
   recompute?.addEventListener('click', () => recomputePortfolio(recompute));
-  listEl.querySelectorAll('[data-share]').forEach(b => b.addEventListener('click', () => openShare(b.dataset.share)));
+  listEl.querySelectorAll('[data-share]').forEach(b => b.addEventListener('click', () => openSharing(b.dataset.share)));
   listEl.querySelectorAll('[data-goal]').forEach(b => b.addEventListener('click', async () => {
     if (b.dataset.goal === 'edit') { openGoal(); return; }
     if (confirm(t('Supprimer cet objectif ?'))) await B.storage.local.set({ walletGoal: null }).catch(() => {});
@@ -2691,10 +2133,10 @@ function keepScroll(draw) {
 }
 
 /**
- * Entrée dans un onglet : tout arrive en cascade. Redessin de fond : rien ne
- * bouge, sauf une carte qui vient d'être évaluée et remplace sa silhouette.
+ * Tout ce qui change le rendu de la liste affichée, en une chaîne. Entrée dans
+ * un onglet : tout arrive en cascade. Redessin de fond sans rien de neuf : la
+ * liste reste telle quelle.
  */
-/** Tout ce qui change le rendu de la liste affichée, en une chaîne. */
 let lastListSig = '';
 function listSignature(snap) {
   // Pas l'heure : les « il y a 3 min » avancent seuls, sans reconstruire la
@@ -2774,7 +2216,6 @@ function renderList() {
     + (tab === 'outbound' ? ghostHtml(ghostTracked()) : '');
   if (top) listEl.scrollTop = top;
   if (entering) cascade(listEl.children, 8);
-  bindList();
   watchList();
 }
 
@@ -2782,88 +2223,22 @@ function renderList() {
  * Vignette introuvable malgré tous les replis : un emplacement neutre vaut mieux
  * qu'une image cassée — et il garde la forme de l'image qu'il remplace, sinon
  * la ligne saute.
+ *
+ * Un seul écouteur pour tout le popup, en phase de capture (l'erreur d'une
+ * image ne remonte pas) : il couvre aussi les images arrivées après coup,
+ * sans recâbler chaque rendu. Les vignettes des fonds de carte (share.js)
+ * ont leur propre repli.
  */
-function bindImages(root) {
-  root.querySelectorAll('img[src]').forEach(img => {
-    img.addEventListener('error', () => {
-      const ph = document.createElement('div');
-      ph.className = (img.className ? img.className + ' ' : '') + 'ph';
-      ph.innerHTML = ic(img.dataset.icon ?? (img.closest('.rec-row') ? 'face' : 'box'));
-      ph.title = img.title;
-      img.replaceWith(ph);
-    }, { once: true });
-  });
-}
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img?.tagName !== 'IMG' || !img.getAttribute('src') || img.closest('.fx-bgs')) return;
+  const ph = document.createElement('div');
+  ph.className = (img.className ? img.className + ' ' : '') + 'ph';
+  ph.innerHTML = ic(img.dataset.icon ?? (img.closest('.rec-row') ? 'face' : 'box'));
+  ph.title = img.title;
+  img.replaceWith(ph);
+}, true);
 
-/**
- * Ce qui se cable DANS une carte. Isole de `bindList` pour qu'une carte
- * remplacee seule (voir `patchRows`) retrouve ses gestes sans que la liste
- * entiere soit recablee — ce qui doublerait les ecouteurs des autres cartes.
- */
-function bindRow(row) {
-  row.querySelectorAll('[data-player]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openPlayer(Number(el.dataset.player));
-    });
-  });
-  row.querySelectorAll('.tc-body[data-zoom]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return;
-      openZoom(Number(el.dataset.zoom));
-    });
-  });
-  row.querySelectorAll('button[data-expand]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = Number(el.dataset.expand);
-      if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
-      renderList();
-    });
-  });
-  row.querySelectorAll('button[data-retry]').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = Number(el.dataset.retry);
-      el.textContent = '…';
-      failures[tab].delete(id);
-      cards[tab].delete(id);
-      await queueHydrate(tab, [id]);
-    });
-  });
-  row.querySelectorAll('button[data-nix]').forEach(el => {
-    if (Number(el.dataset.nix) === armedNix) {
-      el.dataset.armed = '1';
-      el.classList.add('armed');
-      el.textContent = t('Confirmer ?');
-    }
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      quickDecline(el, Number(el.dataset.nix), el.dataset.kind);
-    });
-  });
-  bindTrack(row);
-}
-
-/** L'epingle « suivre ce trade », sur une carte ou sur une ligne hors liste. */
-function bindTrack(root) {
-  root.querySelectorAll('button[data-track]').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = Number(el.dataset.track);
-      const on = el.dataset.on === '1';
-      const partner = listOf('outbound').find(x => x.tradeId === id)?.partner || null;
-      const res = await ask({ type: 'ronote:track', tradeId: id, on, partner });
-      // Sans reponse, l'epingle n'a pas bouge cote worker : ne rien ecraser.
-      if (!res?.tracked) return;
-      data.state.tracked = res.tracked;
-      renderHeader();
-      renderList();
-    });
-  });
-}
-
-/** Les pastilles de filtre : hors carte, elles survivent a un remplacement. */
 /**
  * Les trades suivis absents de la liste. Roblox ne rend que les 100 derniers
  * trades envoyes : un suivi plus ancien n'y figure plus. Le compteur les
@@ -2910,37 +2285,21 @@ function ghostHtml(list) {
   </section>`;
 }
 
-function bindChips() {
-  listEl.querySelectorAll('button[data-lfilter]').forEach(el => {
-    el.addEventListener('click', () => {
-      listFilter[tab] = el.dataset.lfilter;
-      renderList();
-    });
-  });
-}
-
-function bindList() {
-  listEl.querySelectorAll('.tc').forEach(bindRow);
-  bindImages(listEl);
-  bindChips();
-  listEl.querySelectorAll('.gh').forEach(bindTrack);
-  listEl.querySelectorAll('[data-settings]').forEach(el => el.addEventListener('click', () => {
-    B.tabs.create({ url: B.runtime.getURL(`options/options.html#${el.dataset.settings}`) });
-  }));
-  listEl.querySelector('[data-untrack-all]')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const ids = ghostTracked().map(g => g.tradeId);
-    if (!ids.length) return;
-    btn.disabled = true;
-    const res = await ask({ type: 'ronote:track', ids, on: false });
-    if (!res?.tracked) { btn.disabled = false; return; }
-    data.state.tracked = res.tracked;
-    renderHeader();
-    renderList();
-  });
-  listEl.querySelectorAll('button[data-more]').forEach(el => {
-    el.addEventListener('click', () => loadMore(el.dataset.more));
-  });
+/**
+ * Suivre ou ne plus suivre des trades envoyés : l'épingle d'une carte, ou
+ * « Ne plus les suivre » pour tous les suivis tombés hors de la liste — une
+ * seule écriture pour tout le lot.
+ */
+async function setTracked(ids, on, btn = null) {
+  if (!ids.length) return;
+  if (btn) btn.disabled = true;
+  const partner = ids.length === 1 ? listOf('outbound').find(x => x.tradeId === ids[0])?.partner || null : null;
+  const res = await ask({ type: 'ronote:track', ids, on, partner });
+  // Sans réponse, l'épingle n'a pas bougé côté worker : ne rien écraser.
+  if (!res?.tracked) { if (btn) btn.disabled = false; return; }
+  data.state.tracked = res.tracked;
+  renderHeader();
+  renderList();
 }
 
 /**
@@ -2971,8 +2330,6 @@ function patchRows(kind, ids) {
     const node = tpl.content.firstElementChild;
     if (!node || node.classList.contains('tc-skel')) continue;   // toujours pas evalue
     slot.replaceWith(node);
-    bindRow(node);
-    bindImages(node);
   }
 
   // Le bandeau compte les gagnants, les perdants et le meilleur trade : il
@@ -2980,7 +2337,7 @@ function patchRows(kind, ids) {
   const head = listEl.querySelector('section.ls');
   if (head) head.outerHTML = summaryHtml(kind, snap);
   const chips = listEl.querySelector('.lchips');
-  if (chips) { chips.outerHTML = chipsHtml(kind, snap); bindChips(); }
+  if (chips) chips.outerHTML = chipsHtml(kind, snap);
 
   lastListSig = listSignature(snap);
   watchList();
@@ -3125,12 +2482,62 @@ function watchList() {
 }
 
 /**
+ * LES GESTES DE LA LISTE, EN UN SEUL ÉCOUTEUR.
+ *
+ * La liste se redessine à chaque vérification et chaque carte évaluée
+ * remplace sa silhouette : câbler chaque bouton à chaque rendu doublait les
+ * écouteurs dès qu'une carte était remplacée seule. Posé une fois sur la
+ * liste, celui-ci lit l'attribut de l'élément cliqué. Le plus intérieur
+ * l'emporte : un bouton dans une carte passe avant le zoom de la carte.
+ * L'onglet Portefeuille câble encore ses propres outils (recherche, tri).
+ */
+const LIST_ACTIONS = [
+  ['[data-player]', (el) => openPlayer(Number(el.dataset.player))],
+  ['button[data-nix]', (el) => quickDecline(el, Number(el.dataset.nix), el.dataset.kind)],
+  ['button[data-track]', (el) => setTracked([Number(el.dataset.track)], el.dataset.on === '1')],
+  ['[data-untrack-all]', (el) => setTracked(ghostTracked().map(g => g.tradeId), false, el)],
+  ['button[data-expand]', (el) => {
+    const id = Number(el.dataset.expand);
+    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+    renderList();
+  }],
+  ['button[data-retry]', (el) => {
+    const id = Number(el.dataset.retry);
+    el.textContent = '…';
+    failures[tab].delete(id);
+    cards[tab].delete(id);
+    queueHydrate(tab, [id]);
+  }],
+  ['button[data-lfilter]', (el) => { listFilter[tab] = el.dataset.lfilter; renderList(); }],
+  ['button[data-more]', (el) => loadMore(el.dataset.more)],
+  ['[data-settings]', (el) => B.tabs.create({ url: B.runtime.getURL(`options/options.html#${el.dataset.settings}`) })],
+  ['[data-go]', (el) => selectTab(el.dataset.go)],
+  ['[data-zoomid]', (el) => openZoom(Number(el.dataset.zoomid))],
+  ['[data-news]', () => {
+    markNewsSeen();
+    B.tabs.create({ url: B.runtime.getURL('options/options.html#s-news') });
+    renderList();
+  }],
+  ['#rc-open', () => openSharing('month')],
+  ['.jr[data-url]', (el) => B.tabs.create({ url: el.dataset.url })],
+  // La carte entière ouvre le zoom, sauf un bouton qu'aucun geste ne réclame.
+  ['.tc-body[data-zoom]', (el, e) => { if (!e.target.closest('button')) openZoom(Number(el.dataset.zoom)); }]
+];
+
+listEl.addEventListener('click', (e) => {
+  for (const [sel, run] of LIST_ACTIONS) {
+    const el = e.target.closest(sel);
+    if (el && listEl.contains(el)) { run(el, e); return; }
+  }
+});
+
+/**
  * La liste affichée d'abord, puis les deux autres en arrière-plan : changer
  * d'onglet montre alors des cartes prêtes au lieu de silhouettes.
  */
 async function hydrateAll() {
   await hydrate(tab);
-  for (const kind of ['inbound', 'outbound', 'completed']) {
+  for (const kind of LIST_KINDS) {
     if (kind !== tab) await hydrate(kind);
   }
 }
@@ -3143,7 +2550,40 @@ async function hydrateAll() {
  */
 const applyLang = () => applyPageLang(data.settings?.lang, moveTabIndicator);
 
+/** Ce que le popup lit dans `storage.local`, sous les noms du stockage. */
+const STORED = ['settings', 'state', 'history', 'portfolio', 'portfolioReport'];
+
+/**
+ * Des valeurs lues dans le stockage, telles quelles : rangées par le service
+ * worker, éventuellement par une version plus ancienne. Elles passent par les
+ * mêmes valeurs par défaut que les siennes avant d'être affichées.
+ */
+function adoptStored(got) {
+  if ('settings' in got) data.settings = withDefaults(got.settings);
+  if ('state' in got) data.state = withStateDefaults(got.state);
+  if ('history' in got) data.history = (Array.isArray(got.history) ? got.history : []).slice(0, 100);
+  if ('portfolio' in got) data.portfolio = Array.isArray(got.portfolio) ? got.portfolio : [];
+  if ('portfolioReport' in got) data.report = got.portfolioReport && typeof got.portfolioReport === 'object' ? got.portfolioReport : null;
+}
+
+/**
+ * Ouverture : ce qui est rangé dans `storage.local` s'affiche tout de suite,
+ * sans attendre le service worker. Endormi, il met son temps à se réveiller
+ * (il recharge tout son code) et le popup restait vide en l'attendant. Sa
+ * réponse, qui porte les mêmes données, confirme ensuite.
+ */
+async function paintStored() {
+  const got = await B.storage.local.get(STORED).catch(() => null);
+  // Déjà répondu, ou rien de rangé (première installation) : rien à faire.
+  if (data.settings || !got?.settings || !got.state) return;
+  adoptStored(got);
+  if (!applyLang()) return;
+  renderHeader();
+  renderList();
+}
+
 async function load({ refresh = false } = {}) {
+  if (!refresh && !data.settings) paintStored();
   // `lite` : le popup n'affiche pas les compteurs des flux, inutile de relire
   // leurs milliers d'identifiants. La vérification manuelle rend tout d'un coup.
   const res = await send({ type: refresh ? 'ronote:refresh' : 'ronote:get', lite: true });
@@ -3249,19 +2689,17 @@ load();
  * Le zoom n'est jamais redessiné sous les doigts : tant qu'il est ouvert, les
  * changements attendent.
  */
-const STORED = ['settings', 'state', 'history', 'portfolio', 'portfolioReport'];
 const pendingChanges = {};
 let refreshTimer = null;
 
 function applyChanges() {
+  // Une seule attente à la fois : chaque écriture arrivée pendant le zoom
+  // relançait la sienne, et autant de redessins suivaient sa fermeture.
+  clearTimeout(refreshTimer);
   if (zoomed) { refreshTimer = setTimeout(applyChanges, 1000); return; }
   const got = { ...pendingChanges };
   for (const k of Object.keys(got)) delete pendingChanges[k];
-  if ('settings' in got) data.settings = withDefaults(got.settings);
-  if ('state' in got) data.state = withStateDefaults(got.state);
-  if ('history' in got) data.history = (Array.isArray(got.history) ? got.history : []).slice(0, 100);
-  if ('portfolio' in got) data.portfolio = Array.isArray(got.portfolio) ? got.portfolio : [];
-  if ('portfolioReport' in got) data.report = got.portfolioReport && typeof got.portfolioReport === 'object' ? got.portfolioReport : null;
+  adoptStored(got);
   if (!applyLang()) return;
   renderHeader();
   renderList();

@@ -16,6 +16,9 @@ export const $ = (sel, root = document) => root.querySelector(sel);
 
 export const send = (msg) => B.runtime.sendMessage(msg);
 
+/** Le systeme demande moins d'animations : entrees, compteurs et courbes s'affichent d'emblee. */
+export const REDUCED_MOTION = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
 /**
  * Le service worker MV3 dort entre deux verifications. Un message parti juste
  * avant son reveil revient `undefined`, et la page qui l'attendait restait

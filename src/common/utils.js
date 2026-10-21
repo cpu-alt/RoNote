@@ -81,6 +81,17 @@ export function chunk(arr, size) {
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+/**
+ * Les `cap` entrees les plus recentes d'un objet `{ cle: { at, … } }`. Toutes
+ * les petites tables gardees en stockage (trades captes, fiches de joueurs,
+ * historiques) se taillent ainsi avant d'etre reecrites.
+ */
+export function newestEntries(obj, cap) {
+  return Object.fromEntries(Object.entries(obj || {})
+    .sort((a, b) => (b[1]?.at || 0) - (a[1]?.at || 0))
+    .slice(0, cap));
+}
+
 /** Traite `list` avec au plus `limit` taches en meme temps, dans l'ordre de depart. */
 export async function eachLimit(list, limit, fn) {
   let next = 0;

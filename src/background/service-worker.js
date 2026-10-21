@@ -8,16 +8,14 @@ import {
 } from '../common/state.js';
 import { getCatalog, readEntry } from '../common/roli.js';
 import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, addKnownInstances } from '../common/page-trade.js';
-import { setLang, t, currentLang, dictFor } from '../common/i18n.js';
-import {
-  analyze, verdict, thumbKeysFor, missingValueAssetIds, unresolvedAssetIds, resolveItem
-} from '../common/analysis.js';
+import { setLang, t } from '../common/i18n.js';
+import { thumbKeysFor, resolveItem } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
-import { eachLimit, inQuietHours, serialQueue } from '../common/utils.js';
+import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -27,10 +25,13 @@ import {
   notifyTrade, notifySummary, notifyRevaluations, notifySystem, playSound, playSoundsFor, setBadge,
   notifTarget, forgetNotif
 } from './notifier.js';
+import {
+  buildCard, makeCard, stubCard, safeCard, liteTrade, snapshotHints, cleanTradeId,
+  loadDetailCache, saveDetailCache, saveDetailCacheSoon, forgetCard, resetCards, knownDetails,
+  rememberCapturedTrade, rememberScrapedTrade, getCapturedTrade, getScrapedTrade
+} from './cards.js';
 
 const ALARM = 'ronote:poll';
-const DETAIL_KEEP = 7 * 24 * 60 * 60 * 1000;   // le contenu d'un trade ne change jamais
-const DETAIL_CAP = 150;
 const HYDRATE_PARALLEL = 3;   // trades evalues en meme temps pour le popup
 const ME_TTL = 15 * 60 * 1000;   // on ne redemande pas l'identite a chaque tour
 const LINKS_CAP = 120;
@@ -127,274 +128,7 @@ function scheduleSoftTick(settings) {
   softTimer = setTimeout(() => tick('soft'), s * 1000);
 }
 
-/* ==================== details fournis par la page ===================== */
-
-const CAPTURED_CAP = 60;
-const CAPTURED_FRESH = 10 * 60 * 1000;   // meme detail recu il y a moins de 10 min : rien a reecrire
-
-// Les messages de la page arrivent en rafale, et chacun lit, modifie puis
-// reecrit la meme cle : en file, aucun n'efface l'ajout du precedent.
-const pageWrites = serialQueue();
-
-/**
- * La page Roblox affiche sans probleme les trades que l'API refuse de nous
- * servir. On conserve donc ce qu'elle recupere : c'est la source la plus fiable
- * qui soit, puisque c'est exactement ce que l'utilisateur voit.
- */
-function rememberCapturedTrade(tradeId, detail) {
-  const id = String(tradeId).replace(/[^0-9]/g, '');
-  if (!id || !detail) return;
-  return pageWrites(async () => {
-    const { captured } = await B.storage.local.get('captured');
-    const prev = captured?.[id];
-    // La page redemande souvent le trade qu'elle affiche.
-    if (prev && Date.now() - prev.at < CAPTURED_FRESH && JSON.stringify(prev.detail) === JSON.stringify(detail)) return;
-    const next = { ...(captured || {}), [id]: { at: Date.now(), detail } };
-    const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
-    await B.storage.local.set({ captured: Object.fromEntries(kept) });
-  });
-}
-
-/**
- * Trade lu directement sur la page. On le convertit au format interne : les
- * identifiants suffisent, les cotes viennent ensuite de Rolimon's comme pour
- * n'importe quel autre trade.
- */
-async function rememberScrapedTrade(trade, myId) {
-  const items = (list) => (list || []).map(i => ({
-    id: null, assetId: Number(i.assetId) || 0, bundleId: Number(i.bundleId) || 0,
-    name: i.name || '', recentAveragePrice: 0, serialNumber: null
-  }));
-
-  // Quelle colonne est la mienne ? La page cite un profil dans chacune : si
-  // c'est le mien qui figure dans la seconde, les colonnes sont inversees par
-  // rapport a l'ordre de lecture. Sans ce repere, un trade replie sur la page
-  // pouvait s'afficher a l'envers — gain lu comme perte.
-  const uids = Array.isArray(trade.userIds) ? trade.userIds : [];
-  const has = (i) => myId && (uids[i] || []).some(id => Number(id) === Number(myId));
-  const swapped = has(1) && !has(0);
-  const mine = swapped ? trade.get : trade.give;
-  const theirs = swapped ? trade.give : trade.get;
-
-  const detail = {
-    id: trade.tradeId || 0,
-    offers: [
-      { user: { id: myId }, userAssets: items(mine), robux: 0 },
-      { user: { id: -1, name: trade.handle, displayName: trade.handle }, userAssets: items(theirs), robux: 0 }
-    ],
-    fromPage: true
-  };
-  return pageWrites(async () => {
-    const { scraped } = await B.storage.local.get('scraped');
-    const next = { ...(scraped || {}) };
-    if (trade.tradeId) next['id:' + trade.tradeId] = { at: Date.now(), detail };
-    if (trade.handle) next['h:' + trade.handle.toLowerCase()] = { at: Date.now(), detail };
-    const kept = Object.entries(next).sort((x, y) => y[1].at - x[1].at).slice(0, CAPTURED_CAP);
-    await B.storage.local.set({ scraped: Object.fromEntries(kept) });
-  });
-}
-
-/** Retrouve un trade lu sur la page, par identifiant ou par partenaire. */
-async function getScrapedTrade(tradeId, partnerName) {
-  const { scraped } = await B.storage.local.get('scraped');
-  if (!scraped) return null;
-  return scraped['id:' + tradeId]?.detail
-    || (partnerName ? scraped['h:' + String(partnerName).toLowerCase()]?.detail : null)
-    || null;
-}
-
-async function getCapturedTrade(tradeId) {
-  const { captured } = await B.storage.local.get('captured');
-  return captured?.[String(tradeId)]?.detail || null;
-}
-
-/* ============================== cartes ================================= */
-
-/**
- * LE CACHE DES TRADES.
- *
- * Le contenu d'un trade ne change jamais : ce qu'on donne et ce qu'on recoit
- * est fixe a sa creation. Seule l'ANALYSE depend de l'exterieur — la table des
- * cotes et deux reglages. On garde donc le detail brut 7 jours avec la fiche :
- *   - memes cotes, memes reglages  -> la fiche sert telle quelle ;
- *   - cotes revisees               -> l'analyse est refaite sur le detail garde,
- *                                     sans redemander le trade a Roblox.
- * L'ancienne regle (tout jeter apres 10 minutes) faisait recharger chaque trade
- * a chaque ouverture du popup, un appel reseau par carte.
- */
-const memDetails = new Map(); // tradeId -> {at, sig, detail, card}
-let detailsDirty = false;    // evite de reecrire le cache a chaque tour
-let detailsLoaded = false;   // le cache stocke a ete fusionne en memoire
-let detailsLoading = null;   // lecture en cours : deux demandes simultanees ne la doublent pas
-let detailsSaveTimer = null;
-
-/**
- * Lu une fois par vie du worker. Le test porte sur un drapeau, pas sur la
- * taille de la memoire : une carte ajoutee avant la lecture (un trade suivi
- * resolu au reveil) faisait croire le cache charge, et la sauvegarde suivante
- * remplacait les 150 trades gardes par cette seule carte.
- */
-async function loadDetailCache() {
-  if (detailsLoaded) return;
-  if (!detailsLoading) {
-    detailsLoading = B.storage.local.get('details').then(({ details }) => {
-      const now = Date.now();
-      for (const [id, rec] of Object.entries(details || {})) {
-        if (now - (rec?.at || 0) < DETAIL_KEEP && !memDetails.has(Number(id))) memDetails.set(Number(id), rec);
-      }
-      detailsLoaded = true;
-    }).finally(() => { detailsLoading = null; });
-  }
-  await detailsLoading;
-}
-
-/** Ce dont depend l'analyse d'un trade : la table des cotes et deux reglages. */
-const analysisSig = (cat, settings) =>
-  [cat?.ts || 0, cat?.ratio || 0, settings?.valueBasis || 'value', settings?.robuxTax !== false].join('|');
-
-/**
- * Le cache pese quelques centaines de Ko : pendant que le popup charge ses
- * listes lot par lot, on l'ecrit une fois a la fin plutot qu'apres chaque lot.
- */
-function saveDetailCacheSoon() {
-  clearTimeout(detailsSaveTimer);
-  detailsSaveTimer = setTimeout(() => { saveDetailCache(); }, 1500);
-}
-
-async function saveDetailCache() {
-  clearTimeout(detailsSaveTimer);
-  if (!detailsDirty) return;
-  // Jamais sans le cache stocke : ecrire la memoire seule l'effacerait.
-  await loadDetailCache();
-  detailsDirty = false;
-  const entries = [...memDetails.entries()]
-    .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
-    .slice(0, DETAIL_CAP);
-  memDetails.clear();
-  const obj = {};
-  for (const [id, rec] of entries) { memDetails.set(id, rec); obj[id] = rec; }
-  await B.storage.local.set({ details: obj });
-}
-
-/** Fiche complete a partir d'un detail deja recupere (aucun appel superflu). */
-async function makeCard(detail, kind, myId, cat, settings, prev = null) {
-  // 1) Assets qu'aucune table ne connait : depuis la bascule des visages en
-  //    bundles, l'objet echange peut n'etre que le CONTENU d'un bundle. On
-  //    fait le pont assetId -> bundleId via le catalogue Roblox.
-  const unresolved = unresolvedAssetIds(detail, cat);
-  const bundleIds = unresolved.length ? await safe(() => api.resolveBundleIds(unresolved), null) : null;
-
-  // 2) Toujours aucun chiffre apres ca : dernier filet, le RAP officiel Roblox.
-  const missing = missingValueAssetIds(detail, cat, bundleIds);
-  const extra = missing.length ? await safe(() => api.getResaleRaps(missing), null) : null;
-
-  const analysis = analyze(detail, myId, cat, extra, bundleIds, settings);
-
-  // Detail recupere mais aucun objet reconnu : c'est que le format de reponse a
-  // change. On remonte les cles reellement recues plutot qu'une carte vide,
-  // pour pouvoir corriger le normaliseur sans deviner.
-  const nbItems = analysis.give.items.length + analysis.get.items.length;
-  const nbRobux = analysis.give.robux + analysis.get.robux;
-  if (!nbItems && !nbRobux) {
-    const top = Object.keys(detail || {}).join(', ') || '(vide)';
-    const off = detail?.offers;
-    const offInfo = Array.isArray(off)
-      ? `${off.length} offre(s)${off[0] ? ' [' + Object.keys(off[0]).join(', ') + ']' : ''}`
-      : `offers=${typeof off}`;
-    const firstItem = off?.[0]?.userAssets?.[0] || off?.[0]?.items?.[0];
-    const itemInfo = firstItem ? ` · objet [${Object.keys(firstItem).join(', ')}]` : '';
-    throw new Error(`format inattendu — racine [${top}] · ${offInfo}${itemInfo}`);
-  }
-
-  const partner = analysis.partner || {};
-  const items = [...analysis.give.items, ...analysis.get.items];
-
-  // Vignettes et portrait en parallele : ce sont des conforts, ils ne doivent
-  // jamais faire perdre la carte ni retarder les deux autres appels.
-  const [headshot, thumbs] = await Promise.all([
-    // Portrait deja connu (fiche precedente du meme trade) : pas de nouvel appel.
-    partner.id ? (prev?.headshot || safe(() => api.getUserHeadshot(partner.id), null)) : null,
-    safe(() => resolveThumbs(items.map(thumbKeysFor)), [])
-  ]);
-  items.forEach((it, i) => { it.thumb = thumbs?.[i] || null; });
-
-  const card = {
-    tradeId: Number(detail.id),
-    kind,
-    partner,
-    headshot,
-    created: detail.created,
-    expiration: detail.expiration,
-    status: normStatus(detail.status),
-    analysis,
-    verdict: verdict(analysis),
-    url: api.TRADE_URL(detail.id)
-  };
-  memDetails.set(card.tradeId, { at: Date.now(), sig: analysisSig(cat, settings), detail, card });
-  detailsDirty = true;
-  return card;
-}
-
-/** Etiquette l'etape qui a echoue : sans ca, un echec est indiagnosticable. */
-async function step(label, fn) {
-  try { return await fn(); }
-  catch (e) { throw new Error(`${label}: ${e?.message || e}`); }
-}
-
-/** Ce que les listes de trades savent deja de chacun : la v2 ne renvoie aucune date. */
-function snapshotHints(state) {
-  const hints = new Map();
-  for (const k of ['inbound', 'outbound', 'completed']) {
-    for (const t of state.snapshot?.[k] || []) {
-      const id = Number(t.tradeId);
-      if (!hints.has(id)) hints.set(id, { tradeId: id, created: t.created, expiration: t.expiration, status: t.status, partner: t.partner });
-    }
-  }
-  return hints;
-}
-
-async function tradeHint(tradeId) {
-  return snapshotHints(await getState()).get(Number(tradeId)) || null;
-}
-
-async function buildCard(tradeId, kind, myId, cat, settings, { force = false, hint = null } = {}) {
-  await loadDetailCache();
-  const cached = memDetails.get(Number(tradeId));
-  if (!force && cached?.card?.analysis) {
-    if (cached.sig === analysisSig(cat, settings)) return { ...cached.card, kind };
-    if (cached.detail) {
-      return step('analyse', () => makeCard(cached.detail, kind, myId, cat, settings, cached.card));
-    }
-  }
-  const meta = hint || await tradeHint(tradeId);
-  let detail;
-  try {
-    detail = await step('détail du trade', () => api.getTrade(tradeId, meta));
-  } catch (e) {
-    // Replis successifs, du plus fidele au plus approximatif :
-    //  1. la reponse que la page Roblox a elle-meme recue ;
-    //  2. ce qui est affiche a l'ecran (identifiants lus dans les liens).
-    const fromPage = await getCapturedTrade(tradeId)
-      || await getScrapedTrade(String(tradeId), meta?.partner?.name || '');
-    if (!fromPage) throw e;
-    detail = api.normalizeTradeDetail({ ...fromPage, id: fromPage.id || tradeId }, meta);
-  }
-  return step('analyse', () => makeCard(detail, kind, myId, cat, settings));
-}
-
-/** Carte minimale quand le detail n'est pas recuperable (trade deja parti). */
-function stubCard(t, kind) {
-  return {
-    tradeId: Number(t.id), kind, partner: t.user || {}, headshot: null,
-    created: t.created, status: normStatus(t.status), analysis: null,
-    url: api.TRADE_URL(t.id)
-  };
-}
-
-const liteTrade = (t) => ({
-  tradeId: Number(t.id), partner: t.user, created: t.created,
-  expiration: t.expiration, status: normStatus(t.status)
-});
+/* ============================== journal ================================ */
 
 function record(ctx, card, extra = {}) {
   ctx.history.push({
@@ -415,6 +149,29 @@ function record(ctx, card, extra = {}) {
 }
 
 /* ========================= etapes de la boucle ========================= */
+
+/**
+ * La carte d'un evenement : evaluee si possible, minimale sinon. Le type vient
+ * de l'evenement, pas du cache — un trade recu puis termine garde sa fiche.
+ */
+async function eventCard(ctx, t, kind, opts = {}) {
+  const card = await safeCard(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, opts), null)
+    || stubCard(t, kind);
+  card.kind = kind;
+  return card;
+}
+
+/**
+ * L'issue d'un trade envoye merite-t-elle une alerte ? Un suivi pose a la main
+ * previent toujours ; l'auto-suivi et les non-suivis suivent les reglages.
+ */
+function wantsOutcome(ctx, meta, opt) {
+  const on = ctx.settings.notifyOutbound[opt];
+  return meta ? (!meta.auto || on) : (ctx.settings.notifyUntrackedOutbound && on);
+}
+
+/** La negociation dont le trade fait partie : a quel trade il repond, a quel tour. */
+const withRound = (card, meta) => Object.assign(card, { counterTo: meta?.counterTo || null, round: meta?.round || 1 });
 
 /** 1) Onglet Inactive : erreurs Roblox, refus/expirations, detection des contres. */
 async function stepInactive(ctx) {
@@ -441,17 +198,10 @@ async function stepInactive(ctx) {
         // apparaitra dans Outbound, il faudra le suivre.
         noteCounterByMe(ctx.state.myCounters, pid, id, ctx.state.links[id]?.round || 1);
       } else if (dir === 'outbound') {
-        // Le partenaire a contre un trade envoye. Un suivi pose a la main
-        // previent toujours ; l'auto-suivi et les non-suivis suivent les reglages.
+        // Le partenaire a contre un trade envoye.
         noteCounterFromPartner(ctx.state.counterHints, pid, id, (meta?.round || ctx.state.links[id]?.round || 1) + 1);
-        const wanted = meta
-          ? (!meta.auto || ctx.settings.notifyOutbound.countered)
-          : (ctx.settings.notifyUntrackedOutbound && ctx.settings.notifyOutbound.countered);
-        if (pid && wanted) {
-          const card = stubCard(t, 'outbound_countered');
-          card.counterTo = meta?.counterTo || null;
-          card.round = meta?.round || 1;
-          ctx.pendingCountered.set(pid, card);
+        if (pid && wantsOutcome(ctx, meta, 'countered')) {
+          ctx.pendingCountered.set(pid, withRound(stubCard(t, 'outbound_countered'), meta));
         }
       }
       continue;
@@ -459,9 +209,7 @@ async function stepInactive(ctx) {
 
     if (status === 'RejectedDueToError' || status === 'InterventionRequired') {
       if (!ctx.settings.watchRejectedError) continue;
-      const card = await safeCard(() => buildCard(id, 'trade_error', ctx.me.id, ctx.cat, ctx.settings), null)
-        || stubCard(t, 'trade_error');
-      card.kind = 'trade_error';
+      const card = await eventCard(ctx, t, 'trade_error');
       card.statusLabel = OUTCOMES[status].title
         + (dir === 'outbound' ? ' · trade envoyé' : dir === 'inbound' ? ' · trade reçu' : '');
       ctx.events.push(card);
@@ -474,16 +222,9 @@ async function stepInactive(ctx) {
     if (dir === 'outbound' && ctx.settings.watchOutbound) {
       const info = OUTCOMES[status];
       if (!info) continue;
-      const wanted = meta
-        ? (!meta.auto || ctx.settings.notifyOutbound[info.opt])
-        : (ctx.settings.notifyUntrackedOutbound && ctx.settings.notifyOutbound[info.opt]);
-      if (!wanted) continue;
-      const card = await safeCard(() => buildCard(id, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
-        || stubCard(t, info.kind);
-      card.kind = info.kind;
+      if (!wantsOutcome(ctx, meta, info.opt)) continue;
+      const card = withRound(await eventCard(ctx, t, info.kind), meta);
       card.statusLabel = info.title;
-      card.counterTo = meta?.counterTo || null;
-      card.round = meta?.round || 1;
       ctx.events.push(card);
       record(ctx, card, { status, tracked: !!meta });
     }
@@ -529,12 +270,10 @@ async function stepOutbound(ctx) {
     const info = OUTCOMES[res.status];
     if (!info) continue;
 
-    const card = await safeCard(() => makeCard(res.detail, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
-      || stubCard({ id: res.tradeId, user: meta.partner, status: res.status }, info.kind);
+    const card = withRound(await safeCard(() => makeCard(res.detail, info.kind, ctx.me.id, ctx.cat, ctx.settings), null)
+      || stubCard({ id: res.tradeId, user: meta.partner, status: res.status }, info.kind), meta);
     card.kind = info.kind;
     card.statusLabel = info.title;
-    card.counterTo = meta.counterTo || null;
-    card.round = meta.round || 1;
     record(ctx, card, { status: res.status, tracked: true });
 
     if (res.status === 'Countered') {
@@ -542,12 +281,11 @@ async function stepOutbound(ctx) {
       // une seule notification vaut mieux que deux pour le meme evenement.
       const pid = card.partner?.id;
       noteCounterFromPartner(ctx.state.counterHints, pid, res.tradeId, (meta.round || 1) + 1);
-      if (pid && (!meta.auto || ctx.settings.notifyOutbound.countered)) ctx.pendingCountered.set(pid, card);
+      if (pid && wantsOutcome(ctx, meta, 'countered')) ctx.pendingCountered.set(pid, card);
       else if (!pid) ctx.events.push(card);
       continue;
     }
-    // Un suivi pose a la main notifie toujours ; l'auto-suivi respecte les reglages.
-    if (!meta.auto || ctx.settings.notifyOutbound[info.opt]) ctx.events.push(card);
+    if (wantsOutcome(ctx, meta, info.opt)) ctx.events.push(card);
   }
 }
 
@@ -572,8 +310,7 @@ async function stepInbound(ctx) {
   if (r.seeded) return;
 
   for (const t of r.fresh) {
-    let card = await safeCard(() => buildCard(t.id, 'inbound', ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
-      || stubCard(t, 'inbound');
+    const card = await eventCard(ctx, t, 'inbound', { force: true, hint: liteTrade(t) });
 
     const pid = card.partner?.id ?? t.user?.id;
     const hint = pid ? takeHint(ctx.state.counterHints, pid, ctx.windowMs) : null;
@@ -588,21 +325,6 @@ async function stepInbound(ctx) {
     const check = passesFilters(card, ctx.settings);
     record(ctx, card, { notified: check.ok, skipped: check.ok ? null : check.why, note: check.note ?? null });
     if (check.ok) ctx.events.push(card);
-  }
-}
-
-/**
- * `safe()` avale tout — y compris une limite de debit. Dix trades neufs, c'est
- * alors dix appels condamnes d'avance, chacun avec son attente, et aucun
- * backoff pose : la limite se prolonge toute seule. Ici, un 429 ressort, le
- * cycle l'attrape et met la pause qu'il faut. Le reste est avale comme avant.
- */
-async function safeCard(fn, fallback = null) {
-  try { return await fn(); }
-  catch (e) {
-    if (e instanceof ApiError && e.isRate) throw e;
-    console.debug('[RoNote] safeCard():', e?.message || e);
-    return fallback;
   }
 }
 
@@ -621,9 +343,7 @@ async function stepCompleted(ctx) {
     // plus a en demander le detail — et ne notifiera donc pas une seconde fois.
     delete ctx.state.tracked[t.id];
     const kind = mine ? 'outbound_accepted' : 'completed';
-    const card = await safeCard(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, { force: true, hint: liteTrade(t) }), null)
-      || stubCard(t, kind);
-    card.kind = kind;
+    const card = await eventCard(ctx, t, kind, { force: true, hint: liteTrade(t) });
     if (mine) card.statusLabel = OUTCOMES.Completed.title;
     ctx.events.push(card);
     record(ctx, card, mine ? { status: 'Completed' } : {});
@@ -866,8 +586,7 @@ async function tick(reason = 'manual') {
       state.portfolioAt = 0; state.historyFetchedAt = 0; state.historyLastAt = 0; state.chartScannedAt = 0;
       state.portfolioLast = null;
       state.revalSince = 0;
-      memDetails.clear();
-      detailsLoaded = true;   // le cache stocke vient d'etre vide
+      resetCards();
       await clearThumbs();
     }
     state.userId = me.id;
@@ -1117,6 +836,35 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 });
 
 /**
+ * Les fiches lues a la demande (historique d'un objet, courbe et bundles d'un
+ * joueur) : gardees sous `key`, les `cap` plus recentes, et resservies telles
+ * quelles pendant `ttl`. La source injoignable, l'ancienne copie vaut mieux
+ * que rien : elle revient marquee `stale`.
+ */
+async function readThrough({ key, id, field, as = field, ttl, cap, keep = () => true }, fetch) {
+  const { [key]: stored } = await B.storage.local.get(key);
+  const cache = stored || {};
+  const hit = cache[id];
+  if (hit && Date.now() - hit.at < ttl) return { [as]: hit[field] };
+  try {
+    const value = await fetch();
+    if (keep(value)) {
+      await B.storage.local.set({ [key]: newestEntries({ ...cache, [id]: { at: Date.now(), [field]: value } }, cap) });
+    }
+    return { [as]: value };
+  } catch (e) {
+    return hit ? { [as]: hit[field], stale: true } : { error: String(e?.message || e) };
+  }
+}
+
+/** Les reglages, si Rolimon's est active ; la langue suit, pour le message d'erreur. */
+async function rolimonsOn() {
+  const settings = await getSettings();
+  setLang(settings.lang);
+  return settings.useRolimons ? settings : null;
+}
+
+/**
  * Tout ce qu'affichent le popup et les reglages, en une reponse : le popup
  * l'attend pour afficher quoi que ce soit. `lite` : sans les compteurs des
  * flux, que seuls les reglages montrent — inutile de relire des milliers d'ids.
@@ -1149,13 +897,13 @@ async function handleMessage(msg) {
       // par les listes (reçus, envoyés, terminés, inactifs). La page n'affiche
       // pas l'identifiant du trade choisi : on le reconnaît à ses objets. Sans
       // ce second vivier, seul le trade ouvert au chargement était reconnu.
+      // L'identifiant de l'URL n'y aide pas : Roblox le garde quand on choisit
+      // une autre ligne. Seules les offres affichées comptent, et l'objet avec
+      // son numéro de série départage deux exemplaires.
       const stored = await B.storage.local.get('captured');
-      // Roblox can keep the initial tradeId in the URL while another row is
-      // selected. Match the displayed offers; never restrict copy history to
-      // that initial URL ID. Asset + serial disambiguates historical copies.
       const pool = [
         ...Object.entries(stored.captured || {}).map(([id, e]) => ({ id, at: e.at, detail: e.detail, raw: true })),
-        ...[...memDetails.entries()].map(([id, r]) => ({ id: String(id), at: r?.at || 0, detail: r?.detail }))
+        ...knownDetails()
       ].filter(e => e.detail)
         .sort((a, b) => b.at - a.at);
       const details = pool.map(e => e.raw ? api.normalizeTradeDetail(e.detail) : e.detail);
@@ -1177,10 +925,8 @@ async function handleMessage(msg) {
       }
       // Aucun appel réseau ici : cette réponse revient à chaque trade affiché
       // et l'API economy de Roblox se fâche vite (429 pour tout le reste de
-      // l'extension). Seuls les ponts bundle déjà en cache servent.
-      const bundleIds = null;
-      const extra = knownRaps;
-      return { analysis: addKnownInstances(analyzePage(page, detail, cat, captured, { extra, bundleIds }), details) };
+      // l'extension). Ni pont bundle ni RAP officiel : ceux des trades connus.
+      return { analysis: addKnownInstances(analyzePage(page, detail, cat, captured, { extra: knownRaps }), details) };
     }
     // Cote et « projected » des objets des inventaires, sur la page de création
     // d'un trade. Aucun réseau : la table Rolimon's déjà en cache suffit.
@@ -1314,24 +1060,9 @@ async function handleMessage(msg) {
     case 'ronote:item-history': {
       const id = Number(msg.itemId);
       if (!id) return { error: 'identifiant invalide' };
-      const settings = await getSettings();
-      setLang(settings.lang);
-      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
-      const { itemHistory } = await B.storage.local.get('itemHistory');
-      const cache = itemHistory || {};
-      const hit = cache[id];
-      if (hit && Date.now() - hit.at < ITEM_HISTORY_TTL) return { history: hit.data };
-      try {
-        const data = await api.getItemHistory(id);
-        const kept = Object.entries({ ...cache, [id]: { at: Date.now(), data } })
-          .sort((a, b) => b[1].at - a[1].at)
-          .slice(0, ITEM_HISTORY_CAP);
-        await B.storage.local.set({ itemHistory: Object.fromEntries(kept) });
-        return { history: data };
-      } catch (e) {
-        // Rolimon's injoignable : un historique un peu ancien vaut mieux que rien.
-        return hit ? { history: hit.data, stale: true } : { error: String(e?.message || e) };
-      }
+      if (!await rolimonsOn()) return { error: t("Rolimon's est désactivé dans les réglages") };
+      return readThrough({ key: 'itemHistory', id, field: 'data', as: 'history', ttl: ITEM_HISTORY_TTL, cap: ITEM_HISTORY_CAP },
+        () => api.getItemHistory(id));
     }
 
     /**
@@ -1358,10 +1089,7 @@ async function handleMessage(msg) {
         ]);
         if (profile || roli) {
           hit = { at: Date.now(), profile: profile || hit?.profile || null, roli: roli || hit?.roli || null };
-          const kept = Object.entries({ ...cache, [id]: hit })
-            .sort((a, b) => b[1].at - a[1].at)
-            .slice(0, PLAYER_CAP);
-          await B.storage.local.set({ playerCache: Object.fromEntries(kept) });
+          await B.storage.local.set({ playerCache: newestEntries({ ...cache, [id]: hit }, PLAYER_CAP) });
         }
       }
       return {
@@ -1381,23 +1109,9 @@ async function handleMessage(msg) {
     case 'ronote:player-history': {
       const id = Number(msg.userId);
       if (!id) return { error: 'identifiant invalide' };
-      const settings = await getSettings();
-      setLang(settings.lang);
-      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
-      const { playerHistory } = await B.storage.local.get('playerHistory');
-      const cache = playerHistory || {};
-      const hit = cache[id];
-      if (hit && Date.now() - hit.at < PLAYER_HISTORY_TTL) return { points: hit.points };
-      try {
-        const points = thinSeries(await api.getPlayerHistory(id), PLAYER_HISTORY_POINTS);
-        const kept = Object.entries({ ...cache, [id]: { at: Date.now(), points } })
-          .sort((a, b) => b[1].at - a[1].at)
-          .slice(0, PLAYER_HISTORY_CAP);
-        await B.storage.local.set({ playerHistory: Object.fromEntries(kept) });
-        return { points };
-      } catch (e) {
-        return hit ? { points: hit.points, stale: true } : { error: String(e?.message || e) };
-      }
+      if (!await rolimonsOn()) return { error: t("Rolimon's est désactivé dans les réglages") };
+      return readThrough({ key: 'playerHistory', id, field: 'points', ttl: PLAYER_HISTORY_TTL, cap: PLAYER_HISTORY_CAP },
+        async () => thinSeries(await api.getPlayerHistory(id), PLAYER_HISTORY_POINTS));
     }
     /**
      * Ses bundles, pour sa fiche : le meme rapport que le portefeuille
@@ -1407,31 +1121,21 @@ async function handleMessage(msg) {
     case 'ronote:player-faces': {
       const id = Number(msg.userId);
       if (!id) return { error: 'identifiant invalide' };
-      const settings = await getSettings();
-      setLang(settings.lang);
-      if (!settings.useRolimons) return { error: t("Rolimon's est désactivé dans les réglages") };
-      const { playerFaces: stored } = await B.storage.local.get('playerFaces');
-      const cache = stored || {};
-      const hit = cache[id];
-      if (hit && Date.now() - hit.at < PLAYER_TTL) return { faces: hit.faces };
-      try {
-        const report = await buildPortfolio(id, await getCatalog(settings));
-        const faces = playerFaces(report);
-        const lines = { items: faces.faces };
-        const urls = await safe(() => resolveThumbs(portfolioThumbKeys(lines)), []);
-        attachPortfolioThumbs(lines, urls || []);
-        await flushThumbs();
-        // Un profil injoignable ne se met pas en cache : on reessaiera.
-        if (report.rolimons || report.private || report.terminated) {
-          const kept = Object.entries({ ...cache, [id]: { at: Date.now(), faces } })
-            .sort((a, b) => b[1].at - a[1].at)
-            .slice(0, PLAYER_HISTORY_CAP);
-          await B.storage.local.set({ playerFaces: Object.fromEntries(kept) });
-        }
-        return { faces };
-      } catch (e) {
-        return hit ? { faces: hit.faces, stale: true } : { error: String(e?.message || e) };
-      }
+      const settings = await rolimonsOn();
+      if (!settings) return { error: t("Rolimon's est désactivé dans les réglages") };
+      // Un profil injoignable ne se met pas en cache : on reessaiera.
+      let answered = false;
+      return readThrough({ key: 'playerFaces', id, field: 'faces', ttl: PLAYER_TTL, cap: PLAYER_HISTORY_CAP, keep: () => answered },
+        async () => {
+          const report = await buildPortfolio(id, await getCatalog(settings));
+          answered = !!(report.rolimons || report.private || report.terminated);
+          const faces = playerFaces(report);
+          const lines = { items: faces.faces };
+          const urls = await safe(() => resolveThumbs(portfolioThumbKeys(lines)), []);
+          attachPortfolioThumbs(lines, urls || []);
+          await flushThumbs();
+          return faces;
+        });
     }
     case 'ronote:mute': {
       let id = Number(msg.userId);
@@ -1486,15 +1190,12 @@ async function handleMessage(msg) {
           if (!replay && incoming && st.inboundCount > 0) st.inboundCount -= 1;
         });
 
-        await loadDetailCache();   // sinon la lecture a venir ramenerait ce trade
-        memDetails.delete(id);
-        detailsDirty = true;
-        await saveDetailCache();
+        await forgetCard(id);
         await setBadge(state.inboundCount, await getSettings(), false);
         await pushHistory([{
           at: Date.now(), kind: 'declined_by_me', tradeId: id,
           partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
-          skipped: msg.kind === 'inbound' || msg.kind === 'counter' ? 'refusé depuis RoNote' : 'annulé depuis RoNote'
+          skipped: incoming ? 'refusé depuis RoNote' : 'annulé depuis RoNote'
         }]);
         return { ok: true, via: res.via, state };
       } catch (e) {
@@ -1579,6 +1280,7 @@ async function handleMessage(msg) {
 
     case 'ronote:diagnose': {
       if (headerRulesActive === null) await installHeaderRules();
+      const id = cleanTradeId(msg.tradeId);
       const report = [{
         etape: 'en-têtes réécrits (Origin/Referer)',
         actif: headerRulesActive ? 'oui' : 'non — API declarativeNetRequest indisponible'
@@ -1587,10 +1289,10 @@ async function handleMessage(msg) {
         actif: api.hasCsrfToken() ? 'oui' : 'non — ouvre un onglet roblox.com'
       }, {
         etape: 'détail fourni par la page pour ce trade',
-        actif: (await getCapturedTrade(String(msg.tradeId).replace(/[^0-9]/g, ''))) ? 'oui' : 'non'
+        actif: (await getCapturedTrade(id)) ? 'oui' : 'non'
       }, {
         etape: 'trade lu sur la page affichée',
-        actif: (await getScrapedTrade(String(msg.tradeId).replace(/[^0-9]/g, ''), '')) ? 'oui' : 'non — ouvre ce trade sur roblox.com une fois'
+        actif: (await getScrapedTrade(id, '')) ? 'oui' : 'non — ouvre ce trade sur roblox.com une fois'
       }];
       return { report: report.concat(await api.probeTradeDetail(msg.tradeId)) };
     }

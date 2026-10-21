@@ -230,6 +230,7 @@ function demoItemHistory(itemId) {
 
 const PROMO_VERSION = PROMO ? (await json('../../src/manifest.json')).version : null;
 const log = document.getElementById('log');
+const SLOW = Number(new URLSearchParams(location.search).get('slow')) || 0;
 const mockRuntime = {
   getURL: (p) => p,
   getManifest: () => ({ version: PROMO_VERSION || '2.10.0' }),   // l'accueil propose les nouveautés d'une version pas encore vue
@@ -238,6 +239,8 @@ const mockRuntime = {
     switch (msg.type) {
       case 'ronote:get':
       case 'ronote:refresh':
+        // ?slow=1500 : un service worker endormi, qui met son temps à répondre.
+        if (SLOW) await new Promise(r => setTimeout(r, SLOW));
         return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report };
       case 'ronote:hydrate': {
         const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed, ...OLDER_COMPLETED];
@@ -352,7 +355,8 @@ const mockRuntime = {
 
 // Un stockage en mémoire qui prévient ses écouteurs, comme le vrai : ce que
 // le popup y range (objectif, …) revient à l'écran.
-const memory = {}, storeListeners = [];
+// Seme comme le vrai stockage : le popup s'affiche depuis lui, sans attendre le worker.
+const memory = { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, portfolioReport: report }, storeListeners = [];
 const mockChrome = {
   runtime: mockRuntime,
   storage: {

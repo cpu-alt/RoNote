@@ -199,8 +199,6 @@ const EN = {
   /* --- onglet Portefeuille ---------------------------------------------- */
   'Value du compte': 'Account value',
   'RAP du compte': 'Account RAP',
-  'Afficher les montants': 'Show amounts',
-  'Masquer les montants': 'Hide amounts',
   'Réévalué · 7 j': 'Revalued · 7 d',
   "Effet des réévaluations Rolimon's des 7 derniers jours sur tes objets":
     "Effect of Rolimon's revaluations over the last 7 days on your items",
@@ -367,7 +365,6 @@ const EN = {
   "Extension locale : aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's.":
     "Local extension: no data goes anywhere except the public Roblox and Rolimon's APIs.",
   'Surveillance': 'Monitoring',
-  'Suivi des envois': 'Outgoing tracking',
   'Diagnostic': 'Diagnostics',
   'Alertes de trades Roblox — déduplication par identifiant de trade.': 'Roblox trade alerts — deduplicated by trade id.',
   'Enregistré': 'Saved',
@@ -530,7 +527,6 @@ const EN = {
   /* --- popup : zoom, refus, infobulle d'un objet ------------------------ */
   '{n} objet': '{n} item',
   '{n} objets': '{n} items',
-  'Total value': 'Total value',
   'Annuler ce trade': 'Cancel this trade',
   'Refuser ce trade': 'Decline this trade',
   'Confirmer ?': 'Confirm?',
@@ -569,7 +565,6 @@ const EN = {
   'Retirer': 'Remove',
   'Diagnostic d\'un trade': 'Trade diagnostics',
   'Un trade qui refuse de s\'évaluer ? Colle son numéro (visible sur sa carte dans le popup) : RoNote teste chaque version de l\'API, en direct et via un onglet Roblox, et affiche la réponse brute.': 'A trade that refuses to evaluate? Paste its number (shown on its card in the popup): RoNote tests every API version, directly and through a Roblox tab, and shows the raw response.',
-  'Numéro du trade': 'Trade number',
   'Exemple : 2645140139823455': 'Example: 2645140139823455',
   'Lancer le test': 'Run the test',
   'Garde un onglet roblox.com ouvert pour tester aussi le relais.': 'Keep a roblox.com tab open to test the relay too.',
@@ -895,17 +890,12 @@ const EN = {
   "Flex": "Flex",
   "Mon inventaire": "My inventory",
   "Flex mon inventaire": "Flex my inventory",
-  "MON INVENTAIRE": "MY INVENTORY",
   "30 jours": "30 days",
-  "Top objets": "Top items",
-  "Rien à montrer pour l’instant.": "Nothing to show yet.",
-  "Chiffres du Portefeuille, d'après Rolimon's. Aucun pseudo n'apparaît sur la carte.": "Portfolio figures, from Rolimon's. No username appears on the card.",
   "7 jours": "7 days",
   "3 mois": "3 months",
   "6 mois": "6 months",
   "1 an": "1 year",
   "depuis le début": "all time",
-  "Mêmes chiffres que le graphique du Portefeuille : change la période ou la courbe pour changer la carte. Aucun pseudo n'apparaît dessus.": "Same figures as the Portfolio chart: change the period or the curve to change the card. No username appears on it.",
   // Sons perso, objectif, fonds des Flex
   "Tes sons": "Your sounds",
   "Importer un son": "Import a sound",

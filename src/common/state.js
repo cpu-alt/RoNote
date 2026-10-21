@@ -172,11 +172,6 @@ export async function saveStreams(streams) {
   return true;
 }
 
-export async function resetStreams() {
-  streamsSignature = null;
-  await B.storage.local.set({ [KEY_STREAMS]: {} });
-}
-
 /* ---------------------------- portefeuille ------------------------------ */
 
 const KEY_PORTFOLIO = 'portfolio';

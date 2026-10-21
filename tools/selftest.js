@@ -87,6 +87,7 @@ try {
   await import('../src/common/filters.js');
   await import('../src/common/tones.js');
   await import('../src/background/notifier.js');
+  await import('../src/background/cards.js');
   // Charges pour leur seule syntaxe : une apostrophe mal echappee dans l'un
   // d'eux tue la page qui l'importe, et rien d'autre ne le verrait. La liste
   // est tenue a jour par tools/check.py, qui refuse un module absent d'ici.
@@ -785,6 +786,24 @@ try {
     check('thèmes : un autre fichier est refusé', themes.themeFromFile({ settings: {} }), null);
     check('thèmes : les fonds sont peints en JPEG', /^data:image\/jpeg;base64,/.test(themes.paintBackground('ocean')), true);
     await import('../src/popup/coinflip.js');
+    await import('../src/popup/overlay.js');
+    await import('../src/popup/share.js');
+  }
+
+  // --- Courbes : échantillonnage, modèle commun, lissage sans dépassement.
+  {
+    const chart = await import('../src/popup/chart.js');
+    const many = Array.from({ length: 1000 }, (_, i) => ({ at: i, v: i }));
+    const few = chart.downsample(many);
+    check('courbes : échantillon borné, premier et dernier gardés', [few.length, few[0].at, few[few.length - 1].at], [220, 0, 999]);
+    const pts = [{ at: 0, v: 100, n: 10 }, { at: 1, v: 150, n: 10 }, { at: 2, v: 150, n: 12 }];
+    const defs = { v: { money: true }, n: { money: false } };
+    const m = chart.chartModel(pts, ['v', 'n'], defs);
+    check('courbes : Robux et objets mêlés passent en %', [m.percent, m.lines[0].vals, m.lines[1].vals], [true, [0, 50, 50], [0, 0, 20]]);
+    // Un palier (150 → 150) reste plat : aucune ordonnée de contrôle au-dessus de lui.
+    const ys = chart.smoothPath([[0, 100], [1, 50], [2, 50]]).match(/-?\d+\.\d/g).map(Number).filter((_, i) => i % 2);
+    check('courbes : le lissage ne dépasse jamais les relevés', Math.min(...ys) >= 50, true);
+    check('courbes : séries valides, jamais aucune', [chart.orderedSeries(['n', 'x'], defs), chart.orderedSeries([], defs)], [['n'], ['v']]);
   }
 
   // --- Objectif : progression, rythme sur 30 jours, et verdict.
