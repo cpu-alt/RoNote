@@ -2,6 +2,7 @@ export const DEFAULTS = {
   enabled: true,
   lang: 'auto',               // auto (langue du navigateur) | fr | en
   sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
+  uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 
@@ -67,8 +68,8 @@ export const DEFAULTS = {
   pageBgDim: 60,              // ton image en fond de roblox.com (cle `pageBgImage`) : force du voile, en %
   pageBgBlur: 0,              // ... et flou de l'image, en px
   itemPageValue: true,        // value et lien Rolimon's sur la page d'un limited Roblox
-  bannerGain: '#22e57a',      // bandeau des ecarts sur la page Roblox : couleur d'un gain
-  bannerLoss: '#ff4d5e',      // ... d'une perte
+  bannerGain: '#3fbf7f',      // bandeau des ecarts sur la page Roblox : couleur d'un gain (theme Neuronal)
+  bannerLoss: '#f0565e',      // ... d'une perte
   bannerStyle: 'soft',        // soft | vivid | neon | solid
   bannerSize: 'm',            // s | m | l
   bannerShow: 'both',         // both | value | rap
@@ -82,7 +83,7 @@ export const DEFAULTS = {
   listLabels: true,           // les libelles « RAP » / « Value » devant les chiffres
   listGain: '',               // couleurs propres a la colonne ; vide = celles du bandeau
   listLoss: '',
-  projectedColor: '#ffc400',  // fond du badge « projected » sur la page Roblox
+  projectedColor: '#e3b04b',  // fond du badge « projected » sur la page Roblox
   projectedSize: 'm',         // s | m | l ; l'image importee est a part (cle projectedIcon)
   projectedShape: 'rounded',  // rounded | circle | square
   projectedCorner: 'left',    // left | right : coin haut de la vignette

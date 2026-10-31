@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-ui="neuronal">
 <head>
   <meta charset="utf-8">
   <title>RoNote — Réglages</title>
   <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="neuronal.css">
 </head>
 <body>
 <div class="shell">
@@ -218,6 +219,14 @@
     <!-- ============================== Apparence ============================ -->
     <section class="card" id="s-look">
       <h2><i data-ic="palette"></i>Apparence</h2>
+
+      <label class="row" data-keys="interface ui style neuronal classique classic popup réglages look">
+        <span><b>Interface</b><small>Le style du popup, de la barre latérale et de cette page. Neuronal reprend celui du site neuronal.live.</small></span>
+        <select id="uiTheme">
+          <option value="neuronal">Neuronal (par défaut)</option>
+          <option value="classic">Classique</option>
+        </select>
+      </label>
 
       <h3>Thème</h3>
       <div class="row design" id="theme-row" data-keys="theme thème neon néon sunset ocean océan casino minimal partager share">

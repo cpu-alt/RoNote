@@ -43,7 +43,7 @@ globalThis.chrome = {
     onClosed: { addListener() {} }
   },
   alarms: { onAlarm: { addListener() {} }, clear: async () => {}, create: async () => {} },
-  action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
+  action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setPopup: async () => {}, onClicked: { addListener() {} } },
   tabs: { query: async () => [], create: async () => {}, update: async () => {} },
   scripting: { executeScript: async () => [] },
   declarativeNetRequest: { updateSessionRules: async () => {} }
@@ -383,7 +383,7 @@ try {
     'projected', 'rare', 'bundle', 'value', 'Notifications', 'Maintenance', 'Test',
     'Volume', 'Ping', '1 minute', '2 minutes', '5 minutes',
     'Value {v}', 'RAP {v}', 'bundle #{id}', 'Value {a} vs RAP {b}', 'Total value', 'proj',
-    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style']);
+    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal']);
   const reallyMissing = [...missingT].filter(x => !SAME.has(x));
   check(`${calls} appels a t() : tous traduits en anglais`, reallyMissing, []);
 

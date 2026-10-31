@@ -16,6 +16,20 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.0',
+    title: item('Interface Neuronal, barre latérale et animations', 'Neuronal interface, sidebar and animations'),
+    items: [
+      item("Nouvelle interface par défaut, dans le style du site neuronal.live : gris neutres, un seul bleu, des aplats, la police Onest, des onglets soulignés et des titres en casse normale. L'ancienne reste disponible : Réglages › Apparence › Interface › Classique.",
+        'New default interface, in the style of the neuronal.live website: neutral greys, a single blue, flat surfaces, the Onest font, underlined tabs and normal-case titles. The old one is still there: Settings › Appearance › Interface › Classic.'),
+      item("Barre latérale : le bouton tout à droite de l'entête ouvre RoNote sur le côté du navigateur, où il reste ouvert pendant que tu navigues. Le même bouton ramène au popup.",
+        'Sidebar: the button on the far right of the header opens RoNote on the side of the browser, where it stays open while you browse. The same button brings back the popup.'),
+      item("Micro-animations : une pastille glisse d'un bouton, d'un onglet ou d'une ligne à l'autre sous le pointeur, les pressions rebondissent, l'icône de la barre latérale bascule en fondu. Le réglage système « moins d'animations » est respecté.",
+        "Micro-animations: a highlight glides between buttons, tabs and rows under the pointer, presses spring back, the sidebar icon cross-fades. The system's reduced-motion setting is respected."),
+      item("Thème Neuronal sur Roblox (nouveau thème par défaut) : les écarts et le badge « projected » prennent le vert, le rouge et l'ambre du site. Le thème RoNote garde les couleurs d'avant.",
+        "Neuronal theme on Roblox (new default theme): differences and the \"projected\" badge use the website's green, red and amber. The RoNote theme keeps the previous colours.")
+    ]
+  },
+  {
     version: '2.15.1',
     title: item('Le Flex du portefeuille, et un vrai mode anonyme', 'Portfolio Flex, and a real anonymous mode'),
     items: [

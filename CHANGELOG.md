@@ -3,6 +3,33 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.0 — l'interface Neuronal, la barre latérale et les animations
+
+**Une nouvelle interface par défaut, dans le style du site Neuronal, RoNote
+dans une barre sur le côté du navigateur, et du mouvement qui dit quelque chose.**
+
+- **Interface Neuronal** (popup, barre latérale et réglages) : le style du site
+  neuronal.live. Des gris neutres au lieu du bleu-nuit teinté, un seul bleu
+  franc, des aplats (plus de dégradés ni de halos), la police Onest servie par
+  l'extension, des titres en casse normale au lieu des petites capitales, des
+  onglets soulignés, et une surface par carte : les tuiles de l'accueil, du
+  portefeuille et de l'état des réglages sont regroupées, séparées d'un filet.
+  L'ancien style reste là : Réglages › Apparence › **Interface › Classique**.
+- **Barre latérale** : le bouton tout à droite de l'entête ouvre RoNote sur le
+  côté du navigateur (side panel de Chrome, sidebar de Firefox), qui reste
+  ouvert pendant la navigation. Le choix est retenu : l'icône de RoNote rouvre
+  ensuite le même mode. Le même réglage existe dans Réglages › Général.
+- **Micro-animations**, inspirées de Fluid Functionalism : une pastille glisse
+  d'un bouton, d'un onglet ou d'une ligne à l'autre sous le pointeur ; la
+  section lue a la sienne dans le menu des réglages ; les pressions et les
+  interrupteurs rebondissent ; l'icône de la barre latérale bascule en fondu
+  flou. Tout passe par des ressorts courts, sur transform et opacity. Avec le
+  réglage système « moins d'animations », seuls les fondus restent.
+- **Thème Neuronal sur Roblox**, nouveau thème par défaut : le bandeau des
+  écarts, la colonne des listes et le badge « projected » prennent le vert, le
+  rouge et l'ambre du site. Le thème **RoNote** garde les couleurs d'avant. Si
+  tu n'avais jamais touché à ces couleurs, elles changent avec la mise à jour.
+
 ## v2.15.1 — le Flex du portefeuille, et un vrai mode anonyme
 
 **Le Flex du portefeuille refait, dans le style de Trade Flex, et un mode

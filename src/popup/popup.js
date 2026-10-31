@@ -138,6 +138,7 @@ const untilHtml = (at) => `<span data-until="${msOf(at)}">${timeUntil(msOf(at))}
 
 function renderHeader() {
   const { settings, state } = data;
+  document.documentElement.dataset.ui = settings?.uiTheme || 'neuronal';
   // Mode anonyme : le pseudo disparaît aussi (partage d'écran, stream).
   if (wallet.hidden && state?.userName) $('#acct').innerHTML = `${ic('eye-off')} ${t('Mode anonyme')}`;
   else $('#acct').textContent = state?.userName ? '@' + state.userName : t('Non connecté');

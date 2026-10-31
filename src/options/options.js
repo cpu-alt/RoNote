@@ -25,7 +25,7 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
   'showRare', 'showLuckyCat', 'showItemDetails', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
-const SELECTS = ['lang', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
+const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
   'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
 // [min, max, décimales] : une saisie hors bornes est ramenée dedans.
@@ -410,6 +410,7 @@ function render() {
 }
 
 function fill() {
+  document.documentElement.dataset.ui = settings.uiTheme || DEFAULTS.uiTheme;
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
   for (const k of NUM_SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
@@ -564,6 +565,7 @@ async function save(patch) {
 /** Un changement local : l'aperçu et les dépendances suivent tout de suite. */
 function set(patch) {
   settings = { ...settings, ...patch };
+  if (patch.uiTheme) document.documentElement.dataset.ui = patch.uiTheme;   // l'interface change à l'instant
   applyNeeds();
   if (Object.keys(patch).some(k => LOOK_KEYS.has(k))) renderLooks();
   return save(patch);

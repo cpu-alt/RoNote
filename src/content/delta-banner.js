@@ -19,7 +19,7 @@
 (() => {
   if (globalThis.RoNoteBanner) return;
 
-  const DEFAULTS = { gain: '#22e57a', loss: '#ff4d5e', style: 'soft', size: 'm', show: 'both', format: 'full', pct: true };
+  const DEFAULTS = { gain: '#3fbf7f', loss: '#f0565e', style: 'soft', size: 'm', show: 'both', format: 'full', pct: true };
   const SHOWS = ['both', 'value', 'rap'];
   const STYLES = ['soft', 'vivid', 'neon', 'solid'];
   const SIZES = { s: { font: 12, h: 30, arrow: 11 }, m: { font: 14, h: 38, arrow: 14 }, l: { font: 16, h: 46, arrow: 16 } };

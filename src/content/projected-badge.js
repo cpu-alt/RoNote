@@ -17,7 +17,7 @@
 (() => {
   if (globalThis.RoNoteBadge) return;
 
-  const DEFAULT_COLOR = '#ffc400';
+  const DEFAULT_COLOR = '#e3b04b';
   const SIZES = { s: 20, m: 26, l: 34 };
   const SHAPES = { rounded: 0.3, circle: 0.5, square: 0.12 };
 
