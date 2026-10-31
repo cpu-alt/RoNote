@@ -52,7 +52,7 @@
 <main>
 
 <h1>Politique de confidentialité — RoNote</h1>
-<p class="meta">Dernière mise à jour : 22 septembre 2026 · Version 2.14.0</p>
+<p class="meta">Dernière mise à jour : 31 octobre 2026 · Version 2.16.0</p>
 <p class="lang"><a href="privacy.html">English version</a></p>
 
 <p>RoNote est une extension de navigateur qui affiche des notifications sur les
@@ -86,7 +86,7 @@ Google ni vers aucun autre appareil.</p>
 dans les réglages. Il n'y a aucune copie ailleurs à supprimer.</p>
 
 <h2>Les seules connexions réseau</h2>
-<p>RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :</p>
+<p>Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :</p>
 <div class="scroll">
 <table>
   <thead><tr><th>Domaine</th><th>Pourquoi</th><th>Ce qui est envoyé</th></tr></thead>
@@ -106,8 +106,14 @@ dans les réglages. Il n'y a aucune copie ailleurs à supprimer.</p>
 </div>
 <p>Rolimon's est <strong>désactivable</strong> dans les réglages. Sans lui, RoNote se
 rabat sur le RAP fourni par Roblox et ne contacte plus que Roblox.</p>
-<p><strong>Aucune requête ne part vers un autre domaine.</strong> Il n'existe aucun
-serveur appartenant à l'auteur de RoNote.</p>
+<p><strong>Option Fiches Neuronal (coupée par défaut).</strong> Si tu l'actives (Réglages ›
+Valeurs), le navigateur te demande l'accès à <code>neuronal.live</code>, le site du réseau
+Neuronal tenu par l'auteur de RoNote. Quand tu ouvres ensuite la fiche d'un
+joueur ou d'un objet, RoNote demande à <code>neuronal.live/ext/v1/</code> ce que le réseau
+en sait : <strong>seul l'identifiant Roblox de ce joueur ou de cet objet</strong> est envoyé,
+sans cookie ni rien te concernant. La route ne fait que lire : elle n'ajoute
+personne au réseau. Couper l'option rend la permission.</p>
+<p><strong>Sans cette option, aucune requête ne part vers un autre domaine.</strong></p>
 
 <h2>L'utilisation de ta session Roblox</h2>
 <p>Pour lire <em>tes</em> trades, RoNote interroge l'API de Roblox en réutilisant la
@@ -135,16 +141,19 @@ serait irréversible. Refuser ou annuler ne fait que détruire une offre.</p>
     <tr><td><code>notifications</code></td><td>Afficher les notifications bureau — la fonction même de l'extension</td></tr>
     <tr><td><code>scripting</code></td><td>Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail</td></tr>
     <tr><td><code>offscreen</code></td><td>Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio</td></tr>
+    <tr><td><code>sidePanel</code></td><td>Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode</td></tr>
     <tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Corriger les en-têtes <code>Origin</code> et <code>Referer</code> des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique <strong>uniquement aux requêtes émises par l'extension</strong> (hors onglet), jamais à ta navigation</td></tr>
     <tr><td><code>*.roblox.com</code></td><td>Le site dont RoNote lit les trades</td></tr>
     <tr><td><code>*.rolimons.com</code></td><td>La table publique des valeurs, les historiques publics des objets et les profils Rolimon's publics (le tien avec le suivi du portefeuille, celui d'un autre joueur quand tu ouvres sa fiche)</td></tr>
+    <tr><td><code>neuronal.live</code> (optionnelle)</td><td>Demandée seulement si tu actives les Fiches Neuronal : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche</td></tr>
   </tbody>
 </table>
 </div>
 
 <h2>Enfants et âge minimum</h2>
-<p>RoNote ne collecte aucune donnée, et n'en transmet donc aucune, quel que soit
-l'âge de l'utilisateur.</p>
+<p>RoNote ne collecte aucune donnée te concernant, quel que soit l'âge de
+l'utilisateur. Seule l'option Fiches Neuronal, coupée par défaut, envoie
+l'identifiant public d'un autre joueur ou d'un objet.</p>
 
 <h2>Absence d'affiliation</h2>
 <p>RoNote est un projet indépendant. Il <strong>n'est ni affilié, ni approuvé, ni

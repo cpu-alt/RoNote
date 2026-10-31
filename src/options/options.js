@@ -1,5 +1,5 @@
 import { B } from '../common/shim.js';
-import { SOUNDS, DEFAULTS } from '../common/defaults.js';
+import { SOUNDS, DEFAULTS, NEURONAL } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
 import { t, currentLang, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
@@ -411,6 +411,7 @@ function render() {
 
 function fill() {
   document.documentElement.dataset.ui = settings.uiTheme || DEFAULTS.uiTheme;
+  $('#neuronalLookup').checked = !!settings.neuronalLookup;
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
   for (const k of NUM_SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
@@ -617,6 +618,19 @@ const forgetPreview = (keys) => { for (const k of keys) delete previewColor[k]; 
 function wire() {
   for (const k of BOOLS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.checked }));
   for (const k of SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.value }));
+  // Neuronal : la permission sur neuronal.live n'est demandée qu'ici, au moment
+  // d'activer (le navigateur exige que la demande parte du geste, avant tout
+  // await). Refusée, l'option reste décochée ; coupée, la permission est rendue.
+  $('#neuronalLookup')?.addEventListener('change', async (e) => {
+    const box = e.target;
+    if (box.checked) {
+      const ok = await B.permissions.request({ origins: NEURONAL.origins }).catch(() => false);
+      if (!ok) { box.checked = false; return; }
+    } else {
+      B.permissions.remove({ origins: NEURONAL.origins }).catch(() => {});
+    }
+    set({ neuronalLookup: box.checked });
+  });
   for (const k of NUM_SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: Number(e.target.value) }));
   for (const [k, [min, max, dec]] of Object.entries(NUMS)) {
     $('#' + k)?.addEventListener('change', e => {

@@ -29,6 +29,17 @@ dans une barre sur le côté du navigateur, et du mouvement qui dit quelque chos
   écarts, la colonne des listes et le badge « projected » prennent le vert, le
   rouge et l'ambre du site. Le thème **RoNote** garde les couleurs d'avant. Si
   tu n'avais jamais touché à ces couleurs, elles changent avec la mise à jour.
+- **Fiches Neuronal** (Réglages › Valeurs, coupées par défaut) : la fiche d'un
+  joueur dit s'il est dans la base Neuronal (repéré depuis quand, trades vus,
+  partenaires, bilan, bot de trade ou compte terminé) avec ses cinq derniers
+  trades prouvés, objets de chaque côté ; la fiche d'un objet du portefeuille
+  montre ses trades dans le réseau et combien de joueurs suivis le détiennent.
+  À l'activation, le navigateur demande l'accès à `neuronal.live` (permission
+  optionnelle : aucune réapprobation à la mise à jour). Seul l'identifiant du
+  joueur ou de l'objet ouvert est envoyé, sans cookie ; la route du site ne
+  fait que lire. La politique de confidentialité le dit désormais.
+- **Discord Neuronal** : un bouton pour rejoindre le serveur (discord.gg/neuronal),
+  le même que sur le site, au pied du popup et en haut des réglages.
 
 ## v2.15.1 — le Flex du portefeuille, et un vrai mode anonyme
 

@@ -592,3 +592,20 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
   section.card { animation: none; }
   .nav a:hover > i, .row.switch:active > input::before { transform: none; }
 }
+
+/* ======================== invitation Discord ============================
+   Le bouton du site neuronal.live : un aplat « blurple » de Discord à 16 %,
+   son logo, et un survol plus franc. Vers discord.gg/neuronal. */
+
+.join {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  border-radius: 8px; background: rgba(88, 101, 242, .16); color: #d3d7ff;
+  font-weight: 500; text-decoration: none; white-space: nowrap;
+  transition: background var(--d-fast), transform var(--d-mod) var(--spring-pop);
+}
+.join:hover { background: rgba(88, 101, 242, .26); color: #e4e7ff; text-decoration: none; }
+.join:active { transform: scale(.95); transition-duration: 70ms; }
+/* En haut à droite de l'en-tête, comme dans celui du site. */
+.hero-join { position: absolute; top: 18px; right: 20px; z-index: 1; height: 34px; padding: 0 12px 0 10px; font-size: 13px; }
+.hero-join .ic { width: 18px; height: 18px; }
+@media (max-width: 560px) { .hero-join span { display: none; } .hero-join { padding: 0 9px; } }

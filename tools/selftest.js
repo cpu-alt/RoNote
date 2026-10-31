@@ -98,6 +98,7 @@ try {
   await import('../src/common/changelog.js');
   await import('../src/common/revalue.js');
   await import('../src/common/fluid.js');
+  await import('../src/background/neuronal.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
@@ -383,7 +384,7 @@ try {
     'projected', 'rare', 'bundle', 'value', 'Notifications', 'Maintenance', 'Test',
     'Volume', 'Ping', '1 minute', '2 minutes', '5 minutes',
     'Value {v}', 'RAP {v}', 'bundle #{id}', 'Value {a} vs RAP {b}', 'Total value', 'proj',
-    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal']);
+    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal', 'Discord']);
   const reallyMissing = [...missingT].filter(x => !SAME.has(x));
   check(`${calls} appels a t() : tous traduits en anglais`, reallyMissing, []);
 

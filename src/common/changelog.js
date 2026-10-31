@@ -26,7 +26,11 @@ export const RELEASES = [
       item("Micro-animations : une pastille glisse d'un bouton, d'un onglet ou d'une ligne à l'autre sous le pointeur, les pressions rebondissent, l'icône de la barre latérale bascule en fondu. Le réglage système « moins d'animations » est respecté.",
         "Micro-animations: a highlight glides between buttons, tabs and rows under the pointer, presses spring back, the sidebar icon cross-fades. The system's reduced-motion setting is respected."),
       item("Thème Neuronal sur Roblox (nouveau thème par défaut) : les écarts et le badge « projected » prennent le vert, le rouge et l'ambre du site. Le thème RoNote garde les couleurs d'avant.",
-        "Neuronal theme on Roblox (new default theme): differences and the \"projected\" badge use the website's green, red and amber. The RoNote theme keeps the previous colours.")
+        "Neuronal theme on Roblox (new default theme): differences and the \"projected\" badge use the website's green, red and amber. The RoNote theme keeps the previous colours."),
+      item("Fiches Neuronal (Réglages › Valeurs, coupées par défaut) : la fiche d'un joueur dit s'il est dans la base Neuronal, avec ses derniers trades, et celle d'un objet ses derniers trades dans le réseau. Seul l'identifiant du joueur ou de l'objet est envoyé à neuronal.live.",
+        "Neuronal lookups (Settings › Values, off by default): a player's sheet shows whether they are in the Neuronal database, with their latest trades, and an item's sheet its latest trades in the network. Only the player's or item's ID is sent to neuronal.live."),
+      item("Un bouton pour rejoindre le Discord Neuronal, au pied du popup et en haut des réglages.",
+        'A button to join the Neuronal Discord, at the bottom of the popup and at the top of the settings.')
     ]
   },
   {

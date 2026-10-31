@@ -3,6 +3,7 @@ export const DEFAULTS = {
   lang: 'auto',               // auto (langue du navigateur) | fr | en
   sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
   uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
+  neuronalLookup: false,      // fiches joueur / objet : ce que Neuronal en sait (permission optionnelle)
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 
@@ -100,6 +101,17 @@ export const DEFAULTS = {
   quietHours: { enabled: false, start: '23:00', end: '08:00', stillNotify: false },
 
   historyLimit: 300
+};
+
+/**
+ * Le reseau Neuronal (neuronal.live) : la route de lecture que le bot ouvre a
+ * l'extension (/ext/v1, voir background/neuronal.js) et l'origine a demander
+ * en permission optionnelle. Aucune autre adresse de Neuronal n'est appelee.
+ */
+export const NEURONAL = {
+  site: 'https://neuronal.live/network',
+  api: 'https://neuronal.live/ext/v1/',
+  origins: ['https://neuronal.live/*']
 };
 
 export const SOUNDS = {

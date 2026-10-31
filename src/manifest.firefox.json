@@ -21,6 +21,9 @@
     "scripting",
     "declarativeNetRequestWithHostAccess"
   ],
+  "optional_host_permissions": [
+    "https://neuronal.live/*"
+  ],
   "host_permissions": [
     "https://*.roblox.com/*",
     "https://api.rolimons.com/*",

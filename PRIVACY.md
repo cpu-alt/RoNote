@@ -1,6 +1,6 @@
 # Privacy Policy — RoNote
 
-**Last updated: 10 September 2026 · Version 2.10.0**
+**Last updated: 31 October 2026 · Version 2.16.0**
 
 *[Version française](PRIVACY.fr.md)*
 
@@ -37,7 +37,7 @@ There is no copy anywhere else to delete.
 
 ## The only network connections
 
-RoNote contacts exactly two domains, both declared in its manifest:
+By default, RoNote contacts exactly two domains, both declared in its manifest:
 
 | Domain | Why | What is sent |
 |---|---|---|
@@ -47,8 +47,15 @@ RoNote contacts exactly two domains, both declared in its manifest:
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
 
-**No request goes to any other domain.** There is no server belonging to RoNote's
-author.
+**Neuronal lookups option (off by default).** If you turn it on (Settings ›
+Values), the browser asks you for access to `neuronal.live`, the Neuronal
+network website run by RoNote's author. When you then open a player's or an
+item's sheet, RoNote asks `neuronal.live/ext/v1/` what the network knows about
+it: **only that player's or item's Roblox ID** is sent, with no cookie and
+nothing about you. The endpoint only reads: it never adds anyone to the
+network. Turning the option off gives the permission back.
+
+**Without this option, no request goes to any other domain.**
 
 ## How your Roblox session is used
 
@@ -77,13 +84,16 @@ or cancelling only destroys an offer.
 | `notifications` | Show the desktop notifications — the extension's whole purpose |
 | `scripting` | Read the trade shown on screen when the API does not return its detail |
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
+| `sidePanel` | Open RoNote in the browser's sidebar, if you choose that mode |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |
+| `neuronal.live` (optional) | Only requested if you turn on Neuronal lookups: what the network knows about a player or an item whose sheet you open |
 
 ## Children and minimum age
 
-RoNote collects no data, and therefore transmits none, whatever the user's age.
+RoNote collects no data about you, whatever the user's age. Only the Neuronal
+lookups option, off by default, sends another player's or an item's public ID.
 
 ## No affiliation
 

@@ -17,6 +17,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
+import { neuronalLookup } from './neuronal.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1082,6 +1083,10 @@ async function handleMessage(msg) {
      * seulement a l'ouverture de la fiche, et garde 6 h : la page Rolimon's
      * pese jusqu'a 1,7 Mo.
      */
+    // Fiche joueur ou objet du popup : ce que le réseau Neuronal en sait (option, voir neuronal.js).
+    case 'ronote:neuronal':
+      return neuronalLookup(msg.kind, msg.id, await getSettings());
+
     case 'ronote:item-history': {
       const id = Number(msg.itemId);
       if (!id) return { error: 'identifiant invalide' };

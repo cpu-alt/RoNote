@@ -1,6 +1,6 @@
 # Politique de confidentialité — RoNote
 
-**Dernière mise à jour : 10 septembre 2026 · Version 2.10.0**
+**Dernière mise à jour : 31 octobre 2026 · Version 2.16.0**
 
 *[English version](PRIVACY.md)*
 
@@ -38,7 +38,7 @@ réglages. Il n'y a aucune copie ailleurs à supprimer.
 
 ## Les seules connexions réseau
 
-RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :
+Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :
 
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
@@ -48,8 +48,15 @@ RoNote ne contacte que deux domaines, tous deux déclarés dans son manifeste :
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
 RAP fourni par Roblox et ne contacte plus que Roblox.
 
-**Aucune requête ne part vers un autre domaine.** Il n'existe aucun serveur
-appartenant à l'auteur de RoNote.
+**Option Fiches Neuronal (coupée par défaut).** Si tu l'actives (Réglages ›
+Valeurs), le navigateur te demande l'accès à `neuronal.live`, le site du réseau
+Neuronal tenu par l'auteur de RoNote. Quand tu ouvres ensuite la fiche d'un
+joueur ou d'un objet, RoNote demande à `neuronal.live/ext/v1/` ce que le réseau
+en sait : **seul l'identifiant Roblox de ce joueur ou de cet objet** est envoyé,
+sans cookie ni rien te concernant. La route ne fait que lire : elle n'ajoute
+personne au réseau. Couper l'option rend la permission.
+
+**Sans cette option, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
 
@@ -79,14 +86,17 @@ irréversible. Refuser ou annuler ne fait que détruire une offre.
 | `notifications` | Afficher les notifications bureau — la fonction même de l'extension |
 | `scripting` | Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail |
 | `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
+| `sidePanel` | Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode |
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |
+| `neuronal.live` (optionnelle) | Demandée seulement si tu actives les Fiches Neuronal : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche |
 
 ## Enfants et âge minimum
 
-RoNote ne collecte aucune donnée, et n'en transmet donc aucune, quel que soit l'âge
-de l'utilisateur.
+RoNote ne collecte aucune donnée te concernant, quel que soit l'âge de
+l'utilisateur. Seule l'option Fiches Neuronal, coupée par défaut, envoie
+l'identifiant public d'un autre joueur ou d'un objet.
 
 ## Absence d'affiliation
 

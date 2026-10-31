@@ -37,6 +37,7 @@ cat.changes['a:1029025'] = { from: 340000, to: 400000, pct: 17.6, at: Date.now()
 const SETTINGS = {
   enabled: true, pollSeconds: 30, valueBasis: 'value', robuxTax: true,
   showItemDetails: true, useRolimons: true, trackPortfolio: true,
+  neuronalLookup: true,   // les fiches montrent la section Neuronal (réponses factices plus bas)
   ignoredUsers: [],
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
@@ -277,6 +278,34 @@ const mockRuntime = {
       // Tout le journal (bilan du mois) : le relevé du popup, plus deux mois de trades terminés.
       case 'ronote:history':
         return { history: [...HISTORY, ...demoMonths()] };
+      // Fiches Neuronal : Shedletsky est dans la base, Roblox n'y est pas ; tout objet
+      // dont l'identifiant est pair y a des trades, les autres non.
+      case 'ronote:neuronal': {
+        await new Promise(r => setTimeout(r, 450));
+        const now = Date.now() / 1000;
+        const it = (id, name, n, value) => ({ id, name, n, value });
+        const tr = (h, a, b, gave, got, gv, gt, more = 0) => ({ id: h, at: now - h * 3600, a, b, partner: b,
+          gave_items: gave, got_items: got, gave_more: more, got_more: 0, gave: gv, got: gt, parts: 1 });
+        const shed = { id: bob.id, name: bob.name }, x = { id: 11, name: 'Builderman' }, y = { id: 12, name: 'Telamon' };
+        if (msg.kind === 'player') {
+          if (Number(msg.id) !== bob.id) return { data: { v: 1, id: Number(msg.id), known: false } };
+          return { data: { v: 1, id: bob.id, known: true, name: bob.name, bot: false, term: false, depth: 3,
+            first_seen: now - 41 * 86400, last_check: now - 600, trades: 37, partners: 21,
+            top: [], stats: { judged: 18, net: 412300, won: 11, lost: 6 },
+            recent: [
+              tr(3, shed, x, [it(1, 'Domino Crown', 1, 4100000)], [it(2, 'Sparkle Time Fedora', 1, 3200000), it(3, 'Valkyrie Helm', 2, 520000)], 4100000, 4240000),
+              tr(26, shed, y, [it(4, 'Clockwork\'s Headphones', 1, 210000), it(5, 'Bucket', 3, 9000)], [it(6, 'Red Sparkle Time Fedora', 1, 180000)], 237000, 180000, 1)
+            ] } };
+        }
+        if (Number(msg.id) % 2) return { data: { v: 1, id: Number(msg.id), known: false } };
+        return { data: { v: 1, id: Number(msg.id), known: true, name: 'Objet', value: 0, projected: false,
+          trades: 14, holders: 9, copies: 12,
+          top_holders: [{ id: 11, name: 'Builderman', n: 3 }, { id: 12, name: 'Telamon', n: 2 }, { id: bob.id, name: bob.name, n: 1 }],
+          recent: [
+            tr(5, x, y, [it(Number(msg.id), 'Cet objet', 1, 25000)], [it(7, 'Midnight Shades', 1, 31000)], 25000, 31000),
+            tr(49, y, shed, [it(8, 'Ice Valkyrie', 1, 60000)], [it(Number(msg.id), 'Cet objet', 2, 25000)], 60000, 50000)
+          ] } };
+      }
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };

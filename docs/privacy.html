@@ -52,7 +52,7 @@
 <main>
 
 <h1>Privacy Policy — RoNote</h1>
-<p class="meta">Last updated: 22 September 2026 · Version 2.14.0</p>
+<p class="meta">Last updated: 31 October 2026 · Version 2.16.0</p>
 <p class="lang"><a href="privacy.fr.html">Version française</a></p>
 
 <p>RoNote is a browser extension that shows desktop notifications about your Roblox
@@ -84,7 +84,7 @@ other device.</p>
 settings page. There is no copy anywhere else to delete.</p>
 
 <h2>The only network connections</h2>
-<p>RoNote contacts exactly two domains, both declared in its manifest:</p>
+<p>By default, RoNote contacts exactly two domains, both declared in its manifest:</p>
 <div class="scroll">
 <table>
   <thead><tr><th>Domain</th><th>Why</th><th>What is sent</th></tr></thead>
@@ -104,8 +104,14 @@ settings page. There is no copy anywhere else to delete.</p>
 </div>
 <p>Rolimon's can be <strong>turned off</strong> in the settings. Without it, RoNote
 falls back to the RAP reported by Roblox and contacts nothing but Roblox.</p>
-<p><strong>No request goes to any other domain.</strong> There is no server belonging
-to RoNote's author.</p>
+<p><strong>Neuronal lookups option (off by default).</strong> If you turn it on (Settings ›
+Values), the browser asks you for access to <code>neuronal.live</code>, the Neuronal
+network website run by RoNote's author. When you then open a player's or an
+item's sheet, RoNote asks <code>neuronal.live/ext/v1/</code> what the network knows about
+it: <strong>only that player's or item's Roblox ID</strong> is sent, with no cookie and
+nothing about you. The endpoint only reads: it never adds anyone to the
+network. Turning the option off gives the permission back.</p>
+<p><strong>Without this option, no request goes to any other domain.</strong></p>
 
 <h2>How your Roblox session is used</h2>
 <p>To read <em>your</em> trades, RoNote queries the Roblox API reusing the session
@@ -131,15 +137,18 @@ Declining or cancelling only destroys an offer.</p>
     <tr><td><code>notifications</code></td><td>Show the desktop notifications — the extension's whole purpose</td></tr>
     <tr><td><code>scripting</code></td><td>Read the trade shown on screen when the API does not return its detail</td></tr>
     <tr><td><code>offscreen</code></td><td>Play the alert sound, since a Chrome service worker cannot produce audio</td></tr>
+    <tr><td><code>sidePanel</code></td><td>Open RoNote in the browser's sidebar, if you choose that mode</td></tr>
     <tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Fix the <code>Origin</code> and <code>Referer</code> headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies <strong>only to requests issued by the extension</strong> (outside any tab), never to your browsing</td></tr>
     <tr><td><code>*.roblox.com</code></td><td>The site whose trades RoNote reads</td></tr>
     <tr><td><code>*.rolimons.com</code></td><td>The public value table, public item histories and public Rolimon's profiles (yours with portfolio tracking, another player's when you open their card)</td></tr>
+    <tr><td><code>neuronal.live</code> (optional)</td><td>Only requested if you turn on Neuronal lookups: what the network knows about a player or an item whose sheet you open</td></tr>
   </tbody>
 </table>
 </div>
 
 <h2>Children and minimum age</h2>
-<p>RoNote collects no data, and therefore transmits none, whatever the user's age.</p>
+<p>RoNote collects no data about you, whatever the user's age. Only the Neuronal
+lookups option, off by default, sends another player's or an item's public ID.</p>
 
 <h2>No affiliation</h2>
 <p>RoNote is an independent project. It is <strong>not affiliated with, endorsed by,

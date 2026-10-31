@@ -35,6 +35,7 @@
 
   <main class="main">
     <header class="hero">
+      <a class="join hero-join" href="https://discord.gg/neuronal" target="_blank" rel="noopener noreferrer" title="Rejoindre le Discord Neuronal"><i data-ic="discord"></i><span>Rejoindre le Discord</span></a>
       <div class="hero-l">Réglages</div>
       <h1>RoNote</h1>
       <p>Alertes de trades Roblox, cotes Rolimon's et écarts affichés directement sur roblox.com.</p>
@@ -214,6 +215,10 @@
       <label class="row" data-needs="useRolimons trackPortfolio revalAlerts"><span><b>Seuil de réévaluation</b><small>Variation minimale de la cote, à la hausse comme à la baisse, en %.</small></span>
         <input type="number" id="revalMinPercent" min="3" max="100" step="1"></label>
       <p class="hint">Quel que soit le réglage, la value et le RAP restent tous deux affichés. Un objet sans cote n'est jamais compté comme 0 : il est exclu des totaux et signalé.</p>
+
+      <h3>Neuronal</h3>
+      <label class="row switch" data-keys="neuronal réseau network base de données database fiche joueur objet discord"><input type="checkbox" id="neuronalLookup">
+        <span><b>Fiches Neuronal</b><small>Dans la fiche d'un joueur ou d'un objet, montre s'il est dans la base Neuronal et ses derniers trades. Seul son identifiant Roblox est envoyé à neuronal.live, à l'ouverture de la fiche. Le navigateur demande l'accès au site quand tu l'actives.</small></span></label>
     </section>
 
     <!-- ============================== Apparence ============================ -->
@@ -452,7 +457,7 @@
       <div class="news" id="news"></div>
     </section>
 
-    <footer><b id="version">RoNote</b><span>Extension locale : aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's.</span></footer>
+    <footer><b id="version">RoNote</b><span>Extension locale : aucune donnée n'est envoyée ailleurs que vers les API publiques de Roblox et Rolimon's, et vers neuronal.live si tu actives les Fiches Neuronal.</span></footer>
   </main>
 </div>
 <span class="saved" id="saved"><i data-ic="check"></i>Enregistré</span>

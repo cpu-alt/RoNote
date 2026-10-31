@@ -1,4 +1,5 @@
 import { B } from '../common/shim.js';
+import { NEURONAL } from '../common/defaults.js';
 import {
   fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml
 } from '../common/utils.js';
@@ -265,6 +266,22 @@ const avatarBtn = (c, ring) => (Number(c.partner?.id)
   ? `<button class="av-ring av-btn ${ring}" data-player="${Number(c.partner.id)}" title="${escapeHtml(t('Fiche du joueur'))}">${avatarHtml(c)}</button>`
   : `<span class="av-ring ${ring}">${avatarHtml(c)}</span>`);
 
+/**
+ * Les objets vus dans les cartes, le zoom et les fiches : chaque vignette et
+ * chaque ligne d'objet porte `data-ti`, qui retrouve ici l'objet résolu pour
+ * ouvrir sa fiche (openTradeItem). Bornée : les plus anciens sortent.
+ */
+const tradeItems = new Map();
+function tiKey(i) {
+  const key = i.bundleId ? `b:${i.bundleId}` : i.assetId ? `a:${i.assetId}` : '';
+  if (key) {
+    tradeItems.delete(key);
+    tradeItems.set(key, i);
+    if (tradeItems.size > 400) tradeItems.delete(tradeItems.keys().next().value);
+  }
+  return key;
+}
+
 /** Quatre vignettes au plus par côté : au-delà, la dernière devient « +n ». */
 function tilesHtml(side) {
   if (!side.items.length) return `<div class="tc-tiles"><div class="tc-tile empty">—</div></div>`;
@@ -272,9 +289,10 @@ function tilesHtml(side) {
   const shown = side.items.slice(0, cut).map(i => {
     const cls = itemClasses(i);
     const title = escapeHtml(itemTitle(i));
+    const ti = tiKey(i);
     const tile = i.thumb
-      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}" decoding="async">`
-      : `<div class="tc-tile ph ${cls}" title="${title}">${ic(itemIcon(i))}</div>`;
+      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}"${ti ? ` data-ti="${ti}"` : ''} decoding="async">`
+      : `<div class="tc-tile ph ${cls}" title="${title}"${ti ? ` data-ti="${ti}"` : ''}>${ic(itemIcon(i))}</div>`;
     const marks = marksHtml(i);
     return i.projected || marks
       ? `<span class="tc-tw">${tile}${i.projected ? projBadge() : ''}${marks ? `<span class="tc-mk">${marks}</span>` : ''}</span>`
@@ -381,7 +399,8 @@ function detailRow(i, big = false) {
     ? `<b style="color:var(--face)">—</b><span>${t('sans cote')}</span>`
     : `<b>${fmtFull(i.value)}</b><span>RAP ${fmtNum(i.rap)}${i.noValue ? ' · ' + t('pas de value') : ''}</span>`;
 
-  return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}">
+  const ti = tiKey(i);
+  return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}"${ti ? ` data-ti="${ti}"` : ''}>
     ${img}
     <div class="det-n"><b>${i.projected ? projBadge() + ' ' : ''}${escapeHtml(i.name)}${marksHtml(i) ? ' ' + marksHtml(i) : ''}</b><span>${escapeHtml(itemTags(i))}</span></div>
     <div class="det-v">${right}</div>
@@ -844,6 +863,91 @@ const playerRows = () => partnerTimeline(player.res?.events || [], liveTradesWit
  * refaisait deux fois par affichage, et `liveTradesWith` parcourt les trois
  * listes en recopiant chaque trade au passage.
  */
+/* ------------------------------- Neuronal --------------------------------
+   Ce que le réseau Neuronal sait du joueur ou de l'objet d'une fiche : s'il est
+   dans la base, et ses derniers trades (lus par le service worker, voir
+   background/neuronal.js). Rien ne s'affiche tant que l'option est coupée. */
+
+const NW_MARK = '<svg class="nw-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M22 42L42 22" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="13" y="33" width="18" height="18" rx="3.5" fill="currentColor" transform="rotate(15 22 42)"/><rect x="33" y="13" width="18" height="18" rx="3.5" fill="#00b06f" transform="rotate(15 42 22)"/></svg>';
+const nwOn = () => !!data.settings?.neuronalLookup;
+const nwAgo = (sec) => (sec ? timeAgo(sec * 1000) : '');
+
+/** Les objets d'un côté de trade : « Domino Crown, Sparkle Time ×2, +1 ». */
+function nwItems(list, more) {
+  const names = (list || []).map(it => escapeHtml(it.name || '#' + it.id) + (it.n > 1 ? ` ×${it.n}` : ''));
+  if (more) names.push('+' + more);
+  return names.join(', ') || '—';
+}
+
+/** Un trade du réseau. `mine` : vu du joueur de la fiche (son gain), sinon A ⇄ B. */
+function nwTradeHtml(tr, mine = false) {
+  const name = (who) => escapeHtml(who?.name || (who?.id ? '#' + who.id : '?'));
+  const head = mine ? t('avec {who}', { who: `<b>${name(tr.partner)}</b>` })
+    : `<b>${name(tr.a)}</b> <span class="nw-x">⇄</span> <b>${name(tr.b)}</b>`;
+  const delta = (tr.got || 0) - (tr.gave || 0);
+  const pill = mine && (tr.got || tr.gave) ? `<span class="jr-pill ${toneOf(delta)}">${amountSigned(delta)}</span>` : '';
+  return `<div class="nw-tr">
+    <div class="nw-tr-h"><span class="nw-who">${head}</span>${tr.parts > 1 ? `<span class="nw-tag">mass ×${tr.parts}</span>` : ''}<span class="nw-ago">${nwAgo(tr.at)}</span>${pill}</div>
+    <div class="nw-tr-s"><span>${nwItems(tr.gave_items, tr.gave_more)}</span><span class="nw-x">⇄</span><span>${nwItems(tr.got_items, tr.got_more)}</span></div>
+  </div>`;
+}
+
+/** L'état d'une lecture : chargement, raison d'une absence, ou null quand la fiche est là. */
+function nwStateHtml(res, unknownText) {
+  if (!res) return '<div class="p-skel nw-skel"></div>';
+  if (res.off) return '';
+  if (res.unavailable) return `<div class="nw-none">${t("Neuronal n'a pas encore ouvert ses fiches à l'extension.")}</div>`;
+  if (res.limited) return `<div class="nw-none">${t('Trop de fiches demandées : réessaie dans quelques minutes.')}</div>`;
+  if (res.error || !res.data) return `<div class="nw-none">${t('Neuronal est injoignable.')}</div>`;
+  if (!res.data.known) return `<div class="nw-none">${ic('help')} ${unknownText}</div>`;
+  return null;
+}
+
+function neuronalPlayerHtml() {
+  if (!nwOn()) return '';
+  const res = player.nw;
+  const head = `<div class="p-h nw-h">${NW_MARK} Neuronal</div>`;
+  const state = nwStateHtml(res, t('Pas dans la base Neuronal.'));
+  if (state !== null) return state ? head + state : '';
+  const d = res.data;
+  const flags = [
+    `<span class="p-flag accent">${ic('check-circle')} ${t('Dans la base')}${d.first_seen ? ' · ' + t('repéré {ago}', { ago: nwAgo(d.first_seen) }) : ''}</span>`,
+    d.bot ? `<span class="p-flag warn">${ic('alert')} ${t('Bot de trade')}</span>` : '',
+    d.term ? `<span class="p-flag loss">${ic('ban')} ${t('Compte terminé')}</span>` : ''
+  ].filter(Boolean).join('');
+  const st = d.stats || {};
+  const tiles = `<div class="w-facts nw-facts">
+    ${factHtml(t('Trades vus'), fmtNum(d.trades || 0))}
+    ${factHtml(t('Partenaires'), fmtNum(d.partners || 0))}
+    ${factHtml(t('Bilan'), st.judged ? `<em class="${toneOf(st.net || 0)}">${amountSigned(st.net || 0)}</em>` : '—',
+      st.judged ? t('{w} gagnés · {l} perdus', { w: st.won || 0, l: st.lost || 0 }) : '')}
+  </div>`;
+  const recent = (d.recent || []).length
+    ? `<div class="jr-day nw-list">${d.recent.map(tr => nwTradeHtml(tr, true)).join('')}</div>`
+    : `<div class="nw-none">${t("Aucun trade prouvé dans le réseau pour l'instant.")}</div>`;
+  return `${head}<div class="p-flags">${flags}</div>${tiles}
+    <div class="p-h">${t('Ses derniers trades')}</div>${recent}`;
+}
+
+function neuronalItemHtml(res) {
+  if (!nwOn()) return '';
+  const head = `<div class="p-h nw-h">${NW_MARK} Neuronal</div>`;
+  const state = nwStateHtml(res, t("Cet objet n'apparaît dans aucun trade du réseau."));
+  if (state !== null) return state ? head + state : '';
+  const d = res.data;
+  const tiles = `<div class="w-facts">
+    ${factHtml(t('Trades vus'), fmtNum(d.trades || 0))}
+    ${factHtml(t('Détenteurs suivis'), fmtNum(d.holders || 0), d.copies > d.holders ? t('{n} exemplaires', { n: fmtNum(d.copies) }) : '')}
+  </div>`;
+  const holders = (d.top_holders || []).length
+    ? `<div class="nw-holders">${d.top_holders.map(h => `<span class="nw-holder">${escapeHtml(h.name || '#' + h.id)}${h.n > 1 ? ` <b>×${h.n}</b>` : ''}</span>`).join('')}</div>`
+    : '';
+  const recent = (d.recent || []).length
+    ? `<div class="p-h">${t('Ses derniers trades')}</div><div class="jr-day nw-list">${d.recent.map(tr => nwTradeHtml(tr)).join('')}</div>`
+    : '';
+  return `${head}${tiles}${holders}${recent}`;
+}
+
 function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
   const res = player.res;
   const roli = res?.roli, prof = res?.profile;
@@ -922,7 +1026,8 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     ${tiles}${verdictLine}
     ${chartOn ? playerFacesHtml() : ''}
     <div class="p-h">${t('Vos échanges')}${rows.length ? ` <small>${rows.length}</small>` : ''}</div>
-    ${list}`;
+    ${list}
+    ${neuronalPlayerHtml()}`;
 }
 
 /**
@@ -1000,6 +1105,7 @@ function playerFootHtml() {
   const ignored = player.res ? !!player.res.ignored : isIgnored(player.id);
   return `<button class="z-open" data-url="https://www.roblox.com/users/${player.id}/profile">${t('Profil Roblox')} ${ic('external')}</button>
     <button class="z-open" data-url="https://www.rolimons.com/player/${player.id}">Rolimon's ${ic('external')}</button>
+    ${player.nw?.data?.known ? `<button class="z-open" data-url="${NEURONAL.site}?focus=${player.id}">Neuronal ${ic('external')}</button>` : ''}
     <button class="p-mute${ignored ? ' on' : ''}" data-mute>${ic('user-off')} ${t(ignored ? 'Ne plus ignorer' : 'Ignorer')}</button>`;
 }
 
@@ -1090,8 +1196,16 @@ function openPlayer(id) {
   const token = ++player.token;
   Object.assign(player, {
     id, who: seed.partner || { id }, headshot: seed.headshot || null,
-    res: null, chart: null, faces: null, facesAll: false
+    res: null, chart: null, faces: null, facesAll: false, nw: null
   });
+  if (nwOn()) {
+    const paintNw = (res) => {
+      if (token !== player.token) return;
+      player.nw = res || { error: 'empty' };
+      renderPlayer();
+    };
+    send({ type: 'ronote:neuronal', kind: 'player', id }).then(paintNw, () => paintNw(null));
+  }
 
   // La fiche s'ouvre à côté de la liste, qui reste utilisable : le popup
   // s'élargit pour elle. Changer de joueur remplace son contenu sur place.
@@ -1894,11 +2008,36 @@ function renderSheetChart(animate = false) {
   }
 }
 
-function openItemSheet(key) {
+/**
+ * Un objet d'un trade, mis à la forme d'un objet du portefeuille pour sa fiche.
+ * Un visage passe par son ancien asset (celui de Rolimon's et de Neuronal).
+ */
+function sheetItemOf(x) {
+  const kind = x.bundleId ? 'bundle' : 'asset';
+  const id = x.bundleId || x.assetId;
+  const mine = (data.report?.items || []).find(r => r.kind === kind && Number(r.id) === Number(id));
+  if (mine) return mine;   // possédé : sa vraie fiche, avec exemplaires et réévaluation
+  return {
+    key: `t:${kind}:${id}`, kind, id, faceAssetId: x.legacyAssetId || 0, isFace: !!x.isFace,
+    name: x.name, acronym: x.acronym || '', thumb: x.thumb || null,
+    value: x.value || 0, rap: x.rap || 0, total: x.value || 0, count: 0,
+    demand: x.demand ?? -1, trend: x.trend ?? -1, projected: !!x.projected, rare: !!x.rare,
+    noValue: !!x.noValue, change: null, notMine: true
+  };
+}
+
+/** Un clic sur un objet d'un trade : sa fiche, puis retour au zoom d'où il venait. */
+function openTradeItem(x) {
+  const i = sheetItemOf(x);
+  const back = typeof zoomed === 'number' ? zoomed : null;
+  openItemSheet(i.key, i.notMine ? i : null, back ? () => openZoom(back) : null);
+}
+
+function openItemSheet(key, given = null, onClosed = null) {
   const items = data.report?.items || [];
-  const i = items.find(x => x.key === key);
+  const i = given || items.find(x => x.key === key);
   if (!i) return;
-  const sum = items.reduce((s, x) => s + x.total, 0);
+  const sum = given ? 0 : items.reduce((s, x) => s + x.total, 0);
   const roliId = i.kind === 'asset' ? i.id : i.faceAssetId;
   const links = [
     roliId ? { label: "Rolimon's", url: `https://www.rolimons.com/item/${roliId}` } : null,
@@ -1921,7 +2060,8 @@ function openItemSheet(key) {
     </header>
     <div class="z-body">
       <div class="w-sh-amount">${amount(i.total)}</div>
-      <div class="w-sh-sub">${i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')}${sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''}</div>
+      <div class="w-sh-sub">${i.notMine ? t('Tu ne possèdes pas cet objet.')
+        : (i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')) + (sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : '')}</div>
       <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
         ${factHtml('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
@@ -1931,10 +2071,11 @@ function openItemSheet(key) {
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
       ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
+      <div id="w-sh-nw">${roliId ? neuronalItemHtml(null) : ''}</div>
     </div>
     <footer class="z-foot">${links.map(l =>
       `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label} ${ic('external')}</button>`).join('')}</footer>
-  </div>`, closeZoom);
+  </div>`, () => { closeZoom(); onClosed?.(); });
   renderSheetChart();
   wrap.querySelectorAll('button[data-url]').forEach(b => {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
@@ -1942,6 +2083,19 @@ function openItemSheet(key) {
 
   if (!roliId) return;
   const still = () => zoomed === 'item:' + key;
+  if (nwOn()) {
+    const paintNw = (res) => {
+      if (!still()) return;
+      const box = wrap.querySelector('#w-sh-nw');
+      if (box) box.innerHTML = neuronalItemHtml(res || { error: 'empty' });
+      if (res?.data?.known && !wrap.querySelector('[data-nw]')) {
+        wrap.querySelector('.z-foot')?.insertAdjacentHTML('beforeend',
+          `<button class="z-open" data-nw data-url="${NEURONAL.site}?item=${roliId}">Neuronal ${ic('external')}</button>`);
+        wrap.querySelector('[data-nw]').addEventListener('click', (e) => B.tabs.create({ url: e.currentTarget.dataset.url }));
+      }
+    };
+    send({ type: 'ronote:neuronal', kind: 'item', id: roliId }).then(paintNw, () => paintNw(null));
+  }
   send({ type: 'ronote:item-history', itemId: roliId }).then((res) => {
     if (!still()) return;
     const h = res?.history;
@@ -2534,6 +2688,17 @@ const LIST_ACTIONS = [
   // La carte entière ouvre le zoom, sauf un bouton qu'aucun geste ne réclame.
   ['.tc-body[data-zoom]', (el, e) => { if (!e.target.closest('button')) openZoom(Number(el.dataset.zoom)); }]
 ];
+
+// Un objet (vignette d'une carte, ligne du détail, du zoom ou d'une fiche) :
+// sa fiche. En capture, pour passer avant le zoom de la carte qui le contient.
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-ti]');
+  const item = el && tradeItems.get(el.dataset.ti);
+  if (!item) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openTradeItem(item);
+}, true);
 
 listEl.addEventListener('click', (e) => {
   for (const [sel, run] of LIST_ACTIONS) {
