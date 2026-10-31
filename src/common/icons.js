@@ -67,6 +67,7 @@ export const ICONS = {
   pause: '<rect x="6.5" y="5" width="4" height="14" rx="1.2"' + FILL + '/><rect x="13.5" y="5" width="4" height="14" rx="1.2"' + FILL + '/>',
   play: path('M8 5.2v13.6c0 .8.9 1.3 1.6.8l10-6.8a1 1 0 0 0 0-1.6l-10-6.8C8.9 3.9 8 4.4 8 5.2z', FILL),
   refresh: path('M20 12a8 8 0 1 1-2.6-5.9') + path('M20 4.5v5h-5'),
+  sidebar: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/>' + path('M14.5 4.5v15M17 8.5h1M17 11.5h1'),
   settings: path('M4 7h9M17 7h3M4 17h3M11 17h9') + circle(15, 7, 2.2) + circle(9, 17, 2.2),
   eye: path('M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z') + circle(12, 12, 2.8),
   'eye-off': path('M10.6 5.6c.5-.1.9-.1 1.4-.1 6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.8 3.6M6.5 7.2A16 16 0 0 0 2.5 12s3.5 6.5 9.5 6.5c1.7 0 3.2-.5 4.5-1.2')

@@ -20,7 +20,12 @@ import {
 
 // Ouvert dans la barre laterale (reglage `sidePanel`) : la page prend toute
 // la place offerte au lieu des 420 x 600 du popup.
-if (new URLSearchParams(location.search).has('panel')) document.documentElement.classList.add('in-panel');
+const IN_PANEL = new URLSearchParams(location.search).has('panel');
+if (IN_PANEL) document.documentElement.classList.add('in-panel');
+// Fenetre courante, lue d'avance : `sidePanel.open()` exige le geste de
+// l'utilisateur, et l'attendre au moment du clic le ferait perdre.
+let windowId = null;
+B.windows?.getCurrent?.().then(w => { windowId = w.id; }, () => {});
 
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
@@ -2674,6 +2679,27 @@ $('#btn-toggle').addEventListener('click', async () => {
 });
 
 $('#btn-options').addEventListener('click', () => B.runtime.openOptionsPage());
+
+// Bouton a la Phantom : du popup vers la barre laterale, et retour. Le choix
+// reste (reglage `sidePanel`) : l'icone de RoNote rouvre ensuite le meme mode.
+// L'ouverture et la fermeture se font avant tout await, geste oblige.
+const sideBtn = $('#btn-side');
+if (IN_PANEL) sideBtn.title = t('Revenir au popup');
+sideBtn.addEventListener('click', async () => {
+  const saved = send({ type: 'ronote:settings', patch: { sidePanel: !IN_PANEL } });
+  if (!IN_PANEL) {
+    if (B.sidebarAction) B.sidebarAction.open();
+    else if (windowId != null) chrome.sidePanel?.open({ windowId });
+    await saved;
+    window.close();
+  } else if (B.sidebarAction) {
+    B.sidebarAction.close();
+  } else {
+    await saved;
+    if (chrome.sidePanel?.close && windowId != null) chrome.sidePanel.close({ windowId });
+    else window.close();
+  }
+});
 
 load();
 

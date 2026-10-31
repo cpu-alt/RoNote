@@ -374,6 +374,8 @@ const EN = {
   'S\'applique au popup, aux réglages et aux notifications.': 'Applies to the popup, the settings and the notifications.',
   'Surveillance active': 'Monitoring on',
   'Barre latérale': 'Sidebar',
+  'Ouvrir en barre latérale': 'Open in the sidebar',
+  'Revenir au popup': 'Back to the popup',
   "L'icône de RoNote ouvre une barre sur le côté du navigateur, qui reste ouverte pendant que tu navigues, au lieu du popup.": 'The RoNote icon opens a bar on the side of the browser, which stays open while you browse, instead of the popup.',
   'Coupe complètement les vérifications quand c\'est décoché.': 'Unchecking this stops every check entirely.',
   'Intervalle de vérification': 'Check interval',
