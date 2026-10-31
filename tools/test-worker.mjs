@@ -30,7 +30,8 @@ globalThis.chrome = {
     create: async (id) => id, clear: async () => true,
     onClicked: ev('nclick'), onButtonClicked: ev('nbtn'), onClosed: ev('nclosed')
   },
-  action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {} },
+  action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {},
+    setPopup: async () => {}, onClicked: { addListener() {} } },
   declarativeNetRequest: { updateSessionRules: async () => {} },
   tabs: { query: async () => [] }
 };

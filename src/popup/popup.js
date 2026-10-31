@@ -18,6 +18,10 @@ import {
   chartHtml, legendHtml, mountChart, seriesChips, renderRangedChart
 } from './chart.js';
 
+// Ouvert dans la barre laterale (reglage `sidePanel`) : la page prend toute
+// la place offerte au lieu des 420 x 600 du popup.
+if (new URLSearchParams(location.search).has('panel')) document.documentElement.classList.add('in-panel');
+
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
 

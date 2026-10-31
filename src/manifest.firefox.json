@@ -42,6 +42,15 @@
       "128": "icons/icon128.png"
     }
   },
+  "sidebar_action": {
+    "default_panel": "popup/popup.html?panel=1",
+    "default_title": "__MSG_actionTitle__",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
+    "open_at_install": false
+  },
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true

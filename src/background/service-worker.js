@@ -96,6 +96,7 @@ B.runtime.onInstalled.addListener(async (details) => {
   const settings = await getSettings();
   setLang(settings.lang);
   await configureAlarm(settings);
+  await applySidePanel(settings);
   if (details.reason === 'install') {
     await notifySystem(t('RoNote est installé'),
       t('Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule. Les trades déjà présents ne déclencheront aucune alerte.'));
@@ -108,9 +109,33 @@ B.runtime.onInstalled.addListener(async (details) => {
 
 B.runtime.onStartup?.addListener(async () => {
   await installHeaderRules();
-  await configureAlarm(await getSettings());
+  const settings = await getSettings();
+  await configureAlarm(settings);
+  await applySidePanel(settings);
   tick('startup');
 });
+
+/* ============================ barre laterale =========================== */
+
+// Comme Phantom : au lieu du popup, l'icone ouvre RoNote dans une barre sur le
+// cote, qui reste ouverte pendant la navigation. Chrome a son API `sidePanel`
+// (l'icone l'ouvre d'elle-meme), Firefox sa `sidebarAction` qu'on bascule au
+// clic. Dans les deux cas le popup doit etre retire, sinon il passe devant.
+const POPUP = 'popup/popup.html';
+const PANEL = 'popup/popup.html?panel=1';
+
+async function applySidePanel(settings) {
+  const on = !!settings.sidePanel;
+  await safe(() => B.action.setPopup({ popup: on ? '' : POPUP }));
+  if (globalThis.chrome?.sidePanel) {
+    await safe(() => chrome.sidePanel.setOptions({ path: PANEL, enabled: true }));
+    await safe(() => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: on }));
+  }
+}
+
+// Firefox : le clic n'arrive ici que si le popup est retire, donc barre
+// laterale active. `toggle()` exige le geste de l'utilisateur : aucun await avant.
+B.action.onClicked.addListener(() => { B.sidebarAction?.toggle(); });
 
 B.alarms.onAlarm.addListener(a => { if (a.name === ALARM) tick('alarm'); });
 
@@ -1223,6 +1248,7 @@ async function handleMessage(msg) {
       // Un journal raccourci l'est tout de suite, pas au prochain evenement.
       if (msg.patch?.historyLimit) await pushHistory([], settings.historyLimit, true);
       await configureAlarm(settings);
+      await applySidePanel(settings);
       await setBadge((await getState()).inboundCount, settings, false);
       if (msg.patch?.enabled) tick('settings');
       return { settings };
@@ -1236,6 +1262,7 @@ async function handleMessage(msg) {
       const settings = await replaceSettings(raw);
       setLang(settings.lang);
       await configureAlarm(settings);
+      await applySidePanel(settings);
       await setBadge((await getState()).inboundCount, settings, false);
       return { settings };
     }

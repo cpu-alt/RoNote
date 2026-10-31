@@ -373,6 +373,8 @@ const EN = {
   'Automatique (langue du navigateur)': 'Automatic (browser language)',
   'S\'applique au popup, aux réglages et aux notifications.': 'Applies to the popup, the settings and the notifications.',
   'Surveillance active': 'Monitoring on',
+  'Barre latérale': 'Sidebar',
+  "L'icône de RoNote ouvre une barre sur le côté du navigateur, qui reste ouverte pendant que tu navigues, au lieu du popup.": 'The RoNote icon opens a bar on the side of the browser, which stays open while you browse, instead of the popup.',
   'Coupe complètement les vérifications quand c\'est décoché.': 'Unchecking this stops every check entirely.',
   'Intervalle de vérification': 'Check interval',
   '30 s est le minimum garanti par le navigateur. En dessous, la cadence est « au mieux » tant que le navigateur garde l\'extension éveillée.': '30 s is the minimum the browser guarantees. Below that the pace is best-effort, for as long as the browser keeps the extension awake.',

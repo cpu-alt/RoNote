@@ -1508,3 +1508,13 @@ body.anon .w-eye { color: var(--accent); border-color: #4d9fff66; }
 .fx-anon[aria-pressed="true"] .fx-switch::after { transform: translateX(14px); background: #fff; }
 /* Les gros chiffres en dégradé (texte découpé) ignorent le flou de leur enfant : on floute le bloc. */
 .w-amount:has(.amt), .p-amount:has(.amt), .h-amount:has(.amt), .w-sh-amount:has(.amt) { filter: blur(7px); user-select: none; }
+
+/* ============================ barre laterale ============================
+   Reglage `sidePanel` : la meme page, ouverte sur le cote du navigateur.
+   Elle suit la largeur et la hauteur que le navigateur lui donne, et la fiche
+   d'un joueur passe par-dessus la liste au lieu d'elargir la fenetre. */
+
+html.in-panel body { width: auto; min-width: 320px; height: 100vh; }
+html.in-panel.side-open body { width: auto; padding-left: 0; }
+html.in-panel.side-open .zoom { left: 0; }
+html.in-panel .side { width: 100%; padding: 8px; }

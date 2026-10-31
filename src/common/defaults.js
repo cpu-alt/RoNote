@@ -1,6 +1,7 @@
 export const DEFAULTS = {
   enabled: true,
   lang: 'auto',               // auto (langue du navigateur) | fr | en
+  sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 
