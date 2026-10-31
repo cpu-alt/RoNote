@@ -6,6 +6,7 @@ import { ic, fillIcons } from '../common/icons.js';
 import { RELEASES } from '../common/changelog.js';
 import { $, send, ask, applyLang, onStoredChange } from '../common/ui.js';
 import { THEMES, THEME_KEYS, matchTheme, paintBackground, themeFromFile } from './themes.js';
+import { fluidHover } from '../common/fluid.js';
 
 /** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
 function showUnreachable() {
@@ -533,6 +534,10 @@ function runSearch() {
     if (link) link.hidden = !any;
   }
   $('#no-hit').hidden = !q || hits > 0;
+  // Un lien masqué sous le pointeur n'envoie pas de `pointerout` : la pastille
+  // du survol resterait seule dans le vide.
+  document.querySelector('#nav > .fh')?.classList.remove('on');
+  placeNavInd();
 }
 
 /* ------------------------------ sauvegarde ---------------------------- */
@@ -950,11 +955,32 @@ function wireNav() {
       if (!e.isIntersecting) continue;
       const href = '#' + e.target.id;
       links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === href));
+      placeNavInd();
     }
   }, { rootMargin: '-10% 0px -75% 0px' });
   sections.forEach(s => spy.observe(s));
+  // La pastille de la section lue glisse d'un lien à l'autre, et le survol a
+  // la sienne, plus discrète (common/fluid.js).
+  $('#nav').insertAdjacentHTML('afterbegin', '<span class="nav-ind" aria-hidden="true"></span>');
+  fluidHover($('#nav'), 'a');
+  addEventListener('resize', placeNavInd);
+  document.fonts?.ready?.then(placeNavInd);
+  placeNavInd();
   // La version vient du manifeste : le pied de page ne peut plus prendre de retard.
   $('#version').textContent = 'RoNote v' + (B.runtime.getManifest?.().version || '');
+}
+
+/** Pose la pastille sur le lien actif. Première pose sans glissade. */
+function placeNavInd() {
+  const ind = document.querySelector('.nav-ind');
+  const on = document.querySelector('#nav a.on:not([hidden])');
+  if (!ind) return;
+  ind.classList.toggle('gone', !on);
+  if (!on) return;
+  ind.style.width = on.offsetWidth + 'px';
+  ind.style.height = on.offsetHeight + 'px';
+  ind.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+  if (!ind.classList.contains('ready')) requestAnimationFrame(() => ind.classList.add('ready'));
 }
 
 let hashDone = false;

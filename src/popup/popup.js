@@ -13,6 +13,7 @@ import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
+import { fluidHover } from '../common/fluid.js';
 import {
   setMoneyFormat, seriesText, orderedSeries, toggleSeries, downsample, chartModel, smoothPath,
   chartHtml, legendHtml, mountChart, seriesChips, renderRangedChart
@@ -2682,24 +2683,35 @@ $('#btn-options').addEventListener('click', () => B.runtime.openOptionsPage());
 
 // Bouton a la Phantom : du popup vers la barre laterale, et retour. Le choix
 // reste (reglage `sidePanel`) : l'icone de RoNote rouvre ensuite le meme mode.
-// L'ouverture et la fermeture se font avant tout await, geste oblige.
+// L'ouverture et la fermeture se font avant tout await, geste oblige. Son
+// icone bascule (fondu flou) vers celle du mode d'arrivee : la barre s'ouvre
+// en montrant deja le bouton du retour.
 const sideBtn = $('#btn-side');
-if (IN_PANEL) sideBtn.title = t('Revenir au popup');
+const sideTitle = (on) => { sideBtn.title = t(on ? 'Revenir au popup' : 'Ouvrir en barre latérale'); };
+const sideFlip = (on) => { sideBtn.classList.toggle('on', on); sideBtn.setAttribute('aria-pressed', String(on)); sideTitle(on); };
+const pause = (ms) => new Promise(r => setTimeout(r, ms));
+if (IN_PANEL) requestAnimationFrame(() => requestAnimationFrame(() => sideFlip(true)));
 sideBtn.addEventListener('click', async () => {
   const saved = send({ type: 'ronote:settings', patch: { sidePanel: !IN_PANEL } });
+  sideFlip(!IN_PANEL);
   if (!IN_PANEL) {
     if (B.sidebarAction) B.sidebarAction.open();
     else if (windowId != null) chrome.sidePanel?.open({ windowId });
-    await saved;
+    await Promise.all([saved, pause(180)]);   // le temps de voir l'icone changer
     window.close();
   } else if (B.sidebarAction) {
     B.sidebarAction.close();
   } else {
-    await saved;
+    await Promise.all([saved, pause(180)]);
     if (chrome.sidePanel?.close && windowId != null) chrome.sidePanel.close({ windowId });
     else window.close();
   }
 });
+
+// Une pastille qui glisse d'un bouton a l'autre (common/fluid.js).
+fluidHover($('.actions'), 'button.icon');
+fluidHover($('.tabs'), '.tab');
+fluidHover(listEl, 'button.jr, .h-events .jr, .h-todo');
 
 load();
 

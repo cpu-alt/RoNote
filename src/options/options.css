@@ -25,6 +25,15 @@
   --face:   #c792ea;
 
   --ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* Les mêmes ressorts que le popup (voir popup.css) : trois tempos, des
+     sorties plus brèves que les entrées, jamais de rebond en sortie. */
+  --spring: linear(0, .13, .355, .559, .713, .819, .888, .932, .96, .976, .986, .992, .995, .997, .998, .999, 1);
+  --spring-pop: linear(0, .103, .331, .589, .815, .98, 1.08, 1.12, 1.12, 1.1, 1.07, 1.04, 1.01, .996, .987, .984, .986, .989, .993, .997, 1, 1, 1);
+  --exit: cubic-bezier(.4, 0, 1, 1);
+  --d-fast: 110ms;
+  --d-mod:  220ms;
+  --d-slow: 320ms;
 }
 
 * { box-sizing: border-box; }
@@ -64,12 +73,12 @@ body {
   display: flex; align-items: center; gap: 10px; padding: 7px 10px;
   border-radius: 11px; border: 1px solid transparent;
   color: var(--dim); text-decoration: none; font-size: 13px; font-weight: 600;
-  transition: background .2s, color .2s, border-color .2s, box-shadow .2s;
+  transition: background var(--d-fast), color var(--d-fast), border-color var(--d-fast), box-shadow var(--d-fast);
 }
 .nav a > i {
   flex: none; display: grid; place-items: center;
   width: 26px; height: 26px; border-radius: 8px; background: #ffffff08; color: #9fb0cf;
-  transition: background .2s, color .2s;
+  transition: background var(--d-fast), color var(--d-fast);
 }
 .nav a > i .ic { width: 15px; height: 15px; }
 .nav a:hover > i { color: var(--fg); }
@@ -148,7 +157,7 @@ section.card h2 .hint {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   margin: 0 -10px; padding: 12px 10px; border-radius: 12px;
   border-top: 1px solid var(--line-soft);
-  transition: background .18s, opacity .2s;
+  transition: background var(--d-fast), opacity var(--d-fast);
 }
 .row:hover { background: #ffffff05; }
 h2 + .row, h3 + .row, .hint.top + .row { border-top-color: transparent; }
@@ -168,12 +177,12 @@ input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
   appearance: none; -webkit-appearance: none;
   position: relative; flex: none; width: 40px; height: 23px; margin: 0; border-radius: 12px;
   background: #2a3346; border: 1px solid #ffffff14;
-  transition: background .25s var(--ease), border-color .25s, box-shadow .25s;
+  transition: background var(--d-fast), border-color var(--d-fast), box-shadow var(--d-fast);
 }
 .row.switch > input[type=checkbox]::before {
   content: ''; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%;
   background: #c9d3e6; box-shadow: 0 2px 6px #0007;
-  transition: transform .25s var(--ease), background .25s;
+  transition: transform var(--d-mod) var(--spring-pop), background var(--d-fast);
 }
 .row.switch > input:checked {
   background: linear-gradient(90deg, #2f7be0, #4d9fff); border-color: #6aaeff;
@@ -188,7 +197,7 @@ input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
   display: flex; align-items: center; gap: 6px; padding: 5px 11px 5px 8px; border-radius: 20px;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--dim);
   font-size: 12.5px; white-space: nowrap; cursor: pointer;
-  transition: background .2s, border-color .2s, color .2s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast);
 }
 .checks label:has(input:checked) { background: #14243a; border-color: var(--accent); color: var(--fg); }
 .checks input { width: 14px; height: 14px; margin: 0; }
@@ -199,7 +208,7 @@ input[type=number], input[type=time], input[type=text], select {
   height: 36px; padding: 0 11px; border-radius: 11px;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
   font: inherit; font-size: 13px;
-  transition: border-color .2s, box-shadow .2s;
+  transition: border-color var(--d-fast), box-shadow var(--d-fast);
 }
 select { min-width: 150px; cursor: pointer; }
 select option { background: var(--surface); }
@@ -214,7 +223,7 @@ select:disabled, input:disabled { cursor: not-allowed; }
   height: 36px; padding: 0 16px; border-radius: 11px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
   font: inherit; font-size: 13px; font-weight: 650;
-  transition: background .2s, border-color .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .btn:hover { background: #232c3f; border-color: #3d4a66; }
 .btn:active { transform: scale(.96); }
@@ -235,7 +244,7 @@ button[data-play] { width: 36px; padding: 0; color: var(--accent); }
   display: grid; place-items: center; padding: 0;
   width: 22px; height: 22px; border: 0; border-radius: 50%; cursor: pointer;
   background: #ffffff0a; color: var(--dim); font-size: 14px; line-height: 1;
-  transition: background .2s, color .2s;
+  transition: background var(--d-fast), color var(--d-fast);
 }
 .chip button .ic { width: 12px; height: 12px; stroke-width: 2.4; }
 .chip button:hover { background: #3a1c1e; color: var(--loss); }
@@ -262,7 +271,7 @@ p.hint.top { margin: 0 0 6px; }
 .news { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 10px; }
 .rel {
   border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2);
-  transition: border-color .2s, background .2s;
+  transition: border-color var(--d-fast), background var(--d-fast);
 }
 .rel[open] { border-color: #2c3a5c; background: linear-gradient(160deg, #1b2440, #151b2b); }
 .rel summary {
@@ -272,14 +281,14 @@ p.hint.top { margin: 0 0 6px; }
 .rel summary::-webkit-details-marker { display: none; }
 .rel summary:hover .rel-t { color: #fff; }
 .rel-v { font-size: 12px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
-.rel-t { flex: 1; min-width: 180px; font-size: 13.5px; font-weight: 700; transition: color .2s; }
+.rel-t { flex: 1; min-width: 180px; font-size: 13.5px; font-weight: 700; transition: color var(--d-fast); }
 .rel-tag {
   padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
   background: #10331f; border: 1px solid #1f5a37; color: var(--win);
 }
 .rel-tag.dev { background: #2a1d36; border-color: #4a3560; color: var(--face); }
 .rel-date { font-size: 11.5px; color: var(--faint); }
-.rel-chev { display: inline-flex; color: var(--faint); transition: transform .2s var(--ease); }
+.rel-chev { display: inline-flex; color: var(--faint); transition: transform var(--d-mod) var(--spring-pop); }
 .rel-chev .ic { width: 14px; height: 14px; }
 .rel[open] .rel-chev { transform: rotate(180deg); }
 .rel ul { margin: 0; padding: 0 18px 13px 34px; color: var(--dim); font-size: 13px; line-height: 1.55; }
@@ -299,7 +308,7 @@ footer b { color: var(--dim); }
   background: #10331f; border: 1px solid #1f5a37; color: var(--win);
   font-size: 13px; font-weight: 700; box-shadow: 0 10px 30px #0008;
   opacity: 0; transform: translateY(12px); pointer-events: none;
-  transition: opacity .25s, transform .25s var(--ease);
+  transition: opacity var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .saved.show { opacity: 1; transform: none; }
 
@@ -331,7 +340,7 @@ footer b { color: var(--dim); }
   display: inline-block; flex: none; width: 1em; height: 1em; vertical-align: -0.14em;
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
-.checks label > i { display: inline-flex; color: var(--dim); transition: color .2s; }
+.checks label > i { display: inline-flex; color: var(--dim); transition: color var(--d-fast); }
 .checks label > i .ic { width: 14px; height: 14px; }
 .checks label:has(input:checked) > i { color: var(--accent); }
 button[data-play] i { display: inline-flex; }
@@ -355,7 +364,7 @@ section.card h3 + p.hint.top { margin-top: 8px; }
 .search {
   display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 0 12px;
   height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
-  color: var(--faint); transition: border-color .2s, box-shadow .2s;
+  color: var(--faint); transition: border-color var(--d-fast), box-shadow var(--d-fast);
 }
 .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px #4d9fff26; color: var(--accent); }
 .search i { display: inline-flex; }
@@ -432,7 +441,7 @@ details.advanced > summary + .row { border-top-color: var(--line-soft); }
 .field.check {
   flex-direction: row; align-items: center; gap: 9px; align-self: end;
   height: 36px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2);
-  cursor: pointer; transition: border-color .2s, background .2s;
+  cursor: pointer; transition: border-color var(--d-fast), background var(--d-fast);
 }
 .field.check:has(input:checked) { border-color: var(--accent); background: #14243a; }
 .field.check > span { color: var(--fg); font-size: 13px; font-weight: 600; }
@@ -470,7 +479,7 @@ details.advanced > summary + .row { border-top-color: var(--line-soft); }
 .swatch {
   width: 24px; height: 24px; border-radius: 50%; padding: 0; cursor: pointer;
   border: 2px solid #0000; box-shadow: inset 0 0 0 1px #0004;
-  transition: transform .15s, border-color .15s;
+  transition: transform var(--d-mod) var(--spring-pop), border-color var(--d-fast);
 }
 .swatch:hover { transform: scale(1.12); }
 .swatch:disabled { cursor: not-allowed; transform: none; }
@@ -494,7 +503,7 @@ label.btn { cursor: pointer; }
 .theme {
   display: flex; flex-direction: column; gap: 6px; padding: 7px 7px 10px; border-radius: 14px; cursor: pointer; text-align: left;
   border: 1px solid var(--line); background: #ffffff05; color: var(--fg); font: inherit;
-  transition: border-color .18s, transform .15s, box-shadow .18s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop), box-shadow var(--d-fast);
 }
 .theme:hover { border-color: #ffffff30; transform: translateY(-2px); }
 .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -520,3 +529,66 @@ label.btn { cursor: pointer; }
 .snd-chip .icon { width: 26px; height: 26px; border-radius: 8px; border: 0; background: none; color: var(--dim); cursor: pointer; display: grid; place-items: center; }
 .snd-chip .icon:hover { color: var(--fg); background: #ffffff10; }
 .snd-chip .icon .ic { width: 14px; height: 14px; }
+
+/* ============================ micro-animations ===========================
+   Comme le popup, inspirées de Fluid Functionalism : le mouvement dit d'où
+   l'on vient et ce qui a changé, et ne passe que par transform et opacity.
+   ======================================================================== */
+
+/* --- menu : la section lue a sa pastille, qui glisse ; le survol aussi ---- */
+.nav { position: relative; }
+.nav a { position: relative; z-index: 1; }
+.nav a.on, .nav a:hover { background: none; box-shadow: none; border-color: transparent; }
+.nav-ind {
+  position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;
+  border-radius: 11px; border: 1px solid #33466e;
+  background: linear-gradient(160deg, #22304f, #182137);
+  box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff12;
+}
+.nav-ind.ready { transition: transform var(--d-slow) var(--spring), width var(--d-slow) var(--spring), height var(--d-slow) var(--spring), opacity var(--d-fast); }
+.nav-ind.gone { opacity: 0; }
+.fh-host { position: relative; }
+.fh {
+  position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;
+  background: #ffffff08; opacity: 0;
+  transition: transform var(--d-mod) var(--spring), width var(--d-mod) var(--spring),
+              height var(--d-mod) var(--spring), opacity 80ms var(--exit);
+}
+.fh.on { opacity: 1; transition-duration: var(--d-mod), var(--d-mod), var(--d-mod), var(--d-fast); transition-timing-function: var(--spring); }
+.fh.snap { transition: opacity var(--d-fast) var(--spring); }
+/* L'icône du lien se tend sous le pointeur. */
+.nav a > i { transition: background var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop); }
+.nav a:hover > i { transform: scale(1.08); }
+.nav a:active > i { transform: scale(.92); transition-duration: 70ms; }
+
+/* --- interrupteurs : la pastille s'étire quand on appuie, puis rebondit --- */
+.row.switch > input[type=checkbox]::before { transform-origin: left center; }
+.row.switch > input[type=checkbox]:checked::before { transform-origin: right center; }
+.row.switch:active > input[type=checkbox]::before { transform: scaleX(1.22); transition-duration: 90ms; }
+.row.switch:active > input[type=checkbox]:checked::before { transform: translateX(17px) scaleX(1.22); }
+
+/* --- boutons : on n'écrase pas un bouton large, on l'enfonce d'un pixel --- */
+.btn:active { transform: translateY(1px); transition-duration: 70ms; }
+.btn:not(.ghost):active { box-shadow: inset 0 2px 4px #0005; }
+
+/* --- « Enregistré » : arrive sur un ressort, repart plus vite ------------- */
+.saved { transition: opacity 90ms var(--exit), transform 90ms var(--exit); }
+.saved.show { transition: opacity var(--d-fast) var(--spring), transform var(--d-slow) var(--spring-pop); }
+
+/* --- les cartes arrivent plus près et plus vite --------------------------- */
+@keyframes rise { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+section.card { animation: rise var(--d-slow) var(--spring) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
+/* --- focus clavier et barre de défilement --------------------------------- */
+a:focus-visible, .btn:focus-visible, button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 85%, transparent); outline-offset: 2px;
+}
+html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-thumb { background: #ffffff1a; border: 4px solid transparent; background-clip: padding-box; border-radius: 12px; }
+::-webkit-scrollbar-thumb:hover { background-color: #ffffff2e; border-width: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  section.card { animation: none; }
+  .nav a:hover > i, .row.switch:active > input::before { transform: none; }
+}

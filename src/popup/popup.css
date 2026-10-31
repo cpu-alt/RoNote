@@ -35,6 +35,17 @@
   --r-md: 10px;
   --r-lg: 14px;
   --ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* Le mouvement, inspire de Fluid Functionalism : des ressorts plutot que
+     des courbes, et trois tempos selon la taille de ce qui bouge (plus c'est
+     grand, plus c'est lent). Une sortie est toujours plus breve qu'une entree
+     et ne rebondit jamais. `linear()` dessine le ressort point par point. */
+  --spring: linear(0, .13, .355, .559, .713, .819, .888, .932, .96, .976, .986, .992, .995, .997, .998, .999, 1);
+  --spring-pop: linear(0, .103, .331, .589, .815, .98, 1.08, 1.12, 1.12, 1.1, 1.07, 1.04, 1.01, .996, .987, .984, .986, .989, .993, .997, 1, 1, 1);
+  --exit: cubic-bezier(.4, 0, 1, 1);
+  --d-fast: 110ms;   /* survol, fondus, focus */
+  --d-mod:  220ms;   /* onglets, pressions, petits trajets */
+  --d-slow: 320ms;   /* entrees de contenu, grandes surfaces */
 }
 
 * { box-sizing: border-box; }
@@ -88,7 +99,7 @@ button.icon {
   width: 32px; height: 32px; border-radius: 11px; cursor: pointer;
   background: #ffffff08; border: 1px solid #ffffff12; color: var(--dim);
   font-size: 14px; line-height: 1;
-  transition: background .2s, border-color .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 button.icon:hover { background: #ffffff12; border-color: #ffffff28; color: var(--fg); }
 button.icon:active { transform: scale(.9); }
@@ -135,7 +146,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   position: relative; z-index: 1; flex: 1; padding: 7px 2px;
   background: none; border: 0; border-radius: 10px; cursor: pointer;
   color: var(--faint); font-size: 11.5px; font-weight: 650; white-space: nowrap;
-  transition: color .2s;
+  transition: color var(--d-fast);
 }
 .tab:hover { color: var(--dim); }
 .tab.active { color: var(--fg); }
@@ -145,7 +156,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   background: linear-gradient(160deg, #22304f, #182137);
   box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff14;
 }
-.tab-ind.ready { transition: transform .34s var(--ease), width .34s var(--ease); }
+.tab-ind.ready { transition: transform var(--d-mod) var(--spring-pop), width .34s var(--ease); }
 .pill {
   display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 2px;
   border-radius: 9px; background: var(--accent); color: #04101f;
@@ -221,7 +232,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   padding: 4px 10px; border-radius: 20px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface); color: var(--dim);
   font-size: 10.5px; font-weight: 650;
-  transition: background .2s, border-color .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .lchips button:hover { color: var(--fg); }
 .lchips button:active { transform: scale(.94); }
@@ -237,7 +248,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .l-more button {
   padding: 6px 14px; border-radius: 20px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface); color: var(--dim);
-  font-size: 11px; font-weight: 650; transition: color .2s, border-color .2s, transform .12s;
+  font-size: 11px; font-weight: 650; transition: color var(--d-fast), border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .l-more button:hover { color: var(--fg); border-color: #33405a; }
 .l-more button:active { transform: scale(.95); }
@@ -265,7 +276,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .tc {
   position: relative; overflow: hidden;
   border-radius: 16px; border: 1px solid var(--line); background: var(--surface);
-  transition: border-color .2s, box-shadow .2s, transform .2s var(--ease);
+  transition: border-color var(--d-fast), box-shadow var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .tc::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
@@ -317,7 +328,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   flex: none; height: 28px; min-width: 28px; padding: 0 7px; border-radius: 9px; cursor: pointer;
   background: #ffffff08; border: 1px solid #ffffff12; color: var(--faint);
   font-size: 12px; font-weight: 700; line-height: 1;
-  transition: color .2s, background .2s, border-color .2s, opacity .2s, filter .2s, transform .12s;
+  transition: color var(--d-fast), background var(--d-fast), border-color var(--d-fast), opacity var(--d-fast), filter var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .tc-btn:active { transform: scale(.9); }
 .tc-btn.pin { filter: grayscale(1); opacity: .55; }
@@ -351,7 +362,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .tc-tile {
   flex: none; width: 38px; height: 38px; border-radius: 11px; object-fit: cover;
   background: #ffffff10; border: 1px solid var(--line);
-  transition: transform .18s var(--ease);
+  transition: transform var(--d-mod) var(--spring-pop);
 }
 .tc-tile:hover { transform: translateY(-2px) scale(1.06); }
 .tc-tile.ph, .tc-tile.more, .tc-tile.empty {
@@ -429,10 +440,10 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   position: relative; display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; padding: 6px; border: 0; border-top: 1px solid var(--line-soft);
   background: transparent; color: var(--faint); font-size: 10.5px; font-weight: 650; cursor: pointer;
-  transition: background .2s, color .2s;
+  transition: background var(--d-fast), color var(--d-fast);
 }
 .tc-more:hover { background: #ffffff06; color: var(--dim); }
-.tc-more i { font-style: normal; transition: transform .25s var(--ease); }
+.tc-more i { font-style: normal; transition: transform var(--d-mod) var(--spring-pop); }
 .tc-more.open i { transform: rotate(180deg); }
 
 .detail {
@@ -446,7 +457,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 }
 .det-row {
   display: grid; grid-template-columns: 28px 1fr auto; gap: 9px; align-items: center;
-  padding: 5px 12px; text-decoration: none; color: inherit; transition: background .15s;
+  padding: 5px 12px; text-decoration: none; color: inherit; transition: background var(--d-fast);
 }
 .det-row:hover { background: #ffffff08; }
 .det-row img, .det-row .ph {
@@ -478,7 +489,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
 .err-retry {
   flex: none; padding: 5px 10px; border-radius: 9px; cursor: pointer;
   background: #46201f; border: 1px solid #6b2f2d; color: #ffd9d9; font-size: 10.5px; font-weight: 650;
-  transition: background .2s, transform .12s;
+  transition: background var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .err-retry:hover { background: #582827; }
 .err-retry:active { transform: scale(.94); }
@@ -497,7 +508,7 @@ button.icon.spin span { animation: spin .8s linear infinite; }
   display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center;
   width: 100%; padding: 6px; border: 0; border-radius: 11px;
   background: none; color: inherit; text-align: left; font: inherit;
-  transition: background .18s, transform .12s;
+  transition: background var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 button.jr { cursor: pointer; }
 /* Suivi dont le trade n'est plus dans la liste des 100 derniers envois. */
@@ -602,11 +613,11 @@ button.jr:active { transform: scale(.985); }
   padding: 3px 9px 3px 7px; border-radius: 20px; cursor: pointer;
   border: 1px solid #ffffff14; background: #0a0e1a80; color: var(--faint);
   font-size: 10.5px; font-weight: 700;
-  transition: color .2s, background .2s, border-color .2s, transform .12s;
+  transition: color var(--d-fast), background var(--d-fast), border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-series button i {
   width: 7px; height: 7px; border-radius: 50%; background: var(--c); opacity: .35;
-  transition: opacity .2s, box-shadow .2s;
+  transition: opacity var(--d-fast), box-shadow var(--d-fast);
 }
 .w-series button:hover { color: var(--fg); }
 .w-series button:active { transform: scale(.94); }
@@ -620,7 +631,7 @@ button.jr:active { transform: scale(.985); }
 .w-eye {
   flex: none; width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
   border: 1px solid #ffffff14; background: #0a0e1a80; font-size: 13px; line-height: 1;
-  transition: border-color .2s, transform .12s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-eye:hover { border-color: #ffffff38; }
 .w-eye:active { transform: scale(.9); }
@@ -639,7 +650,7 @@ button.jr:active { transform: scale(.985); }
 .w-pill {
   padding: 2px 8px; border-radius: 20px; background: #ffffff12;
   font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
-  transition: background .2s, color .2s;
+  transition: background var(--d-fast), color var(--d-fast);
 }
 .w-pill.win  { background: #2fd07026; }
 .w-pill.loss { background: #ff5f6626; }
@@ -653,7 +664,7 @@ button.jr:active { transform: scale(.985); }
 
 .w-end {
   position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
-  background: var(--c); box-shadow: 0 0 10px var(--c); pointer-events: none; transition: opacity .2s;
+  background: var(--c); box-shadow: 0 0 10px var(--c); pointer-events: none; transition: opacity var(--d-fast);
 }
 .w-end::after {
   content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--c);
@@ -662,7 +673,7 @@ button.jr:active { transform: scale(.985); }
 .w-ext {
   position: absolute; transform: translate(-50%, -165%); pointer-events: none;
   font-size: 9.5px; font-weight: 700; color: #b7c4dd; white-space: nowrap;
-  font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px #000c; transition: opacity .2s;
+  font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px #000c; transition: opacity var(--d-fast);
 }
 .w-ext.lo { transform: translate(-50%, 60%); color: var(--faint); }
 .w-plot.scrub .w-ext, .w-plot.scrub .w-end { opacity: 0; }
@@ -714,7 +725,7 @@ button.jr:active { transform: scale(.985); }
 .w-ranges button {
   flex: 1; padding: 4px 0; border: 0; border-radius: 8px; background: none; cursor: pointer;
   font-size: 10.5px; font-weight: 700; color: var(--faint);
-  transition: background .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-ranges button:hover { color: var(--fg); }
 .w-ranges button:active { transform: scale(.92); }
@@ -759,7 +770,7 @@ button.jr:active { transform: scale(.985); }
 .w-tools input, .w-tools select {
   height: 30px; border-radius: var(--r-md); border: 1px solid var(--line);
   background: var(--surface-2); color: var(--fg); font: inherit; font-size: 11.5px;
-  transition: border-color .2s, box-shadow .2s;
+  transition: border-color var(--d-fast), box-shadow var(--d-fast);
 }
 .w-tools input { flex: 1; min-width: 0; padding: 0 10px; }
 .w-tools select { max-width: 130px; padding: 0 6px; cursor: pointer; }
@@ -769,7 +780,7 @@ button.jr:active { transform: scale(.985); }
 .w-view {
   flex: none; width: 30px; height: 30px; border-radius: var(--r-md); cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); font-size: 13px; line-height: 1;
-  transition: border-color .2s, transform .12s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-view:hover { border-color: #33405a; }
 .w-view:active { transform: scale(.9); }
@@ -779,7 +790,7 @@ button.jr:active { transform: scale(.985); }
   padding: 3px 9px; border-radius: 20px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--dim);
   font-size: 10.5px; font-weight: 650;
-  transition: background .2s, border-color .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-chips button:active { transform: scale(.94); }
 .w-chips button small { margin-left: 2px; color: var(--faint); font-size: 10px; font-weight: 600; }
@@ -790,7 +801,7 @@ button.jr:active { transform: scale(.985); }
   display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center;
   width: 100%; padding: 7px 5px; border: 0; border-top: 1px solid var(--line-soft);
   border-radius: var(--r-md); background: none; text-align: left; cursor: pointer;
-  transition: background .18s, transform .12s;
+  transition: background var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-item:first-child { border-top-color: transparent; }
 .w-item:hover { background: var(--surface-2); }
@@ -826,7 +837,7 @@ button.jr:active { transform: scale(.985); }
   display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px;
   border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
   text-align: left; cursor: pointer;
-  transition: border-color .2s, transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop), box-shadow var(--d-fast);
 }
 .w-card:hover { border-color: #33405a; transform: translateY(-2px); box-shadow: 0 10px 20px #0007; }
 .w-card:active { transform: scale(.97); }
@@ -895,7 +906,7 @@ button.jr:active { transform: scale(.985); }
 .w-btn {
   flex: none; padding: 5px 10px; border-radius: var(--r-sm); cursor: pointer;
   background: var(--surface); border: 1px solid var(--line); color: var(--dim);
-  font-size: 11px; font-weight: 650; transition: color .2s, border-color .2s, transform .12s;
+  font-size: 11px; font-weight: 650; transition: color var(--d-fast), border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .w-btn:hover { color: var(--fg); border-color: #33405a; }
 .w-btn:active { transform: scale(.95); }
@@ -938,7 +949,7 @@ button.jr:active { transform: scale(.985); }
   flex: none; width: 30px; height: 30px; border-radius: 10px; cursor: pointer;
   background: #ffffff08; border: 1px solid #ffffff12; color: var(--dim);
   font-size: 12px; line-height: 1;
-  transition: color .2s, border-color .2s, transform .12s;
+  transition: color var(--d-fast), border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .z-close:hover { color: var(--fg); border-color: #ffffff30; }
 .z-close:active { transform: scale(.9); }
@@ -986,7 +997,7 @@ button.jr:active { transform: scale(.985); }
   flex: 1; padding: 9px 6px; border-radius: 12px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
   font-size: 12px; font-weight: 650;
-  transition: background .2s, border-color .2s, color .2s, transform .12s;
+  transition: background var(--d-fast), border-color var(--d-fast), color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .z-foot button:hover { border-color: #3d4a66; background: #232c3f; }
 .z-foot button:active { transform: scale(.97); }
@@ -1024,7 +1035,7 @@ html.side-open .zoom { left: var(--side-w); }
 @keyframes p-out  { to { transform: translateX(28px); opacity: 0; } }
 @keyframes p-swap { from { transform: translateY(6px); opacity: .35; } }
 
-button.av-btn { border: 0; cursor: pointer; transition: transform .15s var(--ease), box-shadow .2s; }
+button.av-btn { border: 0; cursor: pointer; transition: transform var(--d-mod) var(--spring-pop), box-shadow var(--d-fast); }
 button.av-btn:hover { transform: scale(1.08); box-shadow: 0 0 0 3px #4d9fff33; }
 button.av-btn:active { transform: scale(.94); }
 button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -1082,7 +1093,7 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .p-faces { padding: 3px 10px; }
 .p-faces .rec-row {
   grid-template-columns: 32px 1fr auto; padding: 6px 0;
-  color: var(--fg); text-decoration: none; transition: color .15s;
+  color: var(--fg); text-decoration: none; transition: color var(--d-fast);
 }
 .p-faces .rec-v { color: var(--fg); }
 .p-faces .rec-v.loss { color: var(--loss); }
@@ -1150,7 +1161,7 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center;
   width: 100%; padding: 6px; border: 0; border-radius: 11px;
   background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
-  transition: background .18s, border-color .2s;
+  transition: background var(--d-fast), border-color var(--d-fast);
 }
 .h-todo:hover { background: #ffffff08; }
 .h-todo .jr-ic .ic { width: 16px; height: 16px; }
@@ -1323,7 +1334,7 @@ button.icon .ic { width: 16px; height: 16px; }
 .cf-chip {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 10px;
   border-radius: 10px; border: 1px solid transparent; background: none; color: var(--faint);
-  font-size: 12.5px; font-weight: 700; cursor: pointer; transition: color .2s, background .2s, border-color .2s;
+  font-size: 12.5px; font-weight: 700; cursor: pointer; transition: color var(--d-fast), background var(--d-fast), border-color var(--d-fast);
 }
 .cf-chip:hover:not(:disabled) { color: var(--dim); }
 .cf-chip.on { color: var(--fg); border-color: #33466e; background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff14; }
@@ -1336,7 +1347,7 @@ button.icon .ic { width: 16px; height: 16px; }
   font-size: 13.5px; font-weight: 750; color: #fff;
   background: linear-gradient(180deg, #5aa8ff, #3b82f6);
   box-shadow: 0 8px 22px #4d9fff40, inset 0 1px 0 #ffffff40;
-  transition: filter .2s, transform .12s, box-shadow .2s;
+  transition: filter var(--d-fast), transform var(--d-mod) var(--spring-pop), box-shadow var(--d-fast);
 }
 .cf-go:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 8px 26px #4d9fff66, inset 0 1px 0 #ffffff40; }
 .cf-go:active:not(:disabled) { transform: scale(.98); }
@@ -1357,7 +1368,7 @@ button.icon .ic { width: 16px; height: 16px; }
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 10px 12px;
   border-radius: 13px; border: 1px solid #2a3552; cursor: pointer; text-align: left; color: var(--fg);
   background: radial-gradient(120% 140% at 0% 0%, #4d9fff1f, transparent 55%), linear-gradient(160deg, #1b2340, #131a2c);
-  transition: border-color .2s, transform .12s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .rc-open:hover { border-color: #4d9fff66; }
 .rc-open:active { transform: scale(.99); }
@@ -1382,7 +1393,7 @@ button.icon .ic { width: 16px; height: 16px; }
 .rc-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px;
   border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
-  font-size: 13px; font-weight: 750; cursor: pointer; transition: filter .2s, transform .12s;
+  font-size: 13px; font-weight: 750; cursor: pointer; transition: filter var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .rc-btn .ic { width: 16px; height: 16px; }
 .rc-btn.main { border-color: #5aa8ff; color: #fff; background: linear-gradient(180deg, #5aa8ff, #3b82f6); box-shadow: 0 6px 18px #4d9fff40; }
@@ -1395,7 +1406,7 @@ button.icon .ic { width: 16px; height: 16px; }
 .rc-modes button {
   flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px;
   border: 1px solid transparent; border-radius: 9px; background: none; cursor: pointer;
-  color: var(--faint); font-size: 12px; font-weight: 700; transition: color .2s, background .2s;
+  color: var(--faint); font-size: 12px; font-weight: 700; transition: color var(--d-fast), background var(--d-fast);
 }
 .rc-modes button .ic { width: 14px; height: 14px; }
 .rc-modes button:hover { color: var(--dim); }
@@ -1456,7 +1467,7 @@ button.icon .ic { width: 16px; height: 16px; }
 }
 .fx-bg img, .fx-add > .ic {
   width: 58px; height: 72px; border-radius: 10px; object-fit: cover; display: block;
-  border: 1px solid var(--line); background: #0b0f19; transition: border-color .15s, transform .15s;
+  border: 1px solid var(--line); background: #0b0f19; transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop);
 }
 .fx-bg:hover img { transform: translateY(-2px); border-color: #ffffff30; }
 .fx-bg[aria-selected="true"] { color: var(--fg); }
@@ -1484,7 +1495,7 @@ body.anon #acct .ic { width: 12px; height: 12px; }
   display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 9px; cursor: pointer;
   border: 1px solid #33466e; color: var(--fg); font-size: 11.5px; font-weight: 750;
   background: linear-gradient(160deg, #22304f, #182137); box-shadow: 0 4px 14px #0006, inset 0 1px 0 #ffffff14;
-  transition: border-color .2s, transform .12s, box-shadow .2s;
+  transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop), box-shadow var(--d-fast);
 }
 .w-flex .ic { width: 13px; height: 13px; color: var(--accent); }
 .w-flex:hover { border-color: #4d9fff88; box-shadow: 0 4px 16px #4d9fff33; }
@@ -1494,14 +1505,14 @@ body.anon .w-eye { color: var(--accent); border-color: #4d9fff66; }
 /* Feuille de partage : l'interrupteur « Carte anonyme ». */
 .fx-anon {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px; border-radius: 12px; cursor: pointer; text-align: left;
-  border: 1px solid var(--line); background: var(--surface); color: var(--fg); transition: border-color .2s, background .2s;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); transition: border-color var(--d-fast), background var(--d-fast);
 }
 .fx-anon > .ic { width: 18px; height: 18px; flex: none; color: var(--faint); }
 .fx-anon span { flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .fx-anon b { font-size: 12.5px; }
 .fx-anon small { font-size: 11px; color: var(--faint); }
-.fx-switch { flex: none; position: relative; width: 34px; height: 20px; border-radius: 10px; background: #2a3450; transition: background .2s; }
-.fx-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #c9d3e6; transition: transform .2s var(--ease); }
+.fx-switch { flex: none; position: relative; width: 34px; height: 20px; border-radius: 10px; background: #2a3450; transition: background var(--d-fast); }
+.fx-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #c9d3e6; transition: transform var(--d-mod) var(--spring-pop); }
 .fx-anon[aria-pressed="true"] { border-color: #4d9fff66; background: #4d9fff12; }
 .fx-anon[aria-pressed="true"] > .ic { color: var(--accent); }
 .fx-anon[aria-pressed="true"] .fx-switch { background: var(--accent); }
@@ -1520,3 +1531,85 @@ html.in-panel.side-open .zoom { left: 0; }
 html.in-panel .side { width: 100%; padding: 8px; }
 /* Panneau etroit (320 px chez Chrome) : les onglets defilent au lieu de deborder. */
 html.in-panel .tabs { overflow-x: auto; scrollbar-width: none; }
+
+/* ============================ micro-animations ===========================
+   Inspirées de Fluid Functionalism. Le mouvement dit quelque chose (d'où l'on
+   vient, ce qui a changé) et ne passe que par transform et opacity, que le
+   compositeur anime sans repeindre la page.
+   ======================================================================== */
+
+/* --- survol fluide (fluid.js) : une pastille par groupe, qui glisse ------- */
+.fh-host { position: relative; }
+.fh {
+  position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;
+  background: #ffffff0d; opacity: 0;
+  transition: transform var(--d-mod) var(--spring), width var(--d-mod) var(--spring),
+              height var(--d-mod) var(--spring), opacity 80ms var(--exit);
+}
+.fh.on { opacity: 1; transition-property: transform, width, height, opacity; transition-duration: var(--d-mod), var(--d-mod), var(--d-mod), var(--d-fast); transition-timing-function: var(--spring); }
+.fh.snap { transition: opacity var(--d-fast) var(--spring); }
+.fh-host > :not(.fh, .tab-ind) { position: relative; z-index: 1; }
+.tabs .fh { background: #ffffff08; }
+.tabs .tab-ind { z-index: 0; }
+/* La pastille remplace le fond de survol propre à chaque ligne. */
+.fh-host > button.jr:hover, .fh-host > .jr:hover, .fh-host > .h-todo:hover { background: none; }
+
+/* --- l'entête : un groupe de boutons fantômes dans une seule capsule ------ */
+.actions {
+  gap: 2px; padding: 3px; border-radius: 13px;
+  background: #ffffff06; border: 1px solid #ffffff10;
+}
+.actions button.icon { width: 30px; height: 30px; border-radius: 10px; background: transparent; border-color: transparent; }
+.actions button.icon:hover { background: transparent; border-color: transparent; }
+.actions button.icon.off { background: #ffb02e14; border-color: #ffb02e40; }
+.actions .fh { background: #ffffff12; box-shadow: inset 0 1px 0 #ffffff10; }
+/* Le trait s'épaissit sous le pointeur : l'icône « se tend » vers le clic. */
+.actions button.icon .ic { stroke-width: 1.8; transition: stroke-width var(--d-fast) var(--spring); }
+.actions button.icon:hover .ic, .actions button.icon:focus-visible .ic { stroke-width: 2.2; }
+
+/* --- pression : on enfonce vite, on relâche sur un petit rebond ----------- */
+button.icon:active, button.jr:active, .tab:active { transition-duration: 70ms; transition-timing-function: var(--exit); }
+.tab:active { transform: scale(.94); }
+.tab { transition: color var(--d-fast), transform var(--d-mod) var(--spring-pop); }
+
+/* --- deux icônes dans une même case : fondu flou à la bascule ------------- */
+button.icon.swap { display: inline-grid; place-items: center; }
+button.icon.swap > i { grid-area: 1 / 1; transition: opacity 120ms var(--spring), transform var(--d-mod) var(--spring-pop), filter 120ms var(--spring); }
+/* La sortie est plus brève que l'entrée, et sans rebond. */
+button.icon.swap > .sw-b,
+button.icon.swap.on > .sw-a {
+  opacity: 0; transform: scale(.6) rotate(-8deg); filter: blur(4px);
+  transition: opacity 70ms var(--exit), transform 70ms var(--exit), filter 70ms var(--exit);
+}
+button.icon.swap.on > .sw-b { opacity: 1; transform: none; filter: none; }
+button.icon.swap.on { color: var(--accent); }
+
+/* --- les entrées de contenu : plus courtes, plus proches ------------------ */
+@keyframes w-rise { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.w-in {
+  animation: w-rise var(--d-slow) var(--spring) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.tc-enter { animation: w-rise var(--d-slow) var(--spring) both; }
+
+/* --- focus clavier : un anneau net, jamais pour la souris ----------------- */
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 85%, transparent); outline-offset: 2px;
+}
+.tab:focus-visible, .actions button.icon:focus-visible { outline-offset: -2px; }
+
+/* --- barre de défilement : discrète au repos, plus franche au survol ------ */
+.list { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
+.list::-webkit-scrollbar, .z-body::-webkit-scrollbar { width: 10px; }
+.list::-webkit-scrollbar-thumb, .z-body::-webkit-scrollbar-thumb {
+  background: #ffffff1a; border: 3px solid transparent; background-clip: padding-box; border-radius: 10px;
+}
+.list::-webkit-scrollbar-thumb:hover, .z-body::-webkit-scrollbar-thumb:hover { background-color: #ffffff2e; border-width: 2px; }
+
+/* --- moins de mouvement : on garde les fondus, on retire les trajets ------ */
+@media (prefers-reduced-motion: reduce) {
+  .fh { transition: opacity var(--d-fast) !important; }
+  .w-in { animation-name: w-fade; }
+  .tab:active, button.icon:active { transform: none; }
+  button.icon.swap > i { transform: none !important; filter: none !important; }
+}

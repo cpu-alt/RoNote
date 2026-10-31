@@ -97,6 +97,7 @@ try {
   await import('../src/common/player.js');
   await import('../src/common/changelog.js');
   await import('../src/common/revalue.js');
+  await import('../src/common/fluid.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
