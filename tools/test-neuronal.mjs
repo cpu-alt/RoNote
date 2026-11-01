@@ -31,7 +31,7 @@ globalThis.fetch = async (url, init = {}) => {
   return new Response('{}', { status });
 };
 
-const { tradeReport, shareWithNeuronal, neuronalLookup } = await import('../src/background/neuronal.js');
+const { tradeReport, shareWithNeuronal, neuronalLookup, neuronalExternal } = await import('../src/background/neuronal.js');
 
 let passed = 0, failed = 0;
 const check = (label, ok) => { if (ok) { passed++; console.log('  ✓ ' + label); } else { failed++; console.error('  ✗ ' + label); } };
@@ -93,6 +93,30 @@ console.log('\nLa fiche gardée en cache après un envoi');
   const keys = Object.keys(session.get('neuronalCache') || {});
   check('après : celle du partenaire est oubliée', !keys.includes('player:77'));
   check('les autres fiches restent', keys.includes('player:5'));
+}
+
+console.log('\nLa page neuronal.live/ronote parle à l\'extension');
+{
+  const site = { origin: 'https://neuronal.live', url: 'https://neuronal.live/ronote' };
+  let opened = null;
+  const open = async (hash) => { opened = hash; };
+  granted = true;
+  const hi = await neuronalExternal({ type: 'ronote:hello' }, site, { neuronalShare: true }, open);
+  check('hello : version et contribution active', hi.version === '2.17.0' && hi.share === true);
+  const off = await neuronalExternal({ type: 'ronote:hello' }, site, { neuronalShare: false }, open);
+  check('hello : option coupée → share false', off.share === false);
+  granted = false;
+  const noPerm = await neuronalExternal({ type: 'ronote:hello' }, site, { neuronalShare: true }, open);
+  check('hello : permission absente → share false', noPerm.share === false);
+  granted = true;
+  const ok = await neuronalExternal({ type: 'ronote:open', section: 'neuronal' }, site, {}, open);
+  check('open : réglages ouverts sur la section Neuronal', ok.ok === true && opened === 's-neuronal');
+  opened = null;
+  const evil = await neuronalExternal({ type: 'ronote:open', section: 'neuronal' }, { origin: 'https://neuronal.live.evil.com' }, {}, open);
+  check('une autre origine reste sans réponse', evil === null && opened === null);
+  const http = await neuronalExternal({ type: 'ronote:hello' }, { url: 'http://neuronal.live/ronote' }, {}, open);
+  check('http:// refusé (repli sur sender.url)', http === null);
+  check('message inconnu : sans réponse', await neuronalExternal({ type: 'ronote:decline' }, site, {}, open) === null);
 }
 
 console.log('\nRoute absente, option ou permission coupée');

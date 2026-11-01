@@ -22,7 +22,9 @@ export const RELEASES = [
       item("Contribuer au réseau Neuronal (Réglages › Valeurs, coupé par défaut) : ton compte apparaît sur la carte de neuronal.live avec le cadre bleu RoNote, et tes trades terminés y sont envoyés avec les objets exacts et les Robux. Le réseau n'a plus à les deviner. Aucune requête de plus vers Roblox.",
         "Contribute to the Neuronal network (Settings › Values, off by default): your account shows up on the neuronal.live map with the blue RoNote frame, and your completed trades are sent there with the exact items and Robux. The network no longer has to guess them. No extra request to Roblox."),
       item("Fiches Neuronal : un joueur qui utilise RoNote est signalé en bleu, les Robux d'un trade du réseau s'affichent, et les trades confirmés par RoNote portent son étiquette.",
-        "Neuronal lookups: a player using RoNote is flagged in blue, the Robux of a network trade are shown, and trades confirmed by RoNote carry its tag.")
+        "Neuronal lookups: a player using RoNote is flagged in blue, the Robux of a network trade are shown, and trades confirmed by RoNote carry its tag."),
+      item("La page neuronal.live/ronote reconnaît RoNote : elle sait s'il est installé et si tu contribues, et son bouton ouvre directement les réglages Neuronal.",
+        "The neuronal.live/ronote page recognises RoNote: it knows whether it is installed and whether you contribute, and its button opens the Neuronal settings directly.")
     ]
   },
   {

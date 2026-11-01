@@ -15,6 +15,13 @@ l'utilisateur, pas la liste des commits.
 - **Fiches Neuronal** : drapeau bleu « Utilise RoNote », Robux des trades du
   réseau, étiquette « RoNote » sur les trades confirmés par un utilisateur.
 - Lien vers la future page `neuronal.live/ronote` dans les réglages.
+- **La page `neuronal.live/ronote` reconnaît RoNote** : sur Chrome par
+  `externally_connectable` (`ronote:hello` → version et état de la
+  contribution, `ronote:open` → réglages Neuronal), limité à l'origine
+  `https://neuronal.live`. Sur Firefox, un content script qui poste les mêmes
+  informations à la page, enregistré seulement quand la permission
+  `neuronal.live` est accordée (le déclarer dans le manifeste l'aurait rendue
+  obligatoire à l'installation).
 
 ## v2.16.0 — l'interface Neuronal, la barre latérale et les animations
 

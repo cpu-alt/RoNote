@@ -17,7 +17,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup, shareWithNeuronal } from './neuronal.js';
+import { neuronalLookup, shareWithNeuronal, neuronalExternal, syncHelloScript } from './neuronal.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -94,6 +94,7 @@ async function installHeaderRules() {
 
 B.runtime.onInstalled.addListener(async (details) => {
   await installHeaderRules();
+  await safe(syncHelloScript);
   const settings = await getSettings();
   setLang(settings.lang);
   await configureAlarm(settings);
@@ -110,6 +111,7 @@ B.runtime.onInstalled.addListener(async (details) => {
 
 B.runtime.onStartup?.addListener(async () => {
   await installHeaderRules();
+  await safe(syncHelloScript);
   const settings = await getSettings();
   await configureAlarm(settings);
   await applySidePanel(settings);
@@ -919,6 +921,21 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try { sendResponse(await handleMessage(msg)); }
     catch (e) { sendResponse({ error: String(e?.message || e) }); }
+  })();
+  return true;
+});
+
+// Permission sur neuronal.live accordée ou rendue : le script Firefox de la page suit.
+B.permissions?.onAdded?.addListener(() => safe(syncHelloScript));
+B.permissions?.onRemoved?.addListener(() => safe(syncHelloScript));
+
+// La page neuronal.live/ronote (Chrome seulement, voir neuronal.js) : rien
+// d'autre que « RoNote est-il là ? » et « ouvre les réglages Neuronal ».
+B.runtime.onMessageExternal?.addListener((msg, sender, sendResponse) => {
+  (async () => {
+    const openSettings = (hash) => B.tabs.create({ url: B.runtime.getURL(`options/options.html#${hash}`) });
+    const settings = await getSettings();
+    sendResponse(await safe(() => neuronalExternal(msg, sender, settings, openSettings), null));
   })();
   return true;
 });
