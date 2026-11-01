@@ -790,6 +790,8 @@ try {
     await import('../src/popup/coinflip.js');
     await import('../src/popup/overlay.js');
     await import('../src/popup/share.js');
+    const counter = await import('../src/popup/counter.js');
+    check('contre-offre : rien d\'ouvert au chargement', counter.counterOpen(), false);
   }
 
   // --- Courbes : échantillonnage, modèle commun, lissage sans dépassement.
