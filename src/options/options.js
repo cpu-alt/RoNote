@@ -634,7 +634,7 @@ function wire() {
       } else if (!$('#neuronalLookup').checked && !$('#neuronalShare').checked) {
         B.permissions.remove({ origins: NEURONAL.origins }).catch(() => {});
       }
-      set({ [key]: box.checked });
+      set(key === 'neuronalShare' ? { neuronalShare: box.checked, neuronalAsked: true } : { [key]: box.checked });
     });
   }
   for (const k of NUM_SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: Number(e.target.value) }));

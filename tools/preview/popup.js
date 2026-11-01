@@ -38,6 +38,8 @@ const SETTINGS = {
   enabled: true, pollSeconds: 30, valueBasis: 'value', robuxTax: true,
   useRolimons: true, trackPortfolio: true,
   neuronalLookup: true,   // les fiches montrent la section Neuronal (réponses factices plus bas)
+  // La question « Rejoindre la carte Neuronal ? » : seulement avec ?join=1 (sinon elle encombre chaque capture).
+  neuronalAsked: !new URLSearchParams(location.search).has('join'),
   ignoredUsers: [],
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
@@ -367,6 +369,8 @@ const mockRuntime = {
         return { settings: SETTINGS };
       case 'ronote:settings':
         Object.assign(SETTINGS, msg.patch || {});
+        // Comme le vrai worker, qui écrit les réglages : le popup se redessine.
+        storeListeners.forEach(fn => fn({ settings: { oldValue: SETTINGS, newValue: SETTINGS } }, 'local'));
         return { settings: SETTINGS };
       case 'ronote:track': {
         // Comme le worker : un id ou un lot, pose ou retire.
@@ -459,7 +463,12 @@ const mockChrome = {
     },
     onChanged: { addListener: (fn) => storeListeners.push(fn) }
   },
-  tabs: { create: ({ url }) => { log.textContent = '→ ouvrirait ' + url; } }
+  tabs: { create: ({ url }) => { log.textContent = '→ ouvrirait ' + url; } },
+  // ?deny=1 : la boîte de permission refusée.
+  permissions: {
+    request: async () => !new URLSearchParams(location.search).has('deny'),
+    contains: async () => true
+  }
 };
 globalThis.__ronoteMock = mockChrome;
 

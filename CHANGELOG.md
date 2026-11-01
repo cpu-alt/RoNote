@@ -12,6 +12,12 @@ l'utilisateur, pas la liste des commits.
   côté. Seuls les trades dont le détail est déjà en cache partent : aucune
   requête de plus vers Roblox. Présence au plus toutes les 6 h, chaque trade une
   seule fois, pause de 6 h tant que le site n'a pas ouvert la route.
+- **« Rejoindre la carte Neuronal ? »** : une carte en haut de l'accueil, à
+  l'installation comme à la mise à jour (`neuronalAsked` manque chez les anciens
+  utilisateurs), dit ce qui serait envoyé. « Contribuer » demande la permission
+  et active la contribution et les fiches ; « Non merci » ne la montre plus.
+  Rien n'est activé sans ce clic. Sur Firefox, qui ferme le popup sur la boîte
+  de permission, le worker termine l'activation (`neuronalJoinAt`, 2 min).
 - **Fiches Neuronal** : drapeau bleu « Utilise RoNote », Robux des trades du
   réseau, étiquette « RoNote » sur les trades confirmés par un utilisateur.
 - Lien vers la future page `neuronal.live/ronote` dans les réglages.

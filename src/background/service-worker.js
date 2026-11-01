@@ -9,6 +9,7 @@ import {
 import { getCatalog, readEntry } from '../common/roli.js';
 import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, addKnownInstances } from '../common/page-trade.js';
 import { setLang, t } from '../common/i18n.js';
+import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
@@ -926,7 +927,15 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 });
 
 // Permission sur neuronal.live accordée ou rendue : le script Firefox de la page suit.
-B.permissions?.onAdded?.addListener(() => safe(syncHelloScript));
+B.permissions?.onAdded?.addListener(async (perm) => {
+  await safe(syncHelloScript);
+  // « Contribuer » cliqué dans le popup il y a moins de 2 min : Firefox a pu le
+  // fermer sur la boîte de permission avant qu'il enregistre la réponse.
+  const s = await getSettings();
+  if (s.neuronalJoinAt > Date.now() - 120e3 && (perm?.origins || []).some(o => NEURONAL.origins.includes(o))) {
+    await saveSettings({ neuronalShare: true, neuronalLookup: true, neuronalAsked: true, neuronalJoinAt: 0 });
+  }
+});
 B.permissions?.onRemoved?.addListener(() => safe(syncHelloScript));
 
 // La page neuronal.live/ronote (Chrome seulement, voir neuronal.js) : rien
