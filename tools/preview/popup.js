@@ -36,16 +36,19 @@ cat.changes['a:1029025'] = { from: 340000, to: 400000, pct: 17.6, at: Date.now()
 // `?lang=en` pour voir l'interface traduite sans toucher aux reglages.
 const SETTINGS = {
   enabled: true, pollSeconds: 30, valueBasis: 'value', robuxTax: true,
-  showItemDetails: true, useRolimons: true, trackPortfolio: true,
+  useRolimons: true, trackPortfolio: true,
+  neuronalLookup: true,   // les fiches montrent la section Neuronal (réponses factices plus bas)
   ignoredUsers: [],
   lang: new URLSearchParams(location.search).get('lang') || 'fr'
 };
 
 const ME = 1234567890;
+// Chaque exemplaire a son userAssetId : la contre-offre les retrouve dans les inventaires.
+let nextUaid = 900000;
 const asset = (id, rap, name, serial = null) =>
-  ({ assetId: id, name, recentAveragePrice: rap, serialNumber: serial });
+  ({ userAssetId: ++nextUaid, assetId: id, name, recentAveragePrice: rap, serialNumber: serial });
 const bundle = (id, rap, name, serial = null) =>
-  ({ itemTarget: { itemType: 'Bundle', targetId: String(id) }, itemName: name, recentAveragePrice: rap, serialNumber: serial });
+  ({ userAssetId: ++nextUaid, itemTarget: { itemType: 'Bundle', targetId: String(id) }, itemName: name, recentAveragePrice: rap, serialNumber: serial });
 
 const thumbFor = (item) => {
   for (const k of analysis.thumbKeysFor(item)) {
@@ -152,7 +155,14 @@ for (let i = 120; i >= 0; i--) {
 }
 
 const STATE = {
-  userId: ME, userName: 'DemoTrader', enabled: true,
+  userId: ME, userName: 'DemoTrader', userLogin: 'demotrader', enabled: true,
+  userAvatar: CARDS.inbound[0]?.headshot || null,
+  // Comptes deja vus sur ce navigateur : le menu du portrait les propose.
+  accounts: [
+    { id: ME, name: 'demotrader', displayName: 'DemoTrader', avatar: CARDS.inbound[0]?.headshot || null, at: Date.now() },
+    { id: 4242, name: 'demo_alt', displayName: 'Alt du démo', avatar: CARDS.inbound[1]?.headshot || null, at: Date.now() - 2 * 864e5 },
+    { id: 4343, name: 'mulefarm', displayName: 'mulefarm', avatar: null, at: Date.now() - 9 * 864e5 }
+  ],
   inboundCount: CARDS.inbound.length, lastOkAt: Date.now() - 12000, lastError: null,
   tracked: {
     [CARDS.outbound[0].tradeId]: { at: Date.now() },
@@ -177,6 +187,8 @@ const HISTORY = [
   // Deux reevaluations d'objets possedes : une hausse, une baisse sur deux exemplaires.
   { at: Date.now() - 20 * 60000, kind: 'revalued', name: 'Domino Crown', key: 'a:1', from: 5000000, to: 5750000, pct: 15, count: 1, delta: 750000, notified: true },
   { at: Date.now() - 20 * 60000, kind: 'revalued', name: "Jester's Cap", key: 'a:2', from: 36000, to: 31500, pct: -12.5, count: 2, delta: -9000, notified: true },
+  // Un trade rejete par Roblox : le journal l'ouvre en entier (le trade OLDER_COMPLETED[3], marque en erreur).
+  { at: Date.now() - 9 * 60000, kind: 'trade_error', tradeId: OLDER_COMPLETED[3].tradeId, partner: OLDER_COMPLETED[3].partner.displayName, pct: OLDER_COMPLETED[3].analysis?.pctMain ?? null, notified: true },
   { at: Date.now() - 3 * 60000, kind: 'inbound', tradeId: CARDS.inbound[0].tradeId, partner: 'Shedletsky', pct: 18.4, give: 400000, get: 473700, notified: true },
   { at: Date.now() - 42 * 60000, kind: 'counter', tradeId: CARDS.inbound[1].tradeId, partner: 'Roblox', pct: -93.6, give: 413601, get: 24448, notified: false, skipped: 'gain -93.6% < 0%' },
   { at: Date.now() - 130 * 60000, kind: 'inbound', tradeId: CARDS.inbound[2].tradeId, partner: 'Shedletsky', pct: null, unknown: 1, notified: true },
@@ -244,7 +256,10 @@ const mockRuntime = {
         return { settings: SETTINGS, state: STATE, history: HISTORY, portfolio: series, report };
       case 'ronote:hydrate': {
         const all = [...CARDS.inbound, ...CARDS.outbound, ...CARDS.completed, ...OLDER_COMPLETED];
-        return { cards: all.filter(c => msg.ids.includes(c.tradeId)), failed: [], links: {}, tracked: STATE.tracked };
+        await new Promise(r => setTimeout(r, 300));
+        const found = all.filter(c => msg.ids.includes(c.tradeId)).map(c => ({ ...c, kind: msg.kind || c.kind,
+          status: c === OLDER_COMPLETED[3] ? 'RejectedDueToError' : c.status }));
+        return { cards: found, failed: [], links: {}, tracked: STATE.tracked };
       }
       case 'ronote:list-more': {
         // Pages de 50, la première recouvrant le relevé, comme l'API Roblox.
@@ -277,6 +292,34 @@ const mockRuntime = {
       // Tout le journal (bilan du mois) : le relevé du popup, plus deux mois de trades terminés.
       case 'ronote:history':
         return { history: [...HISTORY, ...demoMonths()] };
+      // Fiches Neuronal : Shedletsky est dans la base, Roblox n'y est pas ; tout objet
+      // dont l'identifiant est pair y a des trades, les autres non.
+      case 'ronote:neuronal': {
+        await new Promise(r => setTimeout(r, 450));
+        const now = Date.now() / 1000;
+        const it = (id, name, n, value) => ({ id, name, n, value });
+        const tr = (h, a, b, gave, got, gv, gt, more = 0) => ({ id: h, at: now - h * 3600, a, b, partner: b,
+          gave_items: gave, got_items: got, gave_more: more, got_more: 0, gave: gv, got: gt, parts: 1 });
+        const shed = { id: bob.id, name: bob.name }, x = { id: 11, name: 'Builderman' }, y = { id: 12, name: 'Telamon' };
+        if (msg.kind === 'player') {
+          if (Number(msg.id) !== bob.id) return { data: { v: 1, id: Number(msg.id), known: false } };
+          return { data: { v: 1, id: bob.id, known: true, name: bob.name, bot: false, term: false, depth: 3,
+            first_seen: now - 41 * 86400, last_check: now - 600, trades: 37, partners: 21,
+            top: [], stats: { judged: 18, net: 412300, won: 11, lost: 6 },
+            recent: [
+              tr(3, shed, x, [it(1, 'Domino Crown', 1, 4100000)], [it(2, 'Sparkle Time Fedora', 1, 3200000), it(3, 'Valkyrie Helm', 2, 520000)], 4100000, 4240000),
+              tr(26, shed, y, [it(4, 'Clockwork\'s Headphones', 1, 210000), it(5, 'Bucket', 3, 9000)], [it(6, 'Red Sparkle Time Fedora', 1, 180000)], 237000, 180000, 1)
+            ] } };
+        }
+        if (Number(msg.id) % 2) return { data: { v: 1, id: Number(msg.id), known: false } };
+        return { data: { v: 1, id: Number(msg.id), known: true, name: 'Objet', value: 0, projected: false,
+          trades: 14, holders: 9, copies: 12,
+          top_holders: [{ id: 11, name: 'Builderman', n: 3 }, { id: 12, name: 'Telamon', n: 2 }, { id: bob.id, name: bob.name, n: 1 }],
+          recent: [
+            tr(5, x, y, [it(Number(msg.id), 'Cet objet', 1, 25000)], [it(7, 'Midnight Shades', 1, 31000)], 25000, 31000),
+            tr(49, y, shed, [it(8, 'Ice Valkyrie', 1, 60000)], [it(Number(msg.id), 'Cet objet', 2, 25000)], 60000, 50000)
+          ] } };
+      }
       case 'ronote:item-history':
         await new Promise(r => setTimeout(r, 350));   // le temps de voir le chargement
         return { history: demoItemHistory(Number(msg.itemId)) };
@@ -345,6 +388,52 @@ const mockRuntime = {
         }
         STATE.inboundCount = STATE.snapshot.inbound.length;
         log.textContent = '→ trade #' + msg.tradeId + ' refusé/annulé (simulation)';
+        return { ok: true, via: 'test', state: STATE };
+      }
+      case 'ronote:forget-account': {
+        STATE.accounts = STATE.accounts.filter(a => a.id !== Number(msg.userId) || a.id === STATE.userId);
+        return { state: STATE };
+      }
+      // Les deux inventaires de l'éditeur de contre-offre : les objets du
+      // trade, puis des limiteds réels du fixture de portefeuille.
+      case 'ronote:counter-load': {
+        await new Promise(r => setTimeout(r, 500));
+        const card = CARDS.inbound.find(c => c.partner.id === Number(msg.partnerId)) || CARDS.inbound[0];
+        const fromTrade = (items) => items.map(i => ({ uaid: i.uaid, assetId: i.assetId, bundleId: i.bundleId,
+          name: i.name, acronym: i.acronym, serial: i.serial, value: i.value, rap: i.rap, prudent: i.prudent,
+          unknown: i.unknown, noValue: i.noValue, onHold: false, projected: i.projected, isFace: i.isFace, thumb: i.thumb }));
+        const extra = (ids, base) => ids.map((id, n) => {
+          const r = analysis.resolveItem({ assetId: Number(id), recentAveragePrice: 0 }, cat);
+          return { uaid: base + n, assetId: r.assetId, bundleId: r.bundleId, name: r.name, acronym: r.acronym, serial: null,
+            value: r.value, rap: r.rap, prudent: r.prudent, unknown: r.unknown, noValue: r.noValue,
+            onHold: n === 2, projected: r.projected, isFace: r.isFace, thumb: thumbFor(r) };
+        }).filter(i => !i.unknown);
+        const ids = Object.keys(fxPortfolio.playerassets);
+        return {
+          myId: ME,
+          me: { items: [...fromTrade(card.analysis.give.items), ...extra(ids.slice(0, 24), 700000)] },
+          them: { items: [...fromTrade(card.analysis.get.items), ...extra(ids.slice(24, 60), 800000)] }
+        };
+      }
+      case 'ronote:counter': {
+        await new Promise(r => setTimeout(r, 400));
+        STATE.snapshot.inbound = STATE.snapshot.inbound.filter(x => x.tradeId !== msg.tradeId);
+        CARDS.inbound = CARDS.inbound.filter(c => c.tradeId !== msg.tradeId);
+        STATE.inboundCount = STATE.snapshot.inbound.length;
+        log.textContent = '→ contre-offre #' + msg.tradeId + ' : donne ' + msg.give.join(',') + ' + ' + msg.giveRobux
+          + ' R$ · demande ' + msg.get.join(',') + ' + ' + msg.getRobux + ' R$ (simulation)';
+        return { ok: true, via: 'test', state: STATE };
+      }
+      case 'ronote:accept': {
+        // ?challenge=1 : Roblox exige une vérification en deux étapes, pour voir ce cas.
+        if (new URLSearchParams(location.search).has('challenge')) {
+          log.textContent = '→ trade #' + msg.tradeId + ' : vérification demandée par Roblox (simulation)';
+          return { challenge: true, error: 'Challenge is required to authorize the request' };
+        }
+        STATE.snapshot.inbound = STATE.snapshot.inbound.filter(x => x.tradeId !== msg.tradeId);
+        CARDS.inbound = CARDS.inbound.filter(c => c.tradeId !== msg.tradeId);
+        STATE.inboundCount = STATE.snapshot.inbound.length;
+        log.textContent = '→ trade #' + msg.tradeId + ' accepté (simulation)';
         return { ok: true, via: 'test', state: STATE };
       }
       default:

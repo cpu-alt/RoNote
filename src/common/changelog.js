@@ -16,6 +16,50 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item('Contribuer au réseau Neuronal', 'Contribute to the Neuronal network'),
+    items: [
+      item("Contribuer au réseau Neuronal (Réglages › Valeurs, coupé par défaut) : ton compte apparaît sur la carte de neuronal.live avec le cadre bleu RoNote, et tes trades terminés y sont envoyés avec les objets exacts et les Robux. Le réseau n'a plus à les deviner. Aucune requête de plus vers Roblox.",
+        "Contribute to the Neuronal network (Settings › Values, off by default): your account shows up on the neuronal.live map with the blue RoNote frame, and your completed trades are sent there with the exact items and Robux. The network no longer has to guess them. No extra request to Roblox."),
+      item("Fiches Neuronal : un joueur qui utilise RoNote est signalé en bleu, les Robux d'un trade du réseau s'affichent, et les trades confirmés par RoNote portent son étiquette.",
+        "Neuronal lookups: a player using RoNote is flagged in blue, the Robux of a network trade are shown, and trades confirmed by RoNote carry its tag.")
+    ]
+  },
+  {
+    version: '2.16.0',
+    title: item('Interface Neuronal, barre latérale et animations', 'Neuronal interface, sidebar and animations'),
+    items: [
+      item("Nouvelle interface par défaut, dans le style du site neuronal.live : gris neutres, un seul bleu, des aplats, la police Onest, des onglets soulignés et des titres en casse normale. L'ancienne reste disponible : Réglages › Apparence › Interface › Classique.",
+        'New default interface, in the style of the neuronal.live website: neutral greys, a single blue, flat surfaces, the Onest font, underlined tabs and normal-case titles. The old one is still there: Settings › Appearance › Interface › Classic.'),
+      item("Barre latérale : le bouton tout à droite de l'entête ouvre RoNote sur le côté du navigateur, où il reste ouvert pendant que tu navigues. Le même bouton ramène au popup.",
+        'Sidebar: the button on the far right of the header opens RoNote on the side of the browser, where it stays open while you browse. The same button brings back the popup.'),
+      item("Micro-animations : une pastille glisse d'un bouton, d'un onglet ou d'une ligne à l'autre sous le pointeur, les pressions rebondissent, l'icône de la barre latérale bascule en fondu. Le réglage système « moins d'animations » est respecté.",
+        "Micro-animations: a highlight glides between buttons, tabs and rows under the pointer, presses spring back, the sidebar icon cross-fades. The system's reduced-motion setting is respected."),
+      item("Thème Neuronal sur Roblox (nouveau thème par défaut) : les écarts et le badge « projected » prennent le vert, le rouge et l'ambre du site. Le thème RoNote garde les couleurs d'avant.",
+        "Neuronal theme on Roblox (new default theme): differences and the \"projected\" badge use the website's green, red and amber. The RoNote theme keeps the previous colours."),
+      item("Fiches Neuronal (Réglages › Valeurs, coupées par défaut) : la fiche d'un joueur dit s'il est dans la base Neuronal, avec ses derniers trades, et celle d'un objet ses derniers trades dans le réseau. Seul l'identifiant du joueur ou de l'objet est envoyé à neuronal.live.",
+        "Neuronal lookups (Settings › Values, off by default): a player's sheet shows whether they are in the Neuronal database, with their latest trades, and an item's sheet its latest trades in the network. Only the player's or item's ID is sent to neuronal.live."),
+      item("Trades reçus : Accepter (deux clics, comme Refuser) et Contre-offre, sur chaque carte et dans le détail. Si Roblox demande une vérification, le trade s'ouvre sur roblox.com.",
+        'Inbound trades: Accept (two clicks, like Decline) and Counter, on each card and in the detail view. If Roblox asks for a verification, the trade opens on roblox.com.'),
+      item("Contre-offre dans le popup : les deux inventaires, un clic pour ajouter ou retirer un objet, des Robux de chaque côté, et l'écart recalculé à chaque changement. On simule, puis on envoie en deux clics.",
+        'Counter-offers in the popup: both inventories, one click to add or remove an item, Robux on each side, and the difference recalculated on every change. Simulate, then send in two clicks.'),
+      item("Cartes allégées : le détail dépliable des objets disparaît, cliquer un objet ouvre déjà sa fiche complète.",
+        'Lighter cards: the expandable item list is gone, clicking an item already opens its full sheet.'),
+      item("Entête : ton portrait et ton pseudo à la place du logo. Un clic ouvre le menu du compte : tes autres comptes déjà vus, le mode anonyme, la pause, pile ou face et ton profil.",
+        'Header: your avatar and username instead of the logo. One click opens the account menu: your other accounts already seen, anonymous mode, pause, coin flip and your profile.'),
+      item("Changement de compte sur roblox.com : RoNote le voit tout de suite et repart de zéro en silence, au lieu de notifier en rafale les trades du nouveau compte.",
+        "Switching accounts on roblox.com: RoNote notices right away and starts over silently, instead of firing a burst of notifications for the new account's trades."),
+      item("Journal : un trade rejeté par Roblox (ou expiré, refusé…) s'ouvre en entier dans le popup, avec les objets des deux côtés, le partenaire et ce qui s'est passé.",
+        'Log: a trade rejected by Roblox (or expired, declined…) opens in full in the popup, with the items on both sides, the partner and what happened.'),
+      item("Le son dit si le trade est bon : cinq notes, de très mauvais à très bon, pour un trade reçu ou conclu (Réglages › Son).",
+        'The sound tells you if the trade is good: five notes, from very bad to very good, for a received or completed trade (Settings › Sound).'),
+      item("Portefeuille : l'inventaire se charge de nouveau quand le profil Rolimon's ne répond pas ; la value est alors additionnée depuis le catalogue et marquée « estimé ».",
+        "Portfolio: the inventory loads again when the Rolimon's profile doesn't answer; the value is then summed from the catalogue and marked \"estimated\"."),
+      item("Un bouton pour rejoindre le Discord Neuronal, au pied du popup et en haut des réglages.",
+        'A button to join the Neuronal Discord, at the bottom of the popup and at the top of the settings.')
+    ]
+  },
+  {
     version: '2.15.1',
     title: item('Le Flex du portefeuille, et un vrai mode anonyme', 'Portfolio Flex, and a real anonymous mode'),
     items: [

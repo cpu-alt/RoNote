@@ -1,0 +1,144 @@
+/* ==========================================================================
+   RoNote — habillage « Neuronal » des réglages (interface par défaut)
+   --------------------------------------------------------------------------
+   Le même habillage que le popup (voir popup/neuronal.css) : le style du site
+   neuronal.live, passé après options.css, sous `<html data-ui="neuronal">`.
+   Gris neutres, un bleu franc, des aplats, Onest, des titres en casse
+   normale, une surface par carte. Le mouvement reste celui d'options.css.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Onest";
+  src: url("../assets/onest.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+[data-ui=neuronal] {
+  --bg:        #0f1012;
+  --panel:     #141517;
+  --surface:   #17181b;
+  --surface-2: #1a1b1e;
+  --surface-3: #232428;
+  --sel:       #2a2c31;
+  --line:      #25272b;
+  --line-2:    #33363c;
+  --line-soft: #1f2023;
+
+  --fg:    #ededef;
+  --dim:   #9a9da6;
+  --faint: #82858e;
+
+  --accent:      #3d8eff;
+  --accent-fill: #1d6ae0;
+  --accent-soft: rgba(61, 142, 255, .14);
+  --win:  #3fbf7f;
+  --loss: #f0565e;
+  --warn: #e3b04b;
+  --face: #b9a3f5;
+}
+
+[data-ui=neuronal] body {
+  background: var(--bg);
+  font: 14px/1.5 "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -.005em;
+}
+[data-ui=neuronal] ::selection { background: rgba(61, 142, 255, .35); }
+[data-ui=neuronal] :is(.diag .v, .rel-v, output) { font-feature-settings: "tnum" 1; }
+
+/* --------------------------------- menu ---------------------------------- */
+
+[data-ui=neuronal] .brand-ic { width: 38px; height: 38px; border-radius: 9px; background: var(--surface-2); border: 0; box-shadow: none; }
+[data-ui=neuronal] .brand .name { font-weight: 600; letter-spacing: -.01em; }
+[data-ui=neuronal] .brand .sub { color: var(--faint); }
+[data-ui=neuronal] .nav a { border-radius: 8px; color: var(--dim); font-weight: 500; }
+[data-ui=neuronal] .nav a > i { border-radius: 6px; background: none; color: var(--faint); }
+[data-ui=neuronal] .nav a.on > i { background: none; color: var(--fg); }
+[data-ui=neuronal] .nav-ind { border: 0; border-radius: 8px; background: var(--sel); box-shadow: none; }
+[data-ui=neuronal] .fh { background: rgba(255, 255, 255, .04); }
+[data-ui=neuronal] .search { height: 36px; border: 1px solid transparent; border-radius: 8px; background: var(--surface-2); }
+[data-ui=neuronal] .search:hover { border-color: var(--line-2); }
+[data-ui=neuronal] .search:focus-within { border-color: var(--accent); box-shadow: none; background: var(--bg); color: var(--accent); }
+
+@media (max-width: 900px) {
+  [data-ui=neuronal] .side { background: rgba(15, 16, 18, .94); border-bottom-color: var(--line); }
+}
+
+/* ------------------------------- l'en-tête ------------------------------- */
+
+[data-ui=neuronal] .hero { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: none; }
+[data-ui=neuronal] .hero-l { letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12.5px; color: var(--faint); }
+[data-ui=neuronal] .hero h1 {
+  background: none; -webkit-background-clip: border-box; background-clip: border-box;
+  color: var(--fg); -webkit-text-fill-color: currentColor;
+  font-size: 26px; font-weight: 650; letter-spacing: -.02em;
+}
+/* L'état : des chiffres posés sur une seule surface, séparés d'un filet. */
+[data-ui=neuronal] .diag { gap: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+[data-ui=neuronal] .diag > div { border: 0; border-radius: 0; background: none; box-shadow: inset -1px -1px 0 var(--line); }
+[data-ui=neuronal] .diag .k { letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12px; color: var(--faint); }
+[data-ui=neuronal] .diag .v { font-weight: 650; }
+
+/* ------------------------------- sections -------------------------------- */
+
+[data-ui=neuronal] section.card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+[data-ui=neuronal] section.card h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-transform: none; }
+[data-ui=neuronal] section.card h2 > i { width: 28px; height: 28px; border: 0; border-radius: 7px; background: var(--surface-2); color: var(--dim); }
+[data-ui=neuronal] section.card h3 { letter-spacing: 0; text-transform: none; font-size: 13px; font-weight: 600; color: var(--dim); border-top-color: var(--line); }
+[data-ui=neuronal] .row { border-top-color: var(--line-soft); border-radius: 8px; }
+[data-ui=neuronal] .row b { font-weight: 550; }
+[data-ui=neuronal] .row small, [data-ui=neuronal] .hint { color: var(--dim); }
+
+/* ------------------------------ interrupteurs ---------------------------- */
+
+[data-ui=neuronal] .row.switch > input[type=checkbox] { background: var(--sel); border: 0; }
+[data-ui=neuronal] .row.switch > input[type=checkbox]::before { top: 3px; left: 3px; background: #c9ccd3; box-shadow: none; }
+[data-ui=neuronal] .row.switch > input:checked { background: var(--accent); border: 0; box-shadow: none; }
+[data-ui=neuronal] .row.switch > input:checked::before { background: #fff; }
+
+/* -------------------------------- champs --------------------------------- */
+
+[data-ui=neuronal] :is(input[type=number], input[type=time], input[type=text], select) {
+  height: 34px; border: 1px solid transparent; border-radius: 8px; background: var(--surface-2);
+}
+[data-ui=neuronal] :is(input[type=number], input[type=time], input[type=text], select):hover { border-color: var(--line-2); }
+[data-ui=neuronal] :is(input, select):focus { border-color: var(--accent); box-shadow: none; }
+[data-ui=neuronal] select option { background: var(--panel); }
+
+/* ------------------------------- boutons --------------------------------- */
+
+[data-ui=neuronal] .btn { border: 0; border-radius: 8px; background: var(--surface-2); color: var(--fg); font-weight: 500; }
+[data-ui=neuronal] .btn:hover { background: var(--surface-3); border: 0; }
+[data-ui=neuronal] .btn:not(.ghost):active { box-shadow: none; }
+[data-ui=neuronal] .btn.danger { background: rgba(240, 86, 94, .12); color: #ffb3b7; }
+[data-ui=neuronal] .btn.danger:hover { background: rgba(240, 86, 94, .2); }
+[data-ui=neuronal] .btn.ghost { background: none; color: var(--dim); }
+[data-ui=neuronal] .btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
+[data-ui=neuronal] button[data-play] { color: var(--accent); }
+
+/* Les événements à cocher : des puces pleines, la cochée sur un bleu doux. */
+[data-ui=neuronal] .checks label { border: 0; border-radius: 7px; background: var(--surface-2); font-weight: 500; }
+[data-ui=neuronal] .checks label:hover { background: var(--surface-3); color: var(--fg); }
+[data-ui=neuronal] .checks label:has(input:checked) { background: var(--accent-soft); color: #8dbbff; border: 0; }
+[data-ui=neuronal] .chip { border-radius: 7px; }
+
+/* ------------------------------ apparence -------------------------------- */
+
+[data-ui=neuronal] .theme { border-radius: 10px; border-color: var(--line); background: var(--surface-2); }
+[data-ui=neuronal] .theme:hover { border-color: var(--line-2); }
+[data-ui=neuronal] .theme[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+[data-ui=neuronal] .th-sw { border-radius: 8px; }
+[data-ui=neuronal] .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+[data-ui=neuronal] :is(.banner-preview, .proj-stage, .bg-stage) { border-radius: 10px; }
+
+/* ----------------------------- quoi de neuf ------------------------------ */
+
+[data-ui=neuronal] .rel { border-color: var(--line); border-radius: 10px; background: var(--surface-2); }
+[data-ui=neuronal] .rel[open] { border-color: var(--line-2); background: var(--surface-2); }
+[data-ui=neuronal] .rel-tag { border: 0; border-radius: 5px; background: var(--accent-soft); color: #8dbbff; }
+[data-ui=neuronal] .rel-tag.dev { background: rgba(185, 163, 245, .14); color: var(--face); }
+
+/* ------------------------------ divers ----------------------------------- */
+
+[data-ui=neuronal] .saved { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--win); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+[data-ui=neuronal] :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-ui=neuronal] { scrollbar-color: var(--line-2) transparent; }

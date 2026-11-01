@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.15.1",
+  "version": "2.16.0",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -11,7 +11,11 @@
     "notifications",
     "scripting",
     "offscreen",
+    "sidePanel",
     "declarativeNetRequestWithHostAccess"
+  ],
+  "optional_host_permissions": [
+    "https://neuronal.live/*"
   ],
   "host_permissions": [
     "https://*.roblox.com/*",
@@ -31,6 +35,9 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "side_panel": {
+    "default_path": "popup/popup.html?panel=1"
   },
   "options_ui": {
     "page": "options/options.html",

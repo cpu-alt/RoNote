@@ -36,8 +36,8 @@
   function normalize(st = {}) {
     const b = globalThis.RoNoteBanner?.normalize(st);
     return {
-      gain: hex(st.listGain) || b?.gain || '#22e57a',
-      loss: hex(st.listLoss) || b?.loss || '#ff4d5e',
+      gain: hex(st.listGain) || b?.gain || '#3fbf7f',
+      loss: hex(st.listLoss) || b?.loss || '#f0565e',
       ownColors: !!(hex(st.listGain) || hex(st.listLoss)),
       labels: st.listLabels !== false,
       show: pick(st.listShow, SHOWS, 'both'),

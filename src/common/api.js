@@ -194,7 +194,7 @@ export class ApiError extends Error {
  * repond sans succes passe la main au suivant, sauf avec `firstAnswer` : pour
  * une ecriture, Roblox donnerait la meme reponse depuis n'importe quel onglet.
  */
-async function relayInTabs(url, func, { firstAnswer = false } = {}) {
+async function relayInTabs(url, func, { firstAnswer = false, args = [] } = {}) {
   if (!B.tabs?.query || !B.scripting?.executeScript) return { note: 'relais indisponible' };
   let tabs = [];
   try { tabs = await B.tabs.query({ url: ROBLOX_TABS }); } catch { return { note: 'relais refusé' }; }
@@ -202,7 +202,7 @@ async function relayInTabs(url, func, { firstAnswer = false } = {}) {
   for (const tab of tabs) {
     if (!tab.id || tab.discarded) continue;
     try {
-      const [inj] = await B.scripting.executeScript({ target: { tabId: tab.id }, args: [url], func });
+      const [inj] = await B.scripting.executeScript({ target: { tabId: tab.id }, args: [url, ...args], func });
       if (inj?.result?.ok) return inj.result;
       if (firstAnswer && inj?.result) return { ...inj.result, note: `HTTP ${inj.result.status}` };
     } catch { /* onglet inaccessible, on essaie le suivant */ }
@@ -533,15 +533,15 @@ export async function probeTradeDetail(id) {
  * first-party : elle a le cookie, le bon `Origin`, et peut aller chercher elle
  * meme un jeton CSRF frais. C'est le chemin le plus fiable pour une ECRITURE.
  */
-function relayPost(url) {
-  return relayInTabs(url, async (u) => {
+function relayPost(url, body = '{}') {
+  return relayInTabs(url, async (u, b) => {
     const send = (token) => fetch(u, {
       method: 'POST',
       credentials: 'include',
       headers: token
         ? { 'Content-Type': 'application/json', 'x-csrf-token': token }
         : { 'Content-Type': 'application/json' },
-      body: '{}'
+      body: b
     });
     try {
       // Roblox refuse le premier envoi et joint un jeton frais : c'est
@@ -555,14 +555,15 @@ function relayPost(url) {
     } catch (e) {
       return { ok: false, status: 0, body: String(e) };
     }
-  }, { firstAnswer: true });
+  }, { firstAnswer: true, args: [body] });
 }
 
-async function apiPost(url) {
+async function apiPost(url, payload = {}) {
+  const body = JSON.stringify(payload);
   const send = async () => {
     const headers = { 'Content-Type': 'application/json' };
     if (csrfToken) headers['x-csrf-token'] = csrfToken;
-    return fetchWithTimeout(url, { method: 'POST', credentials: 'include', headers, body: '{}' });
+    return fetchWithTimeout(url, { method: 'POST', credentials: 'include', headers, body });
   };
 
   let res = null, netErr = null;
@@ -578,7 +579,7 @@ async function apiPost(url) {
 
   // Le service worker n'a pas toujours le cookie ni le bon Origin. Depuis un
   // onglet Roblox, la requete est indistinguable de celle du site.
-  const relayed = await relayPost(url);
+  const relayed = await relayPost(url, body);
   if (relayed?.ok) return { ok: true, via: 'onglet' };
 
   let reason = netErr ? `Réseau: ${netErr.message}` : `HTTP ${res?.status ?? 0}`;
@@ -600,6 +601,86 @@ export function declineTrade(tradeId) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
   if (!id) throw new ApiError('identifiant de trade invalide', 0);
   return apiPost(`${TRADES}/trades/${id}/decline`);
+}
+
+/**
+ * Accepte un trade reçu. Irreversible cote Roblox : la confirmation se fait
+ * dans l'interface (deux clics). Roblox peut exiger une verification en deux
+ * etapes avant d'accepter : l'extension ne sait pas la passer, elle le dit
+ * (`ApiError#challenge`) et le popup ouvre le trade sur roblox.com.
+ */
+export async function acceptTrade(tradeId) {
+  const id = String(tradeId).replace(/[^0-9]/g, '');
+  if (!id) throw new ApiError('identifiant de trade invalide', 0);
+  try {
+    return await apiPost(`${TRADES}/trades/${id}/accept`);
+  } catch (e) {
+    if (isChallenge(e)) e.challenge = true;
+    throw e;
+  }
+}
+
+/** Roblox exige une verification en deux etapes : l'extension ne la passe pas. */
+const isChallenge = (e) => e instanceof ApiError && (e.status === 403 || e.status === 0)
+  && /challenge|verif|two.?step|2sv/i.test(e.message);
+
+/**
+ * Contre-offre sur un trade recu. `give` : mes exemplaires (userAssetId),
+ * `get` : ceux du partenaire. Roblox limite chaque cote a 4 objets et refuse
+ * lui-meme ce qui ne tient pas (objet en hold, Robux au-dela de la moitie de
+ * la valeur) : son message remonte tel quel.
+ */
+export async function counterTrade(tradeId, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }) {
+  const id = String(tradeId).replace(/[^0-9]/g, '');
+  const uaids = (list) => list.map(Number).filter(n => n > 0);
+  if (!id || !Number(myId) || !Number(partnerId)) throw new ApiError('contre-offre incomplète', 0);
+  const offers = [
+    { userId: Number(partnerId), userAssetIds: uaids(get), robux: Math.max(0, Math.floor(Number(getRobux) || 0)) },
+    { userId: Number(myId), userAssetIds: uaids(give), robux: Math.max(0, Math.floor(Number(giveRobux) || 0)) }
+  ];
+  if (!offers[0].userAssetIds.length && !offers[0].robux) throw new ApiError('demande au moins un objet', 0);
+  if (!offers[1].userAssetIds.length && !offers[1].robux) throw new ApiError('offre au moins un objet', 0);
+  try {
+    return await apiPost(`${TRADES}/trades/${id}/counter`, { offers });
+  } catch (e) {
+    if (isChallenge(e)) e.challenge = true;
+    throw e;
+  }
+}
+
+const COLLECTIBLES_PAGES = 5;   // 500 objets : bien au-dela d'un inventaire de trade ordinaire
+
+/**
+ * Les limiteds d'un joueur, exemplaire par exemplaire (userAssetId, serie,
+ * hold) : ce que l'editeur de contre-offre propose. Inventaire prive : `private`.
+ */
+export async function getCollectibles(userId) {
+  const uid = Number(userId);
+  if (!uid) throw new ApiError('joueur inconnu', 0);
+  const items = [];
+  let cursor = '';
+  for (let page = 0; page < COLLECTIBLES_PAGES; page++) {
+    const q = new URLSearchParams({ sortOrder: 'Desc', limit: '100' });
+    if (cursor) q.set('cursor', cursor);
+    let j;
+    try {
+      j = await apiGet(`https://inventory.roblox.com/v1/users/${uid}/assets/collectibles?${q}`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) return { private: true, items: [] };
+      throw e;
+    }
+    for (const it of j?.data || []) {
+      if (!Number(it.userAssetId) || !Number(it.assetId)) continue;
+      items.push({
+        id: Number(it.userAssetId), assetId: Number(it.assetId), bundleId: 0,
+        name: it.name || '', recentAveragePrice: Number(it.recentAveragePrice) || 0,
+        serialNumber: it.serialNumber ?? null, stock: Number(it.assetStock) || 0, onHold: !!it.isOnHold
+      });
+    }
+    cursor = j?.nextPageCursor || '';
+    if (!cursor) break;
+  }
+  return { private: false, items };
 }
 
 /* ------------------ petites recherches mises en cache ------------------- */

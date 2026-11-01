@@ -12,7 +12,7 @@
  * ==========================================================================
  */
 
-const IN   = new Set(['inbound', 'counter']);
+const IN   = new Set(['inbound', 'counter', 'accepted_by_me', 'countered_by_me']);
 const OUT  = new Set(['outbound', 'outbound_declined', 'outbound_countered', 'outbound_expired', 'outbound_accepted']);
 const DONE = new Set(['completed', 'outbound_accepted']);
 

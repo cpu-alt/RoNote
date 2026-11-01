@@ -1,6 +1,10 @@
 export const DEFAULTS = {
   enabled: true,
   lang: 'auto',               // auto (langue du navigateur) | fr | en
+  sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
+  uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
+  neuronalLookup: false,      // fiches joueur / objet : ce que Neuronal en sait (permission optionnelle)
+  neuronalShare: false,       // contribuer au reseau : presence du compte + trades termines (meme permission)
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 
@@ -43,6 +47,9 @@ export const DEFAULTS = {
     revalued: 'coins'         // objet possede reevalue par Rolimon's
   },
   volume: 0.6,
+  // Trade recu ou conclu : le son dit sa qualite (5 notes, du tres mauvais au
+  // tres bon) a la place du son choisi. Un trade sans cote garde le sien.
+  soundByQuality: true,
 
   // --- Valeurs / analyse -------------------------------------------------
   useRolimons: true,          // cotes Rolimon's (repli RAP si indispo)
@@ -54,7 +61,6 @@ export const DEFAULTS = {
   // cote d'un objet de l'inventaire d'au moins ce pourcentage.
   revalAlerts: true,
   revalMinPercent: 10,
-  showItemDetails: true,      // liste depliable des objets sous chaque trade
 
   // --- Reperes sur les objets (popup et pages Roblox) ---------------------
   showRare: true,             // petit diamant sur les objets « rares » de Rolimon's
@@ -66,8 +72,8 @@ export const DEFAULTS = {
   pageBgDim: 60,              // ton image en fond de roblox.com (cle `pageBgImage`) : force du voile, en %
   pageBgBlur: 0,              // ... et flou de l'image, en px
   itemPageValue: true,        // value et lien Rolimon's sur la page d'un limited Roblox
-  bannerGain: '#22e57a',      // bandeau des ecarts sur la page Roblox : couleur d'un gain
-  bannerLoss: '#ff4d5e',      // ... d'une perte
+  bannerGain: '#3fbf7f',      // bandeau des ecarts sur la page Roblox : couleur d'un gain (theme Neuronal)
+  bannerLoss: '#f0565e',      // ... d'une perte
   bannerStyle: 'soft',        // soft | vivid | neon | solid
   bannerSize: 'm',            // s | m | l
   bannerShow: 'both',         // both | value | rap
@@ -81,7 +87,7 @@ export const DEFAULTS = {
   listLabels: true,           // les libelles « RAP » / « Value » devant les chiffres
   listGain: '',               // couleurs propres a la colonne ; vide = celles du bandeau
   listLoss: '',
-  projectedColor: '#ffc400',  // fond du badge « projected » sur la page Roblox
+  projectedColor: '#e3b04b',  // fond du badge « projected » sur la page Roblox
   projectedSize: 'm',         // s | m | l ; l'image importee est a part (cle projectedIcon)
   projectedShape: 'rounded',  // rounded | circle | square
   projectedCorner: 'left',    // left | right : coin haut de la vignette
@@ -98,6 +104,18 @@ export const DEFAULTS = {
   quietHours: { enabled: false, start: '23:00', end: '08:00', stillNotify: false },
 
   historyLimit: 300
+};
+
+/**
+ * Le reseau Neuronal (neuronal.live) : la route de lecture que le bot ouvre a
+ * l'extension (/ext/v1, voir background/neuronal.js) et l'origine a demander
+ * en permission optionnelle. Aucune autre adresse de Neuronal n'est appelee.
+ */
+export const NEURONAL = {
+  site: 'https://neuronal.live/network',
+  ronote: 'https://neuronal.live/ronote',
+  api: 'https://neuronal.live/ext/v1/',
+  origins: ['https://neuronal.live/*']
 };
 
 export const SOUNDS = {

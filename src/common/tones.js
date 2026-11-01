@@ -27,6 +27,28 @@ export function playAudioInPage(data, volume, maxMs) {
 /** Motifs disponibles, dans l'ordre ou ils sont proposes. */
 export const TONE_NAMES = ['chime', 'ping', 'coins', 'alert', 'success', 'down'];
 
+/**
+ * LE SON DIT DEJA SI LE TRADE EST BON.
+ *
+ * Cinq notes d'une meme famille, de la plus sombre a la plus claire : on sait
+ * avant d'avoir lu la notification si l'offre merite qu'on se leve. Les seuils
+ * suivent ceux du verdict (analysis.js) : tres mauvais, mauvais, equilibre,
+ * bon, tres bon.
+ */
+export const GRADE_TONES = ['grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5'];
+export const GRADE_LABELS = ['Très mauvais', 'Mauvais', 'Équilibré', 'Bon', 'Très bon'];
+
+/** 1 (tres mauvais) a 5 (tres bon), ou 0 quand le trade n'est pas chiffrable. */
+export function gradeOf(analysis) {
+  if (!analysis || analysis.incomplete || !Number.isFinite(analysis.pctMain)) return 0;
+  const p = analysis.pctMain;
+  if (p >= 25) return 5;
+  if (p >= 3) return 4;
+  if (p > -3) return 3;
+  if (p > -25) return 2;
+  return 1;
+}
+
 export function playToneInPage(name, volume) {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -64,7 +86,23 @@ export function playToneInPage(name, volume) {
         beep(1318.5, 0.36, 0.7, 'sine', 0.25);
       },
       // Refus / erreur : deux notes qui descendent, sans etre agressives.
-      down: () => { beep(659.25, 0, 0.22, 'triangle', 0.6); beep(440, 0.24, 0.45, 'triangle', 0.55); }
+      down: () => { beep(659.25, 0, 0.22, 'triangle', 0.6); beep(440, 0.24, 0.45, 'triangle', 0.55); },
+      // Qualite d'un trade, de 1 (tres mauvais) a 5 (tres bon) : plus c'est
+      // bon, plus ca monte et plus c'est clair.
+      'grade-1': () => {
+        beep(392, 0, 0.2, 'sawtooth', 0.22); beep(311.13, 0.18, 0.22, 'sawtooth', 0.22);
+        beep(233.08, 0.38, 0.55, 'triangle', 0.65);
+      },
+      'grade-2': () => { beep(659.25, 0, 0.2, 'triangle', 0.55); beep(523.25, 0.2, 0.38, 'triangle', 0.55); },
+      'grade-3': () => { beep(880, 0, 0.16, 'sine', 0.6); beep(880, 0.2, 0.24, 'sine', 0.45); },
+      'grade-4': () => {
+        beep(783.99, 0, 0.16, 'triangle', 0.6); beep(987.77, 0.11, 0.16, 'triangle', 0.6);
+        beep(1174.66, 0.22, 0.4, 'triangle', 0.6);
+      },
+      'grade-5': () => {
+        [1046.5, 1318.5, 1568, 2093].forEach((f, i) => beep(f, i * 0.085, 0.2, 'triangle', 0.6));
+        beep(2093, 0.34, 0.7, 'sine', 0.35); beep(2637, 0.42, 0.6, 'sine', 0.22);
+      }
     };
     (patterns[name] || patterns.chime)();
     setTimeout(() => { try { ctx.close(); } catch (_) { /* ignore */ } }, 2000);

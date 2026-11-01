@@ -1,5 +1,5 @@
 import { B, HAS_OFFSCREEN, IS_FIREFOX, safe } from '../common/shim.js';
-import { playToneInPage, playAudioInPage, CUSTOM_MAX_MS } from '../common/tones.js';
+import { playToneInPage, playAudioInPage, CUSTOM_MAX_MS, GRADE_TONES, gradeOf } from '../common/tones.js';
 import { SOUND_GROUPS, soundGroupOf } from '../common/defaults.js';
 import { fmtNum, fmtPct, fmtSigned, inQuietHours, sleep, serialQueue } from '../common/utils.js';
 import { verdict } from '../common/analysis.js';
@@ -150,18 +150,36 @@ export async function playSound(settings, name = null, { force = false } = {}) {
   return playViaTab(sound, vol);
 }
 
+/** Familles dont le son peut dire la qualite du trade. */
+const GRADED = new Set(['inbound', 'accepted']);
+
+/**
+ * Le son d'une famille pour ce passage. Avec `soundByQuality`, un trade recu
+ * ou conclu joue la note de sa qualite ; plusieurs dans le meme passage : la
+ * meilleure, celle qui merite qu'on se leve. Un trade sans cote garde le son
+ * choisi. Une famille coupee (`none`) reste muette.
+ */
+export function soundFor(group, events, settings) {
+  const chosen = settings.sounds?.[group] || 'none';
+  if (chosen === 'none' || !settings.soundByQuality || !GRADED.has(group)) return chosen;
+  const best = Math.max(0, ...events.filter(e => soundGroupOf(e.kind) === group).map(e => gradeOf(e.analysis)));
+  return best ? GRADE_TONES[best - 1] : chosen;
+}
+
 /**
  * Les sons d'un passage : une famille = un son, joues a la suite dans un
  * ordre fixe (recu, accepte, erreur, refuse). Un trade recu et un trade
  * accepte dans le meme passage donnent donc deux sons distincts.
+ * `events` : les cartes du passage (ou de simples types, comme avant).
  */
-export async function playSoundsFor(kinds, settings) {
+export async function playSoundsFor(events, settings) {
   if (!settings.sound) return 0;
-  const groups = new Set((kinds || []).map(soundGroupOf));
+  const list = (events || []).map(e => (typeof e === 'string' ? { kind: e } : e));
+  const groups = new Set(list.map(e => soundGroupOf(e.kind)));
   let played = 0;
   for (const g of SOUND_GROUPS) {
     if (!groups.has(g)) continue;
-    const sound = settings.sounds?.[g] || 'none';
+    const sound = soundFor(g, list, settings);
     if (sound === 'none') continue;
     if (played) await sleep(1100);
     if (await playSound(settings, sound)) played++;

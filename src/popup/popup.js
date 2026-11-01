@@ -1,4 +1,5 @@
 import { B } from '../common/shim.js';
+import { NEURONAL } from '../common/defaults.js';
 import {
   fmtNum, fmtPct, fmtFull, fmtSigned, fmtDate, timeAgo, timeUntil, toneOf, escapeHtml
 } from '../common/utils.js';
@@ -12,11 +13,22 @@ import { renderCoin, coinKey } from './coinflip.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
+import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
+import { fluidHover } from '../common/fluid.js';
 import {
   setMoneyFormat, seriesText, orderedSeries, toggleSeries, downsample, chartModel, smoothPath,
   chartHtml, legendHtml, mountChart, seriesChips, renderRangedChart
 } from './chart.js';
+
+// Ouvert dans la barre laterale (reglage `sidePanel`) : la page prend toute
+// la place offerte au lieu des 420 x 600 du popup.
+const IN_PANEL = new URLSearchParams(location.search).has('panel');
+if (IN_PANEL) document.documentElement.classList.add('in-panel');
+// Fenetre courante, lue d'avance : `sidePanel.open()` exige le geste de
+// l'utilisateur, et l'attendre au moment du clic le ferait perdre.
+let windowId = null;
+B.windows?.getCurrent?.().then(w => { windowId = w.id; }, () => {});
 
 const listEl = $('#list');
 fillIcons(document);   // les icônes écrites en dur dans popup.html
@@ -71,7 +83,6 @@ function forgetTrade(id) {
     more[k].trades = more[k].trades.filter(x => x.tradeId !== id);
   }
 }
-const expanded = new Set();     // trades dont le detail des objets est deplie
 const shownCards = new Set();   // cartes deja montrees evaluees : leur arrivee ne se rejoue pas
 let zoomed = null;              // trade (ou objet) affiche en grand, ou null
 
@@ -83,7 +94,8 @@ const tradeUrl = (id) => `https://www.roblox.com/trades?tradeId=${id}`;
 const KIND_ICON = {
   inbound: 'inbox', counter: 'counter', completed: 'check-circle', outbound: 'send',
   outbound_accepted: 'party', outbound_declined: 'x-circle', outbound_countered: 'counter',
-  outbound_expired: 'clock', trade_error: 'alert', declined_by_me: 'ban'
+  outbound_expired: 'clock', trade_error: 'alert', declined_by_me: 'ban', accepted_by_me: 'check-circle',
+  countered_by_me: 'counter'
 };
 
 /** Ce que raconte chaque ligne du journal, et sa couleur. */
@@ -97,13 +109,16 @@ const KIND_INFO = {
   outbound_expired:   { label: 'Ton trade a expiré', tone: 'even' },
   trade_error:        { label: 'Trade rejeté (erreur Roblox)', tone: 'loss' },
   declined_by_me:     { label: 'Refusé ou annulé depuis RoNote', tone: 'even' },
+  accepted_by_me:     { label: 'Accepté depuis RoNote', tone: 'win' },
+  countered_by_me:    { label: 'Contre-offre envoyée depuis RoNote', tone: 'accent' },
   revalued:           { label: 'Objet réévalué', tone: 'face' }
 };
 
 /** Ce qu'est une ligne du journal : l'accueil, le résumé et les filtres comptent pareil. */
 const isReceived = (h) => h.kind === 'inbound' || h.kind === 'counter';
-const isDone = (h) => h.kind === 'completed' || h.kind === 'outbound_accepted';
-const isMuted = (h) => !!h.skipped && h.kind !== 'declined_by_me';
+const isDone = (h) => h.kind === 'completed' || h.kind === 'outbound_accepted' || h.kind === 'accepted_by_me';
+const BY_ME = new Set(['declined_by_me', 'accepted_by_me', 'countered_by_me']);
+const isMuted = (h) => !!h.skipped && !BY_ME.has(h.kind);
 const isRated = (h) => h.get != null && h.give != null;
 const netOf = (list) => list.reduce((s, h) => s + (h.get - h.give), 0);
 
@@ -128,9 +143,8 @@ const untilHtml = (at) => `<span data-until="${msOf(at)}">${timeUntil(msOf(at))}
 
 function renderHeader() {
   const { settings, state } = data;
-  // Mode anonyme : le pseudo disparaît aussi (partage d'écran, stream).
-  if (wallet.hidden && state?.userName) $('#acct').innerHTML = `${ic('eye-off')} ${t('Mode anonyme')}`;
-  else $('#acct').textContent = state?.userName ? '@' + state.userName : t('Non connecté');
+  document.documentElement.dataset.ui = settings?.uiTheme || 'neuronal';
+  renderMe();
 
   const inb = state?.inboundCount || 0;
   $('#cnt-inbound').textContent = inb || '';
@@ -140,9 +154,8 @@ function renderHeader() {
   $('#cnt-tracked').textContent = trackedCount || '';
   $('#cnt-tracked').classList.toggle('zero', !trackedCount);
 
-  const btn = $('#btn-toggle');
-  btn.innerHTML = ic(settings?.enabled ? 'pause' : 'play');
-  btn.classList.toggle('off', !settings?.enabled);
+  $('#btn-resume').hidden = !settings || !!settings.enabled;
+  document.body.classList.toggle('paused', !!settings && !settings.enabled);
 
   const dot = $('#dot'), txt = $('#status-text');
   dot.className = 'dot';
@@ -176,6 +189,163 @@ function renderHeader() {
   $('#foot-meta').textContent = trackedCount
     ? plural(trackedCount, '{n} trade suivi', '{n} trades suivis')
     : (seeded ? timeAgo(seeded) : '');
+}
+
+/* ========================== le compte, son menu ==========================
+   L'entête ne montre que le compte suivi : portrait, nom, @pseudo. Un clic
+   ouvre le menu : les autres comptes déjà vus sur ce navigateur, puis les
+   réglages de tous les jours (anonyme, pause, pile ou face). RoNote ne garde
+   ni cookie ni jeton : changer de compte se fait avec le sélecteur de
+   roblox.com, et le service worker s'en aperçoit à la page suivante. */
+
+const meAvatar = (a) => (a?.avatar
+  ? `<img src="${escapeHtml(a.avatar)}" alt="">`
+  : `<span class="me-ini">${escapeHtml(((a?.displayName || a?.name || '?')[0] || '?').toUpperCase())}</span>`);
+
+function currentAccount() {
+  const st = data.state || {};
+  if (!st.userId) return null;
+  const known = (st.accounts || []).find(a => Number(a.id) === Number(st.userId));
+  return {
+    id: Number(st.userId),
+    displayName: st.userName || known?.displayName || '',
+    name: st.userLogin || known?.name || '',
+    avatar: st.userAvatar || known?.avatar || null
+  };
+}
+
+function renderMe() {
+  const me = currentAccount();
+  $('#btn-me').classList.toggle('anon', wallet.hidden);
+  // Mode anonyme : le pseudo et le portrait disparaissent aussi (partage d'écran, stream).
+  if (wallet.hidden && me) {
+    $('#me-av').innerHTML = ic('eye-off');
+    $('#me-name').textContent = t('Mode anonyme');
+    $('#acct').textContent = t('pseudo masqué');
+  } else if (me) {
+    $('#me-av').innerHTML = meAvatar(me);
+    $('#me-name').textContent = me.displayName || me.name;
+    $('#acct').textContent = me.name ? '@' + me.name : '';
+  } else {
+    $('#me-av').innerHTML = '<img src="../icons/icon48.png" alt="">';
+    $('#me-name').textContent = 'RoNote';
+    $('#acct').textContent = data.state ? t('Non connecté') : t('Chargement…');
+  }
+  if ($('#me-menu')) fillMeMenu();
+}
+
+const menuRow = (act, icon, label, extra = '') =>
+  `<button class="mm-row" role="menuitem" data-mm="${act}">${ic(icon)}<span>${label}</span>${extra}</button>`;
+
+function fillMeMenu() {
+  const menu = $('#me-menu');
+  if (!menu) return;
+  const st = data.state || {};
+  const me = currentAccount();
+  const others = (st.accounts || []).filter(a => Number(a.id) !== Number(st.userId));
+  const anon = wallet.hidden;
+  const last = st.portfolioLast;
+  const worth = last?.v && !anon ? `<span class="mm-worth">${fmtFull(last.v)} <small>value</small></span>` : '';
+  const hint = menu.querySelector('.mm-hint:not([hidden])')?.textContent || '';
+
+  const head = me
+    ? `<div class="mm-me">
+        <span class="me-av lg">${anon ? ic('eye-off') : meAvatar(me)}</span>
+        <span class="mm-id"><b>${escapeHtml(anon ? t('Mode anonyme') : (me.displayName || me.name))}</b>
+          <small>${anon ? '' : escapeHtml(me.name ? '@' + me.name : '')}</small>${worth}</span>
+        <span class="mm-on" title="${escapeHtml(t('Compte suivi par RoNote'))}">${ic('check')}</span>
+      </div>`
+    : `<div class="mm-me"><span class="me-av lg">${ic('user')}</span><span class="mm-id"><b>${t('Non connecté')}</b>
+        <small>${t('Connecte-toi sur roblox.com')}</small></span></div>`;
+
+  const list = others.length && !anon
+    ? `<div class="mm-sec">${t('Autres comptes')}</div>` + others.map(a => `
+        <div class="mm-acct">
+          <button class="mm-row" role="menuitem" data-mm="switch" data-id="${a.id}" title="${escapeHtml(t('Passer sur ce compte depuis roblox.com'))}">
+            <span class="me-av">${meAvatar(a)}</span>
+            <span class="mm-id"><b>${escapeHtml(a.displayName || a.name)}</b><small>@${escapeHtml(a.name)} · ${timeAgo(a.at)}</small></span>
+          </button>
+          <button class="mm-x" data-mm="forget" data-id="${a.id}" title="${escapeHtml(t('Retirer de la liste'))}" aria-label="${escapeHtml(t('Retirer de la liste'))}">${ic('x')}</button>
+        </div>`).join('')
+    : '';
+
+  menu.innerHTML = `${head}${list}
+    ${menuRow('add', others.length ? 'swap' : 'plus', t(others.length ? 'Changer ou ajouter un compte' : 'Ajouter un compte'))}
+    <div class="mm-hint"${hint ? '' : ' hidden'}>${escapeHtml(hint)}</div>
+    <div class="mm-sep"></div>
+    ${menuRow('anon', anon ? 'eye-off' : 'eye', t(anon ? 'Quitter le mode anonyme' : 'Mode anonyme'), '<kbd>H</kbd>')}
+    ${menuRow('pause', data.settings?.enabled ? 'pause' : 'play', t(data.settings?.enabled ? 'Mettre en pause' : 'Reprendre la surveillance'))}
+    ${menuRow('coin', 'coin', t('Pile ou face'))}
+    ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
+}
+
+function openMeMenu() {
+  if ($('#me-menu')) { closeMeMenu(); return; }
+  const menu = document.createElement('div');
+  menu.id = 'me-menu';
+  menu.className = 'me-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', t('Compte et raccourcis'));
+  document.body.append(menu);
+  fillMeMenu();
+  $('#btn-me').setAttribute('aria-expanded', 'true');
+  menu.querySelector('.mm-row')?.focus({ preventScroll: true });
+  menu.addEventListener('click', onMeMenu);
+  menu.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const rows = [...menu.querySelectorAll('.mm-row')];
+    const at = rows.indexOf(document.activeElement);
+    rows[(at + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length]?.focus();
+  });
+  setTimeout(() => document.addEventListener('pointerdown', outsideMeMenu, true));
+}
+
+function closeMeMenu({ focus = false } = {}) {
+  const menu = $('#me-menu');
+  if (!menu || menu.classList.contains('out')) return;
+  document.removeEventListener('pointerdown', outsideMeMenu, true);
+  $('#btn-me').setAttribute('aria-expanded', 'false');
+  menu.classList.add('out');
+  setTimeout(() => menu.remove(), REDUCED_MOTION ? 0 : 120);
+  if (focus) $('#btn-me').focus();
+}
+
+function outsideMeMenu(e) {
+  if (!e.target.closest('#me-menu, #btn-me')) closeMeMenu();
+}
+
+const ROBLOX_HOME = 'https://www.roblox.com/home';
+
+async function onMeMenu(e) {
+  const el = e.target.closest('[data-mm]');
+  if (!el) return;
+  const act = el.dataset.mm;
+  if (act === 'anon') { toggleAnon(); return; }
+  if (act === 'forget') {
+    const res = await send({ type: 'ronote:forget-account', userId: Number(el.dataset.id) });
+    if (res?.state) data.state = res.state;
+    fillMeMenu();
+    return;
+  }
+  if (act === 'switch' || act === 'add') {
+    // Roblox garde la main sur ses sessions : on ouvre le site, où son
+    // sélecteur de comptes (le portrait, en haut à droite) fait la bascule.
+    const hint = $('#me-menu .mm-hint');
+    if (hint) {
+      hint.hidden = false;
+      hint.textContent = t('Sur roblox.com, clique ton portrait en haut à droite puis « Changer de compte ». RoNote suit le nouveau compte tout seul, sans notifier ses anciens trades.');
+    }
+    B.tabs.create({ url: ROBLOX_HOME, active: true });
+    return;
+  }
+  closeMeMenu();
+  if (act === 'pause') {
+    const res = await send({ type: 'ronote:settings', patch: { enabled: !data.settings.enabled } });
+    data.settings = res.settings;
+    renderHeader();
+  } else if (act === 'coin') selectTab('coin');
+  else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
 }
 
 /* ============================== un objet ================================ */
@@ -254,6 +424,22 @@ const avatarBtn = (c, ring) => (Number(c.partner?.id)
   ? `<button class="av-ring av-btn ${ring}" data-player="${Number(c.partner.id)}" title="${escapeHtml(t('Fiche du joueur'))}">${avatarHtml(c)}</button>`
   : `<span class="av-ring ${ring}">${avatarHtml(c)}</span>`);
 
+/**
+ * Les objets vus dans les cartes, le zoom et les fiches : chaque vignette et
+ * chaque ligne d'objet porte `data-ti`, qui retrouve ici l'objet résolu pour
+ * ouvrir sa fiche (openTradeItem). Bornée : les plus anciens sortent.
+ */
+const tradeItems = new Map();
+function tiKey(i) {
+  const key = i.bundleId ? `b:${i.bundleId}` : i.assetId ? `a:${i.assetId}` : '';
+  if (key) {
+    tradeItems.delete(key);
+    tradeItems.set(key, i);
+    if (tradeItems.size > 400) tradeItems.delete(tradeItems.keys().next().value);
+  }
+  return key;
+}
+
 /** Quatre vignettes au plus par côté : au-delà, la dernière devient « +n ». */
 function tilesHtml(side) {
   if (!side.items.length) return `<div class="tc-tiles"><div class="tc-tile empty">—</div></div>`;
@@ -261,9 +447,10 @@ function tilesHtml(side) {
   const shown = side.items.slice(0, cut).map(i => {
     const cls = itemClasses(i);
     const title = escapeHtml(itemTitle(i));
+    const ti = tiKey(i);
     const tile = i.thumb
-      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}" decoding="async">`
-      : `<div class="tc-tile ph ${cls}" title="${title}">${ic(itemIcon(i))}</div>`;
+      ? `<img class="tc-tile ${cls}" src="${escapeHtml(i.thumb)}" alt="" title="${title}" data-icon="${itemIcon(i)}"${ti ? ` data-ti="${ti}"` : ''} decoding="async">`
+      : `<div class="tc-tile ph ${cls}" title="${title}"${ti ? ` data-ti="${ti}"` : ''}>${ic(itemIcon(i))}</div>`;
     const marks = marksHtml(i);
     return i.projected || marks
       ? `<span class="tc-tw">${tile}${i.projected ? projBadge() : ''}${marks ? `<span class="tc-mk">${marks}</span>` : ''}</span>`
@@ -370,21 +557,12 @@ function detailRow(i, big = false) {
     ? `<b style="color:var(--face)">—</b><span>${t('sans cote')}</span>`
     : `<b>${fmtFull(i.value)}</b><span>RAP ${fmtNum(i.rap)}${i.noValue ? ' · ' + t('pas de value') : ''}</span>`;
 
-  return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}">
+  const ti = tiKey(i);
+  return `<a class="det-row${big ? ' big' : ''}" href="${escapeHtml(itemUrl(i))}" target="_blank" rel="noreferrer" title="${escapeHtml(itemTitle(i))}"${ti ? ` data-ti="${ti}"` : ''}>
     ${img}
     <div class="det-n"><b>${i.projected ? projBadge() + ' ' : ''}${escapeHtml(i.name)}${marksHtml(i) ? ' ' + marksHtml(i) : ''}</b><span>${escapeHtml(itemTags(i))}</span></div>
     <div class="det-v">${right}</div>
   </a>`;
-}
-
-function detailHtml(a, outbound) {
-  const block = (title, side) => (side.items.length
-    ? `<div class="det-h">${title}</div>${side.items.map(i => detailRow(i)).join('')}`
-    : '');
-  return `<div class="detail">
-    ${block(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get)}
-    ${block(t('Vous donnez'), a.give)}
-  </div>`;
 }
 
 /* ============================== une carte =============================== */
@@ -400,11 +578,21 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     ? `<button class="tc-btn pin ${tracked ? 'on' : ''}" data-track="${c.tradeId}" data-on="${tracked ? '0' : '1'}"
          title="${escapeHtml(t(tracked ? 'Ne plus suivre ce trade' : 'Suivre ce trade (alerte si accepté, refusé ou contré)'))}">${ic('pin')}</button>`
     : '';
-  // Un refus armé survit au redessin de la liste (voir quickDecline).
-  const armed = armedNix === c.tradeId;
-  const nix = a && isOpen && tab !== 'completed'
-    ? `<button class="tc-btn nix${armed ? ' armed' : ''}" data-nix="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}" data-armed="${armed ? 1 : 0}"
-         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">${armed ? t('Confirmer ?') : ic('x')}</button>`
+  // Un geste armé survit au redessin de la liste (voir quickAct).
+  const armed = armedAct?.id === c.tradeId ? armedAct.act : null;
+  const actionable = a && isOpen && tab !== 'completed';
+  const nix = actionable
+    ? `<button class="tc-btn nix${armed === 'nix' ? ' armed' : ''}" data-act="nix" data-trade="${c.tradeId}" data-kind="${outbound ? 'outbound' : 'inbound'}" data-armed="${armed === 'nix' ? 1 : 0}"
+         title="${escapeHtml(t(outbound ? 'Annuler ce trade' : 'Refuser ce trade'))}">${armed === 'nix' ? t('Confirmer ?') : ic('x')}</button>`
+    : '';
+  // Un trade reçu s'accepte d'ici (deux clics) ; la contre-offre s'ouvre sur Roblox.
+  const incoming = actionable && !outbound;
+  const ok = incoming
+    ? `<button class="tc-btn ok${armed === 'ok' ? ' armed' : ''}" data-act="ok" data-trade="${c.tradeId}" data-kind="inbound" data-armed="${armed === 'ok' ? 1 : 0}"
+         title="${escapeHtml(t('Accepter ce trade'))}">${armed === 'ok' ? t('Accepter ?') : ic('check')}</button>`
+    : '';
+  const ctr = incoming
+    ? `<button class="tc-btn ctr" data-ctr="${c.tradeId}" title="${escapeHtml(t('Contre-offre'))}">${ic('counter')}</button>`
     : '';
   const verdict = a
     ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${verdictIcon(c.verdict)} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
@@ -423,7 +611,7 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
   const head = `<div class="tc-head">
       ${avatarBtn(c, tracked ? 'tracked' : tone)}
       <div class="who"><div class="n">${partnerName(c)}${partnerHandle(c)}</div><div class="t">${meta}</div></div>
-      ${verdict}${nix}${pin}
+      ${verdict}${ok}${ctr}${nix}${pin}
     </div>`;
   const cls = `tc${enter ? ' tc-enter' : ''}`;
 
@@ -441,10 +629,6 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     </article>`;
   }
 
-  const open = expanded.has(c.tradeId);
-  const showDetail = data.settings?.showItemDetails !== false;
-  const nb = a.give.items.length + a.get.items.length;
-
   return `<article class="${cls}" data-tone="${tracked ? 'tracked' : tone}">
     <div class="tc-body" data-zoom="${c.tradeId}">
       ${head}
@@ -457,10 +641,6 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
       ${balanceHtml(a)}
       ${flagsHtml(a)}
     </div>
-    ${showDetail && nb
-      ? `<button class="tc-more${open ? ' open' : ''}" data-expand="${c.tradeId}"><span>${open ? t('Masquer le détail') : t('Détail des {n} objets', { n: nb })}</span><i>${ic('chevron')}</i></button>`
-      : ''}
-    ${showDetail && open ? detailHtml(a, outbound) : ''}
   </article>`;
 }
 
@@ -560,7 +740,61 @@ function findCard(tradeId) {
     const c = cards[kind].get(tradeId);
     if (c) return { card: c, kind };
   }
-  return null;
+  const loose = looseCards.get(tradeId);
+  return loose ? { card: loose, kind: 'past' } : null;
+}
+
+/**
+ * UN TRADE HORS DES LISTES, EN ENTIER.
+ *
+ * Le journal et la fiche d'un joueur citent des trades qui ne sont plus dans
+ * aucune liste : rejetés par Roblox (« Rejected due to error »), expirés,
+ * refusés. Ils n'étaient qu'une ligne de texte, ou un détour par roblox.com.
+ * Le service worker les évalue comme les autres (détail, cotes, vignettes) et
+ * ils s'ouvrent ici en grand : les deux colonnes, le partenaire, et l'issue.
+ */
+const looseCards = new Map();
+const LOOSE_CAP = 30;
+
+async function openAnyTrade(id, journalKind, el) {
+  if (findCard(id)) {
+    const loose = looseCards.get(id);
+    if (loose && journalKind) loose.journalKind = journalKind;
+    openZoom(id);
+    return;
+  }
+  if (el?.classList.contains('busy')) return;
+  el?.classList.add('busy');
+  const res = await ask({ type: 'ronote:hydrate', ids: [id], kind: 'past' });
+  el?.classList.remove('busy');
+  const card = res?.cards?.find(c => Number(c.tradeId) === id);
+  // Détail refusé par Roblox (trade à bundle) : la page du site reste la seule vue.
+  if (!card?.analysis) { B.tabs.create({ url: tradeUrl(id) }); return; }
+  card.journalKind = journalKind || null;
+  looseCards.delete(id);
+  looseCards.set(id, card);
+  while (looseCards.size > LOOSE_CAP) looseCards.delete(looseCards.keys().next().value);
+  openZoom(id);
+}
+
+/** Pourquoi Roblox annule un trade « pour erreur » : rien n'a changé de main. */
+const ERROR_WHY = "Roblox a annulé ce trade au moment de l'exécuter : un objet n'était plus disponible (vendu, échangé, en hold) ou l'un des inventaires a changé. Rien n'a changé de main.";
+
+/** L'issue d'un trade terminé, en tête de son zoom. */
+function outcomeHtml(c) {
+  const status = c.status && c.status !== 'Open' ? c.status : '';
+  const jk = c.journalKind;
+  if (!status && !jk) return '';
+  const info = KIND_INFO[jk] || null;
+  const error = status === 'RejectedDueToError' || status === 'InterventionRequired' || jk === 'trade_error';
+  const tone = error ? 'loss' : info?.tone || (status === 'Completed' ? 'win' : 'even');
+  const label = info?.label ? t(info.label) : t(STATUS_LABEL[status] || status);
+  const statusText = !error && status && STATUS_LABEL[status] && info ? ` · ${t(STATUS_LABEL[status])}` : '';
+  return `<section class="z-outcome" data-tone="${tone}">
+    ${ic(KIND_ICON[jk] || (error ? 'alert' : 'dot'))}
+    <div><b>${escapeHtml(label)}${escapeHtml(statusText)}</b>
+      ${error ? `<small>${escapeHtml(t(ERROR_WHY))}</small>` : ''}</div>
+  </section>`;
 }
 
 function zoomSideHtml(title, side, a, incoming) {
@@ -601,10 +835,11 @@ function zoomHtml(c, kind) {
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body">
+      ${kind === 'past' ? outcomeHtml(c) : ''}
       ${a ? `<section class="z-hero" data-tone="${tone}">
         <div class="z-verdict">
           <span class="tc-pill ${tone}">${verdictIcon(c.verdict)} ${escapeHtml(t(c.verdict?.label || ''))}</span>
-          ${expires ? `<span class="z-exp">${ic('clock')} ${t('Expire {ago}', { ago: expires })}</span>` : ''}
+          ${expires && kind !== 'past' ? `<span class="z-exp">${ic('clock')} ${t('Expire {ago}', { ago: expires })}</span>` : ''}
         </div>
         ${balanceHtml(a, { big: true })}
       </section>` : `<div class="z-empty">${t('Détail indisponible pour ce trade.')}</div>`}
@@ -615,7 +850,9 @@ function zoomHtml(c, kind) {
     <div class="z-msg" hidden></div>
     <footer class="z-foot">
       <button class="z-open">${t('Ouvrir sur Roblox')} ${ic('external')}</button>
+      ${canDecline && !outbound ? `<button class="z-counter">${ic('counter')} ${t('Contre-offre')}</button>` : ''}
       ${canDecline ? `<button class="z-decline" data-kind="${kind}">${t(declineLabel)}</button>` : ''}
+      ${canDecline && !outbound ? `<button class="z-accept">${ic('check')} ${t('Accepter')}</button>` : ''}
     </footer>
   </div>`;
 }
@@ -632,13 +869,14 @@ document.addEventListener('keydown', (e) => {
   const key = e.key.toLowerCase();
   if (plain && key === 'h') { e.preventDefault(); toggleAnon(); return; }
   if (plain && !zoom && !side) {
-    const to = /^[1-9]$/.test(e.key) && document.querySelectorAll('.tab')[Number(e.key) - 1];
+    const to = /^[1-9]$/.test(e.key) && document.querySelectorAll('.tab:not([hidden])')[Number(e.key) - 1];
     if (to) { e.preventDefault(); to.click(); return; }
     if (key === 'r') { e.preventDefault(); $('#btn-refresh').click(); return; }
   }
   if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinKey(listEl, e);
   if (e.key !== 'Escape') return;
-  if (zoom) closeZoom();
+  if (counterOpen()) closeCounterEditor();
+  else if (zoom) closeZoom();
   else if (side) closePlayer();
 });
 
@@ -665,6 +903,9 @@ function openZoom(tradeId) {
   wrap.querySelector('[data-player]')?.addEventListener('click', (e) => openPlayer(Number(e.currentTarget.dataset.player)));
   const dec = wrap.querySelector('.z-decline');
   if (dec) dec.addEventListener('click', () => decline(dec, hit.card, dec.dataset.kind, wrap));
+  const acc = wrap.querySelector('.z-accept');
+  if (acc) acc.addEventListener('click', () => decline(acc, hit.card, 'inbound', wrap, 'ok'));
+  wrap.querySelector('.z-counter')?.addEventListener('click', () => openCounter(tradeId));
 }
 
 /**
@@ -686,20 +927,80 @@ async function sendDecline(tradeId, kind) {
 }
 
 /**
+ * Accepter un trade reçu. Roblox peut exiger une vérification en deux étapes
+ * que l'extension ne sait pas passer : le trade s'ouvre alors sur roblox.com,
+ * où l'on finit soi-même (`res.challenge`).
+ */
+async function sendAccept(tradeId) {
+  const card = findCard(tradeId)?.card;
+  const res = await send({
+    type: 'ronote:accept', tradeId,
+    partner: card?.partner?.displayName || card?.partner?.name || '',
+    partnerId: card?.partner?.id || null
+  });
+  if (res?.ok) {
+    forgetTrade(tradeId);
+    if (res.state) data.state = res.state;
+  } else if (res?.challenge) {
+    B.tabs.create({ url: tradeUrl(tradeId) });
+  }
+  return res;
+}
+
+/**
+ * La contre-offre se compose ici (counter.js) : les deux inventaires, l'écart
+ * simulé à chaque objet, puis l'envoi en deux clics. Sans évaluation ni
+ * partenaire connu, il n'y a rien à simuler : roblox.com prend le relais.
+ */
+function openCounter(tradeId) {
+  const card = findCard(tradeId)?.card;
+  if (!card?.analysis || !Number(card.partner?.id)) { B.tabs.create({ url: tradeUrl(tradeId) }); return; }
+  closeZoom();   // le zoom du trade laisse la place à l'éditeur
+  openCounterEditor(card, {
+    settings: data.settings,
+    balanceHtml,
+    avatarHtml,
+    onSent: (res) => {
+      forgetTrade(tradeId);
+      if (res?.state) data.state = res.state;
+      renderHeader();
+      renderList();
+    }
+  });
+}
+
+/** Ce qu'affiche un bouton de geste, au repos et armé. `act` : nix (refuser/annuler) ou ok (accepter). */
+function actLabels(act, outbound) {
+  return act === 'ok'
+    ? { idle: t('Accepter'), armed: t("Confirmer l'acceptation"), busy: t('Acceptation…'), run: sendAccept }
+    : { idle: t(outbound ? 'Annuler le trade' : 'Refuser le trade'),
+      armed: t(outbound ? "Confirmer l'annulation" : 'Confirmer le refus'), busy: t('Annulation…'),
+      run: (id) => sendDecline(id, outbound ? 'outbound' : 'inbound') };
+}
+
+/**
  * Refus / annulation. Deux clics : le premier arme le bouton, le second envoie.
  * L'action est définitive côté Roblox — un clic de trop ne doit pas pouvoir
  * détruire une négociation.
  */
 let armTimer = null;
-async function decline(btn, card, kind, wrap) {
+async function decline(btn, card, kind, wrap, act = 'nix') {
   const outbound = kind === 'outbound';
-  const idle = t(outbound ? 'Annuler le trade' : 'Refuser le trade');
+  const L = actLabels(act, outbound);
+  const idle = L.idle;
   const msg = wrap.querySelector('.z-msg');
+  // Un seul geste armé à la fois : armer l'un désarme l'autre.
+  for (const other of wrap.querySelectorAll('.z-foot [data-armed="1"]')) {
+    if (other === btn) continue;
+    other.dataset.armed = '0';
+    other.classList.remove('armed');
+    other.innerHTML = other.classList.contains('z-accept') ? `${ic('check')} ${t('Accepter')}` : actLabels('nix', outbound).idle;
+  }
 
   if (btn.dataset.armed !== '1') {
     btn.dataset.armed = '1';
     btn.classList.add('armed');
-    btn.textContent = t(outbound ? "Confirmer l'annulation" : 'Confirmer le refus');
+    btn.textContent = L.armed;
     msg.hidden = false;
     msg.className = 'z-msg';
     msg.textContent = t('Cliquer une seconde fois pour confirmer. Action définitive côté Roblox.');
@@ -707,7 +1008,7 @@ async function decline(btn, card, kind, wrap) {
     armTimer = setTimeout(() => {
       btn.dataset.armed = '0';
       btn.classList.remove('armed');
-      btn.textContent = idle;
+      btn.innerHTML = act === 'ok' ? `${ic('check')} ${idle}` : idle;
       msg.hidden = true;
     }, 5000);
     return;
@@ -715,8 +1016,8 @@ async function decline(btn, card, kind, wrap) {
 
   clearTimeout(armTimer);
   btn.disabled = true;
-  btn.textContent = t('Annulation…');
-  const res = await sendDecline(card.tradeId, kind);
+  btn.textContent = L.busy;
+  const res = await L.run(card.tradeId);
   if (res?.ok) {
     closeZoom();
     renderHeader();
@@ -726,10 +1027,12 @@ async function decline(btn, card, kind, wrap) {
   btn.disabled = false;
   btn.dataset.armed = '0';
   btn.classList.remove('armed');
-  btn.textContent = idle;
+  btn.innerHTML = act === 'ok' ? `${ic('check')} ${idle}` : idle;
   msg.hidden = false;
   msg.className = 'z-msg err';
-  msg.textContent = t('Échec : {why}', { why: res?.error || '?' });
+  msg.textContent = res?.challenge
+    ? t('Roblox demande une vérification : le trade s\'est ouvert sur roblox.com, accepte-le là-bas.')
+    : t('Échec : {why}', { why: res?.error || '?' });
 }
 
 /**
@@ -742,41 +1045,46 @@ async function decline(btn, card, kind, wrap) {
  * rappelle sur le bouton refait.
  */
 let nixTimer = null;
-let armedNix = null;
+let armedAct = null;   // { id, act } : le geste armé d'une carte (nix = refuser/annuler, ok = accepter)
 
 /** Retour au repos, que le bouton d'origine soit encore a l'ecran ou non. */
-function disarmNix(btn) {
+function disarmAct(btn) {
   clearTimeout(nixTimer);
-  armedNix = null;
+  armedAct = null;
   if (!btn?.isConnected) return;
   btn.dataset.armed = '0';
   btn.classList.remove('armed');
-  btn.innerHTML = ic('x');
+  btn.innerHTML = ic(btn.dataset.act === 'ok' ? 'check' : 'x');
 }
 
-async function quickDecline(btn, tradeId, kind) {
+async function quickAct(btn, tradeId, kind, act) {
   if (btn.dataset.armed !== '1') {
+    // Un seul geste armé à la fois, sur toute la liste.
+    const prev = document.querySelector('.tc-btn[data-armed="1"]');
+    if (prev && prev !== btn) disarmAct(prev);
     btn.dataset.armed = '1';
     btn.classList.add('armed');
-    btn.textContent = t('Confirmer ?');
-    armedNix = tradeId;
+    btn.textContent = t(act === 'ok' ? 'Accepter ?' : 'Confirmer ?');
+    armedAct = { id: tradeId, act };
     clearTimeout(nixTimer);
-    nixTimer = setTimeout(() => disarmNix(btn), 5000);
+    nixTimer = setTimeout(() => disarmAct(btn), 5000);
     return;
   }
   clearTimeout(nixTimer);
-  armedNix = null;
+  armedAct = null;
   btn.disabled = true;
   btn.textContent = '…';
-  const res = await sendDecline(tradeId, kind);
+  const res = act === 'ok' ? await sendAccept(tradeId) : await sendDecline(tradeId, kind);
   if (res?.ok) {
     renderHeader();
     renderList();
     return;
   }
   btn.disabled = false;
-  disarmNix(btn);
-  btn.title = t('Échec : {why}', { why: res?.error || '?' });
+  disarmAct(btn);
+  btn.title = res?.challenge
+    ? t('Roblox demande une vérification : le trade s\'est ouvert sur roblox.com, accepte-le là-bas.')
+    : t('Échec : {why}', { why: res?.error || '?' });
 }
 
 /* =========================== fiche d'un joueur =========================== */
@@ -833,6 +1141,94 @@ const playerRows = () => partnerTimeline(player.res?.events || [], liveTradesWit
  * refaisait deux fois par affichage, et `liveTradesWith` parcourt les trois
  * listes en recopiant chaque trade au passage.
  */
+/* ------------------------------- Neuronal --------------------------------
+   Ce que le réseau Neuronal sait du joueur ou de l'objet d'une fiche : s'il est
+   dans la base, et ses derniers trades (lus par le service worker, voir
+   background/neuronal.js). Rien ne s'affiche tant que l'option est coupée. */
+
+// Le logo actuel de neuronal.live (le « N » à la couronne, celui de l'en-tête du site), en image comme là-bas.
+const NW_MARK = '<img class="nw-mark" src="../assets/neuronal-logo.png" alt="" width="16" height="16">';
+const nwOn = () => !!data.settings?.neuronalLookup;
+const nwAgo = (sec) => (sec ? timeAgo(sec * 1000) : '');
+
+/** Les objets d'un côté de trade : « Domino Crown, Sparkle Time ×2, +1 ». */
+function nwItems(list, more, robux = 0) {
+  const names = (list || []).map(it => escapeHtml(it.name || '#' + it.id) + (it.n > 1 ? ` ×${it.n}` : ''));
+  if (more) names.push('+' + more);
+  if (robux > 0) names.push(`<b class="nw-rbx">R$ ${fmtNum(robux)}</b>`);
+  return names.join(', ') || '—';
+}
+
+/** Un trade du réseau. `mine` : vu du joueur de la fiche (son gain), sinon A ⇄ B. */
+function nwTradeHtml(tr, mine = false) {
+  const name = (who) => escapeHtml(who?.name || (who?.id ? '#' + who.id : '?'));
+  const head = mine ? t('avec {who}', { who: `<b>${name(tr.partner)}</b>` })
+    : `<b>${name(tr.a)}</b> <span class="nw-x">⇄</span> <b>${name(tr.b)}</b>`;
+  const delta = (tr.got || 0) - (tr.gave || 0);
+  const pill = mine && (tr.got || tr.gave) ? `<span class="jr-pill ${toneOf(delta)}">${amountSigned(delta)}</span>` : '';
+  return `<div class="nw-tr">
+    <div class="nw-tr-h"><span class="nw-who">${head}</span>${tr.parts > 1 ? `<span class="nw-tag">mass ×${tr.parts}</span>` : ''}${tr.via_ronote ? `<span class="nw-tag nw-tag-ro" title="${escapeHtml(t('Trade confirmé par un utilisateur RoNote'))}">RoNote</span>` : ''}<span class="nw-ago">${nwAgo(tr.at)}</span>${pill}</div>
+    <div class="nw-tr-s"><span>${nwItems(tr.gave_items, tr.gave_more, tr.gave_robux)}</span><span class="nw-x">⇄</span><span>${nwItems(tr.got_items, tr.got_more, tr.got_robux)}</span></div>
+  </div>`;
+}
+
+/** L'état d'une lecture : chargement, raison d'une absence, ou null quand la fiche est là. */
+function nwStateHtml(res, unknownText) {
+  if (!res) return '<div class="p-skel nw-skel"></div>';
+  if (res.off) return '';
+  if (res.unavailable) return `<div class="nw-none">${t("Neuronal n'a pas encore ouvert ses fiches à l'extension.")}</div>`;
+  if (res.limited) return `<div class="nw-none">${t('Trop de fiches demandées : réessaie dans quelques minutes.')}</div>`;
+  if (res.error || !res.data) return `<div class="nw-none">${t('Neuronal est injoignable.')}</div>`;
+  if (!res.data.known) return `<div class="nw-none">${ic('help')} ${unknownText}</div>`;
+  return null;
+}
+
+function neuronalPlayerHtml() {
+  if (!nwOn()) return '';
+  const res = player.nw;
+  const head = `<div class="p-h nw-h">${NW_MARK} Neuronal</div>`;
+  const state = nwStateHtml(res, t('Pas dans la base Neuronal.'));
+  if (state !== null) return state ? head + state : '';
+  const d = res.data;
+  const flags = [
+    `<span class="p-flag accent">${ic('check-circle')} ${t('Dans la base')}${d.first_seen ? ' · ' + t('repéré {ago}', { ago: nwAgo(d.first_seen) }) : ''}</span>`,
+    d.ronote ? `<span class="p-flag nw-ro">${ic('check-circle')} ${t('Utilise RoNote')}</span>` : '',
+    d.bot ? `<span class="p-flag warn">${ic('alert')} ${t('Bot de trade')}</span>` : '',
+    d.term ? `<span class="p-flag loss">${ic('ban')} ${t('Compte terminé')}</span>` : ''
+  ].filter(Boolean).join('');
+  const st = d.stats || {};
+  const tiles = `<div class="w-facts nw-facts">
+    ${factHtml(t('Trades vus'), fmtNum(d.trades || 0))}
+    ${factHtml(t('Partenaires'), fmtNum(d.partners || 0))}
+    ${factHtml(t('Bilan'), st.judged ? `<em class="${toneOf(st.net || 0)}">${amountSigned(st.net || 0)}</em>` : '—',
+      st.judged ? t('{w} gagnés · {l} perdus', { w: st.won || 0, l: st.lost || 0 }) : '')}
+  </div>`;
+  const recent = (d.recent || []).length
+    ? `<div class="jr-day nw-list">${d.recent.map(tr => nwTradeHtml(tr, true)).join('')}</div>`
+    : `<div class="nw-none">${t("Aucun trade prouvé dans le réseau pour l'instant.")}</div>`;
+  return `${head}<div class="p-flags">${flags}</div>${tiles}
+    <div class="p-h">${t('Ses derniers trades')}</div>${recent}`;
+}
+
+function neuronalItemHtml(res) {
+  if (!nwOn()) return '';
+  const head = `<div class="p-h nw-h">${NW_MARK} Neuronal</div>`;
+  const state = nwStateHtml(res, t("Cet objet n'apparaît dans aucun trade du réseau."));
+  if (state !== null) return state ? head + state : '';
+  const d = res.data;
+  const tiles = `<div class="w-facts">
+    ${factHtml(t('Trades vus'), fmtNum(d.trades || 0))}
+    ${factHtml(t('Détenteurs suivis'), fmtNum(d.holders || 0), d.copies > d.holders ? t('{n} exemplaires', { n: fmtNum(d.copies) }) : '')}
+  </div>`;
+  const holders = (d.top_holders || []).length
+    ? `<div class="nw-holders">${d.top_holders.map(h => `<span class="nw-holder">${escapeHtml(h.name || '#' + h.id)}${h.n > 1 ? ` <b>×${h.n}</b>` : ''}</span>`).join('')}</div>`
+    : '';
+  const recent = (d.recent || []).length
+    ? `<div class="p-h">${t('Ses derniers trades')}</div><div class="jr-day nw-list">${d.recent.map(tr => nwTradeHtml(tr)).join('')}</div>`
+    : '';
+  return `${head}${tiles}${holders}${recent}`;
+}
+
 function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
   const res = player.res;
   const roli = res?.roli, prof = res?.profile;
@@ -911,7 +1307,8 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     ${tiles}${verdictLine}
     ${chartOn ? playerFacesHtml() : ''}
     <div class="p-h">${t('Vos échanges')}${rows.length ? ` <small>${rows.length}</small>` : ''}</div>
-    ${list}`;
+    ${list}
+    ${neuronalPlayerHtml()}`;
 }
 
 /**
@@ -989,6 +1386,7 @@ function playerFootHtml() {
   const ignored = player.res ? !!player.res.ignored : isIgnored(player.id);
   return `<button class="z-open" data-url="https://www.roblox.com/users/${player.id}/profile">${t('Profil Roblox')} ${ic('external')}</button>
     <button class="z-open" data-url="https://www.rolimons.com/player/${player.id}">Rolimon's ${ic('external')}</button>
+    ${player.nw?.data?.known ? `<button class="z-open" data-url="${NEURONAL.site}?focus=${player.id}">Neuronal ${ic('external')}</button>` : ''}
     <button class="p-mute${ignored ? ' on' : ''}" data-mute>${ic('user-off')} ${t(ignored ? 'Ne plus ignorer' : 'Ignorer')}</button>`;
 }
 
@@ -997,7 +1395,7 @@ function bindPlayer(root) {
   root.querySelectorAll('[data-ptrade]').forEach(b => {
     b.onclick = () => {
       const id = Number(b.dataset.ptrade);
-      if (findCard(id)) openZoom(id); else B.tabs.create({ url: tradeUrl(id) });
+      openAnyTrade(id, null, b);
     };
   });
   const mute = root.querySelector('[data-mute]');
@@ -1079,8 +1477,16 @@ function openPlayer(id) {
   const token = ++player.token;
   Object.assign(player, {
     id, who: seed.partner || { id }, headshot: seed.headshot || null,
-    res: null, chart: null, faces: null, facesAll: false
+    res: null, chart: null, faces: null, facesAll: false, nw: null
   });
+  if (nwOn()) {
+    const paintNw = (res) => {
+      if (token !== player.token) return;
+      player.nw = res || { error: 'empty' };
+      renderPlayer();
+    };
+    send({ type: 'ronote:neuronal', kind: 'player', id }).then(paintNw, () => paintNw(null));
+  }
 
   // La fiche s'ouvre à côté de la liste, qui reste utilisable : le popup
   // s'élargit pour elle. Changer de joueur remplace son contenu sur place.
@@ -1352,7 +1758,7 @@ function journalRow(h) {
     sub = t('cote {a} → {b} · impact {c}', { a: fmtNum(h.from), b: fmtNum(h.to), c: fmtSigned(h.delta) });
   } else {
     title = `${escapeHtml(h.partner)} <span class="jr-x">#${h.tradeId}</span>`;
-    if (h.kind === 'declined_by_me') sub = escapeHtml(t(h.skipped || ''));
+    if (BY_ME.has(h.kind)) sub = escapeHtml(t(h.skipped || ''));
     else if (h.skipped) sub = escapeHtml(t('filtré : {why}', { why: t(h.skipped) }));
     else if (h.counterTo) sub = ic('reply') + ' ' + t('réponse au trade #{id}', { id: h.counterTo });
     else if (h.unknown) sub = `<span class="face">${ic('help')} ${t('{n} objet(s) sans cote', { n: h.unknown })}</span>`;
@@ -1360,10 +1766,11 @@ function journalRow(h) {
   }
   if (h.pct != null) pill = `<span class="jr-pill ${toneOf(h.pct, 3)}">${fmtPct(h.pct)}</span>`;
 
-  const url = h.kind !== 'revalued' && h.tradeId ? tradeUrl(h.tradeId) : '';
-  const tag = url ? 'button' : 'div';
+  // Un trade du journal s'ouvre en entier dans le popup (voir openAnyTrade).
+  const trade = h.kind !== 'revalued' && Number(h.tradeId) ? Number(h.tradeId) : 0;
+  const tag = trade ? 'button' : 'div';
   const muted = !h.notified && h.kind !== 'revalued' ? ' muted' : '';
-  return `<${tag} class="jr${muted}"${url ? ` data-url="${escapeHtml(url)}"` : ''}>
+  return `<${tag} class="jr${muted}"${trade ? ` data-jtrade="${trade}" data-jkind="${escapeHtml(h.kind)}" title="${escapeHtml(t('Voir le trade'))}"` : ''}>
     <span class="jr-ic" data-tone="${info.tone}">${ic(icon)}</span>
     <span class="jr-m">
       <span class="jr-k">${info.label ? t(info.label) : ''}</span>
@@ -1883,11 +2290,36 @@ function renderSheetChart(animate = false) {
   }
 }
 
-function openItemSheet(key) {
+/**
+ * Un objet d'un trade, mis à la forme d'un objet du portefeuille pour sa fiche.
+ * Un visage passe par son ancien asset (celui de Rolimon's et de Neuronal).
+ */
+function sheetItemOf(x) {
+  const kind = x.bundleId ? 'bundle' : 'asset';
+  const id = x.bundleId || x.assetId;
+  const mine = (data.report?.items || []).find(r => r.kind === kind && Number(r.id) === Number(id));
+  if (mine) return mine;   // possédé : sa vraie fiche, avec exemplaires et réévaluation
+  return {
+    key: `t:${kind}:${id}`, kind, id, faceAssetId: x.legacyAssetId || 0, isFace: !!x.isFace,
+    name: x.name, acronym: x.acronym || '', thumb: x.thumb || null,
+    value: x.value || 0, rap: x.rap || 0, total: x.value || 0, count: 0,
+    demand: x.demand ?? -1, trend: x.trend ?? -1, projected: !!x.projected, rare: !!x.rare,
+    noValue: !!x.noValue, change: null, notMine: true
+  };
+}
+
+/** Un clic sur un objet d'un trade : sa fiche, puis retour au zoom d'où il venait. */
+function openTradeItem(x) {
+  const i = sheetItemOf(x);
+  const back = typeof zoomed === 'number' ? zoomed : null;
+  openItemSheet(i.key, i.notMine ? i : null, back ? () => openZoom(back) : null);
+}
+
+function openItemSheet(key, given = null, onClosed = null) {
   const items = data.report?.items || [];
-  const i = items.find(x => x.key === key);
+  const i = given || items.find(x => x.key === key);
   if (!i) return;
-  const sum = items.reduce((s, x) => s + x.total, 0);
+  const sum = given ? 0 : items.reduce((s, x) => s + x.total, 0);
   const roliId = i.kind === 'asset' ? i.id : i.faceAssetId;
   const links = [
     roliId ? { label: "Rolimon's", url: `https://www.rolimons.com/item/${roliId}` } : null,
@@ -1910,7 +2342,8 @@ function openItemSheet(key) {
     </header>
     <div class="z-body">
       <div class="w-sh-amount">${amount(i.total)}</div>
-      <div class="w-sh-sub">${i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')}${sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''}</div>
+      <div class="w-sh-sub">${i.notMine ? t('Tu ne possèdes pas cet objet.')
+        : (i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')) + (sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : '')}</div>
       <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
         ${factHtml('Value', amount(i.value) + (i.noValue ? ` <small>${t('(RAP faute de cote)')}</small>` : ''))}
@@ -1920,10 +2353,11 @@ function openItemSheet(key) {
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
       ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
+      <div id="w-sh-nw">${roliId ? neuronalItemHtml(null) : ''}</div>
     </div>
     <footer class="z-foot">${links.map(l =>
       `<button class="z-open" data-url="${escapeHtml(l.url)}">${l.label} ${ic('external')}</button>`).join('')}</footer>
-  </div>`, closeZoom);
+  </div>`, () => { closeZoom(); onClosed?.(); });
   renderSheetChart();
   wrap.querySelectorAll('button[data-url]').forEach(b => {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
@@ -1931,6 +2365,19 @@ function openItemSheet(key) {
 
   if (!roliId) return;
   const still = () => zoomed === 'item:' + key;
+  if (nwOn()) {
+    const paintNw = (res) => {
+      if (!still()) return;
+      const box = wrap.querySelector('#w-sh-nw');
+      if (box) box.innerHTML = neuronalItemHtml(res || { error: 'empty' });
+      if (res?.data?.known && !wrap.querySelector('[data-nw]')) {
+        wrap.querySelector('.z-foot')?.insertAdjacentHTML('beforeend',
+          `<button class="z-open" data-nw data-url="${NEURONAL.site}?item=${roliId}">Neuronal ${ic('external')}</button>`);
+        wrap.querySelector('[data-nw]').addEventListener('click', (e) => B.tabs.create({ url: e.currentTarget.dataset.url }));
+      }
+    };
+    send({ type: 'ronote:neuronal', kind: 'item', id: roliId }).then(paintNw, () => paintNw(null));
+  }
   send({ type: 'ronote:item-history', itemId: roliId }).then((res) => {
     if (!still()) return;
     const h = res?.history;
@@ -2052,7 +2499,8 @@ function renderStats() {
     ${collectionHtml(rep, items, owned)}
     <div class="w-foot">
       ${lien}
-      <span>${rep?.at ? t('calculé {ago}', { ago: agoHtml(rep.at) }) : ''}</span>
+      <span>${rep?.at ? t('calculé {ago}', { ago: agoHtml(rep.at) }) : ''}${rep?.estimated && !rep.private
+        ? ` · <span class="face" title="${escapeHtml(t("Le profil Rolimon's ne répond pas : value et RAP additionnés depuis le catalogue public, un peu sous-estimés. Le chiffre officiel revient tout seul."))}">${ic('help')} ${t('estimé')}</span>` : ''}</span>
       <button class="w-btn" id="btn-recompute">${walletFetching ? t('Calcul…') : t('Recalculer maintenant')}</button>
     </div>
     <div class="w-note">${t("Courbe telle que Rolimon's la publie (une mesure par jour), prolongée jusqu'au dernier relevé de RoNote. Le chiffre du haut, lui, est celui de maintenant.")}</div>`;
@@ -2145,10 +2593,10 @@ function listSignature(snap) {
     return JSON.stringify([tab, listFilter.history, new Date().toDateString(), data.history?.length || 0, data.history?.[0]?.at || 0]);
   }
   return JSON.stringify([
-    tab, listFilter[tab], data.settings?.showItemDetails, data.state?.inboundCount,
+    tab, listFilter[tab], data.state?.inboundCount,
     Object.keys(data.state?.tracked || {}), Object.keys(data.state?.links || {}).length,
-    snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '', expanded.has(x.tradeId)]),
-    armedNix, marksSig(),
+    snap.map(x => [x.tradeId, x.status, cards[tab].has(x.tradeId), failures[tab].get(x.tradeId) || '']),
+    armedAct ? `${armedAct.id}:${armedAct.act}` : '', marksSig(),
     [more[tab]?.loading, more[tab]?.error, hasMore(tab), hydrating.has(tab)]
   ]);
 }
@@ -2493,14 +2941,10 @@ function watchList() {
  */
 const LIST_ACTIONS = [
   ['[data-player]', (el) => openPlayer(Number(el.dataset.player))],
-  ['button[data-nix]', (el) => quickDecline(el, Number(el.dataset.nix), el.dataset.kind)],
+  ['button[data-act]', (el) => quickAct(el, Number(el.dataset.trade), el.dataset.kind, el.dataset.act)],
+  ['button[data-ctr]', (el) => openCounter(Number(el.dataset.ctr))],
   ['button[data-track]', (el) => setTracked([Number(el.dataset.track)], el.dataset.on === '1')],
   ['[data-untrack-all]', (el) => setTracked(ghostTracked().map(g => g.tradeId), false, el)],
-  ['button[data-expand]', (el) => {
-    const id = Number(el.dataset.expand);
-    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
-    renderList();
-  }],
   ['button[data-retry]', (el) => {
     const id = Number(el.dataset.retry);
     el.textContent = '…';
@@ -2519,10 +2963,21 @@ const LIST_ACTIONS = [
     renderList();
   }],
   ['#rc-open', () => openSharing('month')],
-  ['.jr[data-url]', (el) => B.tabs.create({ url: el.dataset.url })],
+  ['.jr[data-jtrade]', (el) => openAnyTrade(Number(el.dataset.jtrade), el.dataset.jkind, el)],
   // La carte entière ouvre le zoom, sauf un bouton qu'aucun geste ne réclame.
   ['.tc-body[data-zoom]', (el, e) => { if (!e.target.closest('button')) openZoom(Number(el.dataset.zoom)); }]
 ];
+
+// Un objet (vignette d'une carte, ligne du détail, du zoom ou d'une fiche) :
+// sa fiche. En capture, pour passer avant le zoom de la carte qui le contient.
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-ti]');
+  const item = el && tradeItems.get(el.dataset.ti);
+  if (!item) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openTradeItem(item);
+}, true);
 
 listEl.addEventListener('click', (e) => {
   for (const [sel, run] of LIST_ACTIONS) {
@@ -2550,6 +3005,16 @@ async function hydrateAll() {
  */
 const applyLang = () => applyPageLang(data.settings?.lang, moveTabIndicator);
 
+/**
+ * Le journal du compte suivi : une entrée écrite pour un autre compte (`uid`)
+ * n'a rien à faire dans ses compteurs. Les plus anciennes, sans
+ * `uid`, restent.
+ */
+function mineOnly(list) {
+  const me = Number(data.state?.userId);
+  return me ? (list || []).filter(h => !h.uid || Number(h.uid) === me) : (list || []);
+}
+
 /** Ce que le popup lit dans `storage.local`, sous les noms du stockage. */
 const STORED = ['settings', 'state', 'history', 'portfolio', 'portfolioReport'];
 
@@ -2562,6 +3027,7 @@ function adoptStored(got) {
   if ('settings' in got) data.settings = withDefaults(got.settings);
   if ('state' in got) data.state = withStateDefaults(got.state);
   if ('history' in got) data.history = (Array.isArray(got.history) ? got.history : []).slice(0, 100);
+  if ('history' in got || 'state' in got) data.history = mineOnly(data.history);
   if ('portfolio' in got) data.portfolio = Array.isArray(got.portfolio) ? got.portfolio : [];
   if ('portfolioReport' in got) data.report = got.portfolioReport && typeof got.portfolioReport === 'object' ? got.portfolioReport : null;
 }
@@ -2628,7 +3094,7 @@ document.fonts?.ready?.then(moveTabIndicator);
 document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
   const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
   if (!step) return;
-  const tabs = [...document.querySelectorAll('.tab')];
+  const tabs = [...document.querySelectorAll('.tab:not([hidden])')];
   const at = tabs.indexOf(document.activeElement);
   if (at < 0) return;
   e.preventDefault();
@@ -2653,7 +3119,10 @@ document.querySelectorAll('.tab').forEach(el => {
   });
 });
 
-$('#btn-anon').addEventListener('click', toggleAnon);
+$('#btn-me').addEventListener('click', openMeMenu);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('#me-menu')) { e.stopImmediatePropagation(); closeMeMenu({ focus: true }); }
+}, true);
 applyAnon();
 
 $('#btn-refresh').addEventListener('click', async (e) => {
@@ -2663,13 +3132,45 @@ $('#btn-refresh').addEventListener('click', async (e) => {
   try { await load({ refresh: true }); } finally { btn.classList.remove('spin'); }
 });
 
-$('#btn-toggle').addEventListener('click', async () => {
-  const res = await send({ type: 'ronote:settings', patch: { enabled: !data.settings.enabled } });
+$('#btn-resume').addEventListener('click', async () => {
+  const res = await send({ type: 'ronote:settings', patch: { enabled: true } });
   data.settings = res.settings;
   renderHeader();
 });
 
 $('#btn-options').addEventListener('click', () => B.runtime.openOptionsPage());
+
+// Bouton a la Phantom : du popup vers la barre laterale, et retour. Le choix
+// reste (reglage `sidePanel`) : l'icone de RoNote rouvre ensuite le meme mode.
+// L'ouverture et la fermeture se font avant tout await, geste oblige. Son
+// icone bascule (fondu flou) vers celle du mode d'arrivee : la barre s'ouvre
+// en montrant deja le bouton du retour.
+const sideBtn = $('#btn-side');
+const sideTitle = (on) => { sideBtn.title = t(on ? 'Revenir au popup' : 'Ouvrir en barre latérale'); };
+const sideFlip = (on) => { sideBtn.classList.toggle('on', on); sideBtn.setAttribute('aria-pressed', String(on)); sideTitle(on); };
+const pause = (ms) => new Promise(r => setTimeout(r, ms));
+if (IN_PANEL) requestAnimationFrame(() => requestAnimationFrame(() => sideFlip(true)));
+sideBtn.addEventListener('click', async () => {
+  const saved = send({ type: 'ronote:settings', patch: { sidePanel: !IN_PANEL } });
+  sideFlip(!IN_PANEL);
+  if (!IN_PANEL) {
+    if (B.sidebarAction) B.sidebarAction.open();
+    else if (windowId != null) chrome.sidePanel?.open({ windowId });
+    await Promise.all([saved, pause(180)]);   // le temps de voir l'icone changer
+    window.close();
+  } else if (B.sidebarAction) {
+    B.sidebarAction.close();
+  } else {
+    await Promise.all([saved, pause(180)]);
+    if (chrome.sidePanel?.close && windowId != null) chrome.sidePanel.close({ windowId });
+    else window.close();
+  }
+});
+
+// Une pastille qui glisse d'un bouton a l'autre (common/fluid.js).
+fluidHover($('.actions'), 'button.icon');
+fluidHover($('.tabs'), '.tab');
+fluidHover(listEl, 'button.jr, .h-events .jr, .h-todo');
 
 load();
 

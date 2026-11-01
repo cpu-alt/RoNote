@@ -72,8 +72,10 @@ And the number that matters, everywhere, is the **value**, not the RAP.
   column and the *projected* badge, with a live preview
 - **English and French**, detected automatically
 
-RoNote **never accepts** a trade and never creates one: those actions move items,
-and a misplaced click would be irreversible.
+**Accept** an inbound trade from the popup in two deliberate clicks (accepting
+moves items and cannot be undone). **Counter** right in the popup: both
+inventories, one click per item, Robux on each side, and the difference simulated
+live before you send (two clicks again). RoNote never creates a trade on its own.
 
 <p align="center">
   <img src="store-assets/ronote-stats.png" alt="Portfolio tab" width="49%">

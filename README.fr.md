@@ -31,9 +31,11 @@ Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
 - **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses
 - **Français et anglais**, détectés automatiquement
 - **Refuser ou annuler** un trade en deux clics volontaires, depuis le détail
+- **Accepter** un trade reçu, en deux clics aussi (accepter transfère des objets et ne se défait pas)
 
-RoNote **n'accepte jamais** un trade et n'en crée pas : ces actions transfèrent des
-objets, un clic mal placé y serait irréversible.
+**Contre-offre** directement dans le popup : les deux inventaires, un clic par objet,
+des Robux de chaque côté, et l'écart simulé en direct avant d'envoyer (deux clics,
+là aussi). RoNote ne crée jamais de trade de lui-même.
 
 ## Installation
 

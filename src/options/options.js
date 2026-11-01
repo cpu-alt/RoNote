@@ -1,11 +1,12 @@
 import { B } from '../common/shim.js';
-import { SOUNDS, DEFAULTS } from '../common/defaults.js';
+import { SOUNDS, DEFAULTS, NEURONAL } from '../common/defaults.js';
 import { timeAgo, escapeHtml } from '../common/utils.js';
 import { t, currentLang, locale } from '../common/i18n.js';
 import { ic, fillIcons } from '../common/icons.js';
 import { RELEASES } from '../common/changelog.js';
 import { $, send, ask, applyLang, onStoredChange } from '../common/ui.js';
 import { THEMES, THEME_KEYS, matchTheme, paintBackground, themeFromFile } from './themes.js';
+import { fluidHover } from '../common/fluid.js';
 
 /** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
 function showUnreachable() {
@@ -21,10 +22,10 @@ function showUnreachable() {
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
+  'sound', 'soundByQuality', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
-  'showRare', 'showLuckyCat', 'showItemDetails', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels'];
-const SELECTS = ['lang', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
+  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
+const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
   'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
 // [min, max, décimales] : une saisie hors bornes est ramenée dedans.
@@ -409,6 +410,11 @@ function render() {
 }
 
 function fill() {
+  document.documentElement.dataset.ui = settings.uiTheme || DEFAULTS.uiTheme;
+  $('#neuronalLookup').checked = !!settings.neuronalLookup;
+  $('#neuronalShare').checked = !!settings.neuronalShare;
+  $('#nwRonoteLink').href = NEURONAL.ronote;
+  showShareState();
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
   for (const k of NUM_SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
@@ -533,6 +539,10 @@ function runSearch() {
     if (link) link.hidden = !any;
   }
   $('#no-hit').hidden = !q || hits > 0;
+  // Un lien masqué sous le pointeur n'envoie pas de `pointerout` : la pastille
+  // du survol resterait seule dans le vide.
+  document.querySelector('#nav > .fh')?.classList.remove('on');
+  placeNavInd();
 }
 
 /* ------------------------------ sauvegarde ---------------------------- */
@@ -559,6 +569,7 @@ async function save(patch) {
 /** Un changement local : l'aperçu et les dépendances suivent tout de suite. */
 function set(patch) {
   settings = { ...settings, ...patch };
+  if (patch.uiTheme) document.documentElement.dataset.ui = patch.uiTheme;   // l'interface change à l'instant
   applyNeeds();
   if (Object.keys(patch).some(k => LOOK_KEYS.has(k))) renderLooks();
   return save(patch);
@@ -610,6 +621,22 @@ const forgetPreview = (keys) => { for (const k of keys) delete previewColor[k]; 
 function wire() {
   for (const k of BOOLS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.checked }));
   for (const k of SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: e.target.value }));
+  // Neuronal : la permission sur neuronal.live n'est demandée qu'ici, au moment
+  // d'activer (le navigateur exige que la demande parte du geste, avant tout
+  // await). Refusée, l'option reste décochée ; coupée, la permission est rendue.
+  // Les deux options partagent la permission : elle n'est rendue qu'une fois les deux coupées.
+  for (const key of ['neuronalLookup', 'neuronalShare']) {
+    $('#' + key)?.addEventListener('change', async (e) => {
+      const box = e.target;
+      if (box.checked) {
+        const ok = await B.permissions.request({ origins: NEURONAL.origins }).catch(() => false);
+        if (!ok) { box.checked = false; return; }
+      } else if (!$('#neuronalLookup').checked && !$('#neuronalShare').checked) {
+        B.permissions.remove({ origins: NEURONAL.origins }).catch(() => {});
+      }
+      set({ [key]: box.checked });
+    });
+  }
   for (const k of NUM_SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: Number(e.target.value) }));
   for (const [k, [min, max, dec]] of Object.entries(NUMS)) {
     $('#' + k)?.addEventListener('change', e => {
@@ -766,6 +793,12 @@ function wire() {
     const r = await send({ type: 'ronote:play', sound }).catch(() => null);
     b.classList.remove('busy');
     b.title = r?.ok ? t('Écouter') : t('Aucun son n\'est parti : vérifie le volume et que le navigateur n\'est pas coupé.');
+  }));
+  // Les cinq notes de la qualite d'un trade, a ecouter une a une.
+  document.querySelectorAll('button[data-grade]').forEach(b => b.addEventListener('click', async () => {
+    b.classList.add('busy');
+    await send({ type: 'ronote:play', sound: 'grade-' + b.dataset.grade }).catch(() => null);
+    b.classList.remove('busy');
   }));
   $('#volume').addEventListener('input', e => showVolume(e.target.value));
   $('#volume').addEventListener('change', e => save({ volume: Number(e.target.value) }));
@@ -950,11 +983,32 @@ function wireNav() {
       if (!e.isIntersecting) continue;
       const href = '#' + e.target.id;
       links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === href));
+      placeNavInd();
     }
   }, { rootMargin: '-10% 0px -75% 0px' });
   sections.forEach(s => spy.observe(s));
+  // La pastille de la section lue glisse d'un lien à l'autre, et le survol a
+  // la sienne, plus discrète (common/fluid.js).
+  $('#nav').insertAdjacentHTML('afterbegin', '<span class="nav-ind" aria-hidden="true"></span>');
+  fluidHover($('#nav'), 'a');
+  addEventListener('resize', placeNavInd);
+  document.fonts?.ready?.then(placeNavInd);
+  placeNavInd();
   // La version vient du manifeste : le pied de page ne peut plus prendre de retard.
   $('#version').textContent = 'RoNote v' + (B.runtime.getManifest?.().version || '');
+}
+
+/** Pose la pastille sur le lien actif. Première pose sans glissade. */
+function placeNavInd() {
+  const ind = document.querySelector('.nav-ind');
+  const on = document.querySelector('#nav a.on:not([hidden])');
+  if (!ind) return;
+  ind.classList.toggle('gone', !on);
+  if (!on) return;
+  ind.style.width = on.offsetWidth + 'px';
+  ind.style.height = on.offsetHeight + 'px';
+  ind.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+  if (!ind.classList.contains('ready')) requestAnimationFrame(() => ind.classList.add('ready'));
 }
 
 let hashDone = false;
@@ -989,6 +1043,22 @@ load();
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
+onStoredChange(['neuronalShare'], 300, () => showShareState());
+
+/** Sous l'option de contribution : le dernier envoi au réseau, ou pourquoi il n'a pas abouti. */
+async function showShareState() {
+  const el = $('#nwShareState');
+  if (!el) return;
+  const { neuronalShare: m } = await B.storage.local.get('neuronalShare').catch(() => ({}));
+  const last = m?.last;
+  el.hidden = !settings?.neuronalShare || !last;
+  if (el.hidden) return;
+  const ago = timeAgo(last.at);
+  el.textContent = last.ok
+    ? t('Dernier contact {ago} · {n} trades partagés', { ago, n: last.total || 0 })
+    : last.why === 'unavailable' ? t("Neuronal n'accepte pas encore les contributions : nouvel essai dans quelques heures.")
+    : t('Envoi en échec {ago}, nouvel essai bientôt.', { ago });
+}
 /** Une clé du stockage lue une fois, puis suivie : `apply` reçoit sa valeur à chaque changement. */
 function follow(key, apply) {
   B.storage.local.get(key).then(got => apply(got?.[key])).catch(() => {});

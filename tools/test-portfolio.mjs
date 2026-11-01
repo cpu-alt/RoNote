@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { parseItems, mergeSources } from '../src/common/roli.js';
 import { holdingsOf } from '../src/common/revalue.js';
-import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport, fromRolimons } from '../src/common/portfolio.js';
+import { portfolioItems, portfolioThumbKeys, attachPortfolioThumbs, emptyReport, fromRolimons, fromInventory } from '../src/common/portfolio.js';
 import { parseItemHistory } from '../src/common/api.js';
 
 let passed = 0, failed = 0;
@@ -117,6 +117,16 @@ console.log('\nHistorique d\'un objet (page Rolimon\'s)');
   let err = '';
   try { parseItemHistory('<html>rien</html>', now); } catch (e) { err = e.message; }
   check('page sans historique : erreur explicite', err.includes('historique'), true);
+}
+
+/* ---------------------------------------------------------------------- */
+console.log('\nProfil Rolimon\'s injoignable, inventaire joignable');
+{
+  const rep = fromInventory(emptyReport(7), { counts: fx.playerassets, holds: [] }, cat);
+  check('les objets sont listés quand même', rep.items.length, items.length);
+  check('value et RAP additionnés depuis le catalogue',
+    [rep.value, rep.rap], [items.reduce((s, i) => s + i.total, 0), items.reduce((s, i) => s + i.totalRap, 0)]);
+  check('le rapport se dit estimé, sans profil', [rep.estimated, rep.rolimons, rep.ok], [true, null, true]);
 }
 
 console.log(`\n${passed} réussis, ${failed} échoués`);

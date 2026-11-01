@@ -121,8 +121,11 @@ const base = Object.fromEntries(THEME_KEYS.map(k => [k, DEFAULTS[k]]));
  * Voile et flou : uniquement les valeurs des listes de la page (0/30/60/80 et 0/4/12).
  */
 export const THEMES = [
+  { id: 'neuronal', name: 'Neuronal', desc: 'Le style du site neuronal.live : gris neutres, aplats.', bg: null,
+    swatch: '#141517', settings: { ...base } },
   { id: 'ronote', name: 'RoNote', desc: 'Le style d’origine.', bg: null,
-    swatch: 'linear-gradient(145deg,#1b2440,#0b1020)', settings: { ...base } },
+    swatch: 'linear-gradient(145deg,#1b2440,#0b1020)',
+    settings: { ...base, bannerGain: '#22e57a', bannerLoss: '#ff4d5e', projectedColor: '#ffc400' } },
   { id: 'minimal', name: 'Minimal', desc: 'Sobre, sans fond, petits chiffres.', bg: null,
     swatch: 'linear-gradient(145deg,#2a2f38,#15181d)',
     settings: { ...base, bannerGain: '#22c55e', bannerLoss: '#ef4444', bannerStyle: 'soft', bannerSize: 's',
