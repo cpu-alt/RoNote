@@ -1574,6 +1574,30 @@ function markNewsSeen() {
   try { localStorage.setItem(VERSION_KEY, appVersion()); } catch { /* le bandeau reviendra */ }
 }
 
+/**
+ * La réponse à « Rejoindre la carte Neuronal ? ». La demande de permission part
+ * AVANT tout await (le navigateur exige qu'elle suive le clic) ; le worker est
+ * prévenu en même temps, car Firefox ferme le popup sur la boîte de permission
+ * et la suite de cette fonction ne s'exécute alors jamais (voir neuronalJoinAt).
+ */
+let joinRefused = false;   // permission refusée : la carte le dit au lieu de rester muette
+async function joinNeuronal(yes) {
+  if (!yes) {
+    await send({ type: 'ronote:settings', patch: { neuronalAsked: true } });
+    return;
+  }
+  const asking = B.permissions.request({ origins: NEURONAL.origins }).catch(() => false);
+  send({ type: 'ronote:settings', patch: { neuronalJoinAt: Date.now() } });
+  if (!await asking) {
+    joinRefused = true;
+    await send({ type: 'ronote:settings', patch: { neuronalJoinAt: 0 } });
+    renderList();
+    return;
+  }
+  // La carte disparaît d'elle-même : les réglages changent, l'accueil se redessine.
+  await send({ type: 'ronote:settings', patch: { neuronalShare: true, neuronalLookup: true, neuronalAsked: true, neuronalJoinAt: 0 } });
+}
+
 /** Change d'onglet comme un clic sur la barre. */
 function selectTab(name) {
   document.querySelector(`.tab[data-tab="${name}"]`)?.click();
@@ -1589,7 +1613,7 @@ function homeSignature() {
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
     data.state?.portfolioLast?.v, data.state?.portfolioLast?.at,
     data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
-    wallet.hidden, newsPending(), marksSig()]);
+    wallet.hidden, newsPending(), marksSig(), !!data.settings?.neuronalAsked, !!data.settings?.neuronalShare, joinRefused]);
 }
 
 /**
@@ -1655,6 +1679,24 @@ function renderHome(entering) {
         <div class="h-sub">${plural(st.inboundCount || 0, '{n} trade en attente', '{n} trades en attente')}</div>
       </section>`;
 
+  // Rejoindre le réseau : demandé une fois, à l'installation comme à la mise à
+  // jour (`neuronalAsked` manque chez qui avait déjà RoNote). Jamais activé sans
+  // ce clic : ce qui part est écrit sur la carte même.
+  const s = data.settings || {};
+  const join = !s.neuronalAsked && !s.neuronalShare
+    ? `<section class="h-join">
+        <div class="h-join-h"><img src="../assets/neuronal-logo.png" alt="" width="20" height="20">
+          <b>${t('Rejoindre la carte Neuronal ?')}</b></div>
+        <p>${t("Ton compte apparaîtra sur neuronal.live avec le cadre bleu RoNote, et tes trades terminés y seront envoyés : objets et Robux de chaque côté, avec l'identifiant de ton partenaire. Ça aide le réseau à ne plus se tromper. Tu peux arrêter à tout moment dans les réglages.")}</p>
+        ${joinRefused ? `<p class="h-join-err">${t("Sans l'accès à neuronal.live, RoNote ne peut rien y envoyer.")}</p>` : ''}
+        <div class="h-join-a">
+          <button class="h-join-yes" data-join="yes">${t('Contribuer')}</button>
+          <button class="h-join-no" data-join="no">${t('Non merci')}</button>
+          <a class="h-join-more" href="${NEURONAL.ronote}" target="_blank" rel="noopener">${t('En savoir plus')}</a>
+        </div>
+      </section>`
+    : '';
+
   const news = newsPending()
     ? `<button class="h-news" data-news>
         <span class="h-news-ic">${ic('sparkle')}</span>
@@ -1718,7 +1760,7 @@ function renderHome(entering) {
       </section>`
     : '';
 
-  listEl.innerHTML = hero + news + tiles + todoHtml + recentHtml;
+  listEl.innerHTML = hero + join + news + tiles + todoHtml + recentHtml;
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
 }
@@ -2957,6 +2999,7 @@ const LIST_ACTIONS = [
   ['[data-settings]', (el) => B.tabs.create({ url: B.runtime.getURL(`options/options.html#${el.dataset.settings}`) })],
   ['[data-go]', (el) => selectTab(el.dataset.go)],
   ['[data-zoomid]', (el) => openZoom(Number(el.dataset.zoomid))],
+  ['[data-join]', (el) => joinNeuronal(el.dataset.join === 'yes')],
   ['[data-news]', () => {
     markNewsSeen();
     B.tabs.create({ url: B.runtime.getURL('options/options.html#s-news') });

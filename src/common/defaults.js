@@ -5,6 +5,8 @@ export const DEFAULTS = {
   uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
   neuronalLookup: false,      // fiches joueur / objet : ce que Neuronal en sait (permission optionnelle)
   neuronalShare: false,       // contribuer au reseau : presence du compte + trades termines (meme permission)
+  neuronalAsked: false,       // la question « rejoindre la carte Neuronal ? » a eu sa reponse (installation ou mise a jour)
+  neuronalJoinAt: 0,          // « Contribuer » cliqué : le worker finit le travail si le popup s'est ferme sur la demande de permission
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 

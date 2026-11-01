@@ -33,6 +33,7 @@ globalThis.chrome = {
   action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {}, setBadgeTextColor: async () => {},
     setPopup: async () => {}, onClicked: { addListener() {} } },
   declarativeNetRequest: { updateSessionRules: async () => {} },
+  permissions: { contains: async () => true, onAdded: ev('padded'), onRemoved: ev('premoved') },
   tabs: { query: async () => [] }
 };
 
@@ -201,6 +202,28 @@ console.log('\nLe son dit la qualité du trade');
   check('une erreur Roblox garde son son', soundFor('error', [ev('trade_error', 50)], S) === 'alert');
   check('option coupée : le son choisi', soundFor('inbound', [ev('inbound', 40)], { ...S, soundByQuality: false }) === 'chime');
   check('famille muette : reste muette', soundFor('inbound', [ev('inbound', 40)], { ...S, sounds: { inbound: 'none' } }) === 'none');
+}
+
+console.log('\n« Contribuer » : le popup fermé sur la demande de permission');
+{
+  preset();
+  await import(SW + '?run=join');
+  const fire = (origins) => Promise.all((listeners.padded || []).map(fn => fn({ origins })));
+  const read = () => store.get('settings') || {};
+
+  store.set('settings', { ...read(), neuronalJoinAt: Date.now() - 5e3 });
+  await fire(['https://www.example.com/*']);
+  check('une autre permission ne vaut pas réponse', !read().neuronalShare);
+  await fire(['https://neuronal.live/*']);
+  check('le worker active la contribution à la place du popup',
+    read().neuronalShare === true && read().neuronalLookup === true && read().neuronalAsked === true && !read().neuronalJoinAt);
+
+  store.set('settings', { ...read(), neuronalShare: false, neuronalAsked: false, neuronalJoinAt: Date.now() - 10 * 60e3 });
+  await fire(['https://neuronal.live/*']);
+  check('un clic trop ancien ne compte plus', !read().neuronalShare);
+  store.set('settings', { ...read(), neuronalJoinAt: 0 });
+  await fire(['https://neuronal.live/*']);
+  check('permission accordée depuis les réglages : la case décide seule', !read().neuronalShare);
 }
 
 console.log(`\n${passed} réussis, ${failed} échoués.`);
