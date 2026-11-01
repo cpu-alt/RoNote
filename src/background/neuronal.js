@@ -51,6 +51,13 @@ async function remember(key, value, ttl) {
   await B.storage.session?.set({ [STORE_KEY]: m }).catch(() => {});
 }
 
+async function forget(keys) {
+  const m = await cache();
+  let hit = false;
+  for (const k of keys) if (k in m) { delete m[k]; hit = true; }
+  if (hit) await B.storage.session?.set({ [STORE_KEY]: m }).catch(() => {});
+}
+
 async function fetchOne(kind, id) {
   try {
     const res = await fetch(`${NEURONAL.api}${kind}/${id}`, {
@@ -215,6 +222,9 @@ export async function shareWithNeuronal({ settings, me, completed = [], detailOf
   const r = await post('trades', { reporter: Number(me.id), trades: reports });
   if (!r.ok && !r.rejected) { await fail(r); return r; }
   for (const rep of reports) sent.add(rep.id);
+  // Le site vide sa fiche des deux joueurs à l'arrivée d'un trade : la copie
+  // gardée ici (10 min) suit, sinon la fiche ouverte juste après restait l'ancienne.
+  if (r.ok) await forget(['player:' + me.id, ...reports.map(rep => 'player:' + rep.partner.id)]);
   await save({ ok: !r.rejected, n: reports.length, total: sent.size, why: r.why });
   return { ok: !r.rejected, n: reports.length };
 }
