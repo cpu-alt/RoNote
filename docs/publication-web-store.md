@@ -235,8 +235,10 @@ retombe aussi sur les utilisateurs. C'est la raison principale de commencer en
 
 ## 7. Après publication
 
-- Mettre à jour le README : remplacer le bloc « Pourquoi le mode développeur ? » par
-  le lien d'installation du Web Store
+- ✅ README : fait le 1er novembre 2026. Les deux README ouvrent sur « Depuis le
+  Chrome Web Store (recommandé) » et son lien d'installation ; la Release reste
+  documentée en dessous, pour Firefox et pour une version que le store n'a pas
+  encore publiée
 - Créer une Release GitHub taguée pour chaque version publiée
 - Toute nouvelle version repasse par une revue : incrémenter `version` dans
   `src/manifest.json` **et** dans `package.json`, ils doivent rester synchronisés

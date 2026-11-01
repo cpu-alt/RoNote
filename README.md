@@ -3,7 +3,7 @@
 **English** · *[Français](README.fr.md)*
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.15.1-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.16.0-brightgreen.svg)](CHANGELOG.md)
 [![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 A browser extension (Chrome / Edge / Brave / Opera / Firefox) that tells you on your
@@ -84,9 +84,18 @@ live before you send (two clicks again). RoNote never creates a trade on its own
 
 ## Installation
 
-### From a Release (recommended)
+### From the Chrome Web Store (recommended)
 
-No tools needed — no Python, no Node.
+[**Install RoNote**](https://chromewebstore.google.com/detail/ronote-%E2%80%94-roblox-trade-ale/kmgobllnnoiplbceklnaljekjeanfjnm) — Chrome, Edge, Brave and Opera. Updates then arrive on
+their own: no developer mode, no startup warning.
+
+> The store can lag behind this repository. Every version goes through a Google
+> review, so the newest code sometimes lives only in the Releases below.
+
+### From a Release
+
+For Firefox, or to run a version the store has not published yet. No tools
+needed — no Python, no Node.
 
 1. Go to the [Releases](https://github.com/cpu-alt/RoNote/releases) page and download
    `ronote-chrome-vX.Y.Z.zip` (or `ronote-firefox-…` for Firefox).
@@ -97,10 +106,11 @@ No tools needed — no Python, no Node.
 4. **Firefox** (128 or later) — open `about:debugging#/runtime/this-firefox`, click
    **Load Temporary Add-on** and select `manifest.json` in the unzipped folder.
 
-> **Why developer mode?** RoNote is not on the Chrome Web Store yet, and Chrome only
-> installs extensions from elsewhere this way. Two consequences: a "Disable developer
-> mode extensions" warning at startup (you can close it), and **no automatic
-> updates** — to update, download the new zip and replace the folder's contents.
+> **Why developer mode?** Chrome only installs an extension from outside the store
+> this way. Two consequences: a "Disable developer mode extensions" warning at
+> startup (you can close it), and **no automatic updates** — to update, download the
+> new zip and replace the folder's contents. The Web Store install above has
+> neither drawback.
 >
 > On Firefox, a temporary add-on **is removed when the browser closes**. This is a
 > Mozilla limit for unsigned extensions.

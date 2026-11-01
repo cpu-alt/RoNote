@@ -3,7 +3,7 @@
 *[English](README.md)* · **Français**
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.15.1-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.16.0-brightgreen.svg)](CHANGELOG.md)
 [![Tests](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml/badge.svg)](https://github.com/cpu-alt/RoNote/actions/workflows/tests.yml)
 
 Extension de navigateur (Chrome / Edge / Brave / Opera / Firefox) qui te prévient sur
@@ -39,9 +39,20 @@ là aussi). RoNote ne crée jamais de trade de lui-même.
 
 ## Installation
 
-### Depuis une Release (recommandé)
+### Depuis le Chrome Web Store (recommandé)
 
-Aucun outil à installer, ni Python ni Node.
+[**Installer RoNote**](https://chromewebstore.google.com/detail/ronote-%E2%80%94-roblox-trade-ale/kmgobllnnoiplbceklnaljekjeanfjnm) — Chrome, Edge, Brave et Opera. Les mises à jour
+arrivent ensuite toutes seules : pas de mode développeur, pas d'avertissement au
+démarrage.
+
+> Le store peut avoir du retard sur ce dépôt : chaque version repasse par une
+> revue de Google, donc le code le plus récent n'est parfois que dans les
+> Releases ci-dessous.
+
+### Depuis une Release
+
+Pour Firefox, ou pour une version que le store n'a pas encore publiée. Aucun
+outil à installer, ni Python ni Node.
 
 1. Va sur la page [Releases](https://github.com/cpu-alt/RoNote/releases) et télécharge
    `ronote-chrome-vX.Y.Z.zip` (ou `ronote-firefox-…` pour Firefox).
@@ -54,12 +65,12 @@ Aucun outil à installer, ni Python ni Node.
    **Charger un module temporaire** et sélectionne `manifest.json` dans le dossier
    dézippé.
 
-> **Pourquoi le mode développeur ?** RoNote n'est pas encore publiée sur le Chrome
-> Web Store, et Chrome refuse d'installer une extension venue d'ailleurs sans lui.
-> Deux conséquences : un avertissement « Désactivez les extensions en mode
-> développeur » à chaque démarrage (tu peux le fermer), et **pas de mise à jour
-> automatique** — pour changer de version, retélécharge le zip et remplace le contenu
-> du dossier.
+> **Pourquoi le mode développeur ?** Chrome refuse d'installer une extension venue
+> d'ailleurs que du store sans lui. Deux conséquences : un avertissement
+> « Désactivez les extensions en mode développeur » à chaque démarrage (tu peux le
+> fermer), et **pas de mise à jour automatique** — pour changer de version,
+> retélécharge le zip et remplace le contenu du dossier. L'installation depuis le
+> Web Store ci-dessus n'a ni l'un ni l'autre.
 >
 > Sous Firefox, un module temporaire **disparaît à la fermeture du navigateur**.
 > C'est une limite de Mozilla pour les extensions non signées.
