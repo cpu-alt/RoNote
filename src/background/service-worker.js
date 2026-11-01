@@ -17,7 +17,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup } from './neuronal.js';
+import { neuronalLookup, shareWithNeuronal } from './neuronal.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -28,7 +28,7 @@ import {
 } from './notifier.js';
 import {
   buildCard, makeCard, stubCard, safeCard, liteTrade, snapshotHints, cleanTradeId,
-  loadDetailCache, saveDetailCache, saveDetailCacheSoon, forgetCard, resetCards, knownDetails,
+  loadDetailCache, saveDetailCache, saveDetailCacheSoon, forgetCard, resetCards, knownDetails, cachedDetail,
   rememberCapturedTrade, rememberScrapedTrade, getCapturedTrade, getScrapedTrade
 } from './cards.js';
 
@@ -158,7 +158,7 @@ function scheduleSoftTick(settings) {
 
 function record(ctx, card, extra = {}) {
   ctx.history.push({
-    at: Date.now(), kind: card.kind, tradeId: card.tradeId,
+    at: Date.now(), kind: card.kind, tradeId: card.tradeId, uid: ctx.me?.id ?? null,
     partner: card.partner?.displayName || card.partner?.name || '?',
     partnerId: card.partner?.id ?? null,
     basis: card.analysis?.basis ?? null,
@@ -405,10 +405,12 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
   if (force || now - (state.portfolioAt || 0) > PORTFOLIO_TTL) {
     const report = await safe(() => buildPortfolio(state.userId, cat), null);
 
-    if (report?.rolimons) {
-      state.portfolioAt = now;
+    if (report?.rolimons || report?.estimated) {
+      // Total estime (profil injoignable) : affiche, mais le profil est
+      // redemande dans 5 min plutot que 10 ; le rang connu reste en place.
+      state.portfolioAt = report.estimated ? now - PORTFOLIO_TTL + PORTFOLIO_RETRY : now;
       state.portfolioPrivate = report.private;
-      state.portfolioRank = report.rank;
+      if (!report.estimated) state.portfolioRank = report.rank;
       state.portfolioLast = { v: report.value, r: report.rap, at: report.at };
       const keys = portfolioThumbKeys(report);
       if (keys.length) {
@@ -491,9 +493,52 @@ async function stepRevaluations(ctx) {
 
 /* =============================== tick ================================== */
 
+/**
+ * Changement de compte : on repart d'une photo vierge, sans notifier. Les
+ * flux effaces se reprennent en silence au passage suivant (`seeded`).
+ */
+async function forgetAccount(state, streams) {
+  for (const k of Object.keys(streams)) delete streams[k];
+  state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
+  await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null });
+  state.portfolioAt = 0; state.historyFetchedAt = 0; state.historyLastAt = 0; state.chartScannedAt = 0;
+  state.portfolioLast = null; state.portfolioRank = 0; state.collectibles = 0;
+  state.revalSince = 0;
+  state.inboundCount = 0; state.inboundPage = ''; state.inboundCountAt = 0;
+  resetCards();
+  await clearThumbs();
+}
+
+const ACCOUNTS_CAP = 8;   // comptes retenus pour le menu du popup
+
+/**
+ * Le compte connecte, et la liste des comptes deja vus sur ce navigateur :
+ * le menu du popup les propose (pseudo, portrait), sans jamais garder de
+ * cookie ni de jeton — la bascule elle-meme se fait sur roblox.com.
+ */
+async function setIdentity(state, me) {
+  state.userId = me.id;
+  state.userName = me.displayName || me.name;
+  state.userLogin = me.name || state.userLogin || '';
+  const prev = (state.accounts || []).find(a => Number(a.id) === Number(me.id));
+  // Identite gardee en memoire : rien de neuf a apprendre, sauf au premier passage.
+  if (me.cached && prev) return;
+  const avatar = await safe(() => api.getUserHeadshot(me.id), null) || prev?.avatar || null;
+  state.userAvatar = avatar;
+  const entry = { id: Number(me.id), name: state.userLogin, displayName: me.displayName || me.name || '', avatar, at: Date.now() };
+  state.accounts = [entry, ...(state.accounts || []).filter(a => Number(a.id) !== Number(me.id))].slice(0, ACCOUNTS_CAP);
+}
+
+/** Apres un changement de compte : photo silencieuse des flux sans attendre la cadence. */
+let reseedTimer = null;
+function reseedSoon() {
+  clearTimeout(reseedTimer);
+  reseedTimer = setTimeout(() => tick('account'), 3500);
+}
+
 async function getMe(state) {
   if (state.userId && Date.now() - (state.meCheckedAt || 0) < ME_TTL) {
-    return { id: state.userId, name: state.userName, displayName: state.userName, cached: true };
+    return { id: state.userId, name: state.userLogin || state.userName, displayName: state.userName, cached: true };
   }
   const me = await api.getAuthenticatedUser();
   state.meCheckedAt = Date.now();
@@ -604,19 +649,8 @@ async function tick(reason = 'manual') {
       return;
     }
 
-    if (state.userId && Number(state.userId) !== Number(me.id)) {
-      // Changement de compte : on repart d'une photo vierge, sans notifier.
-      for (const k of Object.keys(streams)) delete streams[k];
-      state.tracked = {}; state.counterHints = {}; state.myCounters = {}; state.links = {};
-      await B.storage.local.set({ details: {}, portfolio: [], portfolioReport: null });
-      state.portfolioAt = 0; state.historyFetchedAt = 0; state.historyLastAt = 0; state.chartScannedAt = 0;
-      state.portfolioLast = null;
-      state.revalSince = 0;
-      resetCards();
-      await clearThumbs();
-    }
-    state.userId = me.id;
-    state.userName = me.displayName || me.name;
+    if (state.userId && Number(state.userId) !== Number(me.id)) await forgetAccount(state, streams);
+    await setIdentity(state, me);
     state.lastError = null;
     state.backoffUntil = 0;
     state.backoffWhy = '';
@@ -664,6 +698,27 @@ async function tick(reason = 'manual') {
       }
     }
 
+    // UN AUTRE COMPTE, MEME NAVIGATEUR. L'identite n'est redemandee que toutes
+    // les 15 min : entre-temps, un changement de compte sur roblox.com faisait
+    // lire les listes du NOUVEAU compte avec les ids deja vus de l'ANCIEN —
+    // chaque trade y passait pour neuf, et partait en notification. Avant de
+    // prevenir de quoi que ce soit avec une identite gardee en memoire, on la
+    // reverifie (un appel, seulement quand il y a du neuf). Si le compte a
+    // change, rien n'est notifie : les flux repartent d'une photo silencieuse.
+    if (me.cached && (ctx.events.length || ctx.history.length || ctx.pendingCountered.size)) {
+      const real = await safe(() => api.getAuthenticatedUser(), null);
+      if (real?.id) state.meCheckedAt = Date.now();
+      if (real?.id && Number(real.id) !== Number(me.id)) {
+        await forgetAccount(state, streams);
+        await setIdentity(state, real);
+        state.snapshot = { inbound: [], completed: [], outbound: [], at: 0 };
+        await commitStore(state, streams);
+        await setBadge(0, settings, false);
+        reseedSoon();
+        return;
+      }
+    }
+
     // Contres non rattaches a une contre-offre entrante : on notifie a part.
     for (const card of ctx.pendingCountered.values()) ctx.events.push(card);
 
@@ -701,6 +756,13 @@ async function tick(reason = 'manual') {
       if (portfolioSig(state) !== before) await commitStore(state, streams, { writeStreams: false });
     }
     await saveDetailCache();
+    // Contribution au réseau Neuronal (option) : rien que du déjà lu, voir neuronal.js.
+    if (settings.neuronalShare) {
+      await safe(() => shareWithNeuronal({
+        settings, me, portfolio: state.portfolioLast, detailOf: cachedDetail,
+        completed: (state.snapshot?.completed || []).map(t => t.tradeId)
+      }));
+    }
     await flushThumbs({ force: true });
     await refreshLuckyCat(settings);
   } catch (e) {
@@ -752,7 +814,7 @@ async function emit(ctx) {
   // pendant les heures silencieuses, meme si les notifications restent.
   const sound = inQuietHours(ctx.settings.quietHours)
     ? null
-    : playSoundsFor(ctx.events.map(c => c.kind), ctx.settings).catch(() => 0);
+    : playSoundsFor(ctx.events, ctx.settings).catch(() => 0);
   const max = Math.max(1, ctx.settings.maxNotificationsPerPoll || 5);
   const byKind = new Map();
   for (const card of ctx.events) {
@@ -1233,6 +1295,100 @@ async function handleMessage(msg) {
       }
     }
 
+    // Accepter un trade reçu depuis le popup (deux clics côté interface).
+    case 'ronote:accept': {
+      const id = Number(msg.tradeId);
+      if (!id) return { error: 'identifiant de trade invalide' };
+      try {
+        const res = await api.acceptTrade(id);
+        // Le trade va réapparaître en « Completed » : on le marque déjà vu, sinon
+        // on s'alerterait de son propre geste. Le flux Inactive reste surveillé :
+        // si Roblox le rejette ensuite (« Rejected due to an error »), l'alerte part.
+        const state = await editStore((st, streams, replay) => {
+          markSeen(streams, 'completed', [id]);
+          const list = st.snapshot?.inbound;
+          if (Array.isArray(list)) st.snapshot.inbound = list.filter(t => Number(t.tradeId) !== id);
+          if (!replay && st.inboundCount > 0) st.inboundCount -= 1;
+        });
+        await forgetCard(id);
+        await setBadge(state.inboundCount, await getSettings(), false);
+        await pushHistory([{
+          at: Date.now(), kind: 'accepted_by_me', tradeId: id,
+          partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
+          skipped: 'accepté depuis RoNote'
+        }]);
+        return { ok: true, via: res.via, state };
+      } catch (e) {
+        if (e?.challenge) return { challenge: true, error: String(e.message || e) };
+        return { error: String(e?.message || e) };
+      }
+    }
+
+    /**
+     * L'editeur de contre-offre : les limiteds des deux joueurs, exemplaire par
+     * exemplaire, cotes et illustres comme dans un trade. Un inventaire prive
+     * ou injoignable n'empeche pas l'autre de s'afficher.
+     */
+    case 'ronote:counter-load': {
+      const partnerId = Number(msg.partnerId);
+      const settings = await getSettings();
+      const state = await getState();
+      if (!state.userId) return { error: 'non connecté' };
+      if (!partnerId) return { error: 'partenaire inconnu' };
+      const cat = await getCatalog(settings);
+      const [mine, theirs] = await Promise.allSettled([api.getCollectibles(state.userId), api.getCollectibles(partnerId)]);
+      const side = (r) => {
+        if (r.status !== 'fulfilled') return { items: [], error: String(r.reason?.message || r.reason) };
+        return { private: r.value.private, items: r.value.items.map(raw => resolveItem(raw, cat)) };
+      };
+      const me = side(mine), them = side(theirs);
+      const all = [...me.items, ...them.items];
+      const thumbs = await safe(() => resolveThumbs(all.map(thumbKeysFor)), []);
+      const lite = (i, n) => ({
+        uaid: Number(i.uaid), assetId: i.assetId, bundleId: i.bundleId, name: i.name, acronym: i.acronym,
+        serial: i.serial, value: i.value, rap: i.rap, prudent: i.prudent, unknown: i.unknown, noValue: i.noValue,
+        onHold: i.onHold, projected: i.projected, rare: i.rare, isFace: i.isFace, thumb: thumbs?.[n] || null
+      });
+      me.items = me.items.map((i, n) => lite(i, n));
+      them.items = them.items.map((i, n) => lite(i, n + me.items.length));
+      await flushThumbs();
+      return { me, them, myId: state.userId };
+    }
+
+    /** Envoie la contre-offre composee dans le popup (deux clics cote interface). */
+    case 'ronote:counter': {
+      const id = Number(msg.tradeId);
+      if (!id) return { error: 'identifiant de trade invalide' };
+      const state0 = await getState();
+      try {
+        const res = await api.counterTrade(id, {
+          myId: state0.userId, partnerId: msg.partnerId,
+          give: msg.give || [], get: msg.get || [], giveRobux: msg.giveRobux, getRobux: msg.getRobux
+        });
+        // Le trade d'origine passe en « Countered » (Inactive) : l'etape Inactive
+        // y lira ma contre-offre et rattachera le nouvel envoi, sans alerte.
+        const state = await editStore((st, streams, replay) => {
+          const list = st.snapshot?.inbound;
+          if (Array.isArray(list)) st.snapshot.inbound = list.filter(t => Number(t.tradeId) !== id);
+          if (!replay && st.inboundCount > 0) st.inboundCount -= 1;
+        });
+        await forgetCard(id);
+        await setBadge(state.inboundCount, await getSettings(), false);
+        await pushHistory([{
+          at: Date.now(), kind: 'countered_by_me', tradeId: id, uid: state.userId,
+          partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
+          give: Number.isFinite(msg.giveValue) ? msg.giveValue : null,
+          get: Number.isFinite(msg.getValue) ? msg.getValue : null,
+          pct: Number.isFinite(msg.pct) ? msg.pct : null,
+          skipped: 'contre-offre envoyée depuis RoNote'
+        }]);
+        return { ok: true, via: res.via, state };
+      } catch (e) {
+        if (e?.challenge) return { challenge: true, error: String(e.message || e) };
+        return { error: String(e?.message || e) };
+      }
+    }
+
     case 'ronote:track': {
       // `ids` : le popup desepingle d'un coup les suivis tombes hors de la
       // liste des 100 derniers envois. Une seule ecriture pour tout le lot.
@@ -1309,6 +1465,28 @@ async function handleMessage(msg) {
     case 'ronote:csrf':
       api.setCsrfToken(msg.token);
       return { ok: true };
+
+    // Une page roblox.com dit quel compte y est connecte (balise user-data) :
+    // un autre que le notre, et l'identite gardee en memoire ne vaut plus rien.
+    case 'ronote:page-user': {
+      const id = Number(msg.userId);
+      if (!id) return { ok: false };
+      const st = await getState();
+      if (st.userId && Number(st.userId) !== id) {
+        await editStore((s) => { s.meCheckedAt = 0; });
+        reseedSoon();
+      }
+      return { ok: true };
+    }
+
+    // Retirer un compte du menu des comptes (le compte connecte reste).
+    case 'ronote:forget-account': {
+      const id = Number(msg.userId);
+      const state = await editStore((s) => {
+        s.accounts = (s.accounts || []).filter(a => Number(a.id) !== id || Number(a.id) === Number(s.userId));
+      });
+      return { state };
+    }
 
     case 'ronote:diagnose': {
       if (headerRulesActive === null) await installHeaderRules();

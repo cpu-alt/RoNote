@@ -158,6 +158,16 @@
         <span class="btnrow"><select id="snd-error"></select><button class="btn" data-play="error" type="button" title="Écouter"><i data-ic="play"></i></button></span></div>
       <div class="row" data-needs="sound"><span><b>Objet réévalué</b></span>
         <span class="btnrow"><select id="snd-revalued"></select><button class="btn" data-play="revalued" type="button" title="Écouter"><i data-ic="play"></i></button></span></div>
+      <label class="row switch" data-needs="sound" data-keys="son sound qualité quality bon mauvais good bad note"><input type="checkbox" id="soundByQuality">
+        <span><b>Le son dit si le trade est bon</b><small>Trade reçu ou conclu : une note de très mauvais à très bon, à la place du son choisi. Un trade sans cote garde son son.</small></span></label>
+      <div class="row grades" data-needs="sound soundByQuality" data-keys="son sound qualité quality écouter"><span><b>Écouter les cinq notes</b></span>
+        <span class="btnrow grade-row">
+          <button class="btn grade" data-grade="1" type="button" title="Très mauvais"><i data-ic="play"></i>Très mauvais</button>
+          <button class="btn grade" data-grade="2" type="button" title="Mauvais"><i data-ic="play"></i>Mauvais</button>
+          <button class="btn grade" data-grade="3" type="button" title="Équilibré"><i data-ic="play"></i>Équilibré</button>
+          <button class="btn grade" data-grade="4" type="button" title="Bon"><i data-ic="play"></i>Bon</button>
+          <button class="btn grade" data-grade="5" type="button" title="Très bon"><i data-ic="play"></i>Très bon</button>
+        </span></div>
       <label class="row" data-needs="sound" data-keys="son sound"><span><b>Volume</b></span>
         <span class="btnrow volume"><input type="range" id="volume" min="0" max="1" step="0.05"><output id="volume-out"></output></span></label>
 
@@ -216,9 +226,13 @@
         <input type="number" id="revalMinPercent" min="3" max="100" step="1"></label>
       <p class="hint">Quel que soit le réglage, la value et le RAP restent tous deux affichés. Un objet sans cote n'est jamais compté comme 0 : il est exclu des totaux et signalé.</p>
 
-      <h3>Neuronal</h3>
+      <h3><img class="nw-mark" src="../assets/neuronal-logo.png" alt="" width="16" height="16">Neuronal</h3>
       <label class="row switch" data-keys="neuronal réseau network base de données database fiche joueur objet discord"><input type="checkbox" id="neuronalLookup">
         <span><b>Fiches Neuronal</b><small>Dans la fiche d'un joueur ou d'un objet, montre s'il est dans la base Neuronal et ses derniers trades. Seul son identifiant Roblox est envoyé à neuronal.live, à l'ouverture de la fiche. Le navigateur demande l'accès au site quand tu l'actives.</small></span></label>
+      <label class="row switch" data-keys="neuronal réseau network carte map partager share contribuer robux trades ronote"><input type="checkbox" id="neuronalShare">
+        <span><b>Contribuer au réseau Neuronal</b><small>Ton compte apparaît sur la carte de neuronal.live avec le cadre RoNote, et tes trades terminés y sont envoyés tels que Roblox les donne : objets exacts et Robux de chaque côté, avec l'identifiant de ton partenaire. Rien d'autre, et aucune requête de plus vers Roblox.</small>
+          <small class="nw-share-state" id="nwShareState" hidden></small>
+          <a class="nw-link" id="nwRonoteLink" target="_blank" rel="noopener">RoNote sur neuronal.live</a></span></label>
     </section>
 
     <!-- ============================== Apparence ============================ -->
@@ -253,8 +267,6 @@
       <p class="hint" id="lucky-now" hidden></p>
 
       <h3>Popup</h3>
-      <label class="row switch"><input type="checkbox" id="showItemDetails">
-        <span><b>Détail des objets sous chaque trade</b><small>Une liste dépliable : nom, série, value et RAP de chaque objet.</small></span></label>
 
       <h3>Fond des pages Roblox</h3>
       <div class="row design" id="bg-row" data-keys="fond background image wallpaper voile flou blur">

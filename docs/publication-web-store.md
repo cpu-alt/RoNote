@@ -59,7 +59,7 @@ WHAT YOU GET
 • Decline or cancel a trade in two deliberate clicks
 
 WHAT RONOTE WILL NOT DO
-RoNote never accepts a trade, never creates one, and never counters one. Those actions transfer items: a misplaced click would be irreversible. Declining or cancelling only destroys an offer — that is the only write RoNote allows itself.
+RoNote never creates a trade and never counters one: "Counter" opens the trade on roblox.com, where Roblox's own editor composes the reply. Accepting an inbound trade is possible, but only in two deliberate clicks (the second within 5 seconds), because accepting transfers items and cannot be undone. If Roblox asks for two-step verification, RoNote opens the trade on roblox.com instead of getting around it.
 
 PRIVACY
 No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's: the public value table and item histories, the same for everyone, and public Rolimon's profiles looked up by Roblox user ID — yours for the portfolio, the other player's when you open their player card. Roblox user IDs are already public; nothing else is sent. Trade Flex images, including any background you import, are made on your computer and never uploaded.

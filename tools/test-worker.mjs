@@ -46,10 +46,12 @@ async function waitFor(fn, ms = 15000) {
 }
 
 let calls = [];
+let bodies = [];
 let route = null;
 globalThis.fetch = async (url, init = {}) => {
   url = String(url);
   calls.push((init.method || 'GET') + ' ' + url);
+  if (init.body) bodies.push([url, init.body]);
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
   const custom = route && await route(url, json);
   if (custom) return custom;
@@ -115,6 +117,90 @@ console.log('\nRéveil du worker juste après une vérification');
   await import(SW + '?run=3');
   await sleep(600);
   check('aucun appel : la cadence de 30 s est respectée', calls.length === 0);
+}
+
+console.log('\nAccepter un trade reçu, puis une vérification exigée par Roblox');
+{
+  preset({ inboundCount: 2, snapshot: { inbound: [{ tradeId: 888 }, { tradeId: 889 }], outbound: [] } });
+  let challenge = false;
+  route = async (url, json) => {
+    if (!url.includes('/accept')) return null;
+    return challenge ? json({ errors: [{ code: 0, message: 'Challenge is required to authorize the request' }] }, 403) : json({});
+  };
+  await import(SW + '?run=4');
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  const ok = await send({ type: 'ronote:accept', tradeId: 888, partner: 'bob', partnerId: 9 });
+  check('l\'acceptation répond ok', ok?.ok === true);
+  check('Roblox reçoit bien un POST /accept', calls.some(c => /^POST .*\/trades\/888\/accept$/.test(c)));
+  const st = store.get('state'), streams = store.get('streams');
+  check('le trade accepté sort de la liste des reçus', !st.snapshot.inbound.some(t => t.tradeId === 888));
+  check('le compteur des reçus baisse', st.inboundCount === 1);
+  check('le trade accepté est marqué vu (Completed) : pas d\'alerte de son propre geste', streams.completed.seen.includes(888));
+  check('le flux Inactive reste libre : un rejet de Roblox sera signalé', !streams.inactive.seen.includes(888));
+  challenge = true;
+  const ch = await send({ type: 'ronote:accept', tradeId: 889 });
+  check('une vérification exigée est signalée comme telle', ch?.challenge === true && !ch.ok);
+  check('le trade non accepté reste dans la liste', store.get('state').snapshot.inbound.some(t => t.tradeId === 889));
+  route = null;
+}
+
+console.log('\nChangement de compte sur roblox.com pendant que l\'identité est en cache');
+{
+  // Le compte 1 est connu et vérifié il y a peu ; le navigateur est désormais
+  // connecté au compte 2, dont les trades reçus sont tous inconnus du compte 1.
+  preset({ lastPollAt: 0 });
+  const now = new Date().toISOString();
+  const theirs = [101, 102, 103].map(id => ({ id, status: 'Open', created: now, user: { id: 50 + id, name: 'p' + id } }));
+  route = async (url, json) => {
+    if (url.includes('/users/authenticated')) return json({ id: 2, name: 'alt', displayName: 'Alt' });
+    if (/\/trades\/Inbound\?/.test(url)) return json({ data: theirs });
+    return null;
+  };
+  await import(SW + '?run=5');
+  check('le changement de compte est détecté', await waitFor(() => Number(store.get('state')?.userId) === 2));
+  await sleep(200);
+  const hist = store.get('history') || [];
+  check('aucun trade du nouveau compte ne part en notification ni au journal', !hist.some(h => [101, 102, 103].includes(h.tradeId)));
+  check('le nouveau compte rejoint la liste des comptes', (store.get('state').accounts || []).some(a => a.id === 2 && a.name === 'alt'));
+  check('les flux de l\'ancien compte sont oubliés', !Object.values(store.get('streams') || {}).some(s => s.seen?.length && !s.seen.some(id => id >= 101)));
+  route = null;
+}
+
+console.log('\nContre-offre envoyée depuis le popup');
+{
+  preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777001 }], outbound: [] } });
+  bodies = [];
+  route = async (url, json) => (url.includes('/counter') ? json({ id: 999 }) : null);
+  await import(SW + '?run=6');
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  const res = await send({ type: 'ronote:counter', tradeId: 777001, partnerId: 42, partner: 'bob',
+    give: [11, 12], get: [21], giveRobux: 0, getRobux: 500, giveValue: 1000, getValue: 1200, pct: 20 });
+  check('la contre-offre répond ok', res?.ok === true);
+  const sent = bodies.find(([u]) => /\/trades\/777001\/counter$/.test(u));
+  const body = sent ? JSON.parse(sent[1]) : null;
+  check('Roblox reçoit les deux offres : ses objets et Robux, puis les miens',
+    JSON.stringify(body?.offers) === JSON.stringify([{ userId: 42, userAssetIds: [21], robux: 500 }, { userId: 1, userAssetIds: [11, 12], robux: 0 }]));
+  check('le trade d\'origine sort des reçus', !store.get('state').snapshot.inbound.length && store.get('state').inboundCount === 0);
+  check('le journal note la contre-offre', (store.get('history') || []).some(h => h.kind === 'countered_by_me' && h.tradeId === 777001));
+  const empty = await send({ type: 'ronote:counter', tradeId: 777002, partnerId: 42, give: [11], get: [] });
+  check('une contre-offre sans rien demander est refusée avant Roblox', !!empty?.error && !bodies.some(([u]) => u.includes('777002')));
+  route = null;
+}
+
+console.log('\nLe son dit la qualité du trade');
+{
+  const { soundFor } = await import(new URL('../src/background/notifier.js', import.meta.url).href);
+  const S = { soundByQuality: true, sounds: { inbound: 'chime', accepted: 'success', error: 'alert' } };
+  const ev = (kind, pctMain, extra = {}) => ({ kind, analysis: { pctMain, ...extra } });
+  check('très bon trade reçu : la note la plus claire', soundFor('inbound', [ev('inbound', 40)], S) === 'grade-5');
+  check('très mauvais : la plus sombre', soundFor('inbound', [ev('inbound', -60)], S) === 'grade-1');
+  check('équilibré : la note du milieu', soundFor('inbound', [ev('counter', 1)], S) === 'grade-3');
+  check('plusieurs reçus dans le passage : le meilleur l\'emporte', soundFor('inbound', [ev('inbound', -12), ev('inbound', 8)], S) === 'grade-4');
+  check('trade conclu : noté aussi', soundFor('accepted', [ev('completed', -10)], S) === 'grade-2');
+  check('sans cote : le son choisi', soundFor('inbound', [ev('inbound', 0, { incomplete: true })], S) === 'chime');
+  check('une erreur Roblox garde son son', soundFor('error', [ev('trade_error', 50)], S) === 'alert');
+  check('option coupée : le son choisi', soundFor('inbound', [ev('inbound', 40)], { ...S, soundByQuality: false }) === 'chime');
+  check('famille muette : reste muette', soundFor('inbound', [ev('inbound', 40)], { ...S, sounds: { inbound: 'none' } }) === 'none');
 }
 
 console.log(`\n${passed} réussis, ${failed} échoués.`);

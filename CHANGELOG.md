@@ -3,6 +3,19 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation — contribuer au réseau Neuronal
+
+- **Contribuer au réseau Neuronal** (Réglages › Valeurs, coupé par défaut, même
+  permission que les fiches) : le compte apparaît sur la carte de neuronal.live
+  avec le cadre RoNote, et ses trades terminés y sont envoyés tels que Roblox
+  les a rendus — exemplaires exacts (userAssetId, série) et Robux de chaque
+  côté. Seuls les trades dont le détail est déjà en cache partent : aucune
+  requête de plus vers Roblox. Présence au plus toutes les 6 h, chaque trade une
+  seule fois, pause de 6 h tant que le site n'a pas ouvert la route.
+- **Fiches Neuronal** : drapeau bleu « Utilise RoNote », Robux des trades du
+  réseau, étiquette « RoNote » sur les trades confirmés par un utilisateur.
+- Lien vers la future page `neuronal.live/ronote` dans les réglages.
+
 ## v2.16.0 — l'interface Neuronal, la barre latérale et les animations
 
 **Une nouvelle interface par défaut, dans le style du site Neuronal, RoNote
@@ -38,6 +51,44 @@ dans une barre sur le côté du navigateur, et du mouvement qui dit quelque chos
   optionnelle : aucune réapprobation à la mise à jour). Seul l'identifiant du
   joueur ou de l'objet ouvert est envoyé, sans cookie ; la route du site ne
   fait que lire. La politique de confidentialité le dit désormais.
+- **Accepter et contre-offre** (trades reçus) : sur chaque carte et dans le détail,
+  à côté de Refuser. Accepter se fait en deux clics, le second dans les 5 s :
+  accepter transfère des objets et ne se défait pas. Le trade accepté est marqué
+  vu (pas d'alerte de ton propre geste), mais un rejet ultérieur de Roblox reste
+  signalé. Si Roblox exige une vérification en deux étapes, RoNote ne la
+  contourne pas et ouvre le trade sur roblox.com. La politique de
+  confidentialité et les README le disent.
+- **Contre-offre dans le popup** : l'éditeur reprend le trade reçu (ce que tu
+  donnes, ce que tu demandes) et montre les deux inventaires Roblox, exemplaire
+  par exemplaire, cotés et illustrés. Un clic ajoute ou retire un objet (quatre
+  par côté, les objets en hold grisés), des Robux s'ajoutent de chaque côté, et
+  l'écart se recalcule à chaque geste avec les règles des cartes (base de cote,
+  Robux reçus nets de taxe) : on simule avant d'envoyer. L'envoi se confirme en
+  deux clics ; une vérification exigée par Roblox ouvre le trade sur roblox.com.
+- **Cartes allégées** : le « Détail des objets » dépliable sous chaque carte (et
+  son réglage) disparaît ; cliquer un objet ouvre sa fiche complète.
+- **Entête du compte** : le logo et le nom de RoNote laissent la place à ton
+  portrait, ton nom et ton @pseudo (le contour passe à l'ambre en pause). Un clic
+  ouvre le menu du compte : les autres comptes déjà vus sur ce navigateur, le mode
+  anonyme (H), la pause, pile ou face et ton profil Roblox. RoNote ne garde ni
+  cookie ni jeton : la bascule se fait avec le sélecteur de comptes de roblox.com.
+  L'entête ne garde que Vérifier, Réglages et Barre latérale ; pile ou face quitte
+  la barre d'onglets pour le menu.
+- **Changement de compte sans rafale de notifications** : l'identité du compte
+  n'était redemandée que toutes les 15 min ; entre-temps, les trades du nouveau
+  compte, comparés aux ids vus de l'ancien, passaient tous pour neufs. RoNote
+  revérifie désormais l'identité avant de notifier quoi que ce soit, et une page
+  roblox.com signale tout de suite le compte qui y est connecté. Le journal
+  n'affiche que les entrées du compte suivi.
+- **Trades rejetés par Roblox, en entier** : une ligne du journal (ou de la fiche
+  d'un joueur) s'ouvre dans le popup avec les deux colonnes d'objets, le
+  partenaire et l'issue — pour une erreur Roblox, ce qu'elle veut dire.
+- **Le son dit si le trade est bon** (Réglages › Son, actif par défaut) : cinq
+  notes, de très mauvais à très bon, pour un trade reçu ou conclu, aux mêmes
+  seuils que le verdict. Un trade sans cote garde le son choisi.
+- **Portefeuille** : quand le profil Rolimon's ne répond pas (page anti-robot),
+  l'inventaire s'affiche quand même, value et RAP additionnés depuis le catalogue
+  et marqués « estimé », au lieu d'un « Chargement » sans fin.
 - **Discord Neuronal** : un bouton pour rejoindre le serveur (discord.gg/neuronal),
   le même que sur le site, au pied du popup et en haut des réglages.
 

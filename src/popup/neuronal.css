@@ -67,12 +67,15 @@
 /* ------------------------------- l'entête ------------------------------- */
 
 [data-ui=neuronal] .top { padding: 10px 12px 6px; }
-[data-ui=neuronal] .brand-ic {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--surface-2); border: 0; box-shadow: none;
-}
-[data-ui=neuronal] .brand .name { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
-[data-ui=neuronal] .brand .acct { color: var(--faint); font-size: 11.5px; }
+[data-ui=neuronal] .me { border-radius: var(--r-lg); }
+[data-ui=neuronal] .me:hover, [data-ui=neuronal] .me[aria-expanded="true"] { background: var(--surface-2); }
+[data-ui=neuronal] .me-name { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+[data-ui=neuronal] .me .acct { color: var(--faint); font-size: 11.5px; }
+[data-ui=neuronal] .me-menu { border-radius: var(--r-lg); background: var(--panel); border-color: var(--line-2); }
+[data-ui=neuronal] .mm-row { border-radius: var(--r-sm); }
+[data-ui=neuronal] .mm-row:hover, [data-ui=neuronal] .mm-row:focus-visible { background: var(--surface-2); }
+[data-ui=neuronal] .mm-hint { border-radius: var(--r-sm); }
+[data-ui=neuronal] .st-resume { background: rgba(227, 176, 75, .14); border-radius: var(--r-sm); }
 
 /* Les boutons : un contrôle segmenté, comme les sélecteurs du site. */
 [data-ui=neuronal] .actions { padding: 2px; gap: 2px; border: 0; border-radius: var(--r-md); background: var(--surface-2); }
@@ -80,7 +83,6 @@
 [data-ui=neuronal] .actions .fh { background: var(--surface-3); box-shadow: none; }
 [data-ui=neuronal] .actions button.icon:hover { color: var(--fg); }
 [data-ui=neuronal] .actions button.icon.off { color: var(--warn); background: rgba(227, 176, 75, .12); border-color: transparent; }
-[data-ui=neuronal] body.anon #btn-anon { color: var(--accent); background: var(--accent-soft); border-color: transparent; box-shadow: none; }
 [data-ui=neuronal] button.icon.swap.on { color: var(--accent); }
 
 /* L'état : une ligne de texte, pas une pilule. */
@@ -252,3 +254,10 @@
 }
 [data-ui=neuronal] .w-tile { border: 0; border-radius: 0; background: none; padding: 9px 10px; }
 [data-ui=neuronal] .w-tile + .w-tile { border-left: 1px solid var(--line); }
+
+/* Accepter : un aplat vert du site ; armé, plein. */
+[data-ui=neuronal] .tc-btn.ok:hover { background: rgba(63, 191, 127, .14); color: #bdf0d4; border: 0; }
+[data-ui=neuronal] .tc-btn.ok.armed { background: var(--win); color: #062012; border: 0; }
+[data-ui=neuronal] .z-foot .z-accept { border: 0; background: rgba(63, 191, 127, .14); color: #bdf0d4; }
+[data-ui=neuronal] .z-foot .z-accept:hover { background: rgba(63, 191, 127, .22); }
+[data-ui=neuronal] .z-foot .z-accept.armed { background: var(--win); color: #062012; }

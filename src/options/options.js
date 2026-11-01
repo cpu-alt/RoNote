@@ -22,9 +22,9 @@ function showUnreachable() {
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
+  'sound', 'soundByQuality', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
-  'showRare', 'showLuckyCat', 'showItemDetails', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
+  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
 const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
   'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
@@ -412,6 +412,9 @@ function render() {
 function fill() {
   document.documentElement.dataset.ui = settings.uiTheme || DEFAULTS.uiTheme;
   $('#neuronalLookup').checked = !!settings.neuronalLookup;
+  $('#neuronalShare').checked = !!settings.neuronalShare;
+  $('#nwRonoteLink').href = NEURONAL.ronote;
+  showShareState();
   for (const k of BOOLS) { const el = $('#' + k); if (el) el.checked = !!settings[k]; }
   for (const k of SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
   for (const k of NUM_SELECTS) { const el = $('#' + k); if (el) el.value = String(settings[k] ?? DEFAULTS[k]); }
@@ -621,16 +624,19 @@ function wire() {
   // Neuronal : la permission sur neuronal.live n'est demandée qu'ici, au moment
   // d'activer (le navigateur exige que la demande parte du geste, avant tout
   // await). Refusée, l'option reste décochée ; coupée, la permission est rendue.
-  $('#neuronalLookup')?.addEventListener('change', async (e) => {
-    const box = e.target;
-    if (box.checked) {
-      const ok = await B.permissions.request({ origins: NEURONAL.origins }).catch(() => false);
-      if (!ok) { box.checked = false; return; }
-    } else {
-      B.permissions.remove({ origins: NEURONAL.origins }).catch(() => {});
-    }
-    set({ neuronalLookup: box.checked });
-  });
+  // Les deux options partagent la permission : elle n'est rendue qu'une fois les deux coupées.
+  for (const key of ['neuronalLookup', 'neuronalShare']) {
+    $('#' + key)?.addEventListener('change', async (e) => {
+      const box = e.target;
+      if (box.checked) {
+        const ok = await B.permissions.request({ origins: NEURONAL.origins }).catch(() => false);
+        if (!ok) { box.checked = false; return; }
+      } else if (!$('#neuronalLookup').checked && !$('#neuronalShare').checked) {
+        B.permissions.remove({ origins: NEURONAL.origins }).catch(() => {});
+      }
+      set({ [key]: box.checked });
+    });
+  }
   for (const k of NUM_SELECTS) $('#' + k)?.addEventListener('change', e => set({ [k]: Number(e.target.value) }));
   for (const [k, [min, max, dec]] of Object.entries(NUMS)) {
     $('#' + k)?.addEventListener('change', e => {
@@ -787,6 +793,12 @@ function wire() {
     const r = await send({ type: 'ronote:play', sound }).catch(() => null);
     b.classList.remove('busy');
     b.title = r?.ok ? t('Écouter') : t('Aucun son n\'est parti : vérifie le volume et que le navigateur n\'est pas coupé.');
+  }));
+  // Les cinq notes de la qualite d'un trade, a ecouter une a une.
+  document.querySelectorAll('button[data-grade]').forEach(b => b.addEventListener('click', async () => {
+    b.classList.add('busy');
+    await send({ type: 'ronote:play', sound: 'grade-' + b.dataset.grade }).catch(() => null);
+    b.classList.remove('busy');
   }));
   $('#volume').addEventListener('input', e => showVolume(e.target.value));
   $('#volume').addEventListener('change', e => save({ volume: Number(e.target.value) }));
@@ -1031,6 +1043,22 @@ load();
  * ouvert. Les ecritures d'un passage arrivent en rafale, on les regroupe.
  */
 onStoredChange(['settings', 'state', 'streams'], 300, () => load());
+onStoredChange(['neuronalShare'], 300, () => showShareState());
+
+/** Sous l'option de contribution : le dernier envoi au réseau, ou pourquoi il n'a pas abouti. */
+async function showShareState() {
+  const el = $('#nwShareState');
+  if (!el) return;
+  const { neuronalShare: m } = await B.storage.local.get('neuronalShare').catch(() => ({}));
+  const last = m?.last;
+  el.hidden = !settings?.neuronalShare || !last;
+  if (el.hidden) return;
+  const ago = timeAgo(last.at);
+  el.textContent = last.ok
+    ? t('Dernier contact {ago} · {n} trades partagés', { ago, n: last.total || 0 })
+    : last.why === 'unavailable' ? t("Neuronal n'accepte pas encore les contributions : nouvel essai dans quelques heures.")
+    : t('Envoi en échec {ago}, nouvel essai bientôt.', { ago });
+}
 /** Une clé du stockage lue une fois, puis suivie : `apply` reçoit sa valeur à chaque changement. */
 function follow(key, apply) {
   B.storage.local.get(key).then(got => apply(got?.[key])).catch(() => {});

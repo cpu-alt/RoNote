@@ -4,6 +4,7 @@ export const DEFAULTS = {
   sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
   uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
   neuronalLookup: false,      // fiches joueur / objet : ce que Neuronal en sait (permission optionnelle)
+  neuronalShare: false,       // contribuer au reseau : presence du compte + trades termines (meme permission)
 
   pollSeconds: 30,            // 30s = cadence fiable (les alarmes MV3 sont limitees a 30s)
 
@@ -46,6 +47,9 @@ export const DEFAULTS = {
     revalued: 'coins'         // objet possede reevalue par Rolimon's
   },
   volume: 0.6,
+  // Trade recu ou conclu : le son dit sa qualite (5 notes, du tres mauvais au
+  // tres bon) a la place du son choisi. Un trade sans cote garde le sien.
+  soundByQuality: true,
 
   // --- Valeurs / analyse -------------------------------------------------
   useRolimons: true,          // cotes Rolimon's (repli RAP si indispo)
@@ -57,7 +61,6 @@ export const DEFAULTS = {
   // cote d'un objet de l'inventaire d'au moins ce pourcentage.
   revalAlerts: true,
   revalMinPercent: 10,
-  showItemDetails: true,      // liste depliable des objets sous chaque trade
 
   // --- Reperes sur les objets (popup et pages Roblox) ---------------------
   showRare: true,             // petit diamant sur les objets « rares » de Rolimon's
@@ -110,6 +113,7 @@ export const DEFAULTS = {
  */
 export const NEURONAL = {
   site: 'https://neuronal.live/network',
+  ronote: 'https://neuronal.live/ronote',
   api: 'https://neuronal.live/ext/v1/',
   origins: ['https://neuronal.live/*']
 };

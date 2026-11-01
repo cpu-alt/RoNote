@@ -111,7 +111,18 @@ item's sheet, RoNote asks <code>neuronal.live/ext/v1/</code> what the network kn
 it: <strong>only that player's or item's Roblox ID</strong> is sent, with no cookie and
 nothing about you. The endpoint only reads: it never adds anyone to the
 network. Turning the option off gives the permission back.</p>
-<p><strong>Without this option, no request goes to any other domain.</strong></p>
+<p><strong>Contribute to the Neuronal network option (off by default).</strong> If you turn it
+on (Settings › Values), with the same <code>neuronal.live</code> permission, RoNote sends
+<code>neuronal.live/ext/v1/</code> two things, and only these: <strong>your account's presence</strong>
+(Roblox user ID, username, display name, extension version and the value of
+your inventory if portfolio tracking is on), at most every 6 hours, so the
+network can show you on its map as a RoNote user; and <strong>your completed trades</strong>,
+each sent once, exactly as Roblox returned them: the items on each side (item
+IDs, copy IDs, serial numbers), the <strong>Robux</strong> on each side, and your trade
+partner's Roblox user ID and username. Only trades whose detail RoNote has
+already read are sent: this option never adds a request to Roblox. No cookie,
+no token, nothing from your browsing. Turning the option off stops it at once.</p>
+<p><strong>Without these options, no request goes to any other domain.</strong></p>
 
 <h2>How your Roblox session is used</h2>
 <p>To read <em>your</em> trades, RoNote queries the Roblox API reusing the session
@@ -121,11 +132,18 @@ copy your session cookie either: the cookie stays managed by the browser, which
 attaches it to Roblox requests on its own.</p>
 
 <h2>The only action that changes your account</h2>
-<p>RoNote can <strong>decline</strong> an inbound trade or <strong>cancel</strong> an
-outbound one, and only on your explicit click, in two steps, from the detail view.</p>
-<p>RoNote <strong>cannot accept a trade</strong>, create one, or counter one. That is
-deliberate: those actions transfer items, and a misplaced click would be irreversible.
-Declining or cancelling only destroys an offer.</p>
+<p>RoNote can <strong>decline</strong> an inbound trade, <strong>cancel</strong> an
+outbound one and, since version 2.16.0, <strong>accept</strong> an inbound trade.
+Always on your explicit click, in two steps: a first click arms the button, a second
+one within 5 seconds confirms. Accepting transfers items and cannot be undone: that is
+why the second click is required. If Roblox asks for two-step verification, RoNote
+does not get around it: it opens the trade on roblox.com, where you finish yourself.</p>
+<p>RoNote can also send a <strong>counter-offer</strong> to an inbound trade, composed
+in its editor: you pick the items and Robux on each side, the difference is simulated,
+and sending is confirmed with two clicks the same way. To offer you the items, RoNote
+reads both players' limiteds from <code>inventory.roblox.com</code> when you open the
+editor; nothing of it is kept. RoNote <strong>never creates a trade on its own</strong>:
+it only sends in reply to an inbound trade, on your click.</p>
 
 <h2>The permissions requested, and why</h2>
 <div class="scroll">
@@ -141,7 +159,7 @@ Declining or cancelling only destroys an offer.</p>
     <tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Fix the <code>Origin</code> and <code>Referer</code> headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies <strong>only to requests issued by the extension</strong> (outside any tab), never to your browsing</td></tr>
     <tr><td><code>*.roblox.com</code></td><td>The site whose trades RoNote reads</td></tr>
     <tr><td><code>*.rolimons.com</code></td><td>The public value table, public item histories and public Rolimon's profiles (yours with portfolio tracking, another player's when you open their card)</td></tr>
-    <tr><td><code>neuronal.live</code> (optional)</td><td>Only requested if you turn on Neuronal lookups: what the network knows about a player or an item whose sheet you open</td></tr>
+    <tr><td><code>neuronal.live</code> (optional)</td><td>Only requested if you turn on Neuronal lookups or the contribution: what the network knows about a player or an item whose sheet you open; with the contribution, your account's presence and your completed trades</td></tr>
   </tbody>
 </table>
 </div>

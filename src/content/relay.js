@@ -34,6 +34,11 @@ const readMeta = () => {
   try {
     const meta = document.querySelector('meta[name="csrf-token"]');
     if (meta?.content) Promise.resolve(B.runtime.sendMessage({ type: 'ronote:csrf', token: meta.content })).catch(() => {});
+    // Le compte connecte sur cette page : RoNote s'apercoit tout de suite d'un
+    // changement de compte, au lieu d'attendre de redemander son identite.
+    const user = document.querySelector('meta[name="user-data"]');
+    const uid = Number(user?.dataset?.userid);
+    if (uid) Promise.resolve(B.runtime.sendMessage({ type: 'ronote:page-user', userId: uid })).catch(() => {});
   } catch { /* ignore */ }
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', readMeta, { once: true });

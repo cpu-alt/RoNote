@@ -9,17 +9,16 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand">
-      <span class="brand-ic"><img src="../icons/icon48.png" alt="" width="22" height="22"></span>
-      <div class="brand-txt">
-        <div class="name">RoNote</div>
-        <div class="acct" id="acct">Chargement…</div>
-      </div>
-    </div>
+    <button class="me" id="btn-me" aria-haspopup="menu" aria-expanded="false" title="Compte et raccourcis">
+      <span class="me-av" id="me-av" aria-hidden="true"></span>
+      <span class="me-txt">
+        <span class="me-name" id="me-name">RoNote</span>
+        <span class="acct" id="acct">Chargement…</span>
+      </span>
+      <i data-ic="chevron" class="me-chev"></i>
+    </button>
     <div class="actions">
-      <button id="btn-anon" class="icon" title="Mode anonyme : masquer montants et pseudo (H)" aria-pressed="false"><i data-ic="eye"></i></button>
-      <button id="btn-toggle" class="icon" title="Activer / mettre en pause"><i data-ic="pause"></i></button>
-      <button id="btn-refresh" class="icon" title="Vérifier maintenant"><span data-ic="refresh"></span></button>
+      <button id="btn-refresh" class="icon" title="Vérifier maintenant (R)"><span data-ic="refresh"></span></button>
       <button id="btn-options" class="icon" title="Réglages"><i data-ic="settings"></i></button>
       <button id="btn-side" class="icon swap" title="Ouvrir en barre latérale"><i data-ic="sidebar" class="sw-a"></i><i data-ic="popup" class="sw-b"></i></button>
     </div>
@@ -28,6 +27,7 @@
   <div class="status" id="status">
     <span class="dot" id="dot"></span>
     <span id="status-text">Initialisation…</span>
+    <button id="btn-resume" class="st-resume" hidden>Reprendre</button>
     <span class="grow"></span>
     <span id="status-cotes" class="cotes"></span>
   </div>
@@ -40,7 +40,8 @@
     <button class="tab" data-tab="completed" role="tab" aria-selected="false" aria-controls="list">Terminés</button>
     <button class="tab" data-tab="stats" role="tab" aria-selected="false" aria-controls="list">Portefeuille</button>
     <button class="tab" data-tab="history" role="tab" aria-selected="false" aria-controls="list">Journal</button>
-    <button class="tab coin-tab" data-tab="coin" role="tab" aria-selected="false" aria-controls="list" title="Pile ou face" aria-label="Pile ou face"><i data-ic="coin"></i></button>
+    <!-- Pile ou face : ouvert depuis le menu du compte, hors de la barre. -->
+    <button class="tab coin-tab" data-tab="coin" role="tab" aria-selected="false" aria-controls="list" hidden tabindex="-1">Pile ou face</button>
   </nav>
 
   <main id="list" class="list" role="tabpanel" tabindex="0"></main>

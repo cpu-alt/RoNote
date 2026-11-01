@@ -37,6 +37,11 @@ export async function buildPortfolio(userId, cat) {
   const counted = assetsR.status === 'fulfilled' ? assetsR.value : null;
 
   if (!info) {
+    // Le profil peut tomber seul (page anti-robot de Cloudflare devant
+    // `playerinfo`, alors que `playerassets` repond) : l'inventaire suffit a
+    // lister les objets et a chiffrer le compte au catalogue. Sans lui, rien.
+    if (counted && !counted.private && !counted.terminated) return fromInventory(base, counted, cat);
+    if (counted?.private) return { ...base, private: true, estimated: true, reason: "inventaire privé — Rolimon's ne publie rien" };
     return { ...base, reason: String(infoR.reason?.message || "profil Rolimon's injoignable") };
   }
   if (info.terminated) return { ...base, terminated: true, reason: 'compte supprimé' };
@@ -82,6 +87,22 @@ export function fromRolimons(out, info, counted, cat) {
     report.partial = true;
     report.reason = "inventaire Rolimon's indisponible";
   }
+  return report;
+}
+
+/**
+ * Le rapport sans le profil Rolimon's : objets listes comme d'habitude, value
+ * et RAP additionnes depuis le catalogue public. Ce total sous-compte un peu
+ * (UGC limiteds non publies) : `estimated` le dit, et le prochain profil
+ * joignable reprend la main. Pas de rang : seul le profil le donne.
+ */
+export function fromInventory(out, counted, cat) {
+  const report = fromRolimons(out, { value: 0, rap: 0, rank: 0 }, counted, cat);
+  report.rolimons = null;
+  report.estimated = true;
+  report.value = report.items.reduce((s, i) => s + i.total, 0);
+  report.rap = report.items.reduce((s, i) => s + i.totalRap, 0);
+  report.reason = "profil Rolimon's injoignable — total calculé au catalogue";
   return report;
 }
 

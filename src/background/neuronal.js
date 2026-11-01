@@ -92,3 +92,129 @@ export async function neuronalLookup(kind, id, settings) {
   pending.set(key, run);
   return run;
 }
+
+/* ==========================================================================
+ *  CONTRIBUER AU RÉSEAU : CE QUE RONOTE ENVOIE DE LUI-MÊME
+ * --------------------------------------------------------------------------
+ *  Option `neuronalShare`, coupée par défaut, même permission que les fiches.
+ *  Deux choses partent, et seulement elles :
+ *   - la PRÉSENCE du compte (id, pseudo, version, valeur du portefeuille) :
+ *     le site le montre sur sa carte avec le cadre des joueurs RoNote ;
+ *   - ses TRADES TERMINÉS, tels que Roblox les a rendus : exemplaires exacts
+ *     (userAssetId, série) et Robux de chaque côté. Le réseau les déduit sinon
+ *     des inventaires, sans jamais voir les Robux, et se trompe parfois.
+ *
+ *  AUCUNE REQUÊTE DE PLUS VERS ROBLOX : seuls les trades dont le détail est
+ *  déjà en cache (lu pour la notification ou le popup) sont envoyés. Au repos,
+ *  rien ne part : la présence toutes les 6 h, les trades une fois chacun.
+ * ==========================================================================
+ */
+const SHARE_KEY = 'neuronalShare';
+const PRESENCE_EVERY = 6 * 60 * 60e3;
+const SHARE_BATCH = 25;
+const SENT_CAP = 500;                 // ids déjà envoyés retenus par compte
+const HOLD_FAIL = 10 * 60e3;          // réseau en panne, débit dépassé
+const HOLD_ABSENT = 6 * 60 * 60e3;    // route pas encore ouverte (404 / 503)
+
+const side = (o) => ({
+  robux: Math.max(0, Math.floor(Number(o?.robux) || 0)),
+  items: (o?.userAssets || []).map(it => ({
+    uaid: /^[1-9]\d*$/.test(String(it.id ?? '')) ? Number(it.id) : null,
+    assetId: Number(it.assetId) || 0,
+    bundleId: Number(it.bundleId) || 0,
+    serial: Number(it.serialNumber) || null,
+    name: it.name || ''
+  })).filter(it => it.assetId || it.bundleId)
+});
+
+/**
+ * Un trade terminé, vu du compte qui l'envoie. null quand le détail ne dit pas
+ * qui est qui (trade relu sur la page, sans id du partenaire) : le réseau ne
+ * saurait pas où le placer.
+ */
+export function tradeReport(detail, myId, seenAt = Date.now()) {
+  const offers = detail?.offers || [];
+  const mine = offers.find(o => Number(o.user?.id) === Number(myId));
+  const theirs = offers.find(o => o !== mine);
+  const partnerId = Number(theirs?.user?.id) || 0;
+  if (!mine || !(partnerId > 0) || !(Number(detail.id) > 0)) return null;
+  const gave = side(mine), got = side(theirs);
+  if (!gave.items.length && !got.items.length && !gave.robux && !got.robux) return null;
+  const created = Date.parse(detail.created || '') || null;
+  return {
+    id: Number(detail.id),
+    created: created ? Math.floor(created / 1000) : null,
+    seen: Math.floor(seenAt / 1000),
+    partner: { id: partnerId, name: theirs.user?.name || '' },
+    gave, got
+  };
+}
+
+async function post(path, body) {
+  try {
+    const res = await fetch(NEURONAL.api + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-RoNote': B.runtime.getManifest?.().version || '1' },
+      credentials: 'omit',
+      body: JSON.stringify(body)
+    });
+    if (res.ok) return { ok: true };
+    if (res.status === 404 || res.status === 503) return { hold: HOLD_ABSENT, why: 'unavailable' };
+    if (res.status === 429) return { hold: HOLD_FAIL, why: 'limited' };
+    // 400 / 422 : le site refuse ce lot tel quel ; le renvoyer ne changerait rien.
+    if (res.status >= 400 && res.status < 500) return { rejected: true, why: 'HTTP ' + res.status };
+    return { hold: HOLD_FAIL, why: 'HTTP ' + res.status };
+  } catch (e) {
+    return { hold: HOLD_FAIL, why: String(e?.message || e) };
+  }
+}
+
+export async function shareStatus() {
+  const got = await B.storage.local.get(SHARE_KEY).catch(() => null);
+  return got?.[SHARE_KEY] || {};
+}
+
+/**
+ * Appelé à la fin de chaque vérification. `completed` : les trades terminés
+ * de la liste (ids), `detailOf(id)` : leur détail s'il est déjà en cache.
+ */
+export async function shareWithNeuronal({ settings, me, completed = [], detailOf, portfolio = null, now = Date.now() }) {
+  if (!settings?.neuronalShare || !(Number(me?.id) > 0)) return { off: true };
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true, permission: false };
+
+  const meta = await shareStatus();
+  if (meta.holdUntil > now) return { held: true };
+  const uid = String(me.id);
+  const sent = new Set(meta.sent?.[uid] || []);
+  const save = async (last) => {
+    meta.last = { at: now, ...last };
+    meta.sent = { [uid]: [...sent].slice(-SENT_CAP) };   // l'ancien compte n'a plus rien à envoyer
+    await B.storage.local.set({ [SHARE_KEY]: meta }).catch(() => {});
+  };
+  const fail = (r) => { if (r.hold) meta.holdUntil = now + r.hold; return save({ ok: false, why: r.why }); };
+
+  if (!(meta.presence?.[uid] > now - PRESENCE_EVERY)) {
+    const r = await post('presence', {
+      user: { id: Number(me.id), name: me.name || '', displayName: me.displayName || '' },
+      version: B.runtime.getManifest?.().version || '',
+      value: portfolio?.v || null, rap: portfolio?.r || null
+    });
+    if (!r.ok && !r.rejected) { await fail(r); return r; }
+    meta.presence = { [uid]: now };
+  }
+
+  const reports = [];
+  for (const id of completed) {
+    if (sent.has(Number(id)) || reports.length >= SHARE_BATCH) continue;
+    const rep = tradeReport(detailOf(id), me.id, now);
+    if (rep) reports.push(rep);
+  }
+  if (!reports.length) { await save({ ok: true, n: 0, total: sent.size }); return { ok: true, n: 0 }; }
+
+  const r = await post('trades', { reporter: Number(me.id), trades: reports });
+  if (!r.ok && !r.rejected) { await fail(r); return r; }
+  for (const rep of reports) sent.add(rep.id);
+  await save({ ok: !r.rejected, n: reports.length, total: sent.size, why: r.why });
+  return { ok: !r.rejected, n: reports.length };
+}

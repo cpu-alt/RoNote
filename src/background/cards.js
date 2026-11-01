@@ -183,6 +183,9 @@ export function resetCards() {
 export const knownDetails = () => [...memDetails.entries()]
   .map(([id, r]) => ({ id: String(id), at: r?.at || 0, detail: r?.detail }));
 
+/** Le detail brut d'un trade s'il est deja en cache, sans aucun appel. */
+export const cachedDetail = (id) => memDetails.get(Number(id))?.detail || null;
+
 /* ============================== cartes ================================= */
 
 /** Ce dont depend l'analyse d'un trade : la table des cotes et deux reglages. */

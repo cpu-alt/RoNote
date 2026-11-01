@@ -56,7 +56,20 @@ en sait : **seul l'identifiant Roblox de ce joueur ou de cet objet** est envoyé
 sans cookie ni rien te concernant. La route ne fait que lire : elle n'ajoute
 personne au réseau. Couper l'option rend la permission.
 
-**Sans cette option, aucune requête ne part vers un autre domaine.**
+**Option Contribuer au réseau Neuronal (coupée par défaut).** Si tu l'actives
+(Réglages › Valeurs), avec la même permission sur `neuronal.live`, RoNote envoie
+à `neuronal.live/ext/v1/` deux choses, et seulement elles : **la présence de ton
+compte** (identifiant Roblox, pseudo, nom affiché, version de l'extension et
+valeur de ton inventaire si le suivi du portefeuille est actif), au plus toutes
+les 6 heures, pour que le réseau te montre sur sa carte comme utilisateur
+RoNote ; et **tes trades terminés**, chacun une seule fois, tels que Roblox les
+a rendus : les objets de chaque côté (identifiants, exemplaires, numéros de
+série), les **Robux** de chaque côté, et l'identifiant et le pseudo Roblox de
+ton partenaire. Seuls les trades dont RoNote a déjà lu le détail partent :
+l'option n'ajoute aucune requête vers Roblox. Ni cookie, ni jeton, rien de ta
+navigation. Couper l'option arrête tout de suite les envois.
+
+**Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
 
@@ -70,12 +83,19 @@ qui l'attache lui-même aux requêtes vers Roblox.
 
 ## La seule action qui modifie ton compte
 
-RoNote peut **refuser** un trade reçu ou **annuler** un trade envoyé, et uniquement
-sur ton clic explicite, en deux temps, depuis la vue de détail.
+RoNote peut **refuser** un trade reçu, **annuler** un trade envoyé et, depuis la
+version 2.16.0, **accepter** un trade reçu. Toujours sur ton clic explicite, en deux
+temps : un premier clic arme le bouton, un second dans les 5 secondes confirme.
+Accepter transfère des objets et ne se défait pas : c'est pour cela que le second
+clic est obligatoire. Si Roblox exige une vérification en deux étapes, RoNote ne
+la contourne pas : il ouvre le trade sur roblox.com, où tu termines toi-même.
 
-RoNote **ne peut pas accepter un trade**, ni en créer, ni en contrer. C'est un choix
-délibéré : ces actions transfèrent des objets, et un clic mal placé serait
-irréversible. Refuser ou annuler ne fait que détruire une offre.
+RoNote peut aussi envoyer une **contre-offre** à un trade reçu, composée dans
+son éditeur : tu choisis les objets et les Robux de chaque côté, l'écart est simulé,
+puis l'envoi se confirme en deux clics, de la même façon. Pour te proposer les
+objets, RoNote lit les limiteds des deux joueurs sur `inventory.roblox.com`, au
+moment où tu ouvres l'éditeur ; rien n'en est conservé. RoNote **ne crée jamais de
+trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton clic.
 
 ## Les permissions demandées, et pourquoi
 
@@ -90,7 +110,7 @@ irréversible. Refuser ou annuler ne fait que détruire une offre.
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |
-| `neuronal.live` (optionnelle) | Demandée seulement si tu actives les Fiches Neuronal : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche |
+| `neuronal.live` (optionnelle) | Demandée seulement si tu actives les Fiches Neuronal ou la contribution : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche ; avec la contribution, la présence de ton compte et tes trades terminés |
 
 ## Enfants et âge minimum
 

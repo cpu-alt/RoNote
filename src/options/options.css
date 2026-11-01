@@ -609,3 +609,16 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .hero-join { position: absolute; top: 18px; right: 20px; z-index: 1; height: 34px; padding: 0 12px 0 10px; font-size: 13px; }
 .hero-join .ic { width: 18px; height: 18px; }
 @media (max-width: 560px) { .hero-join span { display: none; } .hero-join { padding: 0 9px; } }
+
+/* Le logo de neuronal.live devant le titre de sa section. */
+.nw-mark { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; object-fit: contain; }
+
+/* Les cinq notes de la qualité d'un trade : une rangée qui passe à la ligne. */
+.grade-row { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.btn.grade { height: 30px; padding: 0 10px 0 8px; font-size: 12px; }
+.btn.grade .ic { width: 12px; height: 12px; }
+
+/* Contribution Neuronal : l'état du dernier envoi et le lien vers la page RoNote du site. */
+.nw-share-state { display: block; margin-top: 4px; opacity: .8; }
+.nw-link { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--accent, #3d8eff); text-decoration: none; }
+.nw-link:hover { text-decoration: underline; }
