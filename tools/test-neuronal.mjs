@@ -2,6 +2,7 @@
 // part, une seule fois, et rien quand l'option ou la permission manque.
 // Aucun réseau (fetch simulé). Usage : node tools/test-neuronal.mjs
 const store = new Map();
+const session = new Map();
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 let granted = true;
 globalThis.chrome = {
@@ -14,7 +15,10 @@ globalThis.chrome = {
       },
       async set(obj) { for (const [k, v] of Object.entries(obj)) store.set(k, clone(v)); }
     },
-    session: { async get() { return {}; }, async set() {} }
+    session: {
+      async get(k) { return session.has(k) ? { [k]: clone(session.get(k)) } : {}; },
+      async set(obj) { for (const [k, v] of Object.entries(obj)) session.set(k, clone(v)); }
+    }
   },
   runtime: { getManifest: () => ({ version: '2.17.0' }) },
   permissions: { contains: async () => granted }
@@ -27,7 +31,7 @@ globalThis.fetch = async (url, init = {}) => {
   return new Response('{}', { status });
 };
 
-const { tradeReport, shareWithNeuronal } = await import('../src/background/neuronal.js');
+const { tradeReport, shareWithNeuronal, neuronalLookup } = await import('../src/background/neuronal.js');
 
 let passed = 0, failed = 0;
 const check = (label, ok) => { if (ok) { passed++; console.log('  ✓ ' + label); } else { failed++; console.error('  ✗ ' + label); } };
@@ -75,6 +79,20 @@ console.log('\nUn passage avec l\'option active');
   details[503] = detail(503, 300, 0);
   await shareWithNeuronal({ settings, me, completed: [503, 500, 501], detailOf: (id) => details[id] || null });
   check('un nouveau trade part seul, sans présence', posts.length === 1 && posts[0].body.trades.length === 1 && posts[0].body.trades[0].id === 503);
+}
+
+console.log('\nLa fiche gardée en cache après un envoi');
+{
+  store.clear(); posts = []; status = 200;
+  await neuronalLookup('player', 77, { neuronalLookup: true });
+  await neuronalLookup('player', 5, { neuronalLookup: true });
+  posts = [];
+  await neuronalLookup('player', 77, { neuronalLookup: true });
+  check('avant : la fiche du partenaire vient du cache', posts.length === 0);
+  await shareWithNeuronal({ settings, me, completed: [600], detailOf: () => detail(600) });
+  const keys = Object.keys(session.get('neuronalCache') || {});
+  check('après : celle du partenaire est oubliée', !keys.includes('player:77'));
+  check('les autres fiches restent', keys.includes('player:5'));
 }
 
 console.log('\nRoute absente, option ou permission coupée');
