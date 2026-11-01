@@ -69,6 +69,13 @@ ton partenaire. Seuls les trades dont RoNote a déjà lu le détail partent :
 l'option n'ajoute aucune requête vers Roblox. Ni cookie, ni jeton, rien de ta
 navigation. Couper l'option arrête tout de suite les envois.
 
+**La page neuronal.live voit RoNote.** Sur `neuronal.live` (et nulle part
+ailleurs), la page peut demander deux choses à RoNote : s'il est installé, avec
+sa version et l'état de la contribution (oui ou non), et d'ouvrir ses réglages
+Neuronal. Rien d'autre n'est répondu : ni compte, ni trade, ni réglage. Sur
+Chrome, la page peut le demander dès que RoNote est installé ; sur Firefox,
+seulement une fois l'accès à `neuronal.live` accordé.
+
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox

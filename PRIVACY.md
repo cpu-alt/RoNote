@@ -67,6 +67,13 @@ partner's Roblox user ID and username. Only trades whose detail RoNote has
 already read are sent: this option never adds a request to Roblox. No cookie,
 no token, nothing from your browsing. Turning the option off stops it at once.
 
+**The neuronal.live page can see RoNote.** On `neuronal.live` (and nowhere
+else), the page can ask RoNote two things: whether it is installed, with its
+version and whether the contribution is on (yes or no), and to open RoNote's
+Neuronal settings. Nothing else is answered: no account, no trade, no setting.
+On Chrome the page can ask this as soon as RoNote is installed; on Firefox only
+once you have granted access to `neuronal.live`.
+
 **Without these options, no request goes to any other domain.**
 
 ## How your Roblox session is used

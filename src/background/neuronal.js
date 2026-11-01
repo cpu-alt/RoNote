@@ -21,7 +21,7 @@
  *  - Deux ouvertures de la même fiche pendant la lecture partagent la requête.
  * ==========================================================================
  */
-import { B } from '../common/shim.js';
+import { B, IS_FIREFOX } from '../common/shim.js';
 import { NEURONAL } from '../common/defaults.js';
 
 const KNOWN_MS = 10 * 60e3;
@@ -227,4 +227,64 @@ export async function shareWithNeuronal({ settings, me, completed = [], detailOf
   if (r.ok) await forget(['player:' + me.id, ...reports.map(rep => 'player:' + rep.partner.id)]);
   await save({ ok: !r.rejected, n: reports.length, total: sent.size, why: r.why });
   return { ok: !r.rejected, n: reports.length };
+}
+
+/* ==========================================================================
+ *  LA PAGE neuronal.live/ronote PARLE À L'EXTENSION
+ * --------------------------------------------------------------------------
+ *  Chrome seulement (`externally_connectable` dans le manifeste) : la page
+ *  demande si RoNote est installé et contribue, ou ouvre ses réglages. Seule
+ *  l'origine https://neuronal.live est écoutée ; tout autre message reste sans
+ *  réponse. Firefox n'a pas cette messagerie : content/neuronal-hello.js.
+ * ==========================================================================
+ */
+const SITE_ORIGIN = new URL(NEURONAL.api).origin;
+
+const fromSite = (sender) => {
+  if (sender?.origin) return sender.origin === SITE_ORIGIN;
+  try { return new URL(sender?.url || '').origin === SITE_ORIGIN; } catch { return false; }
+};
+
+/** La contribution part-elle vraiment ? L'option ET la permission. */
+export async function shareActive(settings) {
+  if (!settings?.neuronalShare) return false;
+  return !!await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+}
+
+/**
+ * Réponse à un message de la page, ou null pour ne rien répondre.
+ * `openSettings(hash)` ouvre la page de réglages sur une section.
+ */
+export async function neuronalExternal(msg, sender, settings, openSettings) {
+  if (!fromSite(sender)) return null;
+  if (msg?.type === 'ronote:hello') {
+    return { version: B.runtime.getManifest?.().version || '', share: await shareActive(settings) };
+  }
+  if (msg?.type === 'ronote:open' && msg.section === 'neuronal') {
+    await openSettings('s-neuronal');
+    return { ok: true };
+  }
+  return null;
+}
+
+/**
+ * Firefox : content/neuronal-hello.js n'est déclaré nulle part dans le
+ * manifeste — il y rendrait neuronal.live obligatoire à l'installation. Il est
+ * enregistré ici quand la permission optionnelle est accordée, retiré quand
+ * elle est rendue (au démarrage et à chaque changement de permission).
+ */
+const HELLO_ID = 'ronote-neuronal-hello';
+export async function syncHelloScript() {
+  const sc = B.scripting;
+  if (!IS_FIREFOX || !sc?.registerContentScripts) return;
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  const have = (await sc.getRegisteredContentScripts({ ids: [HELLO_ID] }).catch(() => [])).length > 0;
+  if (granted && !have) {
+    await sc.registerContentScripts([{
+      id: HELLO_ID, matches: ['https://neuronal.live/ronote*'],
+      js: ['content/neuronal-hello.js'], runAt: 'document_idle'
+    }]).catch(() => {});
+  } else if (!granted && have) {
+    await sc.unregisterContentScripts({ ids: [HELLO_ID] }).catch(() => {});
+  }
 }
