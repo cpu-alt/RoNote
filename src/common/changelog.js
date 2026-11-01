@@ -16,8 +16,8 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
-    title: item('Contribuer au réseau Neuronal', 'Contribute to the Neuronal network'),
+    version: '2.16.0',
+    title: item('Réseau Neuronal, interface, barre latérale et animations', 'Neuronal network, interface, sidebar and animations'),
     items: [
       item("Contribuer au réseau Neuronal (Réglages › Valeurs, coupé par défaut) : ton compte apparaît sur la carte de neuronal.live avec le cadre bleu RoNote, et tes trades terminés y sont envoyés avec les objets exacts et les Robux. Le réseau n'a plus à les deviner. Aucune requête de plus vers Roblox.",
         "Contribute to the Neuronal network (Settings › Values, off by default): your account shows up on the neuronal.live map with the blue RoNote frame, and your completed trades are sent there with the exact items and Robux. The network no longer has to guess them. No extra request to Roblox."),
@@ -26,13 +26,7 @@ export const RELEASES = [
       item("Au premier lancement, et une fois après cette mise à jour, l'accueil demande « Rejoindre la carte Neuronal ? » et dit exactement ce qui serait envoyé. Rien ne part sans ton « Contribuer ».",
         "On first launch, and once after this update, the home tab asks \"Join the Neuronal map?\" and says exactly what would be sent. Nothing is sent without your \"Contribute\"."),
       item("La page neuronal.live/ronote reconnaît RoNote : elle sait s'il est installé et si tu contribues, et son bouton ouvre directement les réglages Neuronal.",
-        "The neuronal.live/ronote page recognises RoNote: it knows whether it is installed and whether you contribute, and its button opens the Neuronal settings directly.")
-    ]
-  },
-  {
-    version: '2.16.0',
-    title: item('Interface Neuronal, barre latérale et animations', 'Neuronal interface, sidebar and animations'),
-    items: [
+        "The neuronal.live/ronote page recognises RoNote: it knows whether it is installed and whether you contribute, and its button opens the Neuronal settings directly."),
       item("Nouvelle interface par défaut, dans le style du site neuronal.live : gris neutres, un seul bleu, des aplats, la police Onest, des onglets soulignés et des titres en casse normale. L'ancienne reste disponible : Réglages › Apparence › Interface › Classique.",
         'New default interface, in the style of the neuronal.live website: neutral greys, a single blue, flat surfaces, the Onest font, underlined tabs and normal-case titles. The old one is still there: Settings › Appearance › Interface › Classic.'),
       item("Barre latérale : le bouton tout à droite de l'entête ouvre RoNote sur le côté du navigateur, où il reste ouvert pendant que tu navigues. Le même bouton ramène au popup.",

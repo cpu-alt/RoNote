@@ -3,7 +3,11 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## En préparation — contribuer au réseau Neuronal
+## v2.16.0 — l'interface Neuronal, le réseau, la barre latérale et les animations
+
+**Une nouvelle interface par défaut dans le style du site Neuronal, la
+contribution au réseau Neuronal, RoNote dans une barre sur le côté du
+navigateur, et du mouvement qui dit quelque chose.**
 
 - **Contribuer au réseau Neuronal** (Réglages › Valeurs, coupé par défaut, même
   permission que les fiches) : le compte apparaît sur la carte de neuronal.live
@@ -28,12 +32,6 @@ l'utilisateur, pas la liste des commits.
   informations à la page, enregistré seulement quand la permission
   `neuronal.live` est accordée (le déclarer dans le manifeste l'aurait rendue
   obligatoire à l'installation).
-
-## v2.16.0 — l'interface Neuronal, la barre latérale et les animations
-
-**Une nouvelle interface par défaut, dans le style du site Neuronal, RoNote
-dans une barre sur le côté du navigateur, et du mouvement qui dit quelque chose.**
-
 - **Interface Neuronal** (popup, barre latérale et réglages) : le style du site
   neuronal.live. Des gris neutres au lieu du bleu-nuit teinté, un seul bleu
   franc, des aplats (plus de dégradés ni de halos), la police Onest servie par
