@@ -1,0 +1,5 @@
+# Exclu des recherches (ripgrep : la recherche de Claude Code et de VS Code), PAS de Git.
+store-assets/
+*.png
+*.webp
+*.woff2
