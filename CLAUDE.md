@@ -43,6 +43,12 @@ On répond à l'utilisateur en **français** ; l'extension est en français **et
 | `docs/brief-neuronal.md`, `docs/prompt-neuronal.md` | ce que RoNote attend de l'API Neuronal |
 | `README.md` / `README.fr.md` | page publique du dépôt : mettre les deux à jour ensemble |
 
+## Économiser les tokens
+
+- `docs/technique.md` (53 Ko) et `CHANGELOG.md` (45 Ko) : jamais en entier, toujours par section.
+- `.ignore` retire `store-assets/` et les images des recherches (Git n'est pas concerné).
+- Tests : `npm test 2>&1 | grep -E "échou|Error"` suffit pour savoir si tout passe.
+
 ## En fin de session
 
 Si une fonctionnalité visible change, ajouter une ligne à la section en préparation de `CHANGELOG.md` et
