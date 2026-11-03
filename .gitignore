@@ -10,3 +10,6 @@ Thumbs.db
 
 # Identifiants OAuth Google (jamais dans le dépôt)
 client_secret*.json
+
+# Obsidian : réglages locaux du vault
+.obsidian/
