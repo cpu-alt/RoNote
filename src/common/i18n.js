@@ -1106,12 +1106,16 @@ const EN = {
   "Trop de demandes": "Too many requests",
   "Réessaie dans quelques minutes.": "Try again in a few minutes.",
   "Aucun profil": "No profiles",
-  "Rien de posté dans ce palier ces 7 derniers jours.": "Nothing posted in this tier in the last 7 days.",
+  "Rien ne correspond à ces filtres ces 7 derniers jours.": "Nothing matches these filters in the last 7 days.",
+  "Les deux": "Both",
+  "Inventaire": "Inventory",
+  "Inventaire minimum": "Minimum inventory",
+  "{n} profils": "{n} profiles",
+  "Value de son inventaire": "Their inventory value",
   "Donné": "Gave",
   "Propose": "Offering",
   "Cherche": "Looking for",
   "Envoyer un trade": "Send a trade",
-  "inventaire {v}": "inventory {v}",
 
   /* --- objets sans value Rolimon's --------------------------------------- */
   "Pas de value Rolimon's : compté au RAP ({v}).": "No Rolimon's value: counted at RAP ({v}).",

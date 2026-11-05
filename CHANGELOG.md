@@ -3,6 +3,18 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.3 — Profils plus rapides, filtres par liste et par value
+
+- **Profils** : choix de la liste, *Les deux* (mêlées, les plus récentes d'abord),
+  *Classique* ou *Neuronal*, et un filtre **Inventaire** (10k+, 50k+, 100k+,
+  500k+, 1M+) en plus du palier. Le nombre de profils trouvés s'affiche.
+- **Plus rapide** : chaque liste est lue une seule fois (gardée 2 min), les
+  filtres trient dans le popup sans rien redemander, et les fiches s'affichent
+  par paquets de 15 à mesure qu'on descend.
+- Fiches retravaillées : avatar entouré de la couleur du palier, value de
+  l'inventaire en haut à droite, la carte du trade ou l'annonce, puis les actions.
+  Chargement en silhouettes animées.
+
 ## v2.16.2 — Profils comme sur Discord, trades Neuronal en cartes
 
 - **Profils** : chaque fiche montre ce que montre Discord, le trade qui a révélé

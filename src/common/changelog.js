@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.3',
+    title: item('Profils plus rapides et filtrables', 'Faster, filterable profiles'),
+    items: [
+      item("Profils : Les deux / Classique / Neuronal, et un filtre de value d'inventaire (10k+ à 1M+) en plus du palier.",
+        "Profiles: Both / Classic / Neuronal, plus an inventory value filter (10k+ to 1M+) on top of the tier."),
+      item("Les filtres sont instantanés : chaque liste n'est lue qu'une fois, et les fiches s'affichent à mesure qu'on descend.",
+        "Filters are instant: each list is read once, and cards appear as you scroll.")
+    ]
+  },
+  {
     version: '2.16.2',
     title: item('Profils comme sur Discord, trades en cartes', 'Discord-style profiles, trades as cards'),
     items: [
