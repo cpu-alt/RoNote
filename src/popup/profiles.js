@@ -28,6 +28,7 @@ import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTradeCard, nwTilesHtml } from './nwcard.js';
+import { discoverSwitch } from './deals.js';
 
 const KEY = 'ronote.profiles';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -58,7 +59,8 @@ function pick() {
   const p = read();
   return {
     src: SOURCES.some(([k]) => k === p.src) ? p.src : 'both',
-    tier: TIERS.includes(p.tier) ? p.tier : '',
+    // plusieurs paliers à la fois (5 novembre) ; l'ancien choix unique `tier` est repris
+    tiers: (Array.isArray(p.tiers) ? p.tiers : p.tier ? [p.tier] : []).filter(k => TIERS.includes(k)),
     min: MINS.includes(p.min) ? p.min : 0
   };
 }
@@ -85,17 +87,17 @@ function stateHtml(res) {
   return empty('Neuronal est injoignable.', '');
 }
 
-const chip = (attr, value, label, on, cls = '') =>
-  `<button role="radio" aria-checked="${on}" ${attr}="${escapeHtml(String(value))}"${cls ? ` class="${cls}"` : ''}>${label}</button>`;
+const chip = (attr, value, label, on, cls = '', role = 'radio') =>
+  `<button role="${role}" aria-checked="${on}" ${attr}="${escapeHtml(String(value))}"${cls ? ` class="${cls}"` : ''}>${label}</button>`;
 
 function toolbarHtml(p, count) {
-  return `<div class="pf-head">
+  return `<div class="pf-head">${discoverSwitch('profiles')}
     <div class="pf-bar"><div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${SOURCES.map(([k, label]) =>
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
       <span class="pf-count${count === null ? '' : ' pf-live'}" title="${escapeHtml(t('En direct : les nouveaux profils arrivent tout seuls'))}">${count === null ? '' : t('{n} profils', { n: count })}</span></div>
-    <div class="pf-row" role="radiogroup" aria-label="${escapeHtml(t('Palier'))}">
-      ${chip('data-pf-tier', '', t('Tous'), !p.tier)}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
-        chip('data-pf-tier', k, escapeHtml(k), k === p.tier, 't-' + k)).join('')}</div>
+    <div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
+      ${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
+        chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
     <div class="pf-row pf-min" role="radiogroup" aria-label="${escapeHtml(t('Inventaire minimum'))}">
       <span class="pf-lbl">${t('Inventaire')}</span>${MINS.map(v =>
         chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div>
@@ -154,7 +156,7 @@ function merge(p, ok) {
     }
   }
   return [...byId.values()]
-    .filter(x => (!p.tier || x.tier === p.tier) && (!p.min || (x.value || 0) >= p.min))
+    .filter(x => (!p.tiers.length || p.tiers.includes(x.tier)) && (!p.min || (x.value || 0) >= p.min))
     .sort((a, b) => b.at - a.at);
 }
 
@@ -263,9 +265,15 @@ export function renderProfiles(listEl, openOptions) {
       const p = pick();
       if (el.dataset.pfSrc !== undefined) {
         p.src = el.dataset.pfSrc;
-        if (p.src === 'classic' && p.tier === 'ghost') p.tier = '';
-      } else if (el.dataset.pfTier !== undefined) p.tier = el.dataset.pfTier;
+        if (p.src === 'classic') p.tiers = p.tiers.filter(k => k !== 'ghost');
+      } else if (el.dataset.pfTier !== undefined) {
+        // un palier s'ajoute ou se retire ; « Tous » vide le choix
+        const k = el.dataset.pfTier;
+        p.tiers = !k ? [] : p.tiers.includes(k) ? p.tiers.filter(x => x !== k) : [...p.tiers, k];
+        if (p.tiers.length === TIERS.filter(x => x !== 'ghost' || p.src !== 'classic').length) p.tiers = [];
+      }
       else p.min = Number(el.dataset.pfMin) || 0;
+      delete p.tier;
       write(p);
       load(listEl);
       listEl.scrollTop = 0;

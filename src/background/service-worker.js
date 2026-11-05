@@ -18,7 +18,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup, neuronalProfiles, shareWithNeuronal, neuronalExternal, syncHelloScript } from './neuronal.js';
+import { neuronalLookup, neuronalProfiles, neuronalDeals, shareWithNeuronal, neuronalExternal, syncHelloScript } from './neuronal.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1176,6 +1176,10 @@ async function handleMessage(msg) {
     // L'onglet Profils du popup : les fiches Profile discovery (classique ou Neuronal).
     case 'ronote:neuronal-profiles':
       return neuronalProfiles(msg.kind, msg.tier, await getSettings());
+
+    // L'onglet Deals du popup : le Deal Sniper de Neuronal.
+    case 'ronote:neuronal-deals':
+      return neuronalDeals(await getSettings());
 
     case 'ronote:item-history': {
       const id = Number(msg.itemId);

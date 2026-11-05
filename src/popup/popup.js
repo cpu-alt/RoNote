@@ -11,6 +11,7 @@ import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
 import { renderCoin, coinKey } from './coinflip.js';
 import { renderProfiles } from './profiles.js';
+import { renderDeals } from './deals.js';
 import { nwTradeCard } from './nwcard.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
@@ -278,6 +279,7 @@ function fillMeMenu() {
     ${menuRow('anon', anon ? 'eye-off' : 'eye', t(anon ? 'Quitter le mode anonyme' : 'Mode anonyme'), '<kbd>H</kbd>')}
     ${menuRow('pause', data.settings?.enabled ? 'pause' : 'play', t(data.settings?.enabled ? 'Mettre en pause' : 'Reprendre la surveillance'))}
     ${menuRow('profiles', 'user', t('Profils'))}
+    ${menuRow('deals', 'flame', t('Deals'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
 }
@@ -349,6 +351,7 @@ async function onMeMenu(e) {
     renderHeader();
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
+  else if (act === 'deals') selectTab('deals');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
 }
 
@@ -2658,6 +2661,8 @@ function renderList() {
   if (tab === 'coin') { lastListSig = ''; if (entering) renderCoin(listEl); return; }
   // Les profils se relisent en arrivant sur l'onglet seulement (gardés 2 min par le worker).
   if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
+  // Le Deal Sniper : relu en arrivant, puis chaque minute tant que l'onglet est affiché (deals.js).
+  if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;
@@ -3132,14 +3137,21 @@ document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
   next.click();
 });
 
+// Profils et Deals partagent l'icône Profils : elle rouvre la vue choisie en dernier.
+const DISCOVER_KEY = 'ronote.discover';
+const discoverView = () => { try { return localStorage.getItem(DISCOVER_KEY) === 'deals' ? 'deals' : 'profiles'; } catch { return 'profiles'; } };
 document.querySelectorAll('.tab').forEach(el => {
-  el.addEventListener('click', () => {
+  el.addEventListener('click', (e) => {
+    // un clic de l'utilisateur sur l'icône (pas selectTab) : la dernière vue, Profils ou Deals
+    if (el.dataset.tab === 'profiles' && e.isTrusted && discoverView() === 'deals' && tab !== 'profiles') { selectTab('deals'); return; }
+    if (el.dataset.tab === 'profiles' || el.dataset.tab === 'deals') { try { localStorage.setItem(DISCOVER_KEY, el.dataset.tab); } catch { /* privé */ } }
     document.querySelectorAll('.tab').forEach(x => {
       x.classList.remove('active');
       x.setAttribute('aria-selected', 'false');
     });
-    el.classList.add('active');
-    el.setAttribute('aria-selected', 'true');
+    const shown = el.dataset.under ? document.querySelector(`.tab[data-tab="${el.dataset.under}"]`) || el : el;
+    shown.classList.add('active');
+    shown.setAttribute('aria-selected', 'true');
     tab = el.dataset.tab;
     moveTabIndicator();
     listEl.scrollTop = 0;
@@ -3151,6 +3163,11 @@ document.querySelectorAll('.tab').forEach(el => {
 $('#btn-me').addEventListener('click', openMeMenu);
 // Les objets des cartes Neuronal et de l'onglet Profils (nwcard.js, profiles.js) : un seul écouteur
 // pour tout le popup, fiches et superpositions comprises, qui se redessinent sans le recâbler.
+// Le sélecteur Profils | Deals en tête des deux vues.
+document.addEventListener('click', (e) => {
+  const sw = e.target.closest?.('[data-go-tab]');
+  if (sw && sw.getAttribute('aria-selected') !== 'true') selectTab(sw.dataset.goTab);
+});
 document.addEventListener('click', (e) => {
   const el = e.target.closest?.('[data-open]');
   if (!el) return;

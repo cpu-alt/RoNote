@@ -39,23 +39,35 @@ async function cache() {
   return memo;
 }
 
+// Les grandes listes (Profils : jusqu'à 140 ko ; Deals) ne vont pas dans storage.session :
+// chaque écriture y recopie TOUT le cache. Gardées en mémoire seulement ; un worker
+// réveillé les relit, et le cache HTTP du navigateur (ETag → 304) rend ça presque gratuit.
+const VOLATILE = /^(profiles:|deals$)/;
+
 async function remember(key, value, ttl) {
   const m = await cache();
   m[key] = { until: Date.now() + ttl, value };
+  if (VOLATILE.test(key)) return;
   const keys = Object.keys(m);
   if (keys.length > STORE_MAX) {
     const now = Date.now();
     for (const k of keys) if (m[k].until <= now) delete m[k];
     for (const k of Object.keys(m).slice(0, Math.max(0, Object.keys(m).length - STORE_MAX))) delete m[k];
   }
-  await B.storage.session?.set({ [STORE_KEY]: m }).catch(() => {});
+  await persist(m);
+}
+
+function persist(m) {
+  const kept = {};
+  for (const k in m) if (!VOLATILE.test(k)) kept[k] = m[k];
+  return B.storage.session?.set({ [STORE_KEY]: kept }).catch(() => {});
 }
 
 async function forget(keys) {
   const m = await cache();
   let hit = false;
   for (const k of keys) if (k in m) { delete m[k]; hit = true; }
-  if (hit) await B.storage.session?.set({ [STORE_KEY]: m }).catch(() => {});
+  if (hit) await persist(m);
 }
 
 async function fetchOne(kind, id, path = `${kind}/${id}`) {
@@ -120,6 +132,27 @@ export async function neuronalProfiles(kind, tier, settings) {
   if (pending.has(key)) return pending.get(key);
   const run = fetchOne('profiles', 0, `profiles?kind=${kind}${tier ? '&tier=' + tier : ''}`).then(async (value) => {
     await remember(key, value, value.data ? PROFILES_MS : FAIL_MS);
+    return value;
+  }).finally(() => pending.delete(key));
+  pending.set(key, run);
+  return run;
+}
+
+/**
+ * Le Deal Sniper (onglet Deals du popup) : `/ext/v1/deals`, la même liste pour
+ * tout le monde, gardée 60 s comme sur le serveur. Mêmes conditions que les fiches.
+ */
+const DEALS_MS = 60e3;
+export async function neuronalDeals(settings) {
+  if (!settings?.neuronalLookup) return { off: true };
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true, permission: false };
+  const key = 'deals';
+  const hit = (await cache())[key];
+  if (hit && hit.until > Date.now()) return hit.value;
+  if (pending.has(key)) return pending.get(key);
+  const run = fetchOne('deals', 0, 'deals').then(async (value) => {
+    await remember(key, value, value.data ? DEALS_MS : FAIL_MS);
     return value;
   }).finally(() => pending.delete(key));
   pending.set(key, run);

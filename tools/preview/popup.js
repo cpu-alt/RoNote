@@ -314,6 +314,24 @@ const mockRuntime = {
         ].filter(p => tiers.includes(p.tier) && (!msg.tier || p.tier === msg.tier));
         return { data: { v: 1, kind: msg.kind, tier: msg.tier || null, tiers, profiles: all } };
       }
+      // Le Deal Sniper : trois deals de paliers et tailles différents.
+      case 'ronote:neuronal-deals': {
+        await new Promise(r => setTimeout(r, 250));
+        const now = Math.floor(Date.now() / 1000);
+        const it = (id, name, value, n = 1) => ({ id, name, value, n, thumb: '' });
+        const deals = [
+          { id: 91, at: now - 120, user: { id: 31, name: 'ValkFlipper' }, score: 86, grade: 'S', give: [it(1, 'Domino Crown', 52000)],
+            get: [it(3, 'Valkyrie Helm', 71000), it(5, 'Bucket', 4200)], give_value: 52000, get_value: 75200, give_rap: 50000, get_rap: 69000,
+            reasons: [[true, '+45% VALUE'], [true, 'HIGH DEMAND'], [true, 'RAP +19k']] },
+          { id: 92, at: now - 400, user: { id: 32, name: 'midnight_rap' }, score: 68, grade: 'A', give: [it(4, 'Clockwork Shades', 18000)],
+            get: [it(2, 'Sparkle Time Fedora', 9100, 2), it(6, 'Tailflipped Cap', 2600)], give_value: 18000, get_value: 20800, give_rap: 17000, get_rap: 19500,
+            reasons: [[true, '+16% VALUE'], [true, 'RAP +2.5k']] },
+          { id: 93, at: now - 1100, user: { id: 33, name: 'shadow_lim' }, score: 54, grade: 'B', give: [it(7, 'Red Baseball Cap', 4000)],
+            get: [it(8, 'Zipper Cap', 4900)], give_value: 4000, get_value: 4900, give_rap: 4100, get_rap: 3500,
+            reasons: [[true, '+23% VALUE'], [false, 'LOW DEMAND'], [false, 'RAP -600']] }
+        ];
+        return { data: { v: 1, at: now - 120, min_score: 50, deals } };
+      }
       case 'ronote:neuronal': {
         await new Promise(r => setTimeout(r, 450));
         const now = Date.now() / 1000;

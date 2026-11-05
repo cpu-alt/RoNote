@@ -1923,3 +1923,42 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 /* Sans value Rolimon's : le chiffre montré est un RAP, pas une cote. */
 .novalue { color: var(--face) !important; }
 .w-sh-amount.novalue { opacity: .75; }
+
+/* -------------------------------- deals --------------------------------- */
+/* L'onglet Deals (deals.js) : le Deal Sniper de Neuronal. Mêmes surfaces que les Profils. */
+.pf-row .dl-sep { margin-left: 8px; }
+.pf-row button.dl-g { min-width: 28px; font-weight: 800; text-transform: none; }
+.pf-row button.g-S[aria-checked="true"] { border-color: #f1c40f; background: #f1c40f1f; color: #f5d34f; }
+.pf-row button.g-A[aria-checked="true"] { border-color: var(--win); background: #2fd0701c; color: var(--win); }
+.pf-row button.g-B[aria-checked="true"] { border-color: var(--accent); }
+.dl-card { transition: border-color .15s, opacity .3s; }
+.dl-card.dl-old { opacity: .55; }
+.dl-card.dl-old:hover { opacity: 1; }
+.dl-top { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 10px 10px 8px; }
+.dl-grade { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; line-height: 1;
+  background: #4d9fff1f; color: var(--accent); border: 1px solid #4d9fff55; }
+.dl-grade b { font-size: 15px; font-weight: 850; }
+.dl-grade i { font-style: normal; font-size: 9px; font-weight: 700; opacity: .8; margin-top: -6px; }
+.dl-grade.g-S { background: #f1c40f1c; color: #f5d34f; border-color: #f1c40f66; }
+.dl-grade.g-A { background: #2fd0701a; color: var(--win); border-color: #2fd07055; }
+.dl-gain { display: grid; gap: 1px; }
+.dl-gain b { color: var(--win); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.dl-gain small, .dl-who small { color: var(--faint); font-size: 10.5px; }
+.dl-who { display: grid; gap: 1px; justify-items: end; min-width: 0; text-align: right; }
+.dl-who b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.dl-sides { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 6px; padding: 0 10px; }
+.dl-side { min-width: 0; }
+.dl-lbl { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 4px; color: var(--faint); font-size: 10.5px; font-weight: 650; }
+.dl-lbl b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.dl-lbl b.win { color: var(--win); }
+.dl-arrow { align-self: center; margin-top: 14px; color: var(--faint); font-size: 13px; }
+.dl-why { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px 0; }
+.dl-why span { padding: 2px 7px; border-radius: 20px; font-size: 9.5px; font-weight: 750; letter-spacing: .02em; }
+.dl-why .win { background: #2fd0701a; color: var(--win); }
+.dl-why .loss { background: #ff5f661a; color: var(--loss); }
+/* Le sélecteur Profils | Deals : souligné, comme les onglets du haut. */
+.dc-switch { display: flex; gap: 14px; margin: -2px 0 2px; border-bottom: 1px solid var(--line-soft); }
+.dc-switch button { position: relative; padding: 2px 0 7px; border: 0; background: none; color: var(--dim); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: color .15s; }
+.dc-switch button:hover { color: var(--fg); }
+.dc-switch button[aria-selected="true"] { color: var(--fg); }
+.dc-switch button[aria-selected="true"]::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
