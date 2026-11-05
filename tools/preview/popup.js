@@ -330,7 +330,11 @@ const mockRuntime = {
             get: [it(8, 'Zipper Cap', 4900)], give_value: 4000, get_value: 4900, give_rap: 4100, get_rap: 3500,
             reasons: [[true, '+23% VALUE'], [false, 'LOW DEMAND'], [false, 'RAP -600']] }
         ];
-        return { data: { v: 1, at: now - 120, min_score: 50, deals } };
+        const robux = [
+          { id: 94, at: now - 60, user: { id: 34, name: 'cashout_kid' }, get: [it(3, 'Valkyrie Helm', 71000)], value: 71000, rap: 68000, market: 79000, demand: 3, only_robux: true },
+          { id: 95, at: now - 500, user: { id: 35, name: 'lowball_larry' }, get: [it(5, 'Bucket', 4200), it(7, 'Red Baseball Cap', 4000)], value: 8200, rap: 7900, market: null, demand: 1, only_robux: false }
+        ];
+        return { data: { v: 1, at: now - 60, min_score: 50, deals, robux } };
       }
       case 'ronote:neuronal': {
         await new Promise(r => setTimeout(r, 450));

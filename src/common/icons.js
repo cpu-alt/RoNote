@@ -93,6 +93,8 @@ export const ICONS = {
   filter: path('M3.5 5h17l-6.5 7.5v5.5l-4 2.5v-8z'),
   moon: path('M19.5 14.6A7.9 7.9 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z'),
   user: circle(12, 8, 3.8) + path('M5 20.5a7 7 0 0 1 14 0'),
+  // Découvrir (Profils et Deals) : un radar, deux arcs et le point repéré.
+  radar: circle(12, 12, 8.5) + path('M12 12l5.2-5.2M12 7.4a4.6 4.6 0 1 0 4.6 4.6') + circle(16.6, 7.4, 1.2),
   plus: path('M12 5v14M5 12h14'),
   'user-off': circle(10, 8, 3.8) + path('M3.5 20.5a6.8 6.8 0 0 1 10.5-5.6') + path('m16.5 15.5 5 5M21.5 15.5l-5 5'),
   pulse: path('M3 12.5h4l2.5-6 5 11.5 2.5-5.5h4'),

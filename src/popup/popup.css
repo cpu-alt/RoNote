@@ -1925,37 +1925,54 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .w-sh-amount.novalue { opacity: .75; }
 
 /* -------------------------------- deals --------------------------------- */
-/* L'onglet Deals (deals.js) : le Deal Sniper de Neuronal. Mêmes surfaces que les Profils. */
-.pf-row .dl-sep { margin-left: 8px; }
+/* L'onglet Deals (deals.js) : Deal Sniper et Robux Sniper. Mêmes surfaces que les Profils. */
+.dl-kinds { flex: 1.2; }
+.dl-sorts { flex: 1; }
+.dl-kn { margin-left: 5px; padding: 0 5px; border-radius: 8px; background: var(--surface-3, #232a3a); color: var(--dim); font-style: normal; font-size: 10px; font-weight: 750; }
 .pf-row button.dl-g { min-width: 28px; font-weight: 800; text-transform: none; }
 .pf-row button.g-S[aria-checked="true"] { border-color: #f1c40f; background: #f1c40f1f; color: #f5d34f; }
 .pf-row button.g-A[aria-checked="true"] { border-color: var(--win); background: #2fd0701c; color: var(--win); }
-.pf-row button.g-B[aria-checked="true"] { border-color: var(--accent); }
-.dl-card { transition: border-color .15s, opacity .3s; }
+.dl-card { --g: var(--accent); --g-soft: #4d9fff1f; position: relative; transition: border-color .15s, opacity .3s; }
+.dl-card.g-S { --g: #f5d34f; --g-soft: #f1c40f1c; }
+.dl-card.g-A { --g: var(--win); --g-soft: #2fd0701a; }
+.dl-card.dl-rbx { --g: #3ba55c; --g-soft: #3ba55c1f; }
+/* un filet de la couleur du palier sur le bord gauche */
+.dl-card::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--g); opacity: .85; }
 .dl-card.dl-old { opacity: .55; }
 .dl-card.dl-old:hover { opacity: 1; }
-.dl-top { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 10px 10px 8px; }
-.dl-grade { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; line-height: 1;
-  background: #4d9fff1f; color: var(--accent); border: 1px solid #4d9fff55; }
-.dl-grade b { font-size: 15px; font-weight: 850; }
-.dl-grade i { font-style: normal; font-size: 9px; font-weight: 700; opacity: .8; margin-top: -6px; }
-.dl-grade.g-S { background: #f1c40f1c; color: #f5d34f; border-color: #f1c40f66; }
-.dl-grade.g-A { background: #2fd0701a; color: var(--win); border-color: #2fd07055; }
+.dl-top { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 11px 12px 8px 14px; }
+.dl-grade { display: grid; place-items: center; align-content: center; width: 38px; height: 38px; border-radius: 11px; line-height: 1;
+  background: var(--g-soft); color: var(--g); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--g) 40%, transparent); }
+.dl-grade b { font-size: 16px; font-weight: 850; letter-spacing: -.02em; }
+.dl-grade i { font-style: normal; font-size: 9px; font-weight: 750; opacity: .85; margin-top: 1px; }
+.dl-grade.dl-r b { font-size: 12.5px; }
 .dl-gain { display: grid; gap: 1px; }
-.dl-gain b { color: var(--win); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.dl-gain b { color: var(--win); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.dl-rbx .dl-gain b { color: var(--fg); }
 .dl-gain small, .dl-who small { color: var(--faint); font-size: 10.5px; }
 .dl-who { display: grid; gap: 1px; justify-items: end; min-width: 0; text-align: right; }
 .dl-who b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.dl-sides { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 6px; padding: 0 10px; }
+.dl-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px 0 14px; }
 .dl-side { min-width: 0; }
-.dl-lbl { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 4px; color: var(--faint); font-size: 10.5px; font-weight: 650; }
+.dl-one { padding: 0 12px 0 14px; }
+.dl-lbl { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; color: var(--faint); font-size: 10.5px; font-weight: 650; }
 .dl-lbl b { color: var(--fg); font-variant-numeric: tabular-nums; }
 .dl-lbl b.win { color: var(--win); }
-.dl-arrow { align-self: center; margin-top: 14px; color: var(--faint); font-size: 13px; }
-.dl-why { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px 0; }
+/* donné face à reçu : la part grise est ce qu'on donne, le reste ce qu'on gagne */
+.dl-bar { height: 4px; margin: 9px 12px 0 14px; border-radius: 3px; background: var(--win); overflow: hidden; opacity: .9; }
+.dl-bar i { display: block; height: 100%; background: var(--surface-3, #2a3346); }
+.dl-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 9px 12px 0 14px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.dl-facts span { display: grid; gap: 1px; min-width: 0; }
+.dl-facts small { color: var(--faint); font-size: 9.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-facts b { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.dl-facts b.win { color: var(--win); } .dl-facts b.loss { color: var(--loss); }
+.dl-why { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 0 14px; }
 .dl-why span { padding: 2px 7px; border-radius: 20px; font-size: 9.5px; font-weight: 750; letter-spacing: .02em; }
 .dl-why .win { background: #2fd0701a; color: var(--win); }
 .dl-why .loss { background: #ff5f661a; color: var(--loss); }
+.dl-why .n { background: var(--surface-3, #232a3a); color: var(--dim); }
+.dc-switch .pf-count { margin-left: auto; align-self: center; padding-bottom: 5px; }
+.dl-card .pf-acts { margin-left: 2px; }
 /* Le sélecteur Profils | Deals : souligné, comme les onglets du haut. */
 .dc-switch { display: flex; gap: 14px; margin: -2px 0 2px; border-bottom: 1px solid var(--line-soft); }
 .dc-switch button { position: relative; padding: 2px 0 7px; border: 0; background: none; color: var(--dim); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: color .15s; }

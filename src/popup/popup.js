@@ -278,7 +278,8 @@ function fillMeMenu() {
     <div class="mm-sep"></div>
     ${menuRow('anon', anon ? 'eye-off' : 'eye', t(anon ? 'Quitter le mode anonyme' : 'Mode anonyme'), '<kbd>H</kbd>')}
     ${menuRow('pause', data.settings?.enabled ? 'pause' : 'play', t(data.settings?.enabled ? 'Mettre en pause' : 'Reprendre la surveillance'))}
-    ${menuRow('profiles', 'user', t('Profils'))}
+    ${menuRow('history', 'journal', t('Journal'))}
+    ${menuRow('profiles', 'radar', t('Profils'))}
     ${menuRow('deals', 'flame', t('Deals'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
@@ -352,6 +353,7 @@ async function onMeMenu(e) {
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
   else if (act === 'deals') selectTab('deals');
+  else if (act === 'history') selectTab('history');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
 }
 

@@ -16,6 +16,22 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.5',
+    title: item('Découvrir : Profils et Deals', 'Discover: Profiles and Deals'),
+    items: [
+      item("Nouvel onglet Deals : le Deal Sniper de Neuronal (deals notés S, A, B avec leurs raisons) et les ventes contre des Robux, en direct, filtrables par palier et par taille.",
+        "New Deals tab: Neuronal's Deal Sniper (deals graded S, A, B with their reasons) and Robux sales, live, filterable by tier and size."),
+      item("Profils : plusieurs paliers à la fois (Ghost + Rookie + Novice…), et les nouveaux profils arrivent tout seuls.",
+        "Profiles: several tiers at once (Ghost + Rookie + Novice…), and new profiles show up on their own."),
+      item("Profils et Deals sous une seule icône ; le Journal passe dans le menu du compte.",
+        "Profiles and Deals share one icon; the Journal moves to the account menu."),
+      item("Sur les trades : un lien Rolimon's au bout de la value de chaque objet, et un bouton Send again à côté de Decline.",
+        "On trades: a Rolimon's link at the end of each item's value, and a Send again button next to Decline."),
+      item("Moins de données échangées : une liste qui n'a pas changé n'est plus renvoyée.",
+        "Less data transferred: a list that hasn't changed is no longer sent again.")
+    ]
+  },
+  {
     version: '2.16.4',
     title: item('Textes plus propres', 'Cleaner text'),
     items: [

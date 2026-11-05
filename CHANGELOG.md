@@ -3,6 +3,25 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.5 : Découvrir, Profils et Deals
+
+- **Deals** (nouveau) : le Deal Sniper de Neuronal dans le popup. Les trade ads
+  des 15 dernières minutes notées sur 100 (paliers S, A, B), ce qu'on donne et
+  ce qu'on reçoit en vignettes, le gain et les raisons. Une seconde liste,
+  **Robux**, montre les joueurs qui vendent contre des Robux, avec le RAP et le
+  prix le plus bas du catalogue Roblox. Filtres palier et taille à plusieurs,
+  tri meilleurs ou récents, relu chaque minute.
+- **Profils** : plusieurs paliers à la fois, et les nouveaux profils entrent en
+  haut de la liste en direct.
+- **Découvrir** : Profils et Deals sous une seule icône (radar), avec un
+  sélecteur en tête ; le **Journal** passe dans le menu du compte (et reste
+  accessible par « Tout le journal » sur l'accueil).
+- **Pages de trade** : un petit lien Rolimon's au bout de la pastille de value
+  de chaque objet, et un bouton **Send again** à côté de Decline qui ouvre un
+  nouveau trade avec le même joueur.
+- **Moins de données** : une liste inchangée revient en 304 vide, et les grandes
+  listes ne sont plus réécrites dans le stockage du navigateur à chaque lecture.
+
 ## v2.16.4 : textes plus propres
 
 - Les tirets cadratins disparaissent des textes de l'extension : phrases

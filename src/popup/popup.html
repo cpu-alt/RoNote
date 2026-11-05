@@ -39,9 +39,10 @@
     <button class="tab" data-tab="outbound" role="tab" aria-selected="false" aria-controls="list">Envoyés <span class="pill amber" id="cnt-tracked"></span></button>
     <button class="tab" data-tab="completed" role="tab" aria-selected="false" aria-controls="list">Terminés</button>
     <button class="tab" data-tab="stats" role="tab" aria-selected="false" aria-controls="list">Portefeuille</button>
-    <button class="tab" data-tab="history" role="tab" aria-selected="false" aria-controls="list">Journal</button>
+    <!-- Journal : déplacé dans le menu du compte (5 novembre) ; on y arrive aussi par « Tout le journal » de l'accueil. -->
+    <button class="tab coin-tab" data-tab="history" data-under="home" role="tab" aria-selected="false" aria-controls="list" hidden tabindex="-1">Journal</button>
     <!-- Profils : le Profile discovery de Neuronal (profiles.js), aussi dans le menu du compte. -->
-    <button class="tab coin-tab" data-tab="profiles" role="tab" aria-selected="false" aria-controls="list" title="Profils et deals" aria-label="Profils et deals"><i data-ic="user"></i></button>
+    <button class="tab coin-tab" data-tab="profiles" role="tab" aria-selected="false" aria-controls="list" title="Découvrir : profils et deals" aria-label="Découvrir : profils et deals"><i data-ic="radar"></i></button>
     <!-- Deals : le Deal Sniper de Neuronal (deals.js). Hors de la barre : on y passe par le
          sélecteur Profils | Deals en tête de l'onglet, et l'icône Profils reste allumée. -->
     <button class="tab coin-tab" data-tab="deals" data-under="profiles" role="tab" aria-selected="false" aria-controls="list" hidden tabindex="-1">Deals</button>
