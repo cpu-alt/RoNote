@@ -772,41 +772,56 @@
   }
   /**
    * « Send again » à côté de Decline (offres reçues et envoyées) : ouvre la
-   * fenêtre de trade avec le même joueur, sans passer par son profil. Le bouton
-   * reprend la classe du bouton de Roblox pour en avoir l'allure exacte.
+   * fenêtre de trade avec le même joueur, sans passer par son profil.
+   * Le bouton est un CLONE du Decline de Roblox (calque de survol, police,
+   * arrondi), le libellé seul change : il a donc son animation au survol et à
+   * l'appui. Le conteneur `.trade-buttons` met déjà l'écart (flex, gap).
+   * Cherché d'abord dans ce conteneur, puis dans toute la page en secours ;
+   * rien n'est refait tant que le Decline reste le même.
    */
-  let resendButton = null;
+  let resendButton = null, resendFrom = null;
   const DECLINE_RE = /^(decline|refuser|rechazar|ablehnen|recusar|rifiuta)$/i;
   function declineButton() {
-    for (const b of document.querySelectorAll('button')) {
-      if (b.closest('[data-rn]') || b.offsetParent === null) continue;
-      if (DECLINE_RE.test((b.textContent || '').trim())) return b;
+    if (resendFrom?.isConnected && resendFrom.offsetParent !== null) return resendFrom;
+    const near = document.querySelectorAll('.trade-buttons button');
+    for (const list of [near, document.querySelectorAll('button')]) {
+      for (const b of list) {
+        if (b === resendButton || b.closest('[data-rn]') || b.offsetParent === null) continue;
+        if (DECLINE_RE.test((b.textContent || '').trim())) return b;
+      }
     }
     return null;
   }
+  function buildResend(decline) {
+    const clone = decline.cloneNode(true);
+    clone.type = 'button';
+    clone.dataset.rn = 'trade-resend';
+    clone.removeAttribute('id');
+    clone.disabled = false;
+    // le texte vit dans la feuille la plus profonde (le <span> de Roblox) : on ne touche qu'elle
+    const leaf = [...clone.querySelectorAll('*')].reverse().find(el => !el.childElementCount && (el.textContent || '').trim())
+      || clone;
+    leaf.textContent = TEXT.resend;
+    clone.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const id = Number(clone.dataset.partner) || 0;
+      if (id) location.href = `https://www.roblox.com/users/${id}/trade`;
+    });
+    return clone;
+  }
   function mountResend(page) {
     const decline = page?.partnerId > 0 && !page.composer ? declineButton() : null;
-    if (!decline) { resendButton?.remove(); return; }
-    if (!resendButton) {
-      resendButton = document.createElement('button');
-      resendButton.type = 'button';
-      resendButton.dataset.rn = 'trade-resend';
-      resendButton.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        const id = Number(resendButton.dataset.partner) || 0;
-        if (id) location.href = `https://www.roblox.com/users/${id}/trade`;
-      });
+    if (!decline) { resendButton?.remove(); resendButton = null; resendFrom = null; return; }
+    if (!resendButton || resendFrom !== decline || resendButton.className !== decline.className) {
+      resendButton?.remove(); resendButton = null; resendFrom = null;
+      resendButton = buildResend(decline);
+      resendFrom = decline;
     }
-    if (resendButton.className !== decline.className) resendButton.className = decline.className;
-    const label = TEXT.resend;
-    if (resendButton.textContent !== label) resendButton.textContent = label;
-    resendButton.dataset.partner = String(page.partnerId);
-    const title = TEXT.resendTitle(page.handle);
-    if (resendButton.title !== title) { resendButton.title = title; resendButton.setAttribute('aria-label', title); }
-    // même marge que l'écart entre les boutons de Roblox (Accept · Counter · Decline), sinon 8 px
-    const prev = decline.previousElementSibling;
-    const gap = prev ? Math.max(0, decline.getBoundingClientRect().left - prev.getBoundingClientRect().right) : 0;
-    resendButton.style.marginLeft = (gap ? 0 : 8) + 'px';
+    if (resendButton.dataset.partner !== String(page.partnerId)) {
+      resendButton.dataset.partner = String(page.partnerId);
+      const title = TEXT.resendTitle(page.handle);
+      resendButton.title = title; resendButton.setAttribute('aria-label', title);
+    }
     if (resendButton.previousElementSibling !== decline) decline.after(resendButton);
   }
   function mountProfileLink(page) {
