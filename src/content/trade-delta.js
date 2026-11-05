@@ -24,6 +24,7 @@
   const TEXT = fr ? {
     projected: 'Projected : RAP gonflé par des reventes, chiffre peu fiable',
     currentValue: 'Cote Rolimon’s actuelle',
+    openRolimons: 'Ouvrir sur Rolimon’s',
     rapUsed: 'RAP actuel utilisé : aucune Value publiée pour cet objet.',
     valueMissing: 'Cote temporairement indisponible',
     noValue: 'Pas de Value publiée pour cet objet',
@@ -46,6 +47,7 @@
   } : {
     projected: 'Projected: RAP inflated by resales, unreliable figure',
     currentValue: 'Current Rolimon’s value',
+    openRolimons: 'Open on Rolimon’s',
     rapUsed: 'Current RAP used: no published value for this item.',
     valueMissing: 'Value temporarily unavailable',
     noValue: 'No published value for this item',
@@ -278,7 +280,21 @@
     .v b{font:inherit;font-variant-numeric:normal;letter-spacing:0;word-spacing:0}
     .v[data-state="wait"],.v[data-state="none"]{color:#b8bfd0;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);box-shadow:none}
     .v[data-state="wait"] img,.v[data-state="none"] img{filter:grayscale(1);opacity:.65}
-    .v[data-state="wait"]{opacity:.7}`;
+    .v[data-state="wait"]{opacity:.7}
+    .go{display:none;align-items:center;justify-content:center;width:1.15em;height:1.15em;margin-left:1px;border-radius:4px;flex:none;
+      color:inherit;opacity:.55;cursor:pointer;transition:opacity .15s,background .15s}
+    .go[data-on]{display:inline-flex}
+    .go:hover,.go:focus-visible{opacity:1;background:rgba(125,185,255,.22);outline:none}
+    .go svg{width:.8em;height:.8em;display:block}`;
+  // Le petit lien vers la page Rolimon's de l'objet, au bout de sa pastille de value.
+  const GO_SVG = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5H2.5v7h7V7M7 2h3v3M10 2 5.5 6.5"/></svg>';
+  function linkBadge(badge, assetId) {
+    const id = Number(assetId) || 0;
+    if (badge.goId === id) return;
+    badge.goId = id;
+    if (id) badge.go.dataset.on = ''; else delete badge.go.dataset.on;
+    badge.go.title = TEXT.openRolimons;
+  }
   // La pastille est-elle vraiment visible ? Dans sa carte, sur la ligne de son RAP,
   // et coupée par aucun ancêtre qui masque ses débordements (cartes de hauteur fixe, points de suspension).
   function chipVisible(badge, card) {
@@ -333,8 +349,20 @@
       const label = document.createElement('img');
       label.src = assetUrl('assets/rolimons-logo.webp'); label.alt = '';
       const value = document.createElement('b');
-      pill.append(label, value); shadow.append(style, pill);
-      badge = { node, pill, label, value };
+      const go = document.createElement('span');
+      go.className = 'go'; go.setAttribute('role', 'link'); go.tabIndex = 0; go.innerHTML = GO_SVG;
+      pill.append(label, value, go); shadow.append(style, pill);
+      badge = { node, pill, label, value, go, goId: null };
+      // La carte de Roblox réagit au clic (ajouter l'objet au trade, ouvrir sa page) : le lien
+      // garde son clic pour lui et ouvre Rolimon's dans un nouvel onglet.
+      const stop = (e) => { e.stopPropagation(); };
+      const open = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (badge.goId) window.open(`https://www.rolimons.com/item/${badge.goId}`, '_blank', 'noopener');
+      };
+      for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'touchstart']) go.addEventListener(type, stop);
+      go.addEventListener('click', open);
+      go.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') open(e); });
       map.set(card, badge);
     }
     if (badge.mode === 'inline' && !anchor) badge.mode = 'overlay';
@@ -451,6 +479,7 @@
         paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : 'N/A',
           available || rapFallback ? 'ok' : pending ? 'wait' : 'none',
           available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card);
+        linkBadge(badge, item.assetId || (matched ? info.assetId : 0));
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
           ? info.projected : !!projectedKnown.get(itemKey(item)));
         showMarks(badge, card, matched && !!info.rare, !!globalThis.RoNoteMarks?.isLucky(lucky,
@@ -486,6 +515,7 @@
       if (info?.known && info.value) paintBadge(badge, number.format(info.value), 'ok', TEXT.currentValue, card);
       else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', TEXT.rapUsed, card);
       else paintBadge(badge, info?.known ? 'N/A' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
+      linkBadge(badge, item.assetId);
       showFlag(badge, card, !!info?.projected);
       showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
