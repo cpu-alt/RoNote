@@ -16,11 +16,11 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
+    version: '2.16.1',
     title: item('Profils', 'Profiles'),
     items: [
-      item("Onglet Profils (menu du compte) : les joueurs du Profile discovery de Neuronal, classiques ou vus en train de trader, filtrables par palier (ghost, rookie, novice…). Les utilisateurs RoNote portent leur étiquette.",
-        "Profiles tab (account menu): the players from Neuronal's Profile discovery, classic or seen trading, filterable by tier (ghost, rookie, novice…). RoNote users carry their tag.")
+      item("Onglet Profils (l'icône à droite de Journal, ou le menu du compte) : les joueurs du Profile discovery de Neuronal, classiques ou vus en train de trader, filtrables par palier (ghost, rookie, novice…). Les utilisateurs RoNote portent leur étiquette.",
+        "Profiles tab (the icon right of Journal, or the account menu): the players from Neuronal's Profile discovery, classic or seen trading, filterable by tier (ghost, rookie, novice…). RoNote users carry their tag.")
     ]
   },
   {

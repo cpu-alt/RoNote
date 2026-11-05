@@ -3,9 +3,9 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## En préparation
+## v2.16.1 — Profils
 
-- **Onglet Profils** (menu du compte › Profils) : le Profile discovery de Neuronal
+- **Onglet Profils** (l'icône à droite de Journal, ou menu du compte › Profils) : le Profile discovery de Neuronal
   dans le popup. Deux listes, *Classique* (les joueurs repérés par leurs annonces
   Rolimon's) et *Neuronal* (les joueurs vus en train de trader), avec un filtre
   par palier : ghost, rookie, novice, beginner… Les utilisateurs RoNote portent
