@@ -36,6 +36,8 @@
     showSerials: 'Afficher les serials', blurSerials: 'Flouter les serials',
     profile: (who) => `Ouvrir le profil de ${who || 'ce joueur'} sur Rolimon’s`,
     flex: 'Créer une image du trade',
+    resend: 'Renvoyer',
+    resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
     stale: 'Cotes Rolimon’s trop anciennes.',
     noFigure: 'Aucun chiffre pour : ',
@@ -59,6 +61,8 @@
     showSerials: 'Show serials', blurSerials: 'Blur serials',
     profile: (who) => `Open ${who || 'this player'} on Rolimon’s`,
     flex: 'Create a trade image',
+    resend: 'Send again',
+    resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
     stale: 'Rolimon’s values too old.',
     noFigure: 'No figure for: ',
@@ -766,6 +770,45 @@
     if (phases.length) return phases.every(p => p === 'done');
     return /[?&]tab=completed(?:&|$)/i.test(location.search);
   }
+  /**
+   * « Send again » à côté de Decline (offres reçues et envoyées) : ouvre la
+   * fenêtre de trade avec le même joueur, sans passer par son profil. Le bouton
+   * reprend la classe du bouton de Roblox pour en avoir l'allure exacte.
+   */
+  let resendButton = null;
+  const DECLINE_RE = /^(decline|refuser|rechazar|ablehnen|recusar|rifiuta)$/i;
+  function declineButton() {
+    for (const b of document.querySelectorAll('button')) {
+      if (b.closest('[data-rn]') || b.offsetParent === null) continue;
+      if (DECLINE_RE.test((b.textContent || '').trim())) return b;
+    }
+    return null;
+  }
+  function mountResend(page) {
+    const decline = page?.partnerId > 0 && !page.composer ? declineButton() : null;
+    if (!decline) { resendButton?.remove(); return; }
+    if (!resendButton) {
+      resendButton = document.createElement('button');
+      resendButton.type = 'button';
+      resendButton.dataset.rn = 'trade-resend';
+      resendButton.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const id = Number(resendButton.dataset.partner) || 0;
+        if (id) location.href = `https://www.roblox.com/users/${id}/trade`;
+      });
+    }
+    if (resendButton.className !== decline.className) resendButton.className = decline.className;
+    const label = TEXT.resend;
+    if (resendButton.textContent !== label) resendButton.textContent = label;
+    resendButton.dataset.partner = String(page.partnerId);
+    const title = TEXT.resendTitle(page.handle);
+    if (resendButton.title !== title) { resendButton.title = title; resendButton.setAttribute('aria-label', title); }
+    // même marge que l'écart entre les boutons de Roblox (Accept · Counter · Decline), sinon 8 px
+    const prev = decline.previousElementSibling;
+    const gap = prev ? Math.max(0, decline.getBoundingClientRect().left - prev.getBoundingClientRect().right) : 0;
+    resendButton.style.marginLeft = (gap ? 0 : 8) + 'px';
+    if (resendButton.previousElementSibling !== decline) decline.after(resendButton);
+  }
   function mountProfileLink(page) {
     const heading = page?.partnerId > 0 && page.tradeHeading?.isConnected ? page.tradeHeading : null;
     if (!heading) { flexControl?.remove(); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
@@ -820,6 +863,7 @@
     clearNearbyLines();
     restore(); host?.remove(); host = null; signature = ''; generation++;
     profileLink?.remove(); profileLink = null; tools?.remove();
+    resendButton?.remove();
     releaseHeading();
     for (const badge of badges.values()) { dropBadge(badge); }
     badges.clear();
@@ -1147,6 +1191,7 @@
     let page;
     try { page = dom.readTradePage(); } catch { clear(); return; }
     mountProfileLink(page);
+    mountResend(page);
     updateInventories(page.ok ? page : null);
     if (!page.ok) { clear(); return; }
     const sig = location.href + '|' + dom.signatureOf(page);
