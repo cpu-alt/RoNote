@@ -18,6 +18,7 @@ import { openShare } from './share.js';
 import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
 import { fluidHover } from '../common/fluid.js';
+import { marketcapSlot, mountMarketcap } from './marketcap.js';
 import {
   setMoneyFormat, seriesText, orderedSeries, toggleSeries, downsample, chartModel, smoothPath,
   chartHtml, legendHtml, mountChart, seriesChips, renderRangedChart
@@ -1744,8 +1745,9 @@ function renderHome(entering) {
       </section>`
     : '';
 
-  listEl.innerHTML = hero + join + news + tiles + todoHtml + recentHtml;
+  listEl.innerHTML = hero + join + news + marketcapSlot() + tiles + todoHtml + recentHtml;
   if (entering) cascade(listEl.children, 8);
+  mountMarketcap(listEl);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
 }
 
