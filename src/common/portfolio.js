@@ -2,7 +2,7 @@
  * ==========================================================================
  *  LE PORTEFEUILLE
  * --------------------------------------------------------------------------
- *  Rolimon's publie LA valeur d'un compte — celle que lit toute la communaute
+ *  Rolimon's publie LA valeur d'un compte : celle que lit toute la communaute
  *  du trade. On la prend telle quelle, parce que la recalculer soi-meme
  *  sous-compte : Rolimon's valorise en interne des UGC limiteds qu'il ne
  *  publie pas dans son catalogue public.
@@ -41,7 +41,7 @@ export async function buildPortfolio(userId, cat) {
     // `playerinfo`, alors que `playerassets` repond) : l'inventaire suffit a
     // lister les objets et a chiffrer le compte au catalogue. Sans lui, rien.
     if (counted && !counted.private && !counted.terminated) return fromInventory(base, counted, cat);
-    if (counted?.private) return { ...base, private: true, estimated: true, reason: "inventaire privé — Rolimon's ne publie rien" };
+    if (counted?.private) return { ...base, private: true, estimated: true, reason: "inventaire privé, Rolimon's ne publie rien" };
     return { ...base, reason: String(infoR.reason?.message || "profil Rolimon's injoignable") };
   }
   if (info.terminated) return { ...base, terminated: true, reason: 'compte supprimé' };
@@ -49,7 +49,7 @@ export async function buildPortfolio(userId, cat) {
     return {
       ...base, private: true, rolimons: info,
       value: info.value, rap: info.rap, rank: info.rank,
-      reason: "inventaire privé — Rolimon's ne publie rien"
+      reason: "inventaire privé, Rolimon's ne publie rien"
     };
   }
   return fromRolimons(base, info, counted, cat);
@@ -102,7 +102,7 @@ export function fromInventory(out, counted, cat) {
   report.estimated = true;
   report.value = report.items.reduce((s, i) => s + i.total, 0);
   report.rap = report.items.reduce((s, i) => s + i.totalRap, 0);
-  report.reason = "profil Rolimon's injoignable — total calculé au catalogue";
+  report.reason = "profil Rolimon's injoignable : total calculé au catalogue";
   return report;
 }
 

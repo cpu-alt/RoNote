@@ -2,7 +2,7 @@
  * ==========================================================================
  *  LE PEU QUE LE POPUP ET LES REGLAGES PARTAGENT
  * --------------------------------------------------------------------------
- *  Deux pages, deux mises en page, aucun composant commun — mais les memes
+ *  Deux pages, deux mises en page, aucun composant commun : mais les memes
  *  trois gestes en tete de fichier : trouver un noeud, parler au service
  *  worker, appliquer la langue au gabarit. Ils vivent ici plutot qu'en double.
  *
@@ -40,7 +40,7 @@ export async function ask(msg, tries = 2) {
  *
  * Les pages sont ecrites en francais et `translateDom` remplace en place : ce
  * n'est jouable qu'une fois. Changer de langue repart donc d'une page neuve.
- * Rend `false` quand le rechargement est lance — l'appelant s'arrete la.
+ * Rend `false` quand le rechargement est lance : l'appelant s'arrete la.
  */
 let domLang = null;
 export function applyLang(setting, onFirst = null) {

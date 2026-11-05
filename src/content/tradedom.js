@@ -36,7 +36,7 @@
  *  Le decoupage en colonnes s'appuie d'abord sur le PROFIL quand il existe :
  *  chaque objet est rattache au plus proche
  *  ancetre qui cite un profil. Deux colonnes, deux proprietaires, aucune
- *  ambiguite — et si un inventaire est ouvert a cote, ses objets tombent sur
+ *  ambiguite : et si un inventaire est ouvert a cote, ses objets tombent sur
  *  un troisieme ancetre, ce qui fait renoncer au lieu de melanger l'inventaire
  *  avec l'offre.
  *
@@ -271,7 +271,7 @@ function structural(links) {
  * Regroupe les liens en colonnes sans dependre de la langue ni des classes.
  *
  * Le decoupage par proprietaire passe en premier. Quand il ne donne pas deux
- * colonnes nettes, on retombe sur la structure — mais seulement si aucune des
+ * colonnes nettes, on retombe sur la structure : mais seulement si aucune des
  * deux colonnes obtenues ne cite DEUX proprietaires : ce cas-la, c'est le
  * trade entier pris pour une colonne et un inventaire pris pour l'autre. Le
  * panneau annoncerait alors un gain calcule sur l'inventaire, ce qui est bien
@@ -325,7 +325,7 @@ function robuxTextIn(root) {
 /** @handle du partenaire, seul identifiant textuel fiable de la page. */
 function partnerHandle() {
   // `textContent`, pas `innerText` : innerText force un calcul de mise en page
-  // de TOUTE la page a chaque appel — et cet appel revient a chaque mutation.
+  // de TOUTE la page a chaque appel : et cet appel revient a chaque mutation.
   const root = document.querySelector('main') || document.body;
   const m = /@([A-Za-z0-9_]{3,20})/.exec(root?.textContent || '');
   return m ? m[1] : '';

@@ -5,7 +5,7 @@
  * TOUT EST DANS UNE FONCTION, ET CE N'EST PAS COSMETIQUE : les scripts de
  * contenu d'une meme extension partagent le meme espace global dans le monde
  * isole. Deux fichiers qui declarent `const B` au niveau superieur, et le
- * second ne s'execute JAMAIS — « Identifier 'B' has already been declared »,
+ * second ne s'execute JAMAIS : « Identifier 'B' has already been declared »,
  * le fichier entier est perdu avant sa premiere ligne. Le seul canal entre
  * fichiers reste `globalThis.RoNote*`, pose explicitement.
  */

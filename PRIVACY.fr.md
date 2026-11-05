@@ -1,4 +1,4 @@
-# Politique de confidentialité — RoNote
+# Politique de confidentialité : RoNote
 
 **Dernière mise à jour : 31 octobre 2026 · Version 2.16.0**
 
@@ -17,9 +17,9 @@ d'analyse d'audience, et rien n'est jamais vendu ni partagé.
 
 Quand tu es connecté à Roblox, RoNote lit, depuis ton navigateur :
 
-- **tes trades** — reçus, envoyés, terminés, refusés : identifiants, dates, statut ;
-- **les objets de ces trades** — noms, identifiants, vignettes, valeurs ;
-- **le profil public du joueur en face** — pseudo, nom d'affichage, avatar ;
+- **tes trades** : reçus, envoyés, terminés, refusés : identifiants, dates, statut ;
+- **les objets de ces trades** : noms, identifiants, vignettes, valeurs ;
+- **le profil public du joueur en face** : pseudo, nom d'affichage, avatar ;
 - **ton propre pseudo et ton identifiant Roblox**, pour savoir de quel compte il s'agit ;
 - **ton inventaire**, si tu utilises l'onglet Portefeuille ou l'alerte de réévaluation.
 
@@ -43,7 +43,7 @@ Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
 | `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
-| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur, lire le sien | Pour la table et les historiques, **rien te concernant** — les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
+| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
 
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
 RAP fourni par Roblox et ne contacte plus que Roblox.
@@ -81,7 +81,7 @@ seulement une fois l'accès à `neuronal.live` accordé.
 ## L'utilisation de ta session Roblox
 
 Pour lire *tes* trades, RoNote interroge l'API de Roblox en réutilisant la session
-déjà ouverte dans ton navigateur — exactement comme le fait le site roblox.com quand
+déjà ouverte dans ton navigateur : exactement comme le fait le site roblox.com quand
 tu navigues dessus.
 
 RoNote **ne lit pas ton mot de passe, ne le stocke pas et ne le transmet pas**. Elle
@@ -110,7 +110,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 |---|---|
 | `storage` | Conserver tes réglages et l'état de suivi entre deux démarrages |
 | `alarms` | Déclencher la vérification périodique des trades |
-| `notifications` | Afficher les notifications bureau — la fonction même de l'extension |
+| `notifications` | Afficher les notifications bureau : la fonction même de l'extension |
 | `scripting` | Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail |
 | `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
 | `sidePanel` | Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode |

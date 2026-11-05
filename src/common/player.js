@@ -4,7 +4,7 @@
  * --------------------------------------------------------------------------
  *  Ce que RoNote sait deja d'un partenaire sans rien demander a personne :
  *  les trades encore affiches dans le popup et les evenements du journal.
- *  Module pur — le profil Roblox et Rolimon's sont lus par le service worker.
+ *  Module pur : le profil Roblox et Rolimon's sont lus par le service worker.
  *
  *  Un meme trade laisse souvent plusieurs traces (recu puis refuse depuis
  *  RoNote, envoye puis contre) : il ne compte qu'une fois, sous son dernier

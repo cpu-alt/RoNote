@@ -5,7 +5,7 @@
  *  La VALUE d'abord. C'est le chiffre sur lequel se fait un trade : le RAP
  *  n'est qu'une moyenne de ventes, il se gonfle a coups de rachats entre
  *  complices, et personne ne trade au RAP. Toute l'interface est donc
- *  construite autour de la value — mais le RAP reste affiche a cote, parce
+ *  construite autour de la value : mais le RAP reste affiche a cote, parce
  *  qu'un ecart franc entre les deux est justement le signal qui compte.
  *
  *  Regle de conduite : on n'invente jamais un chiffre. Un objet sans cote est

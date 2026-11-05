@@ -6,7 +6,7 @@
  *
  * La lecture elle-meme est dans `content/tradedom.js`, un lecteur a part
  * pour qu'elle reste testable seule. Ce fichier est declare APRES lui
- * dans le manifeste et le trouve dans le monde isole, sans rien charger — la
+ * dans le manifeste et le trouve dans le monde isole, sans rien charger : la
  * politique de securite de Roblox refuse le scheme `chrome-extension:`.
  */
 (() => {

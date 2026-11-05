@@ -50,7 +50,7 @@ export const TRACK_CHECKS = 6;
  * Sans lui, un trade suivi tombe hors de la page Outbound (limitee a 100) mais
  * toujours ouvert redevient « a verifier » a chaque passage, pour l'eternite :
  * avec une vingtaine de suivis, c'etait six details toutes les 30 secondes,
- * soit une douzaine de requetes par minute rien que pour eux — de quoi tenir
+ * soit une douzaine de requetes par minute rien que pour eux : de quoi tenir
  * la limite de debit de Roblox allumee en permanence. Une issue reste vue au
  * pire dix minutes plus tard, et les listes Termines / Inactifs la donnent
  * souvent bien avant.
@@ -81,7 +81,7 @@ export const TRACK_MAX_AGE_AUTO = 7 * 24 * 60 * 60 * 1000;
  * droit a la limite de debit. Une limite atteinte arrete la boucle et remonte :
  * insister ne ferait que la prolonger.
  *
- * @param tracked     { [tradeId]: meta } — modifie en place (checkedAt, abandons)
+ * @param tracked     { [tradeId]: meta }, modifie en place (checkedAt, abandons)
  * @param openIds     Set des ids encore presents dans Outbound
  * @param fetchDetail (id) => Promise<detail>
  * @returns [{ tradeId, status, detail, meta }]

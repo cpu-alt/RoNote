@@ -10,8 +10,7 @@
  *    projectedColor  couleur de fond (#rrggbb), jaune vif par défaut
  *    projectedSize   s | m | l
  *    projectedShape  rounded | circle | square
- *    projectedIcon   (clé de stockage à part) image importée, en data: URL —
- *                    elle remplace le triangle
+ *    projectedIcon   (clé de stockage à part) image importée, en data: URL,  *                    elle remplace le triangle
  * ==========================================================================
  */
 (() => {

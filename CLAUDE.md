@@ -24,7 +24,7 @@ On répond à l'utilisateur en **français** ; l'extension est en français **et
 
 - **Chaque texte visible passe par `src/common/i18n.js`**, en français et en anglais.
 - **Sortir une version** (détail dans `docs/publication-auto.md`) : même numéro dans les deux manifestes et
-  `package.json`, une section `## vX.Y.Z — titre` en tête de `CHANGELOG.md`, une entrée dans
+  `package.json`, une section `## vX.Y.Z : titre` en tête de `CHANGELOG.md`, une entrée dans
   `src/common/changelog.js`, puis le tag `vX.Y.Z` (le workflow publie). Ne pas taguer sans qu'on le demande.
 - **Vie privée** : rien ne part vers Neuronal sans le consentement explicite de l'utilisateur (carte
   « Rejoindre la carte Neuronal ? »). Toute nouvelle donnée envoyée ou permission ajoutée doit être

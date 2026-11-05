@@ -6,7 +6,7 @@
  *  l'option `neuronalLookup` est cochée ET que la permission optionnelle sur
  *  neuronal.live est accordée. Sinon, rien ne part.
  *
- *  La route /ext/v1 du bot (RoliBot, 18qbf) ne fait que LIRE sa base : aucun
+ *  La route /ext/v1 du bot (Neuronal, 18qbf) ne fait que LIRE sa base : aucun
  *  joueur n'entre dans le réseau parce qu'on l'a regardé. Seul l'identifiant
  *  demandé voyage, sans cookie (`credentials: 'omit'`). L'en-tête `X-RoNote`
  *  est exigé par la garde du site, qui limite sans jamais bannir.
@@ -295,7 +295,7 @@ export async function neuronalExternal(msg, sender, settings, openSettings) {
 
 /**
  * Firefox : content/neuronal-hello.js n'est déclaré nulle part dans le
- * manifeste — il y rendrait neuronal.live obligatoire à l'installation. Il est
+ * manifeste : il y rendrait neuronal.live obligatoire à l'installation. Il est
  * enregistré ici quand la permission optionnelle est accordée, retiré quand
  * elle est rendue (au démarrage et à chaque changement de permission).
  */

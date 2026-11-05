@@ -13,7 +13,7 @@
 (() => {
   const fr = (document.documentElement.lang || navigator.language || '').startsWith('fr');
   const L = (a, b) => (fr ? a : b);
-  const fmt = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
+  const fmt = n => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : 'N/A';
   const W = 1200, S = 2;                      // largeur logique, facteur de rendu
   const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
   const TONES = { win: '#3ee6a0', loss: '#ff5c7a', even: '#a9b8d0' };
@@ -68,8 +68,8 @@
     const tone = !valid || delta === 0 ? 'even' : delta > 0 ? 'win' : 'loss';
     return {
       valid, delta, tone, color: TONES[tone],
-      amount: valid ? (delta > 0 ? '+' : delta < 0 ? '−' : '') + fmt(Math.abs(delta)) : '—',
-      pct: valid && a > 0 ? (delta > 0 ? '+' : delta < 0 ? '−' : '') + Math.abs(delta / a * 100).toFixed(1) + '%' : '—'
+      amount: valid ? (delta > 0 ? '+' : delta < 0 ? '−' : '') + fmt(Math.abs(delta)) : 'N/A',
+      pct: valid && a > 0 ? (delta > 0 ? '+' : delta < 0 ? '−' : '') + Math.abs(delta / a * 100).toFixed(1) + '%' : 'N/A'
     };
   }
 

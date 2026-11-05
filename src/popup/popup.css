@@ -1,10 +1,10 @@
 /* ==========================================================================
-   RoNote — feuille de style du popup
+   RoNote : feuille de style du popup
    --------------------------------------------------------------------------
    Une seule idee dirige tout : LA VALUE EST LE CHIFFRE PRINCIPAL. Elle est
    la plus grosse, la seule coloree, la seule alignee sur la ligne de lecture.
    Le RAP reste visible juste dessous, en gris, parce qu'un desaccord entre
-   les deux est une information — mais il ne dispute jamais la vedette.
+   les deux est une information : mais il ne dispute jamais la vedette.
 
    Le style est celui d'une appli de portefeuille : fonds en degrade sombre,
    pastilles, une couleur par verdict (vert gagne, rouge perd, violet « sans
@@ -594,7 +594,7 @@ button.jr:active { transform: scale(.985); }
 
 /* ============================= portefeuille =============================
    L'onglet se lit comme une appli de portefeuille : le solde d'abord, ses
-   courbes, puis ce qui le compose — objet par objet. Tout ce qui bouge le
+   courbes, puis ce qui le compose : objet par objet. Tout ce qui bouge le
    fait à l'entrée dans l'onglet ou sur un choix de l'utilisateur, jamais au
    rafraîchissement de fond.
    ======================================================================== */
@@ -970,7 +970,7 @@ button.jr:active { transform: scale(.985); }
 /* ========================== zoom sur un trade ============================
    Le popup fait 420 x 600 : pas la place d'une vraie fenetre. Le zoom monte
    du bas comme une feuille, avec sa propre zone de defilement, et laisse le
-   pied toujours accessible — c'est la que se trouvent les actions definitives.
+   pied toujours accessible : c'est la que se trouvent les actions definitives.
    ======================================================================== */
 
 .zoom {

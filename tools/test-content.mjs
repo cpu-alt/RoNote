@@ -4,7 +4,7 @@
  * Les scripts de contenu d'une même extension ne sont pas des îlots : dans un
  * onglet donné, ils s'exécutent tous dans le MÊME espace global. Deux fichiers
  * qui déclarent `const B` au niveau supérieur, et le second ne s'exécute
- * jamais — « Identifier 'B' has already been declared », le fichier entier est
+ * jamais : « Identifier 'B' has already been declared », le fichier entier est
  * perdu avant sa première ligne, sans que rien ne s'affiche nulle part.
  *
  * C'est exactement ce qui est arrivé : `relay.js` et `scrape.js` déclaraient
@@ -103,7 +103,7 @@ for (const f of files) {
   } catch (e) {
     // Une collision de nom se voit ICI, et nulle part ailleurs : dans un
     // navigateur, le fichier est simplement perdu sans un mot.
-    console.error(`  ✗ ${f} — ${e?.message || e}`);
+    console.error(`  ✗ ${f} : ${e?.message || e}`);
     boom = f;
     failed++;
   }

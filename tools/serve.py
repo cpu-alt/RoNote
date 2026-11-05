@@ -22,7 +22,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     # HTTP/1.1 : le navigateur reutilise une poignee de connexions au lieu d'en
     # ouvrir une par fichier. En HTTP/1.0, chaque reponse ferme sa socket, et
     # sous Windows une fermeture alors qu'il reste des octets en tampon part en
-    # RST — d'ou des fichiers tronques (ERR_CONNECTION_RESET) sur les gros
+    # RST : d'ou des fichiers tronques (ERR_CONNECTION_RESET) sur les gros
     # fixtures charges en parallele.
     protocol_version = "HTTP/1.1"
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     #
     # `allow_reuse_address` reste a False : sous Windows, SO_REUSEADDR laisse
     # DEUX serveurs se lier au meme port, et les connexions partent alors au
-    # hasard de l'un ou de l'autre — d'ou des ERR_CONNECTION_RESET inexplicables.
+    # hasard de l'un ou de l'autre : d'ou des ERR_CONNECTION_RESET inexplicables.
     # Mieux vaut refuser de demarrer et le dire.
     handler = functools.partial(Handler, directory=str(ROOT))
     try:

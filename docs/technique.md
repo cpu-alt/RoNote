@@ -1,4 +1,4 @@
-# RoNote — notes techniques
+# RoNote : notes techniques
 
 Pourquoi le code est écrit comme il est. Ces pages formaient la plus grande partie
 du README ; elles sont ici pour rester lisibles sans noyer la page d'accueil du
@@ -41,12 +41,12 @@ Conséquences concrètes :
 ## Trades refusés par l'API : on lit la page
 
 Certains trades contenant un **bundle** (visage DynamicHead, UGC limited) sont
-refusés par l'API — `403` sur le détail, alors que la liste passe et que la page
+refusés par l'API : `403` sur le détail, alors que la liste passe et que la page
 Roblox les affiche parfaitement.
 
 Puisque la page les affiche, l'information est dans le DOM. Le script
 `content/scrape.js` lit donc le trade affiché et en extrait les **identifiants**
-des objets depuis leurs liens (`/catalog/{assetId}`, `/bundles/{bundleId}`) — pas
+des objets depuis leurs liens (`/catalog/{assetId}`, `/bundles/{bundleId}`) : pas
 leurs noms : deux objets peuvent porter des noms quasi identiques pour des cotes
 très différentes (`Gucci … (1.0)` vaut 5 787, `(3.0)` vaut 3 113). Les cotes
 viennent ensuite de Rolimon's, exactement comme pour les autres trades.
@@ -54,8 +54,8 @@ viennent ensuite de Rolimon's, exactement comme pour les autres trades.
 Le découpage en deux colonnes ne dépend ni de la langue ni des classes CSS. Il
 s'appuie d'abord sur le **propriétaire** : une offre cite toujours son joueur,
 donc chaque objet est rattaché au plus proche ancêtre qui cite un profil. Si la
-page ne cite aucun profil, on retombe sur la seule **structure** — le plus haut
-ancêtre qui ne contient pas tous les liens — mais uniquement si aucune des deux
+page ne cite aucun profil, on retombe sur la seule **structure** : le plus haut
+ancêtre qui ne contient pas tous les liens : mais uniquement si aucune des deux
 colonnes obtenues ne cite deux propriétaires : ce cas-là, c'est le trade entier
 pris pour une colonne et un inventaire pris pour l'autre. Si le découpage ne
 donne pas exactement deux colonnes, la lecture s'abstient plutôt que de deviner.
@@ -74,7 +74,7 @@ Ordre des replis, du plus fidèle au plus approximatif :
 ## Trades refusés par l'API : interception réseau
 
 Certains trades contenant un **bundle** (visage DynamicHead, UGC limited) sont
-refusés par l'API — `403` sur le détail, alors que la liste passe et que la page
+refusés par l'API : `403` sur le détail, alors que la liste passe et que la page
 Roblox, elle, les affiche parfaitement.
 
 Plutôt que de continuer à deviner l'endpoint et les en-têtes exacts du site,
@@ -88,7 +88,7 @@ voit à l'écran. Le script n'intercepte **que** les réponses de détail de tra
 ne modifie rien.
 
 Le même script récupère au passage le **jeton CSRF** de la page (balise `meta`
-ou en-tête des requêtes qu'elle émet), ajouté ensuite à nos appels — Roblox
+ou en-tête des requêtes qu'elle émet), ajouté ensuite à nos appels : Roblox
 rejette certains GET sans jeton. Un jeton renvoyé par Roblox dans l'en-tête
 `x-csrf-token` est capté et rejoué une fois.
 
@@ -135,7 +135,7 @@ exactement quelle étape échoue, sans avoir à deviner.
 
 `GET /v1/trades/{id}` répond **403** sur les trades qui contiennent un bundle
 (visage DynamicHead, UGC limited) : `UserAssetResponse`, son seul type d'objet, ne
-sait pas décrire un bundle. La liste, elle, passe — d'où des trades bien listés
+sait pas décrire un bundle. La liste, elle, passe : d'où des trades bien listés
 mais impossibles à évaluer. Roblox expose une **v2** pour ces trades.
 
 Les deux schémas (relevés sur la documentation officielle,
@@ -161,7 +161,7 @@ Trois différences qui cassent tout si on les rate :
    `itemTarget.targetId`, et son type est annoncé dans `itemTarget.itemType`.
    L'ancien normaliseur cherchait `assetId` / `bundleId` / `id` à la racine :
    aucun n'existe en v2, donc **tous** les objets du trade ressortaient avec un
-   identifiant nul — pas de cote, pas de vignette, pour le trade **entier**. C'est
+   identifiant nul : pas de cote, pas de vignette, pour le trade **entier**. C'est
    exactement le symptôme « un visage dans le trade → plus aucun aperçu ».
 2. **`id` en v1 est le `userAssetId`**, l'identifiant de l'exemplaire, jamais celui
    de l'objet. Le prendre comme repli produisait des vignettes cassées et des cotes
@@ -177,7 +177,7 @@ objet ni Robux n'existe pas, c'est le signe que v1 a laissé tomber ce qu'il ne 
 pas décrire.
 
 Si le format reçu n'est toujours pas reconnu, la carte affiche **les clés
-réellement reçues** (`format inattendu — racine […] · … · objet […]`) au lieu d'une
+réellement reçues** (`format inattendu : racine […] · … · objet […]`) au lieu d'une
 carte vide : le normaliseur se corrige alors sans deviner.
 
 ---
@@ -186,7 +186,7 @@ carte vide : le normaliseur se corrige alors sans deviner.
 
 Quand le détail d'un trade ne peut pas être lu, la carte affiche la raison **en
 clair** (pas dans une infobulle) et propose un bouton **Réessayer**. Le message est
-étiqueté par étape — `détail du trade: HTTP 400`, `analyse: …` — pour savoir
+étiqueté par étape : `détail du trade: HTTP 400`, `analyse: …`, pour savoir
 immédiatement où ça casse.
 
 Trois protections entourent cet appel :
@@ -203,8 +203,7 @@ Trois protections entourent cet appel :
 ## Un trade ne disparaît jamais de la liste
 
 Si le détail d'un trade ne peut pas être récupéré (429 Roblox, objet illisible,
-trade modifié pendant la lecture), la carte est affichée en **mode dégradé** —
-partenaire, date, lien vers le trade, et la raison de l'échec — au lieu d'être
+trade modifié pendant la lecture), la carte est affichée en **mode dégradé** : partenaire, date, lien vers le trade, et la raison de l'échec : au lieu d'être
 silencieusement omise. C'est un correctif de fond : auparavant un `catch` vide
 faisait disparaître la ligne, et un trade absent est bien pire qu'un trade mal
 évalué.
@@ -229,8 +228,8 @@ qu'il faut :
 
 | | `assets` | `bundles` | ce qu'il contient |
 |---|---:|---:|---|
-| `items/v3/itemdetails` | 2 377 | 160 | la source moderne — **la seule qui cote les bundles** |
-| `items/v1/itemdetails` | 2 486 | — | l'ancien monde — cote encore les visages sous leur **ancien** id |
+| `items/v3/itemdetails` | 2 377 | 160 | la source moderne : **la seule qui cote les bundles** |
+| `items/v1/itemdetails` | 2 486 | : | l'ancien monde, cote encore les visages sous leur **ancien** id |
 
 Les **158 assets présents en v1 et absents de v3** sont, par construction, les
 visages migrés. Et le bundle a gardé le nom de l'ancien visage, à la cote près :
@@ -242,7 +241,7 @@ v1.items  [34764447]        = ["The Dog Whisperer", "DW", 64766, 55000, …]
 
 RoNote rapproche donc les deux **par le nom**, en ne cherchant que parmi ces 158
 assets : **158 bundles sur 160 trouvent leur ancien visage, zéro ambiguïté** (les
-deux restants — *The Jade Catseye*, *Signature Kicks* — n'ont jamais été des
+deux restants : *The Jade Catseye*, *Signature Kicks*, n'ont jamais été des
 visages). Restreindre la recherche est ce qui évite le piège classique : *Zip It!*
 existe en visage (`24126147`) **et** en chapeau (`100931472`) ; comme le chapeau est
 toujours coté en v3, il ne peut pas être choisi par erreur.
@@ -252,7 +251,7 @@ sans aucun appel supplémentaire. Il sert à trois endroits :
 
 - **la cote** d'un visage dans un trade ;
 - **la vignette** : l'image plate de l'ancien visage passe devant le rendu de tête
-  du bundle — c'est celle que tout le monde reconnaît, et celle qu'affiche
+  du bundle : c'est celle que tout le monde reconnaît, et celle qu'affiche
   Rolimon's ;
 - **le portefeuille** (voir *Onglet Portefeuille*).
 
@@ -276,8 +275,8 @@ Exemple réel (trade #4166703397429939) :
 
 | | RAP | Value |
 |---|---:|---:|
-| Donné — *Gucci Saint Francis Cloak* | 5 787 | 5 787 |
-| Reçu — *Lord of the Buxeration* | 4 947 | **6 000** |
+| Donné : *Gucci Saint Francis Cloak* | 5 787 | 5 787 |
+| Reçu : *Lord of the Buxeration* | 4 947 | **6 000** |
 
 Au RAP c'est **−14,5 %** (une perte) ; à la value c'est **+213 (+3,7 %)**, un gain.
 La base par défaut est la **value**, donc le verdict affiché est *Gain*. Le désaccord
@@ -292,7 +291,7 @@ en grand et en couleur, le RAP est juste dessous, en gris, toujours visible.
 
 ## Lecture des cotes Rolimon's
 
-Format d'une entrée — **et les deux versions n'ont pas le même nombre de colonnes** :
+Format d'une entrée : **et les deux versions n'ont pas le même nombre de colonnes** :
 
 ```
 v1 (10) [nom, acronyme, rap, value, defaultValue, demand, trend, projected, hyped, rare]
@@ -303,11 +302,11 @@ v3 a laissé tomber `hyped`. `rare` est donc en position 9 chez v1 et 8 chez v3 
 lit la **dernière** colonne, ce qui vaut pour les deux. Lire l'indice 9 en dur ferait
 passer tous les objets rares pour des objets banals.
 
-Une value à `-1` signifie « non cotée » et retombe sur le RAP — c'est le cas de la
+Une value à `-1` signifie « non cotée » et retombe sur le RAP : c'est le cas de la
 majorité des objets. L'interface le dit (`Value 20 500 (RAP faute de cote)`), parce
 que sur un objet **projected** le RAP est justement le chiffre qui a été gonflé.
 
-> **Bug historique, corrigé en v1.2.1 — la table de valeurs était vide depuis le
+> **Bug historique, corrigé en v1.2.1 : la table de valeurs était vide depuis le
 > début.** Le code lisait `json.item_details` alors que l'API expose les objets sous
 > `json.items` : chaque objet était évalué à son RAP, jamais à sa value.
 >
@@ -326,17 +325,17 @@ compose.
 
 | Bloc | Ce qu'il montre |
 |---|---|
-| **Solde** | Value du compte, RAP et nombre de collectibles, **superposables**. Deux courbes de même unité (value et RAP) partagent l'axe ; dès que le nombre d'objets s'y ajoute, chacune passe en variation depuis le début de la période — la seule façon honnête d'empiler des unités différentes. Survoler la courbe affiche le jour pointé ; 👁 masque les montants, jamais les pourcentages. |
+| **Solde** | Value du compte, RAP et nombre de collectibles, **superposables**. Deux courbes de même unité (value et RAP) partagent l'axe ; dès que le nombre d'objets s'y ajoute, chacune passe en variation depuis le début de la période : la seule façon honnête d'empiler des unités différentes. Survoler la courbe affiche le jour pointé ; 👁 masque les montants, jamais les pourcentages. |
 | **Tuiles** | L'autre chiffre (RAP ou value), le rang Rolimon's, le nombre d'objets, et l'effet des réévaluations des 7 derniers jours sur tes objets. |
 | **Répartition** | Le poids de tes 5 plus gros objets parmi ce que tu possèdes de coté. |
 | **Mes collectibles** | Chaque objet avec vignette, quantité, cote, demande, tendance, et les marques rare ★, projected ⚠ et visage 🎭. Recherche, tri, filtres, vue liste ou galerie ; un clic ouvre sa fiche, avec les liens Rolimon's et Roblox. |
-| **Fiche d'un objet** | Sa courbe — value, RAP et meilleur prix, superposables — de 1 mois à tout l'historique, chaque révision de cote marquée d'un point. |
+| **Fiche d'un objet** | Sa courbe : value, RAP et meilleur prix, superposables, de 1 mois à tout l'historique, chaque révision de cote marquée d'un point. |
 
 La liste repose sur l'inventaire compté par Rolimon's (`holdings`, le même que
 l'alerte de réévaluation) : un visage possédé y figure une fois, sous son bundle.
 Un objet que le catalogue public de Rolimon's ne cote pas est
 seulement compté. Le service worker prépare la liste (`portfolioItems`, module pur,
-testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille — toutes les
+testé sur un inventaire réel anonymisé) à chaque calcul du portefeuille : toutes les
 10 minutes au plus, vignettes comprises : le popup n'appelle aucune API pour l'afficher.
 
 **Chargement des listes.** Le contenu d'un trade ne change jamais : le service
@@ -354,7 +353,7 @@ restent dans le popup (`localStorage`) : elles ne changent rien à la surveillan
 
 Les courbes sont lissées par une cubique **monotone** (Fritsch-Carlson) : elles passent par chaque relevé sans jamais le dépasser, si bien qu'une révision de cote reste une marche franche au lieu d'une vague qui inventerait un creux. Elles sont placées dans le temps réel, pas au rang du relevé. Les animations (entrée en cascade, tracé, compteur du solde) ne se jouent qu'à l'entrée dans l'onglet ou sur un choix de l'utilisateur, jamais au rafraîchissement de fond, et se coupent si le système demande moins d'animations.
 
-L'historique d'un objet vient de sa page publique Rolimon's (`history_data` et `value_changes`), lue seulement à l'ouverture de sa fiche. La page pèse jusqu'à 1,7 Mo pour 11 000 relevés : RoNote n'en garde que le dernier relevé de chaque seau — 2 h sur 7 jours, 1 jour sur 3 mois, 3 jours sur un an, 14 jours au-delà — et le met en cache 6 heures, pour les 20 derniers objets ouverts.
+L'historique d'un objet vient de sa page publique Rolimon's (`history_data` et `value_changes`), lue seulement à l'ouverture de sa fiche. La page pèse jusqu'à 1,7 Mo pour 11 000 relevés : RoNote n'en garde que le dernier relevé de chaque seau, 2 h sur 7 jours, 1 jour sur 3 mois, 3 jours sur un an, 14 jours au-delà, et le met en cache 6 heures, pour les 20 derniers objets ouverts.
 
 ### Les visages : Rolimon's est à jour
 
@@ -369,7 +368,7 @@ Rolimon's comptait et les bundles réellement possédés
 bundles réellement possédés.** Vérifié sur des comptes réels avant de retirer la
 correction : la valeur du profil est exactement la somme des objets comptés, et
 chaque visage compté correspond à un bundle possédé (zéro fantôme, zéro absent).
-RoNote prend donc la valeur de Rolimon's **telle quelle** depuis la v2.14 — la
+RoNote prend donc la valeur de Rolimon's **telle quelle** depuis la v2.14 : la
 recalculer soi-même sous-compterait de toute façon, Rolimon's valorisant en interne
 des UGC limiteds absents de son catalogue public.
 
@@ -382,7 +381,7 @@ bundle chez Rolimon's (`/bundle/{id}`) confirme d'ailleurs ce pont avec un champ
 `migrated_from_asset_id`.
 
 Coût réseau du portefeuille : **deux appels à Rolimon's** (profil et inventaire),
-aucun à Roblox — contre jusqu'à dix avec la correction.
+aucun à Roblox : contre jusqu'à dix avec la correction.
 
 ### Les indicateurs
 
@@ -402,7 +401,7 @@ jour, et sans ce dernier point la courbe retarderait sur le chiffre du haut.
 
 ### D'où vient l'historique
 
-Rolimon's ne publie pas de série temporelle par API — `/players/v1/playerchart`
+Rolimon's ne publie pas de série temporelle par API : `/players/v1/playerchart`
 n'existe pas. En revanche, **la page du profil l'embarque** dans une variable
 `chart_data` :
 
@@ -413,7 +412,7 @@ chart_data = { num_points: 799,
 
 RoNote lit donc cette variable dans la page (cache 30 min) : c'est exactement la
 donnée du graphique du site, sur toute son ancienneté, disponible dès la première
-vérification — sans rien reconstruire.
+vérification : sans rien reconstruire.
 
 Trois cadences distinctes, parce que les trois sources ne bougent pas au même
 rythme : profil et inventaire **10 min**, historique **30 min**, catalogue **15 min**.
@@ -462,7 +461,7 @@ cotes activées, base « Value Rolimon's », avec les garde-fous décrits plus b
 
 La « value » n'est pas une donnée Roblox : c'est une cote **fixée par une
 organisation communautaire**, révisée régulièrement, parfois de plusieurs dizaines
-de pourcents d'un coup. Le RAP, lui, vient de Roblox — mais ne reflète que
+de pourcents d'un coup. Le RAP, lui, vient de Roblox : mais ne reflète que
 l'historique des ventes. Aucun des deux ne suffit seul.
 
 RoNote ne choisit donc pas « la » valeur :
@@ -482,9 +481,7 @@ RAP 60k                  RAP 40k
 
 **2. Les contradictions sont signalées, pas arbitrées.** Quand la value dit
 « gagnant » et le RAP dit « perdant » (ou l'inverse), la carte porte
-`⚖️ Value +33.3 % vs RAP −33.3 %`. Le verdict reste celui de la base choisie —
-masquer un gain réel derrière un « incertain » serait plus trompeur que l'inverse —
-mais le désaccord est écrit à côté, et un tel trade n'est jamais supprimé par un
+`⚖️ Value +33.3 % vs RAP −33.3 %`. Le verdict reste celui de la base choisie : masquer un gain réel derrière un « incertain » serait plus trompeur que l'inverse : mais le désaccord est écrit à côté, et un tel trade n'est jamais supprimé par un
 filtre.
 
 **3. Les cotes gonflées sont marquées.** Un objet dont la value dépasse un
@@ -498,7 +495,7 @@ cote vient de bouger est marqué `🔁 cote révisée : Nom +41.9%`, avec l'anci
 et la nouvelle valeur en infobulle.
 
 **5. Une table périmée est annoncée.** Si l'API Rolimon's est injoignable, l'ancien
-cache continue de servir mais l'affichage porte `⏳ cotes non actualisées` — et
+cache continue de servir mais l'affichage porte `⏳ cotes non actualisées` : et
 au-delà de 24 h, les filtres cessent de s'appuyer dessus.
 
 **6. Un filtre ne supprime jamais une alerte sur un chiffre contesté.** Trade
@@ -516,20 +513,20 @@ figurent pas, et la réponse de l'API des trades ne porte parfois **aucun RAP**
 pour eux.
 
 Le piège : compter ces objets **0**. Un trade où l'autre te propose un visage
-passait alors pour une perte de 100 %, avec deux conséquences — un verdict faux,
+passait alors pour une perte de 100 %, avec deux conséquences : un verdict faux,
 et surtout une **notification supprimée** si le filtre « ne notifier que les
 trades gagnants » était actif.
 
 RoNote traite ça en trois temps :
 
-1. **Repêchage** — pour tout objet sans RAP et absent de Rolimon's, le RAP officiel
+1. **Repêchage** : pour tout objet sans RAP et absent de Rolimon's, le RAP officiel
    est récupéré sur l'API `economy` de Roblox (`resale-data`), puis mis en cache
    12 h. Les échecs sont mis en cache aussi, pour ne pas rappeler l'API en boucle.
-2. **Aucune valeur inventée** — si l'objet reste sans cote, il est marqué
+2. **Aucune valeur inventée** : si l'objet reste sans cote, il est marqué
    `inconnu` et **exclu des totaux** au lieu d'y entrer pour 0. La carte affiche
    `+1 sans cote`, le verdict devient `❔ Objet sans cote`, et l'écart est
    annoncé comme non calculable plutôt que faux.
-3. **Les filtres ne peuvent plus supprimer une alerte sur un total amputé** — un
+3. **Les filtres ne peuvent plus supprimer une alerte sur un total amputé** : un
    trade incomplet est toujours notifié (voir `src/common/filters.js`). Seul le
    blocage explicite d'un joueur continue de s'appliquer.
 
@@ -538,12 +535,12 @@ RoNote traite ça en trois temps :
 Deux pièges corrigés en v2.1.0 :
 
 - **Un identifiant inconnu ne provoque pas d'erreur HTTP.** Roblox répond `200`
-  avec `state: "Error"` et l'URL d'un carré cassé — qui s'affiche comme une vignette
+  avec `state: "Error"` et l'URL d'un carré cassé, qui s'affiche comme une vignette
   normale si on ne la filtre pas. RoNote n'accepte que `state: "Completed"` et rejette
   les URL `/BrokenImage/`.
 - **L'URL de vignette historique (`www.roblox.com/asset-thumbnail/image`) est morte**
   (404). Elle servait de dernier repli : chaque objet non résolu produisait donc une
-  image cassée. Elle a été retirée au profit d'un emplacement neutre — 🎭 pour un
+  image cassée. Elle a été retirée au profit d'un emplacement neutre : 🎭 pour un
   visage, ❔ pour un objet sans cote.
 
 Le reste de la chaîne : lots de **100** pour les assets, **30** pour les bundles
@@ -568,7 +565,7 @@ Un clic sur une carte ouvre donc le trade **en grand**, par-dessus la liste :
 | **En-tête** | partenaire, numéro, âge, verdict |
 | **Barre de value** | l'écart en 21 px, le RAP en gris à côté |
 | **Expiration** | ⏳ le temps qu'il reste, quand le trade est encore ouvert |
-| **Chaque côté** | son total, puis **une ligne par objet** — vignette 44 px, nom, série, marqueurs (visage, projected, rare, demande), value et RAP |
+| **Chaque côté** | son total, puis **une ligne par objet** : vignette 44 px, nom, série, marqueurs (visage, projected, rare, demande), value et RAP |
 | **Pastilles** | les mêmes repères que sur la carte |
 | **Pied** | ouvrir sur Roblox, refuser / annuler |
 
@@ -582,7 +579,7 @@ ne bouge sous les doigts.
 ## Refuser ou annuler un trade
 
 Roblox n'expose pas de « cancel » : `POST /v1/trades/{id}/decline` sert dans les
-**deux sens** — refuser un trade reçu, ou annuler un trade qu'on a envoyé. C'est le
+**deux sens** : refuser un trade reçu, ou annuler un trade qu'on a envoyé. C'est le
 même appel que fait le site. Seul le libellé change dans le zoom.
 
 C'est la première écriture que RoNote fait sur un compte Roblox, et elle est
@@ -594,7 +591,7 @@ définitive. Trois garde-fous :
 2. **Uniquement depuis le zoom**, jamais depuis la liste : aucun bouton destructeur
    à côté d'une zone qu'on parcourt au clic.
 3. **Uniquement sur un trade encore ouvert**, et jamais sur un trade dont
-   l'évaluation a échoué — on ne détruit pas ce qu'on n'a pas pu afficher.
+   l'évaluation a échoué : on ne détruit pas ce qu'on n'a pas pu afficher.
 
 Côté réseau, l'appel suit le protocole CSRF de Roblox : le premier envoi est refusé
 avec un jeton frais dans l'en-tête, on rejoue avec. Si le service worker n'a ni le
@@ -603,8 +600,8 @@ ouvert, où elle est indistinguable de celle du site. Le message d'erreur de Rob
 (« Trade is not active »…) est affiché tel quel plutôt que remplacé par un code HTTP.
 
 Après coup, le service worker fait le ménage : le trade sort des listes, le compteur
-baisse, il est marqué « déjà vu » sur les flux `Completed` et `Inactive` — sinon
-RoNote s'alerterait lui-même de sa propre annulation — et une ligne part au journal.
+baisse, il est marqué « déjà vu » sur les flux `Completed` et `Inactive` : sinon
+RoNote s'alerterait lui-même de sa propre annulation : et une ligne part au journal.
 
 **Accepter et contrer restent hors de portée**, et c'est délibéré : refuser détruit
 une offre, accepter **transfère des objets**. Un clic malheureux n'a pas la même
@@ -628,7 +625,7 @@ t('Détail des {n} objets', {n: 5})   // "5 items in detail"
 
 Pourquoi pas des clés (`card.youGive`) : une clé absente du dictionnaire s'affiche
 telle quelle, donc un texte cassé. Ici, une phrase non traduite **retombe sur le
-français** — dégradé, jamais illisible. Et le code se lit sans aller-retour avec le
+français** : dégradé, jamais illisible. Et le code se lit sans aller-retour avec le
 dictionnaire.
 
 Les pages écrites en dur (`popup.html`, `options.html`) n'ont **aucune balise à
@@ -667,7 +664,7 @@ cases « Événements à notifier » des réglages.
 
 Point important sur la fiabilité : la disparition d'un trade de la liste Outbound ne
 suffit **pas** à conclure (la page est limitée). RoNote confirme systématiquement en
-relisant le détail du trade — un trade encore `Open` reste suivi au lieu de
+relisant le détail du trade : un trade encore `Open` reste suivi au lieu de
 déclencher une fausse alerte « refusé ».
 
 ---
@@ -684,7 +681,7 @@ de temps, 90 min par défaut) :
 2. **Il re-contre** → ton trade suivi passe en `Countered`, sa nouvelle offre arrive
    dans tes reçus.
 3. Les deux événements sont **fusionnés en une seule notification** :
-   `🔄 Contre-offre reçue — Bob` avec le détail des objets et
+   `🔄 Contre-offre reçue : Bob` avec le détail des objets et
    `↩ 3ᵉ contre-offre de la négociation (trade #401)`.
 
 Si la contre-offre n'arrive pas dans le même passage, tu reçois quand même l'alerte
@@ -706,7 +703,7 @@ d'un trade. Depuis la v2.10, RoNote les croise avec **ce que tu possèdes** :
 
 - **l'inventaire** vient du rafraîchissement du portefeuille (toutes les 10 min).
   `buildPortfolio` le garde dans le rapport, sous les mêmes clés que les
-  révisions (`a:` pour un asset, `b:` pour un bundle — un visage y est rangé sous
+  révisions (`a:` pour un asset, `b:` pour un bundle, un visage y est rangé sous
   son bundle) ;
 - **un visage n'alerte qu'une fois** : Rolimon's peut publier sa révision sous
   l'id du bundle ou sous l'ancien asset, et `revalue.js` prend l'un ou l'autre,
@@ -743,12 +740,12 @@ l'inventaire réel anonymisé dans les auto-tests.
 Deux raisons faisaient traîner le journal, les deux ont été reprises :
 
 - **il était écrit en dernier.** Le cycle de vérification enchaînait : flux,
-  notifications, **rafraîchissement du portefeuille** — quatre appels à
-  Rolimon's et une page HTML, soit plusieurs secondes — puis seulement
+  notifications, **rafraîchissement du portefeuille** : quatre appels à
+  Rolimon's et une page HTML, soit plusieurs secondes : puis seulement
   l'écriture du journal. Un événement déjà notifié n'y était donc pas encore.
   L'état et le journal sont maintenant écrits **avant** le portefeuille ;
 - **le popup relisait toutes les 15 s.** Il écoute désormais `storage.onChanged`
-  et se redessine dès que le service worker écrit le journal ou l'état — les
+  et se redessine dès que le service worker écrit le journal ou l'état : les
   écritures d'un même cycle regroupées en une seule mise à jour. Le balayage
   de fond ne sert plus que de filet, toutes les 30 s.
 
@@ -758,7 +755,7 @@ Cinq onglets : **Reçus**, **Envoyés** (avec les épingles de suivi), **Termin�
 
 Chaque carte est construite autour de la **value** : les deux côtés de l'échange avec
 les vignettes, le total de chacun en clair et son RAP en gris juste dessous, puis
-l'écart dans une barre colorée — le chiffre le plus gros de la carte. Le RAP y figure
+l'écart dans une barre colorée : le chiffre le plus gros de la carte. Le RAP y figure
 en second plan, pour qu'un désaccord entre les deux saute aux yeux sans jamais voler
 la vedette.
 
@@ -767,7 +764,7 @@ En dessous, les pastilles qui doivent nuancer la lecture : `🎭 visages`,
 `💸 taxe Robux`, `⏳ cotes non actualisées`.
 
 Et un **détail dépliable** : chaque objet avec sa vignette, sa série, sa value, son
-RAP, sa demande et sa tendance — cliquable vers sa page Roblox. Survoler une vignette
+RAP, sa demande et sa tendance : cliquable vers sa page Roblox. Survoler une vignette
 donne la même chose en infobulle.
 
 La barre d'état affiche en permanence **le nombre de cotes chargées et leur âge** :
@@ -795,18 +792,17 @@ tous les chiffres.
   session, la requête est relayée depuis un onglet `roblox.com` ouvert
 - **Backoff exponentiel** sur erreur réseau (15 s doublés, plafonnés à 5 min).
   Sur `429`, la pause est celle demandée par `Retry-After`, au minimum 60 s, et
-  le bouton « vérifier maintenant » ne la contourne pas — relancer un cycle
+  le bouton « vérifier maintenant » ne la contourne pas : relancer un cycle
   pendant une limite de débit ne fait que la prolonger. Au niveau transport,
   une seule attente est tenue sur place, et seulement si elle vaut 10 s ou
   moins : au-delà, l'erreur remonte avec son délai
 - **Un plafond de cadence par hôte**, en requêtes par minute (90 pour Roblox,
   30 pour Rolimon's au départ). Limiter les appels *en vol* ne limite pas leur
-  *cadence* : cinq à la fois, sans arrêt, reste soutenu. Le plafond s'apprend —
-  chaque `429` le divise par deux, jusqu'à un plancher, et il remonte d'un cran
+  *cadence* : cinq à la fois, sans arrêt, reste soutenu. Le plafond s'apprend,   chaque `429` le divise par deux, jusqu'à un plancher, et il remonte d'un cran
   après dix minutes sans refus
 - **Un trade suivi n'est pas redemandé avant 10 min.** La liste Outbound
   s'arrête à 100 entrées : un trade suivi plus ancien, toujours ouvert, en sort
-  et redevenait « à vérifier » à chaque passage — six détails toutes les 30 s,
+  et redevenait « à vérifier » à chaque passage : six détails toutes les 30 s,
   sans fin. Son issue, elle, arrive gratuitement par les listes Terminés et
   Inactifs, qui la portent et retirent le suivi elles-mêmes
 - **Une seule porte de sortie, par hôte** : au plus 5 requêtes Roblox et 3
@@ -815,7 +811,7 @@ tous les chiffres.
   limite sans rien savoir des autres, et leurs salves s'additionnaient. Un
   `429` ferme la porte de son hôte pour tout le monde : pendant une pause
   courte les appels attendent, pendant une longue ils sont refusés tout de
-  suite avec le délai — les garder en file les relâcherait tous ensemble à la
+  suite avec le délai : les garder en file les relâcherait tous ensemble à la
   réouverture
 - **Le backoff des limites de débit s'écarte à chaque récidive** : 30 s, puis
   60, puis 90, plafonné à 5 min, et remis à zéro dès qu'une vérification passe
@@ -840,7 +836,7 @@ tous les chiffres.
 python tools/serve.py
 ```
 
-puis <http://127.0.0.1:8777/tools/selftest.html> — **98 tests, sans rien installer.**
+puis <http://127.0.0.1:8777/tools/selftest.html>, **98 tests, sans rien installer.**
 
 Les faire tourner dans un navigateur n'est pas un pis-aller : c'est le seul moyen de
 vérifier d'un coup la **syntaxe**, les **imports** et le **comportement**, sur le
@@ -849,7 +845,7 @@ même moteur que celui qui exécutera l'extension. Un module qui ne compile pas 
 worker complet, réseau coupé : s'il ne démarre pas, on le sait avant de charger
 l'extension.
 
-Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes — c'est ce qui
+Les jeux d'essai sont de **vraies réponses d'API**, pas des maquettes : c'est ce qui
 permet de détecter qu'un renommage de champ chez Roblox ou Rolimon's casse
 silencieusement l'évaluation :
 
@@ -864,7 +860,7 @@ Couvre aussi : le pont visage↔bundle sur les 160 bundles, le piège *Zip It!*,
 colonne `rare` déplacée entre v1 et v3, le `userAssetId` pris pour un `assetId`, les
 Robux taxés, les objets sans cote (un visage ne doit jamais faire passer un trade
 pour une perte de 100 %, ni faire sauter la notification), l'anti-doublon, et la
-**couverture des traductions** — toute phrase passée à `t()` ou présente dans une
+**couverture des traductions** : toute phrase passée à `t()` ou présente dans une
 page HTML doit avoir sa version anglaise, sinon le test échoue en la nommant.
 
 La **lecture de la page** y a sa propre section, dans un vrai DOM : deux colonnes
@@ -884,7 +880,7 @@ npm test    # anti-doublon (26) + envois et contre-offres (33)
 `check.py` refuse aussi tout **caractère de contrôle** dans les sources. Un
 caractère invisible ne se voit ni à la relecture, ni dans un diff, ni dans un
 message d'erreur : il a suffi d'un échappement raté dans une expression
-régulière — devenu un vrai *backspace* — pour qu'elle ne corresponde plus
+régulière : devenu un vrai *backspace*, pour qu'elle ne corresponde plus
 jamais à rien, sans un mot.
 
 ---
@@ -893,7 +889,7 @@ jamais à rien, sans un mot.
 
 **Accepter ou contrer un trade.** Ces deux actions **transfèrent des objets** ; un
 clic mal placé y serait irréversible et coûteux. Refuser ou annuler, en revanche,
-ne fait que détruire une offre — c'est la seule écriture que RoNote s'autorise, et
+ne fait que détruire une offre : c'est la seule écriture que RoNote s'autorise, et
 seulement depuis le zoom, en deux clics volontaires (voir *Refuser ou annuler un
 trade*).
 
@@ -989,7 +985,7 @@ seule alerte. Un trade résolu par le tracker est marqué « déjà vu » sur le
 
 Le minimum garanti par l'API `alarms` est de **30 secondes**. Les valeurs
 inférieures (10 s / 15 s) fonctionnent « au mieux », tant que le navigateur garde le
-service worker éveillé — c'est pour ça que 30 s est la valeur recommandée : elle est
+service worker éveillé : c'est pour ça que 30 s est la valeur recommandée : elle est
 **garantie**, y compris après mise en veille de l'extension.
 
 ---
@@ -1018,11 +1014,11 @@ python tools/build.py
 
 > **Le numéro de version change à chaque build livré.** C'est la seule chose
 > qui permette de vérifier, d'un coup d'œil sur `chrome://extensions`, que le
-> rechargement a bien pris — sans lui, « ça n'a rien changé » est
+> rechargement a bien pris : sans lui, « ça n'a rien changé » est
 > indiscernable de « le nouveau code n'est pas chargé ».
 
 > **Après un `npm run build`, il suffit de cliquer sur Actualiser (⟳)** dans
-> `chrome://extensions` — le dossier `dist/` n'est jamais supprimé, donc
+> `chrome://extensions`, le dossier `dist/` n'est jamais supprimé, donc
 > l'extension déjà chargée reste valide.
 >
 > Si tu vois « **An unknown error occurred when fetching the script** », c'est que

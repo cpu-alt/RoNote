@@ -73,7 +73,7 @@ async function hasOffscreen() {
  * qu'il n'a rien joue pendant 30 s. L'ancien drapeau « deja cree » restait
  * vrai apres cette fermeture : le message partait dans le vide, et le son
  * manquait une fois sur deux. On demande donc au navigateur, a chaque fois,
- * si le document est toujours la — et on le recree sinon.
+ * si le document est toujours la : et on le recree sinon.
  */
 async function ensureOffscreen({ recreate = false } = {}) {
   if (!HAS_OFFSCREEN) return false;
@@ -196,7 +196,7 @@ const iconCache = new Map();   // url -> data: URL (ou null si irrecuperable)
  * Chrome n'accepte pour icone qu'une ressource de l'extension, un blob ou un
  * data: URL. Donner l'URL du portrait sur le CDN Roblox faisait echouer la
  * creation « riche » de la notification, qui repartait alors en version
- * degradee (icone generique, sans boutons) — quand elle ne prenait pas
+ * degradee (icone generique, sans boutons) : quand elle ne prenait pas
  * plusieurs secondes a echouer. On telecharge donc le portrait nous-memes.
  */
 async function iconData(url) {
@@ -274,7 +274,7 @@ function itemsLine(side, max = 3) {
   const shown = names.slice(0, max).join(', ');
   const rest = names.length > max ? ` +${names.length - max}` : '';
   const rbx = side.robux > 0 ? `${names.length ? ' + ' : ''}R$ ${fmtNum(side.robux)}` : '';
-  return (shown + rest + rbx) || '—';
+  return (shown + rest + rbx) || 'N/A';
 }
 
 /**
@@ -310,7 +310,7 @@ export async function notifyTrade(card, settings) {
   if (a && a.incomplete) {
     // Une cote manque (visage, objet de bundle...) : on annonce l'incertitude
     // au lieu de presenter un ecart calcule sur des totaux amputes.
-    contextMessage = `${v.icon} ${t(v.label)} — ` +
+    contextMessage = `${v.icon} ${t(v.label)} : ` +
       t('total incomplet · connu : reçu {a} vs donné {b}', { a: fmtNum(a.mainGet), b: fmtNum(a.mainGive) });
   } else if (a && a.divergent) {
     // La cote communautaire et les ventes reelles se contredisent : on montre
@@ -340,7 +340,7 @@ export async function notifyTrade(card, settings) {
   const icon = IS_FIREFOX ? null : await iconData(card.headshot);
 
   await create(id, {
-    title: `${meta.icon} ${t(meta.title)} — ${partner}`,
+    title: `${meta.icon} ${t(meta.title)}, ${partner}`,
     message: lines.join('\n'),
     contextMessage,
     iconUrl: icon || FALLBACK_ICON,

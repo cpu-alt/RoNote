@@ -14,7 +14,7 @@ Deux workflows GitHub Actions font le travail :
 ## 1. Sortir une version
 
 1. Même numéro dans `src/manifest.json`, `src/manifest.firefox.json` et `package.json`.
-2. Une section `## vX.Y.Z — titre` en tête de `CHANGELOG.md` : elle devient les notes
+2. Une section `## vX.Y.Z : titre` en tête de `CHANGELOG.md` : elle devient les notes
    de la Release (le workflow échoue s'il ne la trouve pas).
 3. Une entrée `version: 'X.Y.Z'` dans `src/common/changelog.js` (le « Quoi de neuf »).
 4. Commit, puis le tag :
@@ -55,11 +55,11 @@ gh workflow run release.yml -f tag=v2.15.1 -f cws_publish_only=true
 La publication automatique ne fait que **mettre à jour** une fiche existante : le
 premier envoi se fait à la main, avec [publication-web-store.md](publication-web-store.md).
 
-1. **Identifiants de la fiche** — dans la [console développeur](https://chrome.google.com/webstore/devconsole) :
+1. **Identifiants de la fiche** : dans la [console développeur](https://chrome.google.com/webstore/devconsole) :
    l'**ID d'éditeur** est dans l'URL de la console
    (`…/devconsole/<ID d'éditeur>`), l'**ID de l'extension** (32 lettres) dans l'URL de
    sa fiche, une fois le premier envoi fait.
-2. **Accès à l'API** — dans la [Google Cloud Console](https://console.cloud.google.com/) :
+2. **Accès à l'API** : dans la [Google Cloud Console](https://console.cloud.google.com/) :
    un projet, l'API « Chrome Web Store API » activée, un écran de consentement OAuth
    (type Externe, ton adresse en utilisateur de test), puis un identifiant OAuth de
    type « Application de bureau ». Le guide pas à pas, avec la récupération du
@@ -70,7 +70,7 @@ premier envoi se fait à la main, avec [publication-web-store.md](publication-we
    `CWS_REFRESH_TOKEN` avec `gh` (sans jamais afficher le token) et relance la Release.
    Mets l'écran de consentement **« En production »** : en mode « Test », Google fait
    expirer le refresh token au bout de 7 jours.
-3. **Secrets GitHub** — dans le dépôt : *Settings › Secrets and variables › Actions ›
+3. **Secrets GitHub** : dans le dépôt : *Settings › Secrets and variables › Actions ›
    New repository secret* :
 
 | Secret | Valeur |
@@ -92,7 +92,7 @@ heures à quelques jours). La fiche garde sa visibilité (non répertoriée ou p
    [publication-firefox.md](publication-firefox.md) : c'est lui qui crée la fiche
    (description, captures, catégorie).
 2. Les clés d'API : <https://addons.mozilla.org/developers/addon/api/key/>.
-3. Secrets GitHub — le plus simple : `node tools/amo-keys.mjs`, qui demande les deux
+3. Secrets GitHub : le plus simple : `node tools/amo-keys.mjs`, qui demande les deux
    clés et les enregistre avec `gh`. Sinon, à la main :
 
 | Secret | Valeur |

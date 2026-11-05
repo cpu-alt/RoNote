@@ -91,7 +91,7 @@
       if (Number.isFinite(p)) v.dataset.p = String(p);
       paint(v, n, o);
     } else {
-      v.textContent = '—';
+      v.textContent = 'N/A';
     }
     // Sans libellé, la ligne le garde en infobulle.
     if (o.labels) {

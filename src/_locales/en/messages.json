@@ -1,6 +1,6 @@
 {
   "appName": {
-    "message": "RoNote — Roblox Trade Alerts",
+    "message": "RoNote, Roblox Trade Alerts",
     "description": "Extension name, shown in the Web Store and chrome://extensions."
   },
   "appDesc": {
@@ -8,7 +8,7 @@
     "description": "Short description, 132 characters max."
   },
   "actionTitle": {
-    "message": "RoNote — Roblox trades",
+    "message": "RoNote, Roblox trades",
     "description": "Toolbar button tooltip."
   }
 }

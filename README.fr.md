@@ -1,4 +1,4 @@
-# RoNote — Alertes de trades Roblox
+# RoNote : Alertes de trades Roblox
 
 *[English](README.md)* · **Français**
 
@@ -12,10 +12,10 @@ trade complété, une **contre-offre**, un de tes envois **accepté / refusé / 
 expiré**, ou un trade annulé par une **erreur Roblox** (« Rejected due to an error »).
 
 Le point central : **zéro fausse alerte.** Le suivi ne se base ni sur le pseudo, ni
-sur la position dans la liste, ni sur le nombre de trades — uniquement sur
+sur la position dans la liste, ni sur le nombre de trades : uniquement sur
 l'**identifiant unique du trade**.
 
-Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
+Et le chiffre qui compte, partout, c'est la **value** : pas le RAP.
 
 ---
 
@@ -25,7 +25,7 @@ Et le chiffre qui compte, partout, c'est la **value** — pas le RAP.
 - **Analyse de valeur** de chaque trade : value, RAP, Robux comptés **nets** des 30 % de taxe
 - **Écarts directement sur Roblox** : deux bandeaux compacts RAP / Value entre les offres, à la place du séparateur. Le RAP suit les totaux affichés par Roblox ; la Value utilise les cotes Rolimon’s des objets, avec repli sur leur RAP. Les Robux affichés sont inclus, sans taxer une seconde fois les montants déjà nets. Les titres « Items you gave / received » permettent la lecture même sans liens de profil. La barre reste en place quand on change de trade, et le RAP reste lisible si Rolimon’s est indisponible.
 - **Détection des pièges** : objets *projected*, cotes spéculatives, visages et objets de bundle sans cote
-- **Value sous les objets** : cote Rolimon’s actuelle sous chaque carte de trade, y compris dans Closed / Inactive. Un objet sans cote publiée affiche « — » ; le RAP natif reste intact.
+- **Value sous les objets** : cote Rolimon’s actuelle sous chaque carte de trade, y compris dans Closed / Inactive. Un objet sans cote publiée affiche « : » ; le RAP natif reste intact.
 - **Onglet Portefeuille** : la valeur de ton compte et sa courbe, puis chacun de tes collectibles avec sa cote, sa demande et sa tendance (recherche, tri, vue galerie, montants masquables)
 - **Alerte de réévaluation** : prévenu quand Rolimon's révise la cote d'un objet que tu possèdes
 - **Filtres** : seuil de valeur, joueurs ignorés, heures silencieuses
@@ -41,7 +41,7 @@ là aussi). RoNote ne crée jamais de trade de lui-même.
 
 ### Depuis le Chrome Web Store (recommandé)
 
-[**Installer RoNote**](https://chromewebstore.google.com/detail/ronote-%E2%80%94-roblox-trade-ale/kmgobllnnoiplbceklnaljekjeanfjnm) — Chrome, Edge, Brave et Opera. Les mises à jour
+[**Installer RoNote**](https://chromewebstore.google.com/detail/ronote-%E2%80%94-roblox-trade-ale/kmgobllnnoiplbceklnaljekjeanfjnm) : Chrome, Edge, Brave et Opera. Les mises à jour
 arrivent ensuite toutes seules : pas de mode développeur, pas d'avertissement au
 démarrage.
 
@@ -58,17 +58,17 @@ outil à installer, ni Python ni Node.
    `ronote-chrome-vX.Y.Z.zip` (ou `ronote-firefox-…` pour Firefox).
 2. **Dézippe le fichier** dans un dossier que tu ne supprimeras pas : le navigateur
    charge l'extension *depuis ce dossier*, il ne la copie pas ailleurs.
-3. **Chrome / Edge / Brave / Opera** — va sur `chrome://extensions`, active le
+3. **Chrome / Edge / Brave / Opera** : va sur `chrome://extensions`, active le
    **Mode développeur** (en haut à droite), puis **Charger l'extension non
    empaquetée** et sélectionne le dossier dézippé.
-4. **Firefox** (128 minimum) — va sur `about:debugging#/runtime/this-firefox`, puis
+4. **Firefox** (128 minimum) : va sur `about:debugging#/runtime/this-firefox`, puis
    **Charger un module temporaire** et sélectionne `manifest.json` dans le dossier
    dézippé.
 
 > **Pourquoi le mode développeur ?** Chrome refuse d'installer une extension venue
 > d'ailleurs que du store sans lui. Deux conséquences : un avertissement
 > « Désactivez les extensions en mode développeur » à chaque démarrage (tu peux le
-> fermer), et **pas de mise à jour automatique** — pour changer de version,
+> fermer), et **pas de mise à jour automatique** : pour changer de version,
 > retélécharge le zip et remplace le contenu du dossier. L'installation depuis le
 > Web Store ci-dessus n'a ni l'un ni l'autre.
 >
@@ -89,7 +89,7 @@ envoie une notification de démonstration avec le son.
 
 **Aucune donnée ne sort de ton navigateur.** Pas de serveur RoNote, pas de compte,
 pas de télémétrie. Les seules requêtes vont vers les API publiques de Roblox et,
-si tu laisses l'option active, vers Rolimon's pour la table des valeurs — qui ne
+si tu laisses l'option active, vers Rolimon's pour la table des valeurs : qui ne
 reçoit rien te concernant.
 
 Détail complet : **[Politique de confidentialité](PRIVACY.fr.md)** · *[English](PRIVACY.md)*
@@ -133,10 +133,10 @@ permet de voir qu'un renommage de champ chez Roblox ou Rolimon's casse quelque c
 
 ## Aller plus loin
 
-- **[Notes techniques](docs/technique.md)** — pourquoi le code est écrit comme il est :
+- **[Notes techniques](docs/technique.md)** : pourquoi le code est écrit comme il est :
   anti-doublon, interception réseau, résolution des vignettes, lecture des cotes
-- **[Journal des versions](CHANGELOG.md)** — ce qui a changé, version par version
-- **[Publier une version](docs/publication-auto.md)** — un tag, et GitHub construit les zips, crée la Release et publie sur les stores
+- **[Journal des versions](CHANGELOG.md)** : ce qui a changé, version par version
+- **[Publier une version](docs/publication-auto.md)** : un tag, et GitHub construit les zips, crée la Release et publie sur les stores
 
 ## Contribuer
 
@@ -145,7 +145,7 @@ tourner `python tools/check.py` et les 98 tests du navigateur.
 
 ## Licence
 
-[MIT](LICENSE) — libre d'utilisation, de modification et de redistribution, en
+[MIT](LICENSE) : libre d'utilisation, de modification et de redistribution, en
 gardant la mention de copyright.
 
 ## Absence d'affiliation

@@ -23,7 +23,7 @@
  *  l'entrée N du relevé sont donc censées être le même trade.
  *
  *  Une pastille sur le MAUVAIS trade serait pire que pas de pastille du
- *  tout — le genre d'erreur qui pousse à accepter un trade en pensant que
+ *  tout : le genre d'erreur qui pousse à accepter un trade en pensant que
  *  c'en est un autre. Le rang seul ne suffit donc pas : le pseudo affiché
  *  sur la ligne doit aussi correspondre à celui du relevé. Un désaccord,
  *  une ligne en trop ou en moins, et cette ligne reste simplement sans
@@ -113,12 +113,11 @@
 
   /**
    * La ligne d'un lien de profil : son plus proche ancêtre qui porte du
-   * texte — l'avatar seul (ce que contient le lien) n'en a jamais, le pseudo
+   * texte : l'avatar seul (ce que contient le lien) n'en a jamais, le pseudo
    * juste à côté (hors du lien) en apporte. Compter les frères de même
    * classe pour repérer « la » ligne échoue dès qu'un seul trade est ouvert
    * (rien à quoi le comparer) et attrape alors un ancêtre bien plus large au
-   * hasard d'une classe de mise en page partagée ailleurs sur la page —
-   * vérifié sur roblox.com/trades. Monter jusqu'au premier texte est plus
+   * hasard d'une classe de mise en page partagée ailleurs sur la page :    * vérifié sur roblox.com/trades. Monter jusqu'au premier texte est plus
    * sûr et ne dépend d'aucun nom de classe.
    */
   function rowOf(link) {
@@ -145,7 +144,7 @@
 
   // Chaque ligne de liste porte une date (« …Completed9/23/2026 ») ; le
   // panneau de détail à droite, lui, montre le même profil sous un « Trade
-  // with X » sans date — c'est ce qui les distingue, pas leur forme.
+  // with X » sans date : c'est ce qui les distingue, pas leur forme.
   const ROW_DATE = /\d{1,2}\/\d{1,2}\/\d{2,4}/;
   const DATE_ONLY = /^\d{1,2}\/\d{1,2}\/\d{2,4}$/;
 
@@ -169,7 +168,7 @@
    * qui porte le texte (la hauteur de l'avatar) ; la pastille, elle, doit
    * pouvoir occuper toute la carte. On remonte tant que l'ancêtre ne contient
    * que CE trade (un seul lien de profil) et qu'il ne grandit pas d'un coup
-   * — ce qui signalerait qu'on est sorti de la carte.
+   * : ce qui signalerait qu'on est sorti de la carte.
    */
   function cardOf(row) {
     let el = row;
@@ -198,7 +197,7 @@
       const row = rowOf(link);
       if (!row || seen.has(row)) continue;
       // Une ligne de liste est compacte (pseudo, statut, date) ; un texte
-      // bien plus long trahit un ancêtre trop large — mieux vaut l'ignorer
+      // bien plus long trahit un ancêtre trop large : mieux vaut l'ignorer
       // que risquer une pastille posée n'importe où.
       const text = row.textContent.trim();
       if (!text || text.length > 160 || !ROW_DATE.test(text)) continue;
@@ -214,7 +213,7 @@
   /**
    * RAP et Value l'un sous l'autre, dans la colonne où Roblox mettait la
    * date (content/list-look.js). Les deux peuvent diverger (RAP en hausse,
-   * Value en baisse) — c'est justement le repère que RoNote met en avant
+   * Value en baisse) : c'est justement le repère que RoNote met en avant
    * ailleurs (voir analysis.js, `divergent`) : chacun garde sa propre couleur.
    */
   function badgeEl(card) {
@@ -323,7 +322,7 @@
     if (!nameBox || !firstLine) return;
     if (prefs.style === 'text' && prefs.size === 'm') {
       // Texte seul, taille de la page : chaque ligne à la hauteur de celle
-      // d'en face — RAP face au pseudo, Value face au statut. Une seule ligne
+      // d'en face : RAP face au pseudo, Value face au statut. Une seule ligne
       // affichée : face au pseudo, là où Roblox mettait la date.
       badge.style.top = Math.round(nameBox.top - rowRect.top) + 'px';
       firstLine.style.height = Math.round(nameBox.height) + 'px';
@@ -353,7 +352,7 @@
   /**
    * Cotes révisées ou réglage de calcul changé : chaque pastille est
    * recalculée. Les anciennes restent affichées jusqu'à ce que la nouvelle
-   * arrive — rien ne clignote, rien ne disparaît. Le service worker refait
+   * arrive : rien ne clignote, rien ne disparaît. Le service worker refait
    * l'analyse sur le détail qu'il garde déjà : aucun appel à Roblox.
    */
   function refreshAll() {
@@ -381,7 +380,7 @@
     try {
       // Toutes les lignes, déjà badgées comprises : le rapprochement se fait
       // par rang, et retirer les lignes déjà servies décalerait tous les
-      // suivants — une ligne évaluée en retard ne recevait alors jamais rien.
+      // suivants : une ligne évaluée en retard ne recevait alors jamais rien.
       const rows = findRows();
       if (!rows.some(r => !r.row.dataset.rnBadge)) return;
       const resp = await B.runtime.sendMessage({ type: 'ronote:get', lite: true }).catch(() => null);

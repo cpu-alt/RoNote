@@ -63,7 +63,7 @@ export function rememberScrapedTrade(trade, myId) {
   // Quelle colonne est la mienne ? La page cite un profil dans chacune : si
   // c'est le mien qui figure dans la seconde, les colonnes sont inversees par
   // rapport a l'ordre de lecture. Sans ce repere, un trade replie sur la page
-  // pouvait s'afficher a l'envers — gain lu comme perte.
+  // pouvait s'afficher a l'envers : gain lu comme perte.
   const uids = Array.isArray(trade.userIds) ? trade.userIds : [];
   const has = (i) => myId && (uids[i] || []).some(id => Number(id) === Number(myId));
   const swapped = has(1) && !has(0);
@@ -107,7 +107,7 @@ export async function getCapturedTrade(tradeId) {
  * LE CACHE DES TRADES.
  *
  * Le contenu d'un trade ne change jamais : ce qu'on donne et ce qu'on recoit
- * est fixe a sa creation. Seule l'ANALYSE depend de l'exterieur — la table des
+ * est fixe a sa creation. Seule l'ANALYSE depend de l'exterieur : la table des
  * cotes et deux reglages. On garde donc le detail brut 7 jours avec la fiche :
  *   - memes cotes, memes reglages  -> la fiche sert telle quelle ;
  *   - cotes revisees               -> l'analyse est refaite sur le detail garde,
@@ -219,7 +219,7 @@ export async function makeCard(detail, kind, myId, cat, settings, prev = null) {
       : `offers=${typeof off}`;
     const firstItem = off?.[0]?.userAssets?.[0] || off?.[0]?.items?.[0];
     const itemInfo = firstItem ? ` · objet [${Object.keys(firstItem).join(', ')}]` : '';
-    throw new Error(`format inattendu — racine [${top}] · ${offInfo}${itemInfo}`);
+    throw new Error(`format inattendu : racine [${top}] · ${offInfo}${itemInfo}`);
   }
 
   const partner = analysis.partner || {};
@@ -309,7 +309,7 @@ export function stubCard(t, kind) {
 }
 
 /**
- * `safe()` avale tout — y compris une limite de debit. Dix trades neufs, c'est
+ * `safe()` avale tout : y compris une limite de debit. Dix trades neufs, c'est
  * alors dix appels condamnes d'avance, chacun avec son attente, et aucun
  * backoff pose : la limite se prolonge toute seule. Ici, un 429 ressort, le
  * cycle l'attrape et met la pause qu'il faut. Le reste est avale comme avant.

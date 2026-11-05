@@ -105,7 +105,7 @@ for (const f of jsFiles) {
       const name = rawName.trim().split(/\s+as\s+/)[0].trim();
       if (!name) continue;
       namedImports++;
-      if (!avail.has(name)) fail(`${f.replace(src, 'src')} importe « ${name} » depuis ${m[2]} — cet export n'existe pas`);
+      if (!avail.has(name)) fail(`${f.replace(src, 'src')} importe « ${name} » depuis ${m[2]} : cet export n'existe pas`);
     }
   }
 }
@@ -115,7 +115,7 @@ ok(`${namedImports} imports nommés résolus vers un export réel`);
 // Les scripts de contenu d'une même extension partagent le même espace
 // global. Un identifiant déclaré AVANT l'enveloppe (l'IIFE) du fichier fuit
 // donc dans cet espace : le fichier suivant qui porte le même nom ne
-// s'exécutera JAMAIS, sans un mot — c'est ce qui a fait disparaître le
+// s'exécutera JAMAIS, sans un mot : c'est ce qui a fait disparaître le
 // panneau entier. Toute déclaration hors enveloppe est refusée.
 const WRAPPER = /^\(\s*(?:async\s*)?(?:\(\s*\)\s*=>|function)/m;
 const DECL = /^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm;
@@ -133,8 +133,8 @@ for (const cs of contentScripts) {
     for (const [, name] of head.matchAll(DECL)) {
       const other = globalNames.get(name);
       globalNames.set(name, rel);
-      if (other) fail(`${rel} : « ${name} » est déjà déclaré par ${other} — même espace global, ce fichier ne s'exécutera pas du tout`);
-      else fail(`${rel} : « ${name} » est déclaré hors enveloppe — enveloppe le fichier dans une IIFE, sinon il pollue l'espace global partagé par tous les scripts de contenu`);
+      if (other) fail(`${rel} : « ${name} » est déjà déclaré par ${other}, même espace global, ce fichier ne s'exécutera pas du tout`);
+      else fail(`${rel} : « ${name} » est déclaré hors enveloppe, enveloppe le fichier dans une IIFE, sinon il pollue l'espace global partagé par tous les scripts de contenu`);
     }
   }
 }

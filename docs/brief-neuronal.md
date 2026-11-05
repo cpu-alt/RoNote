@@ -70,8 +70,7 @@ par lots de 25 max, tels que l'API Roblox les a rendus.
 }
 ```
 
-- `id` : l'identifiant du trade Roblox (unique, sert de clé de dédoublonnage —
-  les deux participants peuvent l'envoyer chacun).
+- `id` : l'identifiant du trade Roblox (unique, sert de clé de dédoublonnage,   les deux participants peuvent l'envoyer chacun).
 - `created` : création du trade (secondes Unix, peut être `null`) ; `seen` :
   moment où l'extension l'a vu terminé (≈ date de conclusion).
 - `gave` = ce que `reporter` a donné, `got` = ce qu'il a reçu.
@@ -95,7 +94,7 @@ si tu veux, pour le debug).
 
 ---
 
-## 2. Vérifier avant de croire (anti-abus) — important
+## 2. Vérifier avant de croire (anti-abus) : important
 
 Il n'y a **aucune authentification** possible (l'extension n'envoie ni cookie
 ni jeton Roblox, et ne doit pas). N'importe qui peut donc forger un POST. Règles :

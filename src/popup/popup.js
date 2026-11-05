@@ -358,7 +358,7 @@ function itemTitle(i) {
   const bits = [i.name];
   if (i.serial) bits.push(`#${i.serial}`);
   if (i.unknown) {
-    bits.push(t('aucune cote — visage récent, objet de bundle ou nouveauté'));
+    bits.push(t('aucune cote : visage récent, objet de bundle ou nouveauté'));
   } else {
     bits.push(i.noValue ? t("pas de value Rolimon's (compté au RAP)") : t('Value {v}', { v: fmtFull(i.value) }));
     bits.push(t('RAP {v}', { v: fmtFull(i.rap) }));
@@ -369,13 +369,13 @@ function itemTitle(i) {
   if (i.demandLabel) bits.push(t('Demande : {v}', { v: t(i.demandLabel) }));
   if (i.trendLabel) bits.push(t('Tendance : {v}', { v: t(i.trendLabel) }));
   if (i.rare) bits.push(t('RARE'));
-  if (showsLucky(i)) bits.push(t("LUCKY CAT — cet exemplaire donne le RoliBadge de Rolimon's"));
+  if (showsLucky(i)) bits.push(t("LUCKY CAT : cet exemplaire donne le RoliBadge de Rolimon's"));
   if (i.speculative) bits.push(t('cote spéculative : très au-dessus des ventes réelles'));
   if (i.moved) {
     bits.push(t('cote révisée : {from} → {to} ({pct})',
       { from: fmtFull(i.moved.from), to: fmtFull(i.moved.to), pct: fmtPct(i.moved.pct) }));
   }
-  if (i.projected) bits.push(t('PROJECTED — RAP gonflé artificiellement'));
+  if (i.projected) bits.push(t('PROJECTED : RAP gonflé artificiellement'));
   if (i.onHold) bits.push(t('en attente (hold Roblox)'));
   return bits.join(' · ');
 }
@@ -389,13 +389,13 @@ const itemIcon = (i) => (i.isFace ? 'face' : i.unknown ? 'help' : 'box');
 
 /**
  * Objet « projected » : son RAP a été gonflé par des rachats entre complices.
- * Un petit triangle ambré le signale partout où l'objet apparaît — discret,
+ * Un petit triangle ambré le signale partout où l'objet apparaît : discret,
  * mais visible sans avoir à survoler quoi que ce soit.
  */
 const PROJ_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .9 11.4 10.6H.6Z" fill="currentColor"/>'
   + '<path d="M6 4.3v3.1M6 9v.05" stroke="#1d1405" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const projBadge = () =>
-  `<i class="proj-ic" title="${escapeHtml(t('PROJECTED — RAP gonflé artificiellement'))}">${PROJ_ICON}</i>`;
+  `<i class="proj-ic" title="${escapeHtml(t('PROJECTED : RAP gonflé artificiellement'))}">${PROJ_ICON}</i>`;
 
 /** Étiquettes courtes d'un objet, pour les listes détaillées. */
 function itemTags(i) {
@@ -446,7 +446,7 @@ function tiKey(i) {
 
 /** Quatre vignettes au plus par côté : au-delà, la dernière devient « +n ». */
 function tilesHtml(side) {
-  if (!side.items.length) return `<div class="tc-tiles"><div class="tc-tile empty">—</div></div>`;
+  if (!side.items.length) return `<div class="tc-tiles"><div class="tc-tile empty">N/A</div></div>`;
   const cut = side.items.length > 4 ? 3 : 4;
   const shown = side.items.slice(0, cut).map(i => {
     const cls = itemClasses(i);
@@ -484,7 +484,7 @@ function sideHtml(title, side, a, incoming) {
   return `<div class="tc-side ${incoming ? 'get' : 'give'}">
     <div class="tc-side-h">${title}</div>
     ${tilesHtml(side)}
-    <div class="tc-amt">${blind ? '<span class="tc-blind">—</span>' : fmtFull(mainOf(side, a))}</div>
+    <div class="tc-amt">${blind ? '<span class="tc-blind">N/A</span>' : fmtFull(mainOf(side, a))}</div>
     <div class="tc-sub">${sub.join(' · ')}</div>
   </div>`;
 }
@@ -558,9 +558,9 @@ function detailRow(i, big = false) {
     ? `<img src="${escapeHtml(i.thumb)}" alt="" data-icon="${itemIcon(i)}">`
     : `<div class="ph">${ic(itemIcon(i))}</div>`;
   const right = i.unknown
-    ? `<b style="color:var(--face)">—</b><span>${t('sans cote')}</span>`
+    ? `<b style="color:var(--face)">N/A</b><span>${t('sans cote')}</span>`
     : i.noValue
-      ? `<b class="novalue">—</b><span>RAP ${fmtNum(i.rap)} · ${t('pas de value')}</span>`
+      ? `<b class="novalue">N/A</b><span>RAP ${fmtNum(i.rap)} · ${t('pas de value')}</span>`
       : `<b>${fmtFull(i.value)}</b><span>RAP ${fmtNum(i.rap)}</span>`;
 
   const ti = tiKey(i);
@@ -626,7 +626,7 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     // n'aide personne à comprendre ce qui se passe.
     const why = c.error
       ? `<div class="err-box">
-           <div class="err-msg">${ic('alert')} ${escapeHtml(t('Évaluation impossible — {why}', { why: c.error }))}</div>
+           <div class="err-msg">${ic('alert')} ${escapeHtml(t('Évaluation impossible : {why}', { why: c.error }))}</div>
            <button class="err-retry" data-retry="${c.tradeId}">${t('Réessayer')}</button>
          </div>`
       : '';
@@ -811,9 +811,9 @@ function zoomSideHtml(title, side, a, incoming) {
   return `<section class="z-side">
     <div class="z-side-h">
       <span>${title}</span>
-      <span class="z-tot">${blind ? '—' : fmtFull(mainOf(side, a))}<small>RAP ${fmtNum(side.rap)}</small></span>
+      <span class="z-tot">${blind ? 'N/A' : fmtFull(mainOf(side, a))}<small>RAP ${fmtNum(side.rap)}</small></span>
     </div>
-    ${side.items.map(i => detailRow(i, true)).join('') || `<div class="z-empty">—</div>`}
+    ${side.items.map(i => detailRow(i, true)).join('') || `<div class="z-empty">N/A</div>`}
     ${rbx}
   </section>`;
 }
@@ -825,7 +825,7 @@ function zoomHtml(c, kind) {
   const expires = c.expiration ? timeUntil(c.expiration) : '';
 
   // Refuser un trade reçu et annuler un trade envoyé sont le MÊME appel côté
-  // Roblox. Le libellé change, l'action non — et elle est définitive, d'où la
+  // Roblox. Le libellé change, l'action non : et elle est définitive, d'où la
   // confirmation en deux temps portée par le bouton lui-même.
   const canDecline = !!a && (kind === 'outbound' || kind === 'inbound')
     && (!c.status || c.status === 'Open' || c.status === 'Unknown');
@@ -986,7 +986,7 @@ function actLabels(act, outbound) {
 
 /**
  * Refus / annulation. Deux clics : le premier arme le bouton, le second envoie.
- * L'action est définitive côté Roblox — un clic de trop ne doit pas pouvoir
+ * L'action est définitive côté Roblox : un clic de trop ne doit pas pouvoir
  * détruire une négociation.
  */
 let armTimer = null;
@@ -1045,8 +1045,7 @@ async function decline(btn, card, kind, wrap, act = 'nix') {
  * Annulation depuis la carte : deux clics, le second dans les 5 s.
  *
  * L'etat « arme » ne peut pas vivre dans le seul DOM : une ecriture du service
- * worker reconstruit la liste et remettrait le bouton au repos sans prevenir —
- * le second clic ne ferait que le rearmer, et le trade ne serait jamais refuse.
+ * worker reconstruit la liste et remettrait le bouton au repos sans prevenir :  * le second clic ne ferait que le rearmer, et le trade ne serait jamais refuse.
  * Il vit donc ici, entre dans la signature de la liste, et `bindList` le
  * rappelle sur le bouton refait.
  */
@@ -1185,7 +1184,7 @@ function neuronalPlayerHtml() {
   const tiles = `<div class="w-facts nw-facts">
     ${factHtml(t('Trades vus'), fmtNum(d.trades || 0))}
     ${factHtml(t('Partenaires'), fmtNum(d.partners || 0))}
-    ${factHtml(t('Bilan'), st.judged ? `<em class="${toneOf(st.net || 0)}">${amountSigned(st.net || 0)}</em>` : '—',
+    ${factHtml(t('Bilan'), st.judged ? `<em class="${toneOf(st.net || 0)}">${amountSigned(st.net || 0)}</em>` : 'N/A',
       st.judged ? t('{w} gagnés · {l} perdus', { w: st.won || 0, l: st.lost || 0 }) : '')}
   </div>`;
   const recent = (d.recent || []).length
@@ -1219,7 +1218,7 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
   const roli = res?.roli, prof = res?.profile;
   const age = accountAge(prof?.created);
 
-  // La valeur de son inventaire, en grand — ou pourquoi on ne l'a pas. Faute
+  // La valeur de son inventaire, en grand : ou pourquoi on ne l'a pas. Faute
   // du profil Rolimon's, le dernier relevé de son historique fait l'affaire.
   const lastPt = player.chart?.points?.[player.chart.points.length - 1];
   const variation = '<span class="w-pill" id="p-var" hidden></span>';
@@ -1237,7 +1236,7 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
     const why = !res.rolimons ? t("Rolimon's est désactivé dans les réglages")
       : roli?.private ? t('Inventaire privé')
       : roli ? t("Rolimon's n'a pas encore scanné cet inventaire.")
-      : res.why ? whyText(res.why, 'Profil public indisponible — {why}.')
+      : res.why ? whyText(res.why, 'Profil public indisponible, {why}.')
       : t('Profil public indisponible.');
     hero += `<div class="p-none">${escapeHtml(why)}</div>`;
   }
@@ -1255,7 +1254,7 @@ function playerBodyHtml(rows = playerRows(), s = partnerStats(rows)) {
   const tiles = `<div class="w-facts">
     ${factHtml(t('Offres reçues'), s.received)}
     ${factHtml(t('Offres envoyées'), s.sent)}
-    ${factHtml(t('Gain moyen'), s.avgIn == null ? '—' : `<em class="${toneOf(s.avgIn, 3)}">${fmtPct(s.avgIn)}</em>`,
+    ${factHtml(t('Gain moyen'), s.avgIn == null ? 'N/A' : `<em class="${toneOf(s.avgIn, 3)}">${fmtPct(s.avgIn)}</em>`,
       s.rated ? plural(s.rated, 'sur {n} offre', 'sur {n} offres') : '')}
     ${factHtml(t('Trades conclus'), s.done,
       s.net != null ? `<em class="${toneOf(s.net)}">${t('bilan {v}', { v: amountSigned(s.net) })}</em>` : '')}
@@ -1306,7 +1305,7 @@ function renderPlayerChart(animate = false) {
   const ch = player.chart;
   if (!ch) { box.innerHTML = '<div class="p-cskel"></div>'; return; }
   const nochart = (why) => {
-    box.innerHTML = `<div class="w-nochart">${escapeHtml(whyText(why, 'Historique indisponible — {why}.'))}</div>`;
+    box.innerHTML = `<div class="w-nochart">${escapeHtml(whyText(why, 'Historique indisponible : {why}.'))}</div>`;
   };
   if (!ch.points?.length) { nochart(ch.error || t('réponse vide')); return; }
 
@@ -1349,7 +1348,7 @@ function playerFacesHtml() {
   if (!f) return head(0) + '<div class="p-fskel"></div>';
   if (f.error || (!f.ok && !f.partial)) {
     const why = f.private ? t('Inventaire privé')
-      : whyText(f.error || t(f.reason || 'réponse vide'), 'Bundles indisponibles — {why}.');
+      : whyText(f.error || t(f.reason || 'réponse vide'), 'Bundles indisponibles, {why}.');
     return head(0) + `<div class="ls-none p-fnone">${escapeHtml(why)}</div>`;
   }
 
@@ -1362,7 +1361,7 @@ function playerFacesHtml() {
     ? `<button class="p-more" data-fmore>${plural(lines.length - shown.length, '+ {n} autre', '+ {n} autres')}</button>`
     : '';
   const partial = f.partial
-    ? `<div class="note">${escapeHtml(t('Liste incomplète — {why}.', { why: t(f.reason) }))}</div>`
+    ? `<div class="note">${escapeHtml(t('Liste incomplète : {why}.', { why: t(f.reason) }))}</div>`
     : '';
   return `${head(copies(f.faces))}<div class="jr-day p-faces">${rows}${more}</div>${partial}`;
 }
@@ -1606,7 +1605,7 @@ function homeSignature() {
  *
  * Elle vient de Rolimon's, qui ne rescanne un compte que quelques fois par
  * jour : sans ce dernier point, la courbe s'arrête là où le solde affiché, lui,
- * a déjà bougé — c'est ce qui donnait l'impression qu'elle ne suivait pas.
+ * a déjà bougé : c'est ce qui donnait l'impression qu'elle ne suivait pas.
  */
 function walletSeries() {
   const scanned = data.portfolio || [];
@@ -1904,8 +1903,7 @@ function openGoal() {
 /**
  * Le début d'une période, compté comme le graphique de Rolimon's (Highcharts) :
  * à rebours depuis SON dernier point, en mois du calendrier (UTC). « 1m » du
- * 24 septembre part donc du 24 août, pas de « 30 jours avant maintenant » —
- * sinon la variation ne tombait pas sur celle du site.
+ * 24 septembre part donc du 24 août, pas de « 30 jours avant maintenant » :  * sinon la variation ne tombait pas sur celle du site.
  */
 function rolimonsRangeStart(key) {
   const pts = data.portfolio || [];
@@ -1953,7 +1951,7 @@ const RANGE_LONG = { '1w': '7 jours', '1m': '1 mois', '3m': '3 mois', '6m': '6 m
 /**
  * La carte « Mon inventaire » : le graphique Rolimon's du Portefeuille, et
  * rien d'autre. Chiffres et courbes viennent tous de la courbe que publie
- * Rolimon's (une mesure par jour) — pas du relevé en direct de RoNote — sur
+ * Rolimon's (une mesure par jour) : pas du relevé en direct de RoNote, sur
  * la période et avec les courbes choisies dans le Portefeuille. Le tracé est
  * celui du graphique (même modèle, même lissage), agrandi pour la carte.
  */
@@ -1976,7 +1974,7 @@ function walletFlexData(anon = false) {
   // Carte anonyme : chaque chiffre devient sa variation sur la période, et le rang disparaît.
   const change = (k) => {
     const a = head[k], b = last[k];
-    return a ? fmtPct((b - a) / a * 100) : '—';
+    return a ? fmtPct((b - a) / a * 100) : 'N/A';
   };
   const tiles = anon
     ? [[t('Value'), change('v')], [t('RAP'), change('r')], [t('Objets'), last.n]]
@@ -2113,7 +2111,7 @@ function saveWallet() {
 /**
  * Mode anonyme : un montant masqué devient un faux nombre FIXE, flouté. Il a
  * l'allure d'un chiffre (la mise en page ne bouge pas), mais rien du vrai
- * n'est dans la page — pas même son nombre de chiffres, qui trahirait
+ * n'est dans la page : pas même son nombre de chiffres, qui trahirait
  * l'ordre de grandeur. Les pourcentages, eux, restent lisibles.
  */
 const masked = (s) => `<span class="amt" aria-label="${t('montant masqué')}">${s}</span>`;
@@ -2193,7 +2191,7 @@ function thumbHtml(i) {
 function itemBadges(i) {
   return [
     showsRare(i) ? MARKS.inline.rare() : '',
-    i.projected ? `<span class="w-tag proj" title="${t('PROJECTED — RAP gonflé artificiellement')}">${PROJ_ICON}</span>` : '',
+    i.projected ? `<span class="w-tag proj" title="${t('PROJECTED : RAP gonflé artificiellement')}">${PROJ_ICON}</span>` : '',
     i.isFace ? `<span class="w-tag" title="${t('visage (bundle DynamicHead)')}">${ic('face')}</span>` : ''
   ].join('');
 }
@@ -2267,7 +2265,7 @@ function collectionHtml(rep, items, owned) {
   if (!items) {
     return `<section class="panel">${head}<div class="w-none">${walletFetching
       ? t('Chargement de tes objets…')
-      : escapeHtml(t('Liste des objets indisponible — {why}.', { why: t(rep?.reason || 'sources incomplètes') }))}</div></section>`;
+      : escapeHtml(t('Liste des objets indisponible, {why}.', { why: t(rep?.reason || 'sources incomplètes') }))}</div></section>`;
   }
   const chips = FILTERS.map(f => {
     const n = items.filter(f.test).length;
@@ -2302,7 +2300,7 @@ function renderSheetChart(animate = false) {
     return;
   }
   if (sheet.error) {
-    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible — {why}.', { why: sheet.error }))}</div>`;
+    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible : {why}.', { why: sheet.error }))}</div>`;
     return;
   }
   if (!sheet.data) {
@@ -2315,7 +2313,7 @@ function renderSheetChart(animate = false) {
     id: 'w-sh-plot', defs: ITEM_SERIES, markers: sheet.changes || [], animate, redraw: renderSheetChart
   });
   if (!drawn) {
-    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible — {why}.', { why: t('réponse vide') }))}</div>`;
+    box.innerHTML = `<div class="w-none">${escapeHtml(t('Historique indisponible : {why}.', { why: t('réponse vide') }))}</div>`;
   }
 }
 
@@ -2370,18 +2368,18 @@ function openItemSheet(key, given = null, onClosed = null) {
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body">
-      <div class="w-sh-amount${i.noValue ? ' novalue' : ''}">${i.noValue && i.notMine ? '—' : amount(i.total)}</div>
+      <div class="w-sh-amount${i.noValue ? ' novalue' : ''}">${i.noValue && i.notMine ? 'N/A' : amount(i.total)}</div>
       <div class="w-sh-sub">${i.noValue ? t("Pas de value Rolimon's : compté au RAP ({v}).", { v: amount(i.rap) }) + ' ' : ''}${i.notMine ? t('Tu ne possèdes pas cet objet.')
         : (i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')) + (sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : '')}</div>
       <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
-        ${factHtml('Value', i.noValue ? '—' : amount(i.value), i.noValue ? t("pas de value Rolimon's") : '')}
+        ${factHtml('Value', i.noValue ? 'N/A' : amount(i.value), i.noValue ? t("pas de value Rolimon's") : '')}
         ${factHtml('RAP', amount(i.rap))}
-        ${factHtml(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : '—')}
-        ${factHtml(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : '—')}
+        ${factHtml(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : 'N/A')}
+        ${factHtml(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : 'N/A')}
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
-      ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED — RAP gonflé artificiellement')}</div>` : ''}
+      ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED : RAP gonflé artificiellement')}</div>` : ''}
       <div id="w-sh-nw">${roliId ? neuronalItemHtml(null) : ''}</div>
     </div>
     <footer class="z-foot">${links.map(l =>
@@ -2518,10 +2516,10 @@ function renderStats() {
     </section>
     <section class="w-tiles">
       <div class="w-tile"><span>${WALLET_SERIES[other].label}</span><b>${amountShort(cur[other])}</b></div>
-      <div class="w-tile"><span>${t('Rang')}</span><b>${rankText(st.portfolioRank) || '—'}</b></div>
-      <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : '—'}</b></div>
+      <div class="w-tile"><span>${t('Rang')}</span><b>${rankText(st.portfolioRank) || 'N/A'}</b></div>
+      <div class="w-tile"><span>${t('Objets')}</span><b>${owned ? fmtFull(owned) : 'N/A'}</b></div>
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
-        <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : '—'}</b></div>
+        <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : 'N/A'}</b></div>
     </section>
     ${goalHtml(walletGoal, all, nowOf.v, wallet.hidden)}
     ${items ? allocationHtml(items) : ''}
@@ -2700,7 +2698,7 @@ function renderList() {
 
 /**
  * Vignette introuvable malgré tous les replis : un emplacement neutre vaut mieux
- * qu'une image cassée — et il garde la forme de l'image qu'il remplace, sinon
+ * qu'une image cassée : et il garde la forme de l'image qu'il remplace, sinon
  * la ligne saute.
  *
  * Un seul écouteur pour tout le popup, en phase de capture (l'erreur d'une
@@ -2721,7 +2719,7 @@ document.addEventListener('error', (e) => {
 /**
  * Les trades suivis absents de la liste. Roblox ne rend que les 100 derniers
  * trades envoyes : un suivi plus ancien n'y figure plus. Le compteur les
- * comptait pourtant, et rien ne les montrait — « 19 trades suivis » sans un
+ * comptait pourtant, et rien ne les montrait : « 19 trades suivis » sans un
  * seul trade suivi a l'ecran, et aucun moyen de les desepingler.
  */
 function ghostTracked() {
@@ -2766,7 +2764,7 @@ function ghostHtml(list) {
 
 /**
  * Suivre ou ne plus suivre des trades envoyés : l'épingle d'une carte, ou
- * « Ne plus les suivre » pour tous les suivis tombés hors de la liste — une
+ * « Ne plus les suivre » pour tous les suivis tombés hors de la liste : une
  * seule écriture pour tout le lot.
  */
 async function setTracked(ids, on, btn = null) {
@@ -2785,8 +2783,7 @@ async function setTracked(ids, on, btn = null) {
  * Une carte fraichement evaluee prend la place de sa silhouette, sur place.
  *
  * Reecrire la liste entiere entre chaque lot de six detruisait et rechargeait
- * toutes les vignettes — jusqu'a cinq fois de suite pour vingt-cinq trades —
- * d'ou le clignotement et les sauts pendant le chargement. Rend `false` quand
+ * toutes les vignettes : jusqu'a cinq fois de suite pour vingt-cinq trades,  * d'ou le clignotement et les sauts pendant le chargement. Rend `false` quand
  * la structure peut avoir bouge : c'est alors au rendu complet de trancher.
  */
 function patchRows(kind, ids) {
@@ -2863,7 +2860,7 @@ async function pumpHydrate(kind) {
       if (lite) hints[id] = lite;
     }
     try {
-      // Sans reponse — worker endormi, popup en train de se fermer — les
+      // Sans reponse : worker endormi, popup en train de se fermer, les
       // trades restaient des silhouettes scintillantes pour toujours, alors
       // que la table des echecs existe justement pour le dire.
       const res = await ask({ type: 'ronote:hydrate', ids, kind, hints });
@@ -2937,8 +2934,8 @@ function moreHtml(kind) {
 
 /**
  * Surveillé au défilement : une silhouette qui approche de l'écran fait
- * évaluer son trade — une page de 50 trades ne coûte pas 50 détails d'un
- * coup — et le bas de la liste fait charger la page suivante.
+ * évaluer son trade : une page de 50 trades ne coûte pas 50 détails d'un
+ * coup : et le bas de la liste fait charger la page suivante.
  */
 const listWatch = typeof IntersectionObserver === 'function'
   ? new IntersectionObserver((entries) => {
@@ -3219,7 +3216,7 @@ load();
  * MISE À JOUR À L'INSTANT, PAS À LA PROCHAINE RELECTURE.
  *
  * Le service worker écrit le journal et l'état dans `storage.local` ; le popup
- * l'apprend par `onChanged` et se redessine aussitôt — un événement notifié
+ * l'apprend par `onChanged` et se redessine aussitôt : un événement notifié
  * apparaît dans le journal en même temps que la notification, pas jusqu'à
  * 30 s plus tard. Les écritures arrivent en rafale à la fin d'un cycle : on
  * les regroupe (200 ms) pour ne redessiner qu'une fois.

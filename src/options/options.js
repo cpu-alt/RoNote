@@ -13,7 +13,7 @@ function showUnreachable() {
   const el = $('#diag');
   if (el) {
     el.innerHTML = `<div><div class="k">${t('État')}</div><div class="v err">${t('Injoignable')}</div>`
-      + `<div class="k">${t("l'extension n'a pas répondu — recharge la page")}</div></div>`;
+      + `<div class="k">${t("l'extension n'a pas répondu : recharge la page")}</div></div>`;
   }
 }
 
@@ -51,7 +51,7 @@ let belowMark = {};
 
 /**
  * `data-needs="a b"` : la ligne n'a de sens que si les réglages a et b sont
- * actifs. Sinon elle est grisée et ses champs désactivés — on voit pourquoi
+ * actifs. Sinon elle est grisée et ses champs désactivés : on voit pourquoi
  * un réglage est sans effet au lieu de le chercher.
  */
 const flag = (k) => (k === 'qh-enabled' ? settings.quietHours?.enabled : settings[k]);
@@ -236,7 +236,7 @@ function renderMarks() {
   if (!box.hidden) {
     box.textContent = t('Tirage en cours : {item}, tiré {ago}.', {
       item: `${luckyCat.name || '?'}${luckyCat.serial ? ' #' + luckyCat.serial : ''}`,
-      ago: luckyCat.since ? timeAgo(luckyCat.since) : '—'
+      ago: luckyCat.since ? timeAgo(luckyCat.since) : 'N/A'
     });
   }
 }
@@ -487,7 +487,7 @@ function renderDiag() {
 
   $('#diag').innerHTML = [
     cell(t('État'), conn.v, conn.cls, conn.sub),
-    cell(t('Dernière vérif.'), state?.lastOkAt ? timeAgo(state.lastOkAt) : '—'),
+    cell(t('Dernière vérif.'), state?.lastOkAt ? timeAgo(state.lastOkAt) : 'N/A'),
     cell(t('Trades en attente'), String(state?.inboundCount ?? 0)),
     cell(t('Trades suivis'), String(tracked.length), tracked.length ? 'warn' : '',
       tracked.length ? '#' + tracked.slice(0, 4).join(', #') : t('aucun')),
@@ -501,7 +501,7 @@ function renderDiag() {
       settings.useRolimons && !state?.valueCount ? 'err' : (state?.valueStale ? 'warn' : ''),
       state?.valueStale ? t('table non actualisée')
         : state?.valueTs ? t('à jour {ago}', { ago: timeAgo(state.valueTs) }) : ''),
-    cell(t('Dernier trade reçu'), newest.inbound ? timeAgo(newest.inbound) : '—',
+    cell(t('Dernier trade reçu'), newest.inbound ? timeAgo(newest.inbound) : 'N/A',
       belowMark.inbound ? 'warn' : '',
       belowMark.inbound ? t('{n} trade(s) plus ancien(s) que le suivi, jamais notifié(s)', { n: belowMark.inbound }) : '')
   ].join('');

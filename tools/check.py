@@ -121,10 +121,10 @@ for cs in content_scripts:
             # La collision est fatale ; la fuite seule ne l'est pas encore,
             # mais c'est elle qui la prepare. On refuse les deux.
             if other:
-                fail(f"{rel} : « {name} » est deja declare par {other} — meme "
+                fail(f"{rel} : « {name} » est deja declare par {other}, meme "
                      f"espace global, ce fichier ne s'executera pas du tout")
             else:
-                fail(f"{rel} : « {name} » est declare hors enveloppe — enveloppe "
+                fail(f"{rel} : « {name} » est declare hors enveloppe, enveloppe "
                      f"le fichier dans une IIFE, sinon il pollue l'espace global "
                      f"partage par tous les scripts de contenu")
 ok(f"scripts de contenu : {len(seen_names)} identifiant(s) hors enveloppe (0 attendu)")
@@ -154,7 +154,7 @@ EXPORT_PATTERNS = (
     re.compile(r"^\s*export\s+(?:const|let|var)\s+([A-Za-z0-9_$]+)", re.M),
 )
 EXPORT_LIST = re.compile(r"^\s*export\s*\{([^}]+)\}", re.M)
-# `export const A = 0, B = 1;` — les declarations groupees comptent aussi.
+# `export const A = 0, B = 1;` : les declarations groupees comptent aussi.
 EXPORT_MULTI = re.compile(r"^\s*export\s+(?:const|let|var)\s+(.+?);", re.M | re.S)
 
 
@@ -204,7 +204,7 @@ for f in js_files:
             named += 1
             if name not in avail:
                 fail(f"{f.relative_to(ROOT)} importe « {name} » depuis {rel} "
-                     f"— cet export n'existe pas")
+                     f"- cet export n'existe pas")
 ok(f"{len(js_files)} fichiers JS : imports relatifs resolus")
 ok(f"{named} imports nommes resolus vers un export reel")
 
@@ -218,14 +218,14 @@ for f in js_files:
     for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
         if WILDCARD_POST.search(line):
             wild += 1
-            fail(f"{f.relative_to(ROOT)}:{n} : postMessage vers « * » — viser location.origin")
+            fail(f"{f.relative_to(ROOT)}:{n} : postMessage vers « * », viser location.origin")
 if not wild:
     ok("aucun postMessage vers « * »")
 
 # ------------------------------------------------ couverture des auto-tests
 # Une erreur de syntaxe ne se voit qu'au chargement du module : c'est le role
 # de tools/selftest.js, qui les importe pour de vrai dans un navigateur.
-# Encore faut-il qu'il les importe TOUS — une apostrophe mal echappee dans un
+# Encore faut-il qu'il les importe TOUS : une apostrophe mal echappee dans un
 # module absent de la liste a tue la page de reglages entiere en v2.11.1, sans
 # qu'aucun outil ne bronche. La liste ne peut donc plus prendre de retard.
 #
@@ -243,7 +243,7 @@ for f in js_files:
         covered += 1
     else:
         fail(f"tools/selftest.js n'importe pas src/{rel} "
-             f"— la syntaxe de ce module n'est verifiee nulle part")
+             f"- la syntaxe de ce module n'est verifiee nulle part")
 ok(f"auto-tests : {covered} modules charges pour de vrai")
 
 # --------------------------------------------------------------------- HTML

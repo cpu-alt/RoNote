@@ -11,7 +11,7 @@
  *
  *  Pourquoi pas des cles (`card.youGive`) : parce qu'une cle absente du
  *  dictionnaire affiche la cle, donc un texte cassé. Ici, une phrase non
- *  traduite retombe sur le francais — degrade, mais jamais illisible. Et on
+ *  traduite retombe sur le francais : degrade, mais jamais illisible. Et on
  *  peut lire le code sans faire l'aller-retour avec le dictionnaire.
  *
  *  Les pages ecrites en dur (popup.html, options.html) n'ont aucune balise a
@@ -34,7 +34,7 @@ const EN = {
   /* --- entête, état ---------------------------------------------------- */
   'Non connecté': 'Not signed in',
   'Injoignable': 'Unreachable',
-  "l'extension n'a pas répondu — recharge la page": 'the extension did not answer — reload the page',
+  "l'extension n'a pas répondu : recharge la page": 'the extension did not answer, reload the page',
   'Trop de requêtes : {who} nous met en pause {n} s.': 'Too many requests: {who} is holding us for {n}s.',
   'Chargement…': 'Loading…',
   'Initialisation…': 'Initialising…',
@@ -79,7 +79,7 @@ const EN = {
   '{n} objets sans cote': '{n} items with no value',
   'Objet sans cote': 'Item with no value',
   'net de 30 %': 'net of 30% tax',
-  'Évaluation impossible — {why}': 'Could not evaluate — {why}',
+  'Évaluation impossible : {why}': 'Could not evaluate, {why}',
   'Réessayer': 'Retry',
   'contre-offre sur le trade #{id}': 'counter-offer to trade #{id}',
   'réponse au trade #{id}': 'reply to trade #{id}',
@@ -130,8 +130,8 @@ const EN = {
     "Rolimon's table could not be refreshed: the values shown may have been revised since.",
 
   /* --- infobulle d'un objet -------------------------------------------- */
-  'aucune cote — visage récent, objet de bundle ou nouveauté':
-    'no value — recent face, bundle item or brand-new item',
+  'aucune cote : visage récent, objet de bundle ou nouveauté':
+    'no value : recent face, bundle item or brand-new item',
   'Value {v}': 'Value {v}',
   '(RAP faute de cote)': '(RAP, for lack of a value)',
   'RAP {v}': 'RAP {v}',
@@ -144,7 +144,7 @@ const EN = {
   'cote spéculative : très au-dessus des ventes réelles':
     'speculative value: far above real sales',
   'cote révisée : {from} → {to} ({pct})': 'value revised: {from} → {to} ({pct})',
-  'PROJECTED — RAP gonflé artificiellement': 'PROJECTED — artificially inflated RAP',
+  'PROJECTED : RAP gonflé artificiellement': 'PROJECTED, artificially inflated RAP',
   'en attente (hold Roblox)': 'on hold (Roblox)',
   'sans cote': 'no value',
   'visage': 'face',
@@ -225,7 +225,7 @@ const EN = {
   'Aucun objet ne correspond à « {q} ».': 'No item matches “{q}”.',
   'Aucun objet dans cette catégorie.': 'No item in this category.',
   'Chargement de tes objets…': 'Loading your items…',
-  'Liste des objets indisponible — {why}.': 'Item list unavailable — {why}.',
+  'Liste des objets indisponible : {why}.': 'Item list unavailable, {why}.',
   '{n} exemplaires × {v}': '{n} copies × {v}',
   '1 exemplaire': '1 copy',
   '{p} de tes objets cotés': '{p} of your valued items',
@@ -233,13 +233,13 @@ const EN = {
   'calculé {ago}': 'computed {ago}',
   'estimé': 'estimated',
   "Le profil Rolimon's ne répond pas : value et RAP additionnés depuis le catalogue public, un peu sous-estimés. Le chiffre officiel revient tout seul.": "Rolimon's profile isn't answering: value and RAP summed from the public catalogue, slightly underestimated. The official figure comes back on its own.",
-  "profil Rolimon's injoignable — total calculé au catalogue": "Rolimon's profile unreachable — total computed from the catalogue",
+  "profil Rolimon's injoignable : total calculé au catalogue": "Rolimon's profile unreachable, total computed from the catalogue",
   'Collectibles': 'Collectibles',
   'Nombre de collectibles': 'Collectibles count',
   'Meilleur prix': 'Best price',
   'en % depuis le début de la période': 'as % since the start of the period',
   "Rolimon's ne publie pas d'historique pour ce bundle.": "Rolimon's publishes no history for this bundle.",
-  'Historique indisponible — {why}.': 'History unavailable — {why}.',
+  'Historique indisponible : {why}.': 'History unavailable, {why}.',
   'réponse vide': 'empty response',
   "Rolimon's est désactivé dans les réglages": "Rolimon's is turned off in the settings",
 
@@ -369,7 +369,7 @@ const EN = {
     "Local extension: no data goes anywhere except the public Roblox and Rolimon's APIs, and to neuronal.live if you turn on Neuronal lookups.",
   'Surveillance': 'Monitoring',
   'Diagnostic': 'Diagnostics',
-  'Alertes de trades Roblox — déduplication par identifiant de trade.': 'Roblox trade alerts — deduplicated by trade id.',
+  'Alertes de trades Roblox : déduplication par identifiant de trade.': 'Roblox trade alerts, deduplicated by trade id.',
   'Enregistré': 'Saved',
   'Général': 'General',
   'Langue': 'Language',
@@ -441,13 +441,13 @@ const EN = {
   '5 minutes': '5 minutes',
   'Ce que je veux surveiller': 'What to watch',
   'Trades reçus': 'Inbound trades',
-  'Onglet « Inbound » — le cas principal, contre-offres comprises.': '“Inbound” tab — the main case, counter-offers included.',
+  'Onglet « Inbound » : le cas principal, contre-offres comprises.': '“Inbound” tab, the main case, counter-offers included.',
   'Trades complétés': 'Completed trades',
-  'Onglet « Completed » — confirmation qu\'un échange est passé.': '“Completed” tab — confirmation that a trade went through.',
+  'Onglet « Completed » : confirmation qu\'un échange est passé.': '“Completed” tab, confirmation that a trade went through.',
   'Mes trades envoyés': 'My outgoing trades',
-  'Onglet « Outbound » — nécessaire pour le suivi ci-dessous et pour reconnaître les contre-offres.': '“Outbound” tab — required for the tracking below and to recognise counter-offers.',
+  'Onglet « Outbound » : nécessaire pour le suivi ci-dessous et pour reconnaître les contre-offres.': '“Outbound” tab, required for the tracking below and to recognise counter-offers.',
   '« Rejected due to an error »': '“Rejected due to an error”',
-  'Onglet « Inactive » — trades annulés par une erreur Roblox, dans les deux sens.': '“Inactive” tab — trades cancelled by a Roblox error, in both directions.',
+  'Onglet « Inactive » : trades annulés par une erreur Roblox, dans les deux sens.': '“Inactive” tab, trades cancelled by a Roblox error, in both directions.',
   'Suivi des trades envoyés': 'Tracking outgoing trades',
   'Un trade suivi vous prévient dès qu\'il change d\'état : accepté, refusé, contré, expiré. Épinglez-en un depuis l\'onglet': 'A tracked trade warns you as soon as it changes state: accepted, declined, countered, expired. Pin one from the',
   'du popup (': 'tab in the popup (',
@@ -512,9 +512,9 @@ const EN = {
   "Tu demandes": "You ask",
   "{n} nets": "{n} net",
   "Chargement des inventaires…": "Loading inventories…",
-  "Inventaires indisponibles — {why}": "Inventories unavailable — {why}",
+  "Inventaires indisponibles : {why}": "Inventories unavailable, {why}",
   "Inventaire privé : Roblox ne le montre pas.": "Private inventory: Roblox doesn't show it.",
-  "Inventaire indisponible — {why}": "Inventory unavailable — {why}",
+  "Inventaire indisponible : {why}": "Inventory unavailable, {why}",
   "Aucun objet ne correspond.": "No item matches.",
   "Aucun limited dans cet inventaire.": "No limiteds in this inventory.",
   "En hold : pas échangeable pour le moment": "On hold: can't be traded yet",
@@ -560,10 +560,10 @@ const EN = {
   'value': 'value',
   'est le chiffre sur lequel se fait un trade : c\'est la cote de référence de toute la communauté. Le RAP vient de Roblox mais ne reflète que l\'historique des ventes, et il se gonfle à coups de rachats entre complices.': 'is the figure a trade is made on: it is the reference the whole community reads. The RAP comes from Roblox but only reflects sales history, and it inflates through wash trading.',
   'Value Rolimon\'s (recommandé)': 'Rolimon\'s value (recommended)',
-  'Prudente — le plus bas des deux': 'Careful — the lower of the two',
+  'Prudente : le plus bas des deux': 'Careful, the lower of the two',
   'RAP Roblox uniquement': 'Roblox RAP only',
   'Compter les Robux nets de taxe': 'Count Robux net of tax',
-  'Roblox prélève 30 % sur les Robux reçus dans un trade. Décoché, RoNote compte le montant brut — donc surévalue ce qu\'on vous propose.': 'Roblox takes 30% of the Robux received in a trade. Unchecked, RoNote counts the gross amount — and so overvalues what you are offered.',
+  'Roblox prélève 30 % sur les Robux reçus dans un trade. Décoché, RoNote compte le montant brut : donc surévalue ce qu\'on vous propose.': 'Roblox takes 30% of the Robux received in a trade. Unchecked, RoNote counts the gross amount, and so overvalues what you are offered.',
   'Détail des objets dans le popup': 'Item details in the popup',
   'Ajoute sous chaque trade une liste dépliable : nom, série, value et RAP de chaque objet.': 'Adds an expandable list under each trade: name, serial, value and RAP of every item.',
   'Écarts sur la page des trades Roblox': 'Differences on the Roblox trades page',
@@ -626,7 +626,7 @@ const EN = {
   '« verdict incertain », une cote révisée récemment est signalée': '(uncertain verdict), a recently revised value is flagged',
   ", et dans ces deux cas la notification n'est jamais supprimée par un filtre.": ', and in both cases the notification is never dropped by a filter.',
   'Objets non cotés (visages, objets de bundle, nouveautés) : RoNote récupère le RAP officiel auprès de Roblox. Si l\'objet reste sans cote, il est signalé': 'Unvalued items (faces, bundle items, brand-new items): RoNote fetches the official RAP from Roblox. If the item still has no value, it is flagged',
-  'et exclu des totaux — jamais compté comme 0 — et la notification n\'est jamais supprimée par un filtre dans ce cas.': 'and excluded from the totals — never counted as 0 — and the notification is never dropped by a filter in that case.',
+  'et exclu des totaux : jamais compté comme 0, et la notification n\'est jamais supprimée par un filtre dans ce cas.': 'and excluded from the totals, never counted as 0, and the notification is never dropped by a filter in that case.',
 
   'Alerter quand un objet que je possède est réévalué': 'Alert me when an item I own is revalued',
   "Rolimon's révise ses cotes régulièrement. À chaque nouvelle table (toutes les 15 min), RoNote la compare à la précédente et te prévient si un objet de ton inventaire a bougé. S'appuie sur l'inventaire relevé par le suivi du compte : le réglage précédent doit rester actif.":
@@ -650,7 +650,7 @@ const EN = {
   'Refuser': 'Decline',
   'Confirmer le refus': 'Confirm decline',
   'Trade refusé': 'Trade declined',
-  'Évaluation impossible — {why}': 'Cannot evaluate — {why}',
+  'Évaluation impossible : {why}': 'Cannot evaluate, {why}',
 
   'Filtres': 'Filters',
   '(s\'appliquent uniquement aux trades reçus)': '(apply to inbound trades only)',
@@ -748,16 +748,16 @@ const EN = {
   'Profil Roblox': 'Roblox profile',
   'Ignorer': 'Ignore',
   'Ne plus ignorer': 'Stop ignoring',
-  'Profil public indisponible — {why}.': 'Public profile unavailable — {why}.',
+  'Profil public indisponible : {why}.': 'Public profile unavailable, {why}.',
   'Recharge RoNote dans chrome://extensions pour activer la fiche.': 'Reload RoNote in chrome://extensions to enable player cards.',
   "d'après l'historique Rolimon's": "from Rolimon's history",
   'Ses bundles': 'Their bundles',
   'Aucun bundle coté.': 'No valued bundle.',
   '+ {n} autre': '+ {n} more',
   '+ {n} autres': '+ {n} more',
-  'Bundles indisponibles — {why}.': 'Bundles unavailable — {why}.',
-  'Liste incomplète — {why}.': 'Incomplete list — {why}.',
-  "inventaire privé — Rolimon's ne publie rien": "private inventory — Rolimon's publishes nothing",
+  'Bundles indisponibles : {why}.': 'Bundles unavailable, {why}.',
+  'Liste incomplète : {why}.': 'Incomplete list, {why}.',
+  "inventaire privé : Rolimon's ne publie rien": "private inventory, Rolimon's publishes nothing",
   "inventaire Rolimon's indisponible": "Rolimon's inventory unavailable",
   'compte supprimé': 'terminated account',
 
@@ -931,7 +931,7 @@ const EN = {
   "Lucky Cat de Rolimon's": "Rolimon's Lucky Cat",
   "Signale l'exemplaire tiré par le Lucky Cat : qui le possède gagne un RoliBadge. Le tirage change toutes les 4 à 24 h.": "Flags the copy drawn by the Lucky Cat: whoever owns it earns a RoliBadge. The draw changes every 4 to 24 hours.",
   "Tirage en cours : {item}, tiré {ago}.": "Current draw: {item}, drawn {ago}.",
-  "LUCKY CAT — cet exemplaire donne le RoliBadge de Rolimon's": "LUCKY CAT — this copy gives Rolimon's RoliBadge",
+  "LUCKY CAT : cet exemplaire donne le RoliBadge de Rolimon's": "LUCKY CAT, this copy gives Rolimon's RoliBadge",
   /* --- bases de calcul -------------------------------------------------- */
   'Value': 'Value',
   'RAP': 'RAP',

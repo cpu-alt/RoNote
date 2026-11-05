@@ -26,7 +26,7 @@ export function setMoneyFormat(full, short) {
 export const seriesText = (def, n) => (def.money ? money.full(n) : fmtFull(n));
 const seriesShort = (def, n) => (def.money ? money.short(n) : fmtNum(n));
 
-/** Séries valides, dans l'ordre de référence — jamais aucune. */
+/** Séries valides, dans l'ordre de référence : jamais aucune. */
 export function orderedSeries(keys, defs) {
   const list = Object.keys(defs).filter(k => Array.isArray(keys) && keys.includes(k));
   return list.length ? list : [Object.keys(defs)[0]];
@@ -67,7 +67,7 @@ function nearestIndex(pts, at) {
  * relevé : un historique résumé sur les années anciennes ne doit pas les
  * étirer). Des courbes de même unité partagent l'axe ; dès qu'on mêle Robux
  * et nombre d'objets, chacune passe en variation depuis le début de la
- * période — la seule façon honnête de les empiler.
+ * période : la seule façon honnête de les empiler.
  */
 export function chartModel(pts, keys, defs) {
   const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
@@ -212,7 +212,7 @@ export function mountChart({ id, pts, keys, defs, onScrub = null }) {
   // Mesurees une fois : l'infobulle garde la meme forme d'un point a l'autre
   // (une ligne par courbe), et le trace garde sa hauteur. Les lire apres avoir
   // ecrit leur contenu forcait un calcul de mise en page a chaque image du
-  // survol — d'ou les saccades.
+  // survol : d'ou les saccades.
   let tipH = 0, plotH = 0;
 
   const show = (clientX) => {
@@ -274,7 +274,7 @@ const ITEM_RANGES = [
 ];
 
 /**
- * Le corps commun des deux graphiques a plages — celui de la fiche joueur et
+ * Le corps commun des deux graphiques a plages : celui de la fiche joueur et
  * celui de la fiche d'un objet. Ils ne different que par l'etat qui les pilote,
  * les attributs qui les nomment et ce qui se passe une fois traces ; tout le
  * reste (plage, echantillonnage, series disponibles, pastilles, courbe,

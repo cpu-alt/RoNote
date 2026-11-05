@@ -3,7 +3,12 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## v2.16.3 — Profils plus rapides, filtres par liste et par value
+## v2.16.4 : textes plus propres
+
+- Les tirets cadratins disparaissent des textes de l'extension : phrases
+  ponctuées avec « : » ou « , », et les cases vides affichent « N/A ».
+
+## v2.16.3 : Profils plus rapides, filtres par liste et par value
 
 - **Profils** : choix de la liste, *Les deux* (mêlées, les plus récentes d'abord),
   *Classique* ou *Neuronal*, et un filtre **Inventaire** (10k+, 50k+, 100k+,
@@ -15,7 +20,7 @@ l'utilisateur, pas la liste des commits.
   l'inventaire en haut à droite, la carte du trade ou l'annonce, puis les actions.
   Chargement en silhouettes animées.
 
-## v2.16.2 — Profils comme sur Discord, trades Neuronal en cartes
+## v2.16.2 : Profils comme sur Discord, trades Neuronal en cartes
 
 - **Profils** : chaque fiche montre ce que montre Discord, le trade qui a révélé
   le joueur (Neuronal) ou son annonce *Propose / Cherche* (classique), avec les
@@ -24,12 +29,12 @@ l'utilisateur, pas la liste des commits.
 - **Fiches Neuronal** (joueur et objet) : les derniers trades sont dessinés comme
   sur neuronal.live, les deux côtés en vignettes avec leurs totaux et les Robux.
   Un clic sur un objet ouvre sa page Rolimon's.
-- **Objets sans value Rolimon's** : la case Value affiche « — » au lieu du RAP,
+- **Objets sans value Rolimon's** : la case Value affiche «, » au lieu du RAP,
   et la fiche, les lignes de trade et le portefeuille disent que le chiffre est
   un RAP.
 - Barre d'onglets resserrée : elle ne déborde plus avec l'onglet Profils.
 
-## v2.16.1 — Profils
+## v2.16.1 : Profils
 
 - **Onglet Profils** (l'icône à droite de Journal, ou menu du compte › Profils) : le Profile discovery de Neuronal
   dans le popup. Deux listes, *Classique* (les joueurs repérés par leurs annonces
@@ -39,7 +44,7 @@ l'utilisateur, pas la liste des commits.
   seulement si les Fiches Neuronal sont actives ; seuls la liste et le palier
   choisis sont envoyés, gardés 2 min.
 
-## v2.16.0 — l'interface Neuronal, le réseau, la barre latérale et les animations
+## v2.16.0 : l'interface Neuronal, le réseau, la barre latérale et les animations
 
 **Une nouvelle interface par défaut dans le style du site Neuronal, la
 contribution au réseau Neuronal, RoNote dans une barre sur le côté du
@@ -48,7 +53,7 @@ navigateur, et du mouvement qui dit quelque chose.**
 - **Contribuer au réseau Neuronal** (Réglages › Valeurs, coupé par défaut, même
   permission que les fiches) : le compte apparaît sur la carte de neuronal.live
   avec le cadre RoNote, et ses trades terminés y sont envoyés tels que Roblox
-  les a rendus — exemplaires exacts (userAssetId, série) et Robux de chaque
+  les a rendus : exemplaires exacts (userAssetId, série) et Robux de chaque
   côté. Seuls les trades dont le détail est déjà en cache partent : aucune
   requête de plus vers Roblox. Présence au plus toutes les 6 h, chaque trade une
   seule fois, pause de 6 h tant que le site n'a pas ouvert la route.
@@ -129,7 +134,7 @@ navigateur, et du mouvement qui dit quelque chose.**
   n'affiche que les entrées du compte suivi.
 - **Trades rejetés par Roblox, en entier** : une ligne du journal (ou de la fiche
   d'un joueur) s'ouvre dans le popup avec les deux colonnes d'objets, le
-  partenaire et l'issue — pour une erreur Roblox, ce qu'elle veut dire.
+  partenaire et l'issue : pour une erreur Roblox, ce qu'elle veut dire.
 - **Le son dit si le trade est bon** (Réglages › Son, actif par défaut) : cinq
   notes, de très mauvais à très bon, pour un trade reçu ou conclu, aux mêmes
   seuils que le verdict. Un trade sans cote garde le son choisi.
@@ -139,7 +144,7 @@ navigateur, et du mouvement qui dit quelque chose.**
 - **Discord Neuronal** : un bouton pour rejoindre le serveur (discord.gg/neuronal),
   le même que sur le site, au pied du popup et en haut des réglages.
 
-## v2.15.1 — le Flex du portefeuille, et un vrai mode anonyme
+## v2.15.1 : le Flex du portefeuille, et un vrai mode anonyme
 
 **Le Flex du portefeuille refait, dans le style de Trade Flex, et un mode
 anonyme qui ne laisse plus rien passer.**
@@ -156,13 +161,13 @@ anonyme qui ne laisse plus rien passer.**
   dernier point de la courbe. Avant, RoNote comptait 30 jours depuis
   maintenant, et la variation ne tombait pas sur celle du site.
 - **Mode anonyme** (l'œil de l'entête, ou la touche H) : chaque montant devient
-  un faux nombre fixe, flouté — il n'y a plus rien du vrai dans la page, pas
+  un faux nombre fixe, flouté : il n'y a plus rien du vrai dans la page, pas
   même son nombre de chiffres. Rang, objectif et pseudo sont masqués aussi ; les
   pourcentages restent lisibles.
 - **Carte Flex anonyme** : le % à la place du gain, UP / DOWN / FLAT, variations
   de la value et du RAP, sans un seul montant ni rang.
 
-## v2.15.0 — Roblox à ton image
+## v2.15.0 : Roblox à ton image
 
 **RoNote va plus loin sur roblox.com et devient personnalisable.** Les écarts
 s'affichent sur les listes de trades, la value apparaît sur la page d'un
@@ -201,7 +206,7 @@ limited, et l'apparence se règle d'un coup avec des thèmes, fond compris.
   pages de Roblox (défilement, pages de jeux), et les cotes Rolimon's sont
   relues toutes les 15 minutes au lieu de 3 heures.
 
-## v2.14.0 — les visages, Rolimon's est à jour
+## v2.14.0 : les visages, Rolimon's est à jour
 
 **Rolimon's compte enfin les visages correctement.** Depuis sa mise à jour de
 septembre 2026, il les compte d'après les bundles réellement possédés : un
@@ -269,20 +274,20 @@ détecte maintenant, retire tout ce qu'elle avait posé sur la page et s'arrête
 les messages restés sans `.catch` dans `relay.js` et `scrape.js` sont couverts
 aussi. Recharger l'onglet réinstalle la nouvelle version.
 
-## v2.13.0 — Trade Flex personnalisable
+## v2.13.0 : Trade Flex personnalisable
 
 - Carte inspirée des offres Roblox : grilles de vignettes, donné/reçu, totaux et comparateur central.
 - Résultat WIN / LOSS / EVEN, pourcentage et bordure colorée selon le RAP ou la Value sélectionnée.
 - Fonds Nuit, Violet ou image personnelle PNG/JPEG/WebP, avec réglage d'assombrissement. Import traité localement, conservé pendant la session de page.
 - Export PNG et copie de l'image par clic droit conservés.
 
-## v2.12.1 — Trade Flex
+## v2.12.1 : Trade Flex
 
 - Bouton trophée après le profil Rolimon’s : génère une image PNG du trade, copiable par clic droit ou téléchargeable.
 - Deux colonnes donné/reçu, objets, totaux et écarts RAP / Value. Pseudos et serials omis de l'image.
 - Miniatures affichées quand disponibles, avec un symbole de remplacement si leur chargement échoue.
 
-## v2.12.0 — affichage des trades et confidentialité
+## v2.12.0 : affichage des trades et confidentialité
 
 - Refonte des bandeaux RAP / Value et harmonisation de l'affichage des valeurs sur les pages de trade.
 - Valeurs Rolimon’s sous les objets et totaux par offre ; RAP utilisé pour les objets sans cote publiée.
@@ -292,7 +297,7 @@ aussi. Recharger l'onglet réinstalle la nouvelle version.
 
 **Limite connue :** le clic sur les étoiles des objets sans serial ne retrouve pas encore systématiquement l'historique. Ce point reste en attente de correction.
 
-## v2.11.1 — les limites de débit, et le refus qui ne partait pas
+## v2.11.1 : les limites de débit, et le refus qui ne partait pas
 
 **Corrigé : le refus en deux clics depuis une carte pouvait ne jamais partir.**
 L'état « armé » du bouton vivait dans la page seule : un rafraîchissement de
@@ -303,7 +308,7 @@ que le second clic ne faisait que le réarmer. Le trade restait là.
 « 19 trades suivis » alors que l'onglet Envoyés n'en montrait aucun : ceux qui
 ne sont plus dans les 100 derniers envois n'étaient affichés nulle part, donc
 impossibles à désépingler. Ils ont maintenant leur bloc en bas de l'onglet, avec
-le partenaire, depuis quand ils sont suivis, et de quoi les retirer — un par un
+le partenaire, depuis quand ils sont suivis, et de quoi les retirer : un par un
 ou tous d'un coup. Un suivi posé automatiquement s'abandonne désormais au bout
 d'une semaine, au lieu d'un mois comme une épingle posée à la main.
 
@@ -315,12 +320,12 @@ la note sous celle du portefeuille le dit.
 
 **La cause principale : les trades suivis.** La liste des trades envoyés
 s'arrête à 100 entrées. Un trade suivi plus ancien que ces 100-là, mais toujours
-ouvert, n'y figure plus — RoNote redemandait alors son détail à chaque
+ouvert, n'y figure plus : RoNote redemandait alors son détail à chaque
 vérification, six par passage, indéfiniment. Avec une vingtaine de trades
 suivis, cela suffisait à tenir la limite de débit de Roblox allumée en
 permanence. Désormais un même trade suivi n'est plus redemandé avant dix
 minutes, et son issue arrive le plus souvent sans aucun appel : les listes
-Terminés et Inactifs la portent déjà, et retirent le suivi elles-mêmes — au
+Terminés et Inactifs la portent déjà, et retirent le suivi elles-mêmes : au
 passage, plus de risque de double notification.
 
 **Un plafond de cadence, qui s'apprend.** Limiter le nombre d'appels en vol ne
@@ -340,7 +345,7 @@ revient : 30 s, puis 60, puis 90, plafonné à 5 min.
 **Beaucoup moins de « HTTP 429 ».** RoNote provoquait lui-même la limite de
 débit de Roblox : un lot de cent vignettes refusé était rejoué image par image,
 toutes en même temps et chacune avec son propre réessai. La limite se
-prolongeait toute seule, et c'est la vérification des trades — innocente — qui
+prolongeait toute seule, et c'est la vérification des trades : innocente, qui
 récoltait l'erreur et allumait le point rouge.
 
 - plus de reprise une par une sur une limite de débit ; hors limite, quatre à
@@ -349,15 +354,14 @@ récoltait l'erreur et allumait le point rouge.
   plafonné à 5 s ;
 - les 429 sur le détail d'un trade posent enfin une pause, au lieu d'enchaîner
   dix appels condamnés d'avance ;
-- « vérifier maintenant » ne contourne plus la pause d'une limite de débit —
-  le réflexe devant le point rouge la prolongeait ;
+- « vérifier maintenant » ne contourne plus la pause d'une limite de débit :   le réflexe devant le point rouge la prolongeait ;
 - les appels Rolimon's de la fiche joueur et du portefeuille ont eux aussi un
   réessai et un délai ;
 - le message dit ce qui se passe et pour combien de temps, au lieu de
   « HTTP 429 ».
 
 **Les listes ne clignotent plus pendant le chargement.** Elles étaient réécrites
-en entier après chaque lot de six évaluations — jusqu'à cinq fois de suite pour
+en entier après chaque lot de six évaluations : jusqu'à cinq fois de suite pour
 vingt-cinq trades, et autant de fois où toutes les vignettes étaient détruites
 puis rechargées. Une carte prête remplace maintenant sa silhouette sur place.
 
@@ -368,7 +372,7 @@ même chronologie et se reconstruisait à chaque réponse reçue.
 **Au clavier et au lecteur d'écran.** La barre d'onglets est un vrai `tablist` :
 l'onglet actif est annoncé, les flèches gauche et droite le parcourent. Les
 fiches et le zoom prennent le focus, le gardent tant qu'ils sont ouverts, et le
-rendent en partant — le clavier restait derrière eux. L'attribut `lang` du
+rendent en partant : le clavier restait derrière eux. L'attribut `lang` du
 document suit la langue choisie.
 
 **Réglages.** Quand le service worker ne répond pas, la page le dit au lieu de
@@ -376,7 +380,7 @@ rester figée ; une réponse vide n'écrase plus les réglages affichés.
 
 ---
 
-## v2.11.0 — l'onglet Portefeuille refait
+## v2.11.0 : l'onglet Portefeuille refait
 
 **L'onglet Bénéfice devient Portefeuille**, pensé comme une appli de portefeuille :
 
@@ -409,20 +413,20 @@ fiche d'un objet charge son historique public chez Rolimon's, gardé 6 heures.
   d'un onglet à l'autre ;
 - **Reçus, Envoyés, Terminés** : un bandeau en tête (combien, combien de gagnants
   et de perdants, le meilleur trade ou le bilan), des filtres en pastilles, et des
-  cartes refaites — anneau de couleur autour de l'avatar selon le verdict, et
+  cartes refaites : anneau de couleur autour de l'avatar selon le verdict, et
   l'écart toujours en grand sur fond vert ou rouge ;
 - **le zoom sur un trade** monte du bas, verdict et écart en grand ;
 - **le Journal** se lit comme un relevé : groupé par jour (Aujourd'hui, Hier…),
   une icône de couleur par type d'événement, l'heure, des filtres et le résumé des
   dernières 24 heures ; un clic ouvre le trade ;
 - les cartes arrivent en cascade à l'ouverture d'un onglet, et une à une à mesure
-  qu'elles sont évaluées — jamais au rafraîchissement de fond.
+  qu'elles sont évaluées : jamais au rafraîchissement de fond.
 
 **Les onglets s'ouvrent plus vite.**
 
 - un trade déjà vu n'est plus redemandé à Roblox toutes les 10 minutes : son
   contenu ne change jamais, il est gardé 7 jours et seule son analyse est refaite
-  quand les cotes bougent — sans réseau ;
+  quand les cotes bougent : sans réseau ;
 - les trades encore inconnus se chargent trois à la fois au lieu d'un par un ;
 - en ouvrant le popup, les deux autres listes se préparent en arrière-plan : changer
   d'onglet montre des cartes prêtes ;
@@ -448,16 +452,16 @@ vers la gauche, et la liste reste à droite, utilisable. Un second clic sur le m
 avatar, la croix ou Échap la referment :
 
 - la valeur de son inventaire, son RAP et son rang Rolimon's, avec **la courbe de
-  son inventaire** — value, RAP et collectibles superposables, d'un mois à tout
+  son inventaire** : value, RAP et collectibles superposables, d'un mois à tout
   l'historique, comme pour ton portefeuille ;
 - l'âge de son compte, **signalé s'il a moins de 30 jours**, et s'il est banni,
   vérifié ou vu en ligne récemment ;
 - **entre vous** : les offres qu'il t'a envoyées et les tiennes, les trades conclus
-  et leur bilan, et surtout **ce que ses offres te rapportent en moyenne** — un
+  et leur bilan, et surtout **ce que ses offres te rapportent en moyenne** : un
   habitué des offres perdantes se repère d'un coup d'œil, et l'anneau de son avatar
   en prend la couleur ;
-- **ses bundles** : ceux qu'il possède vraiment — y compris ceux que Rolimon's ne
-  voit pas — et, dans un second onglet, **ceux qu'il n'a plus** mais que Rolimon's
+- **ses bundles** : ceux qu'il possède vraiment, y compris ceux que Rolimon's ne
+  voit pas : et, dans un second onglet, **ceux qu'il n'a plus** mais que Rolimon's
   lui compte encore, avec sa value corrigée ; la même réconciliation que ton
   portefeuille, faite sur son compte ;
 - la liste de vos échanges, du plus récent au plus ancien ; un clic rouvre le trade ;
@@ -475,7 +479,7 @@ confidentialité le mentionne.
 - les trades reçus et conclus aujourd'hui (avec leur bilan), les alertes filtrées
   et les réévaluations (avec leur effet) ;
 - **à traiter** : les trades en attente et la meilleure offre, l'offre qui expire
-  le plus tôt dans les 24 heures, les trades suivis — un clic y mène ;
+  le plus tôt dans les 24 heures, les trades suivis : un clic y mène ;
 - les quatre derniers événements du journal.
 
 Rien n'est demandé au réseau : l'accueil lit ce que le popup a déjà.
@@ -519,19 +523,18 @@ rien te concernant. C'est vrai pour la table des valeurs et les historiques
 d'objets, mais le suivi du portefeuille interroge Rolimon's avec ton identifiant
 Roblox (public) : c'est désormais écrit.
 
-## v2.10.0 — les alertes de trades reçus réparées, et l'alerte de réévaluation
+## v2.10.0 : les alertes de trades reçus réparées, et l'alerte de réévaluation
 
 **Corrigé : les trades reçus ne déclenchaient presque plus d'alerte.** Roblox
 numérote ses trades sans ordre, alors que RoNote les croyait croissants : tout
 nouveau trade dont le numéro était plus petit que le plus grand déjà vu était
-écarté sans un mot. Les trades complétés, suivis autrement, alertaient toujours —
-d'où une panne difficile à remarquer. RoNote se fie désormais aux trades déjà vus
+écarté sans un mot. Les trades complétés, suivis autrement, alertaient toujours : d'où une panne difficile à remarquer. RoNote se fie désormais aux trades déjà vus
 et à leur date de création. Le suivi automatique des trades envoyés, touché par le
 même défaut, est réparé du même coup.
 
 **Nouveau : l'alerte de réévaluation.** Rolimon's révise ses cotes régulièrement,
 parfois de plusieurs dizaines de pourcents d'un coup. RoNote te prévient désormais
-quand la cote d'un objet de ton inventaire bouge d'au moins 10 % — seuil réglable,
+quand la cote d'un objet de ton inventaire bouge d'au moins 10 % : seuil réglable,
 à la hausse comme à la baisse :
 
 - une seule notification par vérification, du plus gros impact au plus petit, avec
@@ -555,10 +558,10 @@ pour toute nouvelle extension depuis novembre 2025. Guide : `docs/publication-fi
   traductions orphelines, un paramètre jamais utilisé, des passages de doc ;
 - l'export CSV du journal gagne les colonnes des réévaluations.
 
-## v2.9.2 — le nom de l'extension suit la langue du navigateur
+## v2.9.2 : le nom de l'extension suit la langue du navigateur
 
 Le Chrome Web Store tire le titre et le résumé **du paquet**, pas de la fiche :
-une fiche en anglais affichait quand même « RoNote — Alertes de trades Roblox ».
+une fiche en anglais affichait quand même « RoNote : Alertes de trades Roblox ».
 Les deux manifestes passent donc par `_locales/`, avec l'anglais en langue de
 repli.
 
@@ -570,7 +573,7 @@ repli.
 Un navigateur en français affiche le nom français, tous les autres l'anglais.
 L'interface, elle, était déjà bilingue depuis la v2.4.
 
-## v2.9.1 — le jeton CSRF n'est plus diffusé à la cantonade
+## v2.9.1 : le jeton CSRF n'est plus diffusé à la cantonade
 
 Correctif d'hygiène, sans changement visible.
 
@@ -579,12 +582,12 @@ Correctif d'hygiène, sans changement visible.
   l'origine. Le message est désormais adressé à `location.origin`, et
   `relay.js` vérifie l'origine en plus de la fenêtre source.
 
-Ça ne bouchait aucune fuite — n'importe quel script de la page peut déjà lire
+Ça ne bouchait aucune fuite : n'importe quel script de la page peut déjà lire
 ce jeton dans `meta[name="csrf-token"]`, et c'est d'ailleurs le repli qu'utilise
 `relay.js`. Mais diffuser plus large que nécessaire n'a aucune raison d'être,
 surtout dans une extension qui part en revue manuelle.
 
-## v2.9.0 — le son ne se perd plus, et un son par événement
+## v2.9.0 : le son ne se perd plus, et un son par événement
 
 « Des fois je reçois la notification, des fois non. » Quatre causes trouvées,
 quatre corrections :
@@ -592,7 +595,7 @@ quatre corrections :
 - **le son manquait une fois sur deux.** Chrome ferme de lui-même le document
   audio (offscreen) après 30 s de silence ; RoNote croyait l'avoir encore et
   lui parlait dans le vide. Le service worker demande maintenant au
-  navigateur, à chaque son, si le document existe encore — et le recrée sinon,
+  navigateur, à chaque son, si le document existe encore : et le recrée sinon,
   avec deux tentatives puis un document neuf ;
 - **un cycle de vérification pouvait rester bloqué pour de bon.** Aucun appel
   réseau n'avait de délai : une requête que Roblox ne terminait jamais gardait
@@ -601,7 +604,7 @@ quatre corrections :
   bout de 2 minutes ;
 - **une étape qui échouait avalait ses trades.** Si la lecture d'une page
   réussissait puis que l'étape plantait, les trades tout juste découverts
-  étaient déjà marqués « vus » — jamais notifiés. Le flux est remis dans son
+  étaient déjà marqués « vus » : jamais notifiés. Le flux est remis dans son
   état d'avant, le passage suivant les reprend ;
 - **le portrait du partenaire faisait échouer la notification riche.** Chrome
   n'accepte pas une URL du CDN Roblox comme icône ; la notification repartait
@@ -609,8 +612,8 @@ quatre corrections :
 
 Et ce qui se voit :
 
-- **un son par famille d'événement** — trade reçu, trade accepté, refusé /
-  contré / expiré, erreur Roblox — chacun avec sa sonnerie, réglable dans la
+- **un son par famille d'événement** : trade reçu, trade accepté, refusé /
+  contré / expiré, erreur Roblox : chacun avec sa sonnerie, réglable dans la
   page de réglages avec un bouton ▶ pour l'écouter. Deux nouvelles sonneries :
   **Fanfare** (arpège ascendant, par défaut pour un trade accepté) et
   **Descendant** ;
@@ -626,7 +629,7 @@ Windows, lui, coupe les notifications tout seul en plein écran ou en jeu
 (« Ne pas déranger » automatique) : le son de RoNote joue quand même, et la
 page de réglages le rappelle.
 
-## v2.8.0 — plus rien sur la page Roblox
+## v2.8.0 : plus rien sur la page Roblox
 
 L'overlay (bloc d'écart entre les listes, cotes sous les objets, verdicts sur
 la liste, fiche au survol, évaluation de l'offre en composition) est
@@ -638,7 +641,7 @@ inchangés. Ce qui reste sur roblox.com ne fait que LIRE : `hook.js` (capture
 du détail du trade que la page reçoit) et `scrape.js` (lecture de la page en
 repli quand l'API refuse un trade).
 
-## v2.7.2 — la page ne rame plus
+## v2.7.2 : la page ne rame plus
 
 Chaque mutation de la page Roblox (et elle en fait en continu) relançait des
 balayages quadratiques. Trois causes, trois corrections :
@@ -649,7 +652,7 @@ balayages quadratiques. Trois causes, trois corrections :
   repérages (noms du catalogue, objets du trade, lignes `Total`, noms de la
   liste) passent par lui ;
 - **plus de `innerText`** pour trouver le pseudo du partenaire : il force un
-  calcul de mise en page de toute la page — remplacé par `textContent` ;
+  calcul de mise en page de toute la page : remplacé par `textContent` ;
 - **on n'écoute que `main`** : le tchat, les bandeaux et les menus bougent en
   permanence et n'ont rien à nous dire. La composition balaie le catalogue une
   fois au lieu d'une fois par niveau ; la mesure des vignettes est mémorisée
@@ -662,8 +665,7 @@ quand « c'est lent ».
 ## v2.7.1
 
 - **`overlay.js` réécrit de zéro**, même contrat avec le service worker : un
-  seul point d'entrée pour décorer un objet (`decorateItem`), idempotent —
-  il retire d'abord ce que RoNote avait posé dans le bloc, puis pose **une**
+  seul point d'entrée pour décorer un objet (`decorateItem`), idempotent :   il retire d'abord ce que RoNote avait posé dans le bloc, puis pose **une**
   ligne et **une** pastille. Fini les étiquettes *projected* empilées quand
   la page se redessinait. Toute écriture dans la page passe par `paused()`
   (observateur coupé), et chaque cycle a sa signature.
@@ -677,7 +679,7 @@ quand « c'est lent ».
   d'elles et se met à jour à chaque objet ajouté ou retiré. → *Pendant la
   composition*
 - **Les inventaires ouverts pour composer** reçoivent la value et la pastille
-  *projected* sous chaque objet, comme le trade affiché — et les pages
+  *projected* sous chaque objet, comme le trade affiché : et les pages
   `/trades/new`, `/users/{id}/trade` sont couvertes.
 - **Plus jamais d'espace dans un nombre** : `1,836,950` partout, comme Roblox
   l'écrit lui-même. Le format français (espaces fines) ressortait avec des
@@ -689,12 +691,12 @@ quand « c'est lent ».
 ## v2.6.0
 
 - **Le bloc d'écart retrouve ses barres** (verdict à gauche, value et RAP à
-  droite, zéro au milieu) — la version en cartouches de la 2.5.0 n'a pas
+  droite, zéro au milieu) : la version en cartouches de la 2.5.0 n'a pas
   convaincu. La mention « N visages » disparaît : elle n'apportait rien.
 - **Le verdict sur chaque ligne de la liste des trades** : flèche, pourcentage,
-  couleur — on sait quels trades valent d'être ouverts avant de les ouvrir.
+  couleur : on sait quels trades valent d'être ouverts avant de les ouvrir.
   → *Sur la liste*
-- **La value sous tout objet reconnu, où qu'il soit** — y compris dans les deux
+- **La value sous tout objet reconnu, où qu'il soit** : y compris dans les deux
   inventaires quand on compose un trade. → *Partout ailleurs : le catalogue*
 - **Une fiche au survol** de chaque cote, à la place de l'infobulle brute :
   value en grand, RAP, ratio, demande, tendance, série, alertes. → *La fiche*
@@ -705,7 +707,7 @@ quand « c'est lent ».
 
 - **Le bloc d'écart ressemble à celui de Roblox** : deux cartouches côte à
   côte, `▲ +33 RAP (+5%)` et `▲ +33 Value (+5%)`. Plus de barre, plus de
-  verdict écrit — la flèche et la couleur disent tout. → *Le panneau sur la
+  verdict écrit : la flèche et la couleur disent tout. → *Le panneau sur la
   page Roblox*
 - **Plus rien ne flotte.** Le panneau de repli en bas à droite et le rappel
   sur le bord de l'écran sont retirés : ils ressemblaient à des alertes.
@@ -735,7 +737,7 @@ quand « c'est lent ».
 ## v2.4.1
 
 - **Le total Rolimon's s'affiche même quand un objet n'est pas reconnu à
-  l'écran** — un **visage**, dont le nom affiché ne ressemble pas à celui de
+  l'écran** : un **visage**, dont le nom affiché ne ressemble pas à celui de
   l'API, privait tout son côté de total.
 - **Le panneau ne disparaît plus** dans ce cas : il repart en flottant au lieu
   de rester bloqué par la garde anti-répétition.
@@ -747,14 +749,14 @@ quand « c'est lent ».
   Le `rbx-divider` de Roblox lui cède sa place. → *Le panneau sur la page Roblox*
 - **Un rappel latéral** quand le bloc sort de l'écran : verdict et deux écarts,
   sur le bord droit, jamais en double.
-- **Sous chaque objet, sa value**, accordée à la ligne de RAP de Roblox — même
-  police, même taille — avec le **vrai logo Rolimon's** qui ouvre sa fiche.
+- **Sous chaque objet, sa value**, accordée à la ligne de RAP de Roblox : même
+  police, même taille : avec le **vrai logo Rolimon's** qui ouvre sa fiche.
 - **Une pastille sur la vignette** : `!` projected, `?` sans cote, `↑` cote
   spéculative, `~` cote révisée. Aucun emoji, nulle part.
 - **Rien à lire dans la page, et ça marche quand même.** La refonte de Roblox a
   supprimé les liens sur les objets : le trade est identifié par l'URL, par la
   réponse que la page reçoit ou par le pseudo (tronqué) du partenaire, puis
-  évalué comme dans le popup — sans un appel réseau de plus.
+  évalué comme dans le popup : sans un appel réseau de plus.
 
 ## v2.2.0
 

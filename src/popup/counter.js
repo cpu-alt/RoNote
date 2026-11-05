@@ -76,7 +76,7 @@ function close() {
 
 /**
  * Les objets du trade d'origine, retrouvés dans l'inventaire chargé : par
- * exemplaire d'abord (userAssetId), sinon par objet et série — la v2 de
+ * exemplaire d'abord (userAssetId), sinon par objet et série : la v2 de
  * l'API ne donne qu'un identifiant d'instance, inutilisable pour l'envoi.
  */
 function adopt(chosen, inventory) {
@@ -197,9 +197,9 @@ function sideHtml(sideKey) {
 function shelfHtml() {
   const inv = ed.shelf === 'me' ? ed.me : ed.them;
   if (ed.loading) return `<div class="ctr-note">${t('Chargement des inventaires…')}</div>`;
-  if (ed.loadError) return `<div class="ctr-note err">${escapeHtml(t('Inventaires indisponibles — {why}', { why: ed.loadError }))}</div>`;
+  if (ed.loadError) return `<div class="ctr-note err">${escapeHtml(t('Inventaires indisponibles : {why}', { why: ed.loadError }))}</div>`;
   if (inv?.private) return `<div class="ctr-note">${ic('eye-off')} ${t('Inventaire privé : Roblox ne le montre pas.')}</div>`;
-  if (inv?.error) return `<div class="ctr-note err">${escapeHtml(t('Inventaire indisponible — {why}', { why: inv.error }))}</div>`;
+  if (inv?.error) return `<div class="ctr-note err">${escapeHtml(t('Inventaire indisponible : {why}', { why: inv.error }))}</div>`;
   const chosen = new Set((ed.shelf === 'me' ? ed.give : ed.get).map(i => i.uaid));
   const full = chosen.size >= MAX_ITEMS;
   const q = ed.query.trim().toLowerCase();

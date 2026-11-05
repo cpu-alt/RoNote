@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.4',
+    title: item('Textes plus propres', 'Cleaner text'),
+    items: [
+      item("Les textes de l'extension sont réécrits sans tirets cadratins ; une case vide affiche N/A.",
+        "The extension's text is rewritten without em dashes; an empty cell shows N/A.")
+    ]
+  },
+  {
     version: '2.16.3',
     title: item('Profils plus rapides et filtrables', 'Faster, filterable profiles'),
     items: [
@@ -211,8 +219,8 @@ export const RELEASES = [
         'Fixed: the two-click decline on a card could never go through. A background refresh reset the button, so the second click only re-armed it.'),
       item("Les trades suivis qui ne sont plus dans les 100 derniers envois apparaissent enfin, en bas de l'onglet Envoyes : avec leur partenaire, depuis quand ils sont suivis, et de quoi les retirer un par un ou tous d'un coup. Le compteur en annoncait sans que rien ne les montre.",
         "Tracked trades that are no longer among the last 100 outbound ones finally show up, at the bottom of the Outbound tab: with their partner, how long they have been tracked, and a way to remove them one by one or all at once. The counter used to include them with nothing on screen."),
-      item("Un suivi pose automatiquement s'abandonne au bout d'une semaine, au lieu d'un mois — une epingle posee a la main garde son mois.",
-        'A trade tracked automatically is dropped after a week instead of a month — a pin you placed yourself keeps its month.'),
+      item("Un suivi pose automatiquement s'abandonne au bout d'une semaine, au lieu d'un mois : une epingle posee a la main garde son mois.",
+        'A trade tracked automatically is dropped after a week instead of a month : a pin you placed yourself keeps its month.'),
       item("Les courbes de l'accueil et du portefeuille se terminent sur le dernier releve de RoNote, au lieu de s'arreter au dernier scan de Rolimon's : elles ne retardent plus sur le solde affiche juste au-dessus.",
         "The Home and Portfolio curves now end on RoNote's latest reading instead of stopping at Rolimon's last scan: they no longer lag behind the balance shown right above them."),
       item("Corrige la cause principale des « HTTP 429 » : les trades suivis tombes hors de la liste des 100 derniers envois etaient redemandes a chaque verification, sans fin. Un meme trade suivi n'est plus redemande avant dix minutes, et son issue arrive le plus souvent sans aucun appel.",
@@ -237,8 +245,8 @@ export const RELEASES = [
     version: '2.11.0',
     title: item('Accueil, portefeuille refait et fiche joueur', 'Home, redesigned portfolio and player cards'),
     items: [
-      item("Nouvel onglet Accueil : le résumé du jour dès l'ouverture — ton portefeuille, l'activité du jour et ce qui attend une action.",
-        "New Home tab: today's summary as soon as you open RoNote — your portfolio, today's activity and what needs your attention."),
+      item("Nouvel onglet Accueil : le résumé du jour dès l'ouverture, ton portefeuille, l'activité du jour et ce qui attend une action.",
+        "New Home tab: today's summary as soon as you open RoNote, your portfolio, today's activity and what needs your attention."),
       item("L'onglet Bénéfice devient Portefeuille : solde en grand, courbes value, RAP et collectibles superposables, et la liste de tes collectibles avec recherche, tri et filtres.",
         'The Profit tab becomes Portfolio: big balance, stackable value, RAP and collectibles curves, and your collectibles list with search, sort and filters.'),
       item('Chaque objet a sa fiche, avec sa propre courbe et ses révisions de cote.',

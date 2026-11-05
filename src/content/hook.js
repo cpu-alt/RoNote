@@ -13,7 +13,7 @@
   // des trades a change d'implementation plusieurs fois (trades.roblox.com/v1,
   // /v2, puis apis.roblox.com/...). Ce qui ne change pas, c'est la forme de
   // l'URL : « .../trades/{identifiant} ». On l'attrape quel que soit l'hote,
-  // et on verifie ENSUITE que la reponse ressemble bien a un trade — sinon un
+  // et on verifie ENSUITE que la reponse ressemble bien a un trade : sinon un
   // autre point d'entree finirait pris pour un detail de trade.
   const TRADE_RE = /\/\/[^/]*roblox\.com\/(?:[^?#]*\/)?trades\/(\d+)(?:$|[?#/])/i;
 

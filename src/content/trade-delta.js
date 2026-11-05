@@ -422,7 +422,7 @@
       const fallback = side.role === 'give' ? analysis?.give?.value : side.role === 'get' ? analysis?.get?.value : null;
       const value = analysis?.pageTotals?.[index] ?? fallback;
       const available = !!analysis?.valueAvailable && Number.isFinite(value);
-      const text = available ? number.format(value) : pending ? '…' : '—';
+      const text = available ? number.format(value) : pending ? '…' : 'N/A';
       if (total.value.textContent !== text) total.value.textContent = text;
       const title = available ? TEXT.totalOk : TEXT.totalMissing;
       if (total.amount.title !== title) total.amount.title = title;
@@ -448,7 +448,7 @@
           (!item.assetId && !item.bundleId && info.name && info.name === item.name));
         const available = matched && Number.isFinite(info.value) && info.value > 0;
         const rapFallback = matched && info.noValue && Number.isFinite(item.rap) && item.rap >= 0;
-        paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : '—',
+        paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : 'N/A',
           available || rapFallback ? 'ok' : pending ? 'wait' : 'none',
           available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card);
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
@@ -485,7 +485,7 @@
       const badge = ensureBadge(invBadges, card, item.priceEl);
       if (info?.known && info.value) paintBadge(badge, number.format(info.value), 'ok', TEXT.currentValue, card);
       else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', TEXT.rapUsed, card);
-      else paintBadge(badge, info?.known ? '—' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
+      else paintBadge(badge, info?.known ? 'N/A' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
       showFlag(badge, card, !!info?.projected);
       showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
@@ -839,7 +839,7 @@
 
   // Conteneurs où un enfant ajouté n'atterrit pas là où on l'insère : une rangée
   // flex le pose à côté des autres (et repousse une colonne à la ligne), une
-  // grille le place après les cellules positionnées par Roblox — en bas, quelle
+  // grille le place après les cellules positionnées par Roblox : en bas, quelle
   // que soit sa place dans le DOM.
   function sideBySide(el) {
     if (!el || typeof getComputedStyle !== 'function') return false;
@@ -1093,9 +1093,9 @@
       const pct = available && a.give[field] > 0 ? delta / a.give[field] * 100 : null;
       cell.dataset.tone = delta < 0 ? 'down' : delta > 0 ? 'up' : 'neutral';
       cell.children[0].className = `arrow ${delta < 0 ? 'down' : delta > 0 ? '' : 'flat'}`;
-      const text = !available ? `${label} · ${pending && field === 'value' ? '…' : '—'}`
+      const text = !available ? `${label} · ${pending && field === 'value' ? '…' : 'N/A'}`
         : globalThis.RoNoteBanner ? globalThis.RoNoteBanner.amount(delta, pct, bannerSettings)
-        : `${signed(delta)} (${pct === null ? '—' : signed(Math.round(pct)) + '%'})`;
+        : `${signed(delta)} (${pct === null ? 'N/A' : signed(Math.round(pct)) + '%'})`;
       if (cell.children[1].textContent !== text) cell.children[1].textContent = text;
       cell.title = available ? TEXT.explanation +
         (a.valueStale ? TEXT.cached : '') +

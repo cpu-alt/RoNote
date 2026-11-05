@@ -181,7 +181,7 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
   // identifiés vaudrait 0 : pas de Value plutôt qu'une fausse.
   const blind = page.sides.some(s => amount(s.rapTotal) && s.rapTotal > (amount(s.robux) ? s.robux : 0) && !(s.items || []).length);
   a.valueAvailable = !blind && !a.incomplete && !!cat?.ready && !cat?.veryStale;
-  // Pourquoi la Value manque, pour l'infobulle : sinon « — » ne dit rien.
+  // Pourquoi la Value manque, pour l'infobulle : sinon «, » ne dit rien.
   a.valueMissing = a.valueAvailable ? '' : !cat?.ready ? 'catalog' : cat.veryStale ? 'stale' : 'items';
   a.missingNames = [...a.give.unknownItems, ...a.get.unknownItems].slice(0, 4);
   a.fromPage = true;

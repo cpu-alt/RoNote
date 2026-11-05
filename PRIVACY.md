@@ -1,4 +1,4 @@
-# Privacy Policy — RoNote
+# Privacy Policy : RoNote
 
 **Last updated: 31 October 2026 · Version 2.16.0**
 
@@ -17,9 +17,9 @@ shared.
 
 While you are signed in to Roblox, RoNote reads, from within your browser:
 
-- **your trades** — inbound, outbound, completed, declined: IDs, dates, status;
-- **the items in those trades** — names, IDs, thumbnails, values;
-- **the public profile of the other player** — username, display name, avatar;
+- **your trades** : inbound, outbound, completed, declined: IDs, dates, status;
+- **the items in those trades** : names, IDs, thumbnails, values;
+- **the public profile of the other player** : username, display name, avatar;
 - **your own username and Roblox ID**, so it knows which account it is looking at;
 - **your inventory**, if you use the Portfolio tab or the revaluation alerts.
 
@@ -42,7 +42,7 @@ By default, RoNote contacts exactly two domains, both declared in its manifest:
 | Domain | Why | What is sent |
 |---|---|---|
 | `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
-| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card, read theirs | For the value table and item histories, **nothing about you** — the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
+| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
@@ -79,7 +79,7 @@ once you have granted access to `neuronal.live`.
 ## How your Roblox session is used
 
 To read *your* trades, RoNote queries the Roblox API reusing the session already open
-in your browser — exactly as roblox.com itself does while you browse.
+in your browser : exactly as roblox.com itself does while you browse.
 
 RoNote **does not read, store or transmit your password**. It does not copy your
 session cookie either: the cookie stays managed by the browser, which attaches it to
@@ -107,7 +107,7 @@ reply to an inbound trade, on your click.
 |---|---|
 | `storage` | Keep your settings and tracking state between browser restarts |
 | `alarms` | Trigger the periodic trade check |
-| `notifications` | Show the desktop notifications — the extension's whole purpose |
+| `notifications` | Show the desktop notifications : the extension's whole purpose |
 | `scripting` | Read the trade shown on screen when the API does not return its detail |
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
 | `sidePanel` | Open RoNote in the browser's sidebar, if you choose that mode |

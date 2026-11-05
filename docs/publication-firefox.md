@@ -33,7 +33,7 @@ consentement n'est à prévoir pour elles, et `strict_min_version` reste à **12
 
 | Étape | Détail |
 |---|---|
-| Compte | Un compte Mozilla, sur <https://addons.mozilla.org/developers/> — à créer toi-même |
+| Compte | Un compte Mozilla, sur <https://addons.mozilla.org/developers/>, à créer toi-même |
 | Paquet | `dist/ronote-firefox-vX.Y.Z.zip`, produit par `python tools/build.py` |
 | Coût | Aucun |
 

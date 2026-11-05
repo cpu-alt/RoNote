@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- *  AUTO-TESTS — a ouvrir dans un navigateur
+ *  AUTO-TESTS : a ouvrir dans un navigateur
  * --------------------------------------------------------------------------
  *      python tools/serve.py        puis  http://127.0.0.1:8777/tools/selftest.html
  *
@@ -146,7 +146,7 @@ try {
     roli.readEntry(cat.bundles['939596']).value > 0, true);
 
   /* --------------------- normalisation d'un trade v2 -------------------- */
-  group('Detail de trade — schema v2 (bundles)');
+  group('Detail de trade : schema v2 (bundles)');
   // Reponse conforme au schema officiel de trades.roblox.com v2 : c'est celui
   // que Roblox sert des qu'un trade contient un bundle, donc un visage.
   const rawTrade = {
@@ -315,7 +315,7 @@ try {
 
   // Les ids Roblox ne sont pas croissants : un id plus petit que tous les
   // autres peut etre un trade tout neuf. Seul un trade cree bien avant le plus
-  // recent connu est ecarte — et compte, pour le diagnostic.
+  // recent connu est ecarte : et compte, pour le diagnostic.
   {
     const T = Date.parse('2026-09-10T10:00:00Z');
     const iso = (min) => new Date(T + min * 60000).toISOString();
@@ -346,7 +346,7 @@ try {
   check('pluriel', [i18n.p(1, '{n} visage', '{n} visages'), i18n.p(3, '{n} visage', '{n} visages')],
     ['1 face', '3 faces']);
   // Une phrase absente du dictionnaire retombe sur le francais : degrade,
-  // jamais illisible — c'est tout l'interet de ne pas utiliser de cles.
+  // jamais illisible : c'est tout l'interet de ne pas utiliser de cles.
   check('phrase inconnue : repli sur le francais',
     i18n.t('Une phrase jamais traduite'), 'Une phrase jamais traduite');
   check('resolveLang', [i18n.resolveLang('fr'), i18n.resolveLang('en'), i18n.resolveLang('zz')],
@@ -390,7 +390,7 @@ try {
 
   /* Meme controle sur les pages ecrites en dur, que traduit translateDom. */
   const PAGES = ['../src/options/options.html', '../src/popup/popup.html'];
-  const IGNORE = /^(RoNote|×|—|↗|✕|⇄|⟳|⏸|▶|⚙|📌|\d[\d\s.,:%+-]*)$/;
+  const IGNORE = /^(RoNote|×|-|↗|✕|⇄|⟳|⏸|▶|⚙|📌|\d[\d\s.,:%+-]*)$/;
   const missingDom = [];
   for (const page of PAGES) {
     const html = await fetch(page).then(r => r.text());
@@ -545,7 +545,7 @@ try {
   const dom = globalThis.RoNoteDom;
 
   // Un vrai DOM, hors ecran : c'est le seul moyen de verifier un lecteur de
-  // page. Il n'imite pas les classes de Roblox — justement parce que le
+  // page. Il n'imite pas les classes de Roblox : justement parce que le
   // lecteur ne doit s'appuyer sur aucune.
   const stage = document.createElement('div');
   stage.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px';
@@ -881,4 +881,4 @@ try {
 const sum = document.getElementById('sum');
 sum.textContent = fail ? `${fail} ECHEC(S) · ${pass} ok` : `TOUT PASSE · ${pass} tests`;
 sum.style.color = fail ? '#ff5f66' : '#2fd070';
-document.title = (fail ? `KO ${fail}` : `OK ${pass}`) + ' — RoNote';
+document.title = (fail ? `KO ${fail}` : `OK ${pass}`) + ', RoNote';

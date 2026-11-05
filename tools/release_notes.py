@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def notes_for(tag: str) -> str:
     version = tag.lstrip("v")
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    # "## v2.15.0 — titre" jusqu'a la section suivante.
+    # "## v2.15.0 : titre" jusqu'a la section suivante.
     m = re.search(rf"^## v{re.escape(version)}\b.*?$(.*?)(?=^## v|\Z)", text, re.M | re.S)
     if not m:
         raise SystemExit(f"CHANGELOG.md n'a pas de section pour v{version}")

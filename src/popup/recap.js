@@ -161,7 +161,7 @@ export async function drawRecap(canvas, s, logoUrl, { clear = false } = {}) {
   // Le chiffre du mois.
   panel(g, 72, 180, W - 144, 300, 36);
   text(g, t('Value gagnée en trade'), 112, 248, { size: 28, weight: 700, color: C.dim });
-  const hero = s.trades ? signed(s.net) : '—';
+  const hero = s.trades ? signed(s.net) : 'N/A';
   const px = fit(g, hero, W - 224, 150, 900);
   text(g, hero, 108, 400, { size: px, weight: 900, color: C[tone] });
   text(g, s.trades ? t('sur {n} trades terminés', { n: s.trades }) : t('Aucun trade terminé ce mois-ci'),
@@ -170,8 +170,8 @@ export async function drawRecap(canvas, s, logoUrl, { clear = false } = {}) {
   // Trois tuiles.
   const tiles = [
     [t('Trades'), s.trades ? String(s.trades) : '0', C.fg],
-    [t('Victoires'), s.winRate == null ? '—' : s.winRate + ' %', s.winRate == null ? C.dim : s.winRate >= 50 ? C.win : C.loss],
-    [t('Meilleur trade'), s.best ? signed(s.best.net) : '—', s.best ? C.win : C.dim]
+    [t('Victoires'), s.winRate == null ? 'N/A' : s.winRate + ' %', s.winRate == null ? C.dim : s.winRate >= 50 ? C.win : C.loss],
+    [t('Meilleur trade'), s.best ? signed(s.best.net) : 'N/A', s.best ? C.win : C.dim]
   ];
   const tw = (W - 144 - 2 * 24) / 3;
   tiles.forEach(([label, value, color], i) => {
@@ -303,7 +303,7 @@ export async function drawWallet(canvas, w, logoUrl, { clear = false } = {}) {
   const gainWord = { win: t('GAIN'), loss: t('PERTE'), even: t('VARIATION') }[tone];
   const kicker = w.change ? `${gainWord} ${t('SUR')} ${w.change.label.toUpperCase()}` : t('VARIATION');
   text(g, kicker, PAD, 136, { size: 16, weight: 800, color, spacing: 2.5 });
-  const heroText = !w.change ? '—' : w.anon ? pctText(w.change.pct) : signed(w.change.d);
+  const heroText = !w.change ? 'N/A' : w.anon ? pctText(w.change.pct) : signed(w.change.d);
   const heroSize = fit(g, heroText, 560, 112, 850);
   const heroGrad = g.createLinearGradient(PAD, 150, PAD + 520, 240);
   heroGrad.addColorStop(0, color); heroGrad.addColorStop(1, 'rgba(255,255,255,.95)');
@@ -327,7 +327,7 @@ export async function drawWallet(canvas, w, logoUrl, { clear = false } = {}) {
   // À droite, discret : ce que vaut le compte.
   text(g, w.label.toUpperCase(), Wd - PAD, 160, { size: 13, weight: 700, color: '#8795ad', align: 'right', spacing: 1.5 });
   if (w.anon) text(g, t('Montants masqués'), Wd - PAD, 196, { size: 24, weight: 700, color: '#93a1b8', align: 'right' });
-  else text(g, w.value ? full(w.value) : '—', Wd - PAD, 200, { size: 34, weight: 800, color: '#f3f6fc', align: 'right' });
+  else text(g, w.value ? full(w.value) : 'N/A', Wd - PAD, 200, { size: 34, weight: 800, color: '#f3f6fc', align: 'right' });
   text(g, t('au {d}', { d: new Date(w.asOf || Date.now()).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }) }),
     Wd - PAD, 230, { size: 15, weight: 600, color: '#7f8ca3', align: 'right' });
 
@@ -338,7 +338,7 @@ export async function drawWallet(canvas, w, logoUrl, { clear = false } = {}) {
   else text(g, t('Pas encore de courbe Rolimon’s.'), Wd / 2, 430, { size: 20, weight: 600, color: '#7f8ca3', align: 'center' });
 
   // La barre de chiffres, comme les totaux d'une offre.
-  const tiles = w.tiles.map(([label, n, prefix = '']) => [label, typeof n === 'string' ? n : n ? prefix + full(n) : '—']);
+  const tiles = w.tiles.map(([label, n, prefix = '']) => [label, typeof n === 'string' ? n : n ? prefix + full(n) : 'N/A']);
   box(px, 600, pw, 84, 20, clear ? 'rgba(8,12,22,.74)' : 'rgba(255,255,255,.04)', 'rgba(255,255,255,.07)');
   const cw = pw / tiles.length;
   tiles.forEach(([label, value], i) => {

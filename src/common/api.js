@@ -52,7 +52,7 @@ const MAX_INFLIGHT = { 'roblox.com': 5, "rolimons.com": 3 };
  * Plafond de cadence, en requetes par minute et par hote.
  *
  * Limiter les appels EN VOL ne limite pas leur nombre dans le temps : cinq a
- * la fois, sans arret, reste une cadence soutenue — et c'est la cadence que
+ * la fois, sans arret, reste une cadence soutenue : et c'est la cadence que
  * Roblox compte. Ni Roblox ni Rolimon's ne publient leurs quotas : on part
  * large, et on apprend. Chaque 429 divise le plafond par deux, jusqu'a un
  * plancher ; apres dix minutes sans refus, il remonte d'un cran.
@@ -105,7 +105,7 @@ const give = (g) => { const next = g.queue.shift(); if (next) next(); else g.fre
 
 /**
  * Un 429 ferme la porte de son hote : les autres appels n'ont pas a le revivre.
- * Et il apprend quelque chose — le plafond de cadence etait trop haut pour ce
+ * Et il apprend quelque chose : le plafond de cadence etait trop haut pour ce
  * compte, a cette heure : on le divise par deux.
  */
 function holdBack(url, seconds) {
@@ -142,7 +142,7 @@ export function clearRateHolds() {
 
 /**
  * Passe la porte, puis lance la requete. Une pause courte s'attend sur place ;
- * une longue est refusee tout de suite, avec son delai — garder cent appels en
+ * une longue est refusee tout de suite, avec son delai : garder cent appels en
  * file reviendrait a les relacher tous ensemble a la reouverture, et la limite
  * repartirait pour un tour.
  */
@@ -278,7 +278,7 @@ async function apiGet(url, { allowRelay = true, retryOn429 = true, retryOnCsrf =
   }
   const retryAfter = Number(res?.headers?.get('retry-after') || 0);
   const base = netErr ? `Réseau: ${netErr.message}` : `HTTP ${status}`;
-  throw new ApiError(relayNote ? `${base} — ${relayNote}` : base, status, retryAfter, gateFor(url).label);
+  throw new ApiError(relayNote ? `${base} : ${relayNote}` : base, status, retryAfter, gateFor(url).label);
 }
 
 /* ============================== identite ================================ */
@@ -304,7 +304,7 @@ export function listTrades(type, limit = 25, cursor = '') {
  * Retrouve les deux offres d'un trade, quelle que soit la version d'API.
  *
  * v1 : `offers: [ {user, userAssets, robux}, … ]`
- * v2 : `participantAOffer` / `participantBOffer` — deux champs nommes, pas un
+ * v2 : `participantAOffer` / `participantBOffer`, deux champs nommes, pas un
  *      tableau, et les objets sont dans `items`. C'est ce format que renvoient
  *      les trades contenant un bundle (donc tous ceux avec un visage).
  */
@@ -349,7 +349,7 @@ function normalizeUser(o) {
  * et son type y est annonce explicitement. Chercher `assetId` / `bundleId` /
  * `id` a la racine (ce que faisait la version precedente) ne trouvait rien :
  * tous les objets d'un trade contenant un visage ressortaient avec un
- * identifiant nul — donc sans cote et sans vignette, pour le trade ENTIER.
+ * identifiant nul : donc sans cote et sans vignette, pour le trade ENTIER.
  *
  * Attention aussi a `id` : en v1 c'est le `userAssetId`, l'identifiant de
  * l'EXEMPLAIRE, jamais celui de l'objet. Le prendre comme assetId produit des
@@ -393,7 +393,7 @@ function normalizeItem(it) {
 /**
  * Normalise le detail d'un trade, v1 comme v2.
  * @param hint  ce que la liste des trades sait deja (date, expiration, statut,
- *              partenaire) — la v2 ne renvoie que `tradeId`, `status` et les
+ *              partenaire) : la v2 ne renvoie que `tradeId`, `status` et les
  *              deux offres, sans aucune date.
  */
 export function normalizeTradeDetail(raw, hint = null) {
@@ -434,7 +434,7 @@ const robuxTotal = (d) => (d?.offers || []).reduce((s, o) => s + (o.robux || 0),
  * v1 d'abord : son format porte la date, l'expiration et le partenaire en une
  * seule requete, et il couvre l'immense majorite des trades. Il ne sait
  * cependant pas representer un bundle et refuse (403) les trades qui en
- * contiennent — on bascule alors sur v2, qui les gere.
+ * contiennent : on bascule alors sur v2, qui les gere.
  *
  * On bascule AUSSI quand v1 repond mais rend un trade vide : un trade sans le
  * moindre objet ni Robux n'existe pas, c'est le signe que v1 a silencieusement
@@ -443,7 +443,7 @@ const robuxTotal = (d) => (d?.offers || []).reduce((s, o) => s + (o.robux || 0),
  * Les deux versions en direct d'abord, le relais par un onglet ensuite. Un
  * relais injecte un script dans chaque onglet Roblox ouvert : relayer le refus
  * de v1 avant meme d'essayer v2 coutait ces injections pour chaque trade a
- * bundle. Seule une version qui a echoue en direct est relayee — un v1 qui
+ * bundle. Seule une version qui a echoue en direct est relayee : un v1 qui
  * repond vide repondrait vide depuis l'onglet aussi.
  */
 export async function getTrade(id, hint = null) {
@@ -482,7 +482,7 @@ export async function getTrade(id, hint = null) {
 
   if (v1Result) return v1Result;     // v2 muet : on rend ce que v1 a donne
   const first = errors.get(TRADES) || errors.get(TRADES_V2);
-  throw relayNote ? new ApiError(`${first.message} — ${relayNote}`, first.status, first.retryAfter) : first;
+  throw relayNote ? new ApiError(`${first.message} : ${relayNote}`, first.status, first.retryAfter) : first;
 }
 
 /**
@@ -595,7 +595,7 @@ async function apiPost(url, payload = {}) {
 /**
  * Refuse un trade. Le MEME endpoint annule un trade qu'on a envoye : Roblox
  * n'expose pas de « cancel », le site appelle `decline` dans les deux sens.
- * Irreversible cote Roblox — la confirmation se fait dans l'interface.
+ * Irreversible cote Roblox : la confirmation se fait dans l'interface.
  */
 export function declineTrade(tradeId) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
@@ -694,7 +694,7 @@ const LOOKUP_RETRY = 30 * 60 * 1000;   // une erreur passagere se retente apres
  *
  * Seule une vraie reponse de Roblox (vide, 400, 404) dit « rien ici » : elle
  * est gardee le temps du cache. Une autre erreur n'apprend rien et se retente
- * apres 30 min — la garder aussi longtemps laissait des objets sans cote
+ * apres 30 min : la garder aussi longtemps laissait des objets sans cote
  * pendant des jours, un mois pour les bundles. Une limite de debit arrete la
  * recherche sans rien memoriser.
  *
@@ -811,8 +811,7 @@ async function fetchThumbBatches(ids, batch, urlOf) {
       readThumbs(await apiGet(urlOf(part), { allowRelay: false, retryOn429: false }), out);
     } catch (e) {
       // Une limite de debit vaut pour tout l'hote : reprendre le lot objet par
-      // objet multiplierait les appels par sa taille — jusqu'a cent d'un coup —
-      // et prolongerait la limite au lieu de la passer. On s'arrete la ; les
+      // objet multiplierait les appels par sa taille : jusqu'a cent d'un coup,       // et prolongerait la limite au lieu de la passer. On s'arrete la ; les
       // vignettes manquantes reviennent au prochain passage, le trade reste lu.
       if (e?.status === 429) break;
       if (part.length > 1) {
@@ -827,13 +826,13 @@ async function fetchThumbBatches(ids, batch, urlOf) {
   return out;
 }
 
-/** @returns { [assetId]: url } — les identifiants non rendus sont absents. */
+/** @returns { [assetId]: url }, les identifiants non rendus sont absents. */
 export function fetchAssetThumbs(assetIds, size = '150x150') {
   return fetchThumbBatches(assetIds, ASSET_THUMB_BATCH, (part) =>
     `${THUMBS}/assets?${new URLSearchParams({ assetIds: part.join(','), size, format: 'Png', isCircular: 'false' })}`);
 }
 
-/** @returns { [bundleId]: url } — lots de 30 maximum, plafond impose par Roblox. */
+/** @returns { [bundleId]: url }, lots de 30 maximum, plafond impose par Roblox. */
 export function fetchBundleThumbs(bundleIds, size = '150x150') {
   return fetchThumbBatches(bundleIds, BUNDLE_THUMB_BATCH, (part) =>
     `${THUMBS}/bundles/thumbnails?${new URLSearchParams({ bundleIds: part.join(','), size, format: 'Png' })}`);
@@ -958,8 +957,7 @@ export async function getPlayerAssets(userId) {
  * Historique complet du joueur, tel que Rolimon's l'affiche sur son profil.
  *
  * Il n'existe pas d'endpoint JSON pour cette serie : la page l'embarque dans
- * une variable `chart_data`. On lit donc la page et on extrait cette variable —
- * c'est la meme donnee, a la virgule pres, que le graphique du site.
+ * une variable `chart_data`. On lit donc la page et on extrait cette variable :  * c'est la meme donnee, a la virgule pres, que le graphique du site.
  */
 export async function getPlayerHistory(userId) {
   const url = `https://www.rolimons.com/player/${userId}`;
@@ -1005,7 +1003,7 @@ const ITEM_BUCKETS = [
  * Pas d'endpoint JSON ici non plus : la page embarque `history_data` (RAP et
  * meilleur prix, un releve toutes les 30 min sur la periode recente) et
  * `value_changes`, chaque evenement de la fiche sous la forme
- * [date, type, avant, apres] — le type 1 est la value. La value a une date
+ * [date, type, avant, apres] : le type 1 est la value. La value a une date
  * donnee est donc la derniere revision anterieure.
  *
  * La page pese jusqu'a 1,7 Mo pour 11 000 releves : on ne garde que le dernier

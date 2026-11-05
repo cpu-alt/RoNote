@@ -18,7 +18,7 @@
  *
  *  2. LE REPERE.  Une revision est datee du rafraichissement qui l'a vue. On
  *     n'alerte que sur ce qui est posterieur au repere, et le repere avance
- *     jusqu'a la plus recente revision CONNUE — possedee ou non. Sans ca, un
+ *     jusqu'a la plus recente revision CONNUE : possedee ou non. Sans ca, un
  *     objet achete apres coup ferait remonter une revision vieille de 6 jours.
  * ==========================================================================
  */

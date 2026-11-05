@@ -1,7 +1,7 @@
 import { t, locale } from './i18n.js';
 
 /**
- * LES NOMBRES S'ECRIVENT COMME ROBLOX LES ECRIT : 1,836,950 — virgule pour
+ * LES NOMBRES S'ECRIVENT COMME ROBLOX LES ECRIT : 1,836,950, virgule pour
  * les milliers, point pour la decimale, quelle que soit la langue. Le format
  * francais (espaces fines) ressortait avec des espaces tantot larges, tantot
  * doubles selon la police, et jurait avec les nombres de la page juste a cote.
@@ -14,10 +14,10 @@ const FULL = new Intl.NumberFormat(NUM_LOCALE);
 const nf = (n, max) => FORMATS[max].format(Number(n));
 /**
  * Nombre compact : 1,5k · 24k · 2,4M. Le separateur decimal est celui de la
- * langue — un « 1.5k » au milieu de nombres ecrits « 1 500 » se voit.
+ * langue : un « 1.5k » au milieu de nombres ecrits « 1 500 » se voit.
  */
 export function fmtNum(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  if (n === null || n === undefined || Number.isNaN(n)) return 'N/A';
   const a = Math.abs(n);
   if (a >= 1_000_000) return nf(n / 1_000_000, a >= 10_000_000 ? 0 : 1) + 'M';
   if (a >= 1_000)     return nf(n / 1_000, a >= 10_000 ? 0 : 1) + 'k';
@@ -26,11 +26,11 @@ export function fmtNum(n) {
 
 /**
  * Pourcentage signe : +12,4% · −93% · +3 482%. Une decimale en dessous de
- * 100 %, aucune au-dela — « +3482.1% » se lit mal et la decimale n'y apporte
+ * 100 %, aucune au-dela : « +3482.1% » se lit mal et la decimale n'y apporte
  * rien. Meme signe moins que fmtSigned (« − », pas « - »).
  */
 export function fmtPct(p) {
-  if (p === null || p === undefined || !Number.isFinite(p)) return '—';
+  if (p === null || p === undefined || !Number.isFinite(p)) return 'N/A';
   const a = Math.abs(p);
   const body = nf(a, a >= 100 ? 0 : 1);
   return (p < 0 ? '−' : p > 0 ? '+' : '') + body + '%';
@@ -120,7 +120,7 @@ export function serialQueue() {
 
 /**
  * fetch avec delai maximal. Sans lui, un appel que Roblox ou Rolimon's ne
- * terminait jamais gardait le cycle de verification ouvert indefiniment — et
+ * terminait jamais gardait le cycle de verification ouvert indefiniment : et
  * son verrou avec : plus aucune notification jusqu'au redemarrage du worker.
  */
 export async function fetchWithTimeout(url, init = {}, ms = 20000) {
@@ -141,7 +141,7 @@ export function escapeHtml(s) {
 
 /** Nombre complet, separateurs francais : 1 836 950. */
 export function fmtFull(n) {
-  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—';
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return 'N/A';
   return FULL.format(Math.round(Number(n)));
 }
 
@@ -151,11 +151,11 @@ export function fmtSigned(n, full = false) {
   return (v > 0 ? '+' : v < 0 ? '−' : '') + (full ? fmtFull(Math.abs(v)) : fmtNum(Math.abs(v)));
 }
 
-/** Un releve sans date vaut mieux affiche « — » qu'en « Invalid Date ». */
+/** Un releve sans date vaut mieux affiche « : » qu'en « Invalid Date ». */
 export const fmtDate = (ms) =>
   Number.isFinite(Number(ms)) && Number(ms) > 0
     ? new Date(Number(ms)).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: '2-digit' })
-    : '—';
+    : 'N/A';
 
 /** Signe du ton a appliquer : win / loss / even. */
 export const toneOf = (n, dead = 0) =>

@@ -370,7 +370,7 @@ const mockRuntime = {
         // compris) ; Roblox, l'inventaire privé.
         await new Promise(r => setTimeout(r, 500));
         if (Number(msg.userId) === alice.id) {
-          return { faces: playerMod.playerFaces({ ...portfolioMod.emptyReport(alice.id), ok: false, private: true, reason: "inventaire privé — Rolimon's ne publie rien" }) };
+          return { faces: playerMod.playerFaces({ ...portfolioMod.emptyReport(alice.id), ok: false, private: true, reason: "inventaire privé, Rolimon's ne publie rien" }) };
         }
         return { faces: playerMod.playerFaces(report) };
       }

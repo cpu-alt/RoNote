@@ -9,7 +9,7 @@ import { fetchWithTimeout } from './utils.js';
  *
  *  La « value » Rolimon's est ce chiffre-la : une cote fixee par une equipe
  *  communautaire, revisee regulierement. C'est elle que lit tout le monde,
- *  c'est donc elle qu'on met en avant — sans jamais cacher le RAP a cote,
+ *  c'est donc elle qu'on met en avant : sans jamais cacher le RAP a cote,
  *  parce qu'une cote peut etre contestee et qu'un ecart franc entre les deux
  *  est une information en soi.
  *
@@ -102,8 +102,7 @@ export function readEntry(entry) {
     name: entry[NAME], acronym: entry[ACRO],
     rap: entry[RAP],
     // Convention de tout l'ecosysteme : sans cote publiee, on retombe sur le
-    // RAP. `noValue` permet a l'interface de dire que c'est ce qui se passe —
-    // sur un objet « projected », le RAP est justement le chiffre gonfle.
+    // RAP. `noValue` permet a l'interface de dire que c'est ce qui se passe :     // sur un objet « projected », le RAP est justement le chiffre gonfle.
     value: entry[VALUE] || entry[RAP],
     rawValue: entry[VALUE],
     demand: entry[DEMAND], trend: entry[TREND],
@@ -159,7 +158,7 @@ function buildFaceBridge(v3assets, v3bundles, v1assets) {
  * Transforme une reponse Rolimon's en tables exploitables.
  * Fonction pure, testee sur des reponses REELLES : c'est le seul moyen de
  * detecter qu'un renommage de champ cote Rolimon's vide la table.
- * @returns {{assets, bundles}|null} — null si la reponse est inutilisable.
+ * @returns {{assets, bundles}|null} : null si la reponse est inutilisable.
  */
 export function parseItems(json) {
   if (!json || typeof json !== 'object') return null;
@@ -232,9 +231,9 @@ async function fetchJson(url) {
   return r.json();
 }
 
-let mem = null;       // { ts, table } — evite de relire 300 Ko a chaque appel
+let mem = null;       // { ts, table } : evite de relire 300 Ko a chaque appel
 let pending = null;   // chargement en cours, partage par les appels simultanes
-let failed = null;    // { table, retryAt, delay } — dernier echec de Rolimon's
+let failed = null;    // { table, retryAt, delay } : dernier echec de Rolimon's
 
 const RETRY_MIN = 5 * 60 * 1000;    // premier nouvel essai apres un echec
 const RETRY_MAX = 30 * 60 * 1000;   // puis de plus en plus espaces, jusqu'a 30 min
@@ -251,7 +250,7 @@ const emptyCatalog = (ratio = 1.6) => ({
  * @returns {{assets, bundles, faceOf, bundleOf, ts, stale, veryStale,
  *            changes, basis, ratio, count, ready}}
  *   stale : la table servie vient d'un cache perime (Rolimon's injoignable).
- *           On continue a s'en servir — mais on le DIT.
+ *           On continue a s'en servir : mais on le DIT.
  */
 export async function getCatalog(settings) {
   const ratio = Number(settings?.speculativeRatio) || 1.6;

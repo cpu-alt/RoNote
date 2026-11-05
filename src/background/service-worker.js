@@ -181,7 +181,7 @@ function record(ctx, card, extra = {}) {
 
 /**
  * La carte d'un evenement : evaluee si possible, minimale sinon. Le type vient
- * de l'evenement, pas du cache — un trade recu puis termine garde sa fiche.
+ * de l'evenement, pas du cache : un trade recu puis termine garde sa fiche.
  */
 async function eventCard(ctx, t, kind, opts = {}) {
   const card = await safeCard(() => buildCard(t.id, kind, ctx.me.id, ctx.cat, ctx.settings, opts), null)
@@ -247,7 +247,7 @@ async function stepInactive(ctx) {
     }
 
     // Declined / Expired sur un trade envoye : suivi a la main, auto-suivi ou
-    // pas suivi du tout — chacun ses regles, une seule notification.
+    // pas suivi du tout : chacun ses regles, une seule notification.
     if (dir === 'outbound' && ctx.settings.watchOutbound) {
       const info = OUTCOMES[status];
       if (!info) continue;
@@ -365,11 +365,11 @@ async function stepCompleted(ctx) {
 
   for (const t of r.fresh) {
     // Un trade que J'AI envoye et qui aboutit, c'est « ton trade a ete
-    // accepte » — pas un simple « trade complete » : le titre, le son et le
+    // accepte » : pas un simple « trade complete » : le titre, le son et le
     // point de vue (tu as recu / tu as donne) de la notification changent.
     const mine = directionOf(ctx.streams, t.id) === 'outbound';
     // Meme raison qu'en Inactifs : la liste dit que c'est fini, le tracker n'a
-    // plus a en demander le detail — et ne notifiera donc pas une seconde fois.
+    // plus a en demander le detail : et ne notifiera donc pas une seconde fois.
     delete ctx.state.tracked[t.id];
     const kind = mine ? 'outbound_accepted' : 'completed';
     const card = await eventCard(ctx, t, kind, { force: true, hint: liteTrade(t) });
@@ -395,7 +395,7 @@ const PORTFOLIO_RETRY = 5 * 60 * 1000;         // apres un echec, sans attendre 
 /**
  * Les chiffres du compte : ceux de Rolimon's avec la liste des objets, et la
  * serie historique. Deux cadences differentes, d'ou deux gardes de
- * fraicheur — reconstruire tout ca a chaque verification (toutes les 30 s)
+ * fraicheur : reconstruire tout ca a chaque verification (toutes les 30 s)
  * serait une attaque en regle sur les API de Rolimon's depuis l'IP du joueur.
  */
 async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
@@ -443,7 +443,7 @@ async function refreshPortfolio(state, settings, cat, { force = false } = {}) {
       await savePortfolio(points);
     } else {
       // Page injoignable : nouvel essai dans 5 min. Page sans courbe : au
-      // prochain terme normal — la redemander plus tot ne la remplirait pas.
+      // prochain terme normal : la redemander plus tot ne la remplirait pas.
       state.historyFetchedAt = points ? now : now - HISTORY_TTL + PORTFOLIO_RETRY;
     }
   }
@@ -517,7 +517,7 @@ const ACCOUNTS_CAP = 8;   // comptes retenus pour le menu du popup
 /**
  * Le compte connecte, et la liste des comptes deja vus sur ce navigateur :
  * le menu du popup les propose (pseudo, portrait), sans jamais garder de
- * cookie ni de jeton — la bascule elle-meme se fait sur roblox.com.
+ * cookie ni de jeton : la bascule elle-meme se fait sur roblox.com.
  */
 async function setIdentity(state, me) {
   state.userId = me.id;
@@ -568,7 +568,7 @@ const storeQueue = serialQueue();
 let tickHolds = false;   // un passage a lu state/streams et va les ecrire
 const lateEdits = [];    // modifications a rejouer sur sa copie
 
-/** @param edit (state, streams, replay) => void — doit pouvoir etre rejouee */
+/** @param edit (state, streams, replay) => void : doit pouvoir etre rejouee */
 function editStore(edit) {
   return storeQueue(async () => {
     const [state, streams] = await Promise.all([getState(), getStreams()]);
@@ -634,8 +634,7 @@ async function tick(reason = 'manual') {
     state.lastPollAt = Date.now();
 
     // Un clic sur « verifier maintenant » passe outre une pause ordinaire :
-    // c'est tout l'interet du bouton. Mais pas outre une limite de debit —
-    // relancer un cycle complet pendant qu'elle court ne fait que la
+    // c'est tout l'interet du bouton. Mais pas outre une limite de debit :     // relancer un cycle complet pendant qu'elle court ne fait que la
     // prolonger, et c'est le reflexe naturel devant le point rouge.
     if (state.backoffUntil && Date.now() < state.backoffUntil
         && (reason !== 'manual' || state.backoffWhy === 'rate')) {
@@ -686,7 +685,7 @@ async function tick(reason = 'manual') {
       // Si l'etape echoue APRES avoir lu sa page, les trades qu'elle venait de
       // decouvrir etaient deja marques « vus » : jamais notifies, sans un mot.
       // On remet le flux dans l'etat d'avant et on oublie ce que l'etape avait
-      // commence a produire — le prochain passage reprendra tout proprement.
+      // commence a produire : le prochain passage reprendra tout proprement.
       const before = streams[kind];
       const nEvents = ctx.events.length, nHistory = ctx.history.length;
       try { await step(ctx); }
@@ -703,8 +702,7 @@ async function tick(reason = 'manual') {
 
     // UN AUTRE COMPTE, MEME NAVIGATEUR. L'identite n'est redemandee que toutes
     // les 15 min : entre-temps, un changement de compte sur roblox.com faisait
-    // lire les listes du NOUVEAU compte avec les ids deja vus de l'ANCIEN —
-    // chaque trade y passait pour neuf, et partait en notification. Avant de
+    // lire les listes du NOUVEAU compte avec les ids deja vus de l'ANCIEN :     // chaque trade y passait pour neuf, et partait en notification. Avant de
     // prevenir de quoi que ce soit avec une identite gardee en memoire, on la
     // reverifie (un appel, seulement quand il y a du neuf). Si le compte a
     // change, rien n'est notifie : les flux repartent d'une photo silencieuse.
@@ -981,7 +979,7 @@ async function rolimonsOn() {
 /**
  * Tout ce qu'affichent le popup et les reglages, en une reponse : le popup
  * l'attend pour afficher quoi que ce soit. `lite` : sans les compteurs des
- * flux, que seuls les reglages montrent — inutile de relire des milliers d'ids.
+ * flux, que seuls les reglages montrent : inutile de relire des milliers d'ids.
  */
 async function uiData({ lite = false } = {}) {
   const [settings, state, history, stored, portfolio, report] = await Promise.all([
@@ -1287,7 +1285,7 @@ async function handleMessage(msg) {
       return { state, portfolio: await getPortfolio(), report: await getPortfolioReport() };
     }
     /**
-     * Refuse un trade recu, ou annule un trade envoye — c'est le meme appel
+     * Refuse un trade recu, ou annule un trade envoye : c'est le meme appel
      * cote Roblox. La confirmation est demandee par l'interface AVANT d'arriver
      * ici : le service worker ne fait qu'executer, mais il nettoie derriere.
      */
@@ -1523,16 +1521,16 @@ async function handleMessage(msg) {
       const id = cleanTradeId(msg.tradeId);
       const report = [{
         etape: 'en-têtes réécrits (Origin/Referer)',
-        actif: headerRulesActive ? 'oui' : 'non — API declarativeNetRequest indisponible'
+        actif: headerRulesActive ? 'oui' : 'non, API declarativeNetRequest indisponible'
       }, {
         etape: 'jeton CSRF récupéré depuis une page Roblox',
-        actif: api.hasCsrfToken() ? 'oui' : 'non — ouvre un onglet roblox.com'
+        actif: api.hasCsrfToken() ? 'oui' : 'non, ouvre un onglet roblox.com'
       }, {
         etape: 'détail fourni par la page pour ce trade',
         actif: (await getCapturedTrade(id)) ? 'oui' : 'non'
       }, {
         etape: 'trade lu sur la page affichée',
-        actif: (await getScrapedTrade(id, '')) ? 'oui' : 'non — ouvre ce trade sur roblox.com une fois'
+        actif: (await getScrapedTrade(id, '')) ? 'oui' : 'non, ouvre ce trade sur roblox.com une fois'
       }];
       return { report: report.concat(await api.probeTradeDetail(msg.tradeId)) };
     }

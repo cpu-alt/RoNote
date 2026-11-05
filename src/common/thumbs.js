@@ -24,7 +24,7 @@
  *  Un identifiant inconnu ne provoque pas d'erreur HTTP : Roblox renvoie 200
  *  avec `state: "Error"` et l'URL d'un carre casse. Sans filtrage, cette
  *  image s'affiche comme une vignette normale. Le filtrage est dans api.js
- *  (`readThumbs`), et ici on memorise aussi les ECHECS — sinon les memes
+ *  (`readThumbs`), et ici on memorise aussi les ECHECS : sinon les memes
  *  identifiants sont redemandes a chaque ouverture du popup.
  * ==========================================================================
  */
@@ -78,9 +78,9 @@ export async function flushThumbs({ force = false } = {}) {
 const fresh = (rec, now) => rec && (now - rec.at) < (rec.u ? TTL : NEG_TTL);
 
 /**
- * @param lists  Array<string[]> — pour chaque objet, ses cles candidates
+ * @param lists  Array<string[]> : pour chaque objet, ses cles candidates
  *               ordonnees de la plus souhaitable a la moins ('a:123', 'b:456').
- * @returns Array<string|null> — meme longueur, l'URL retenue ou null.
+ * @returns Array<string|null> : meme longueur, l'URL retenue ou null.
  */
 export async function resolveThumbs(lists) {
   await load();

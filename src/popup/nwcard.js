@@ -24,17 +24,17 @@ export function nwTilesHtml(items, more = 0, robux = 0) {
       ? `<img src="${escapeHtml(it.thumb)}" alt="" loading="lazy">`
       : `<span class="nc-ph">${escapeHtml((it.name || '?').slice(0, 2))}</span>`;
     return `<button class="nc-it" data-open="https://www.rolimons.com/item/${Number(it.id)}" title="${escapeHtml(it.name || '#' + it.id)}${it.value ? ' · ' + fmtNum(it.value) : ''}">
-      ${img}${it.n > 1 ? `<i class="nc-n">×${it.n}</i>` : ''}<span class="nc-v">${it.value ? fmtNum(it.value) : '—'}</span></button>`;
+      ${img}${it.n > 1 ? `<i class="nc-n">×${it.n}</i>` : ''}<span class="nc-v">${it.value ? fmtNum(it.value) : 'N/A'}</span></button>`;
   });
   if (more > 0) tiles.push(`<span class="nc-more">+${more}</span>`);
   if (robux > 0) tiles.push(`<span class="nc-rbx">R$ ${fmtNum(robux)}</span>`);
-  return `<div class="nc-tiles">${tiles.join('') || '<span class="nc-none">—</span>'}</div>`;
+  return `<div class="nc-tiles">${tiles.join('') || '<span class="nc-none">N/A</span>'}</div>`;
 }
 
 export function nwTradeCard(tr, mine = false) {
   if (!tr) return '';
   const side = (label, items, more, robux, total) => `<div class="nc-side">
-    <div class="nc-lbl"><span>${label}</span><b>${total ? fmtNum(total) : '—'}</b></div>
+    <div class="nc-lbl"><span>${label}</span><b>${total ? fmtNum(total) : 'N/A'}</b></div>
     ${nwTilesHtml(items, more, robux)}</div>`;
   const delta = (tr.got || 0) - (tr.gave || 0);
   const head = mine

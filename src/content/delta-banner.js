@@ -55,7 +55,7 @@
     const a = Math.abs(delta);
     const n = sign(delta) + (o.format === 'short' && a >= 1000 ? short.format(a) : full.format(a));
     if (!o.pct) return n;
-    return `${n} (${pct === null || !Number.isFinite(pct) ? '—' : sign(Math.round(pct)) + Math.abs(Math.round(pct)) + '%'})`;
+    return `${n} (${pct === null || !Number.isFinite(pct) ? 'N/A' : sign(Math.round(pct)) + Math.abs(Math.round(pct)) + '%'})`;
   }
 
   function tone(color, style) {
