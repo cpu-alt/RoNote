@@ -788,6 +788,7 @@ try {
     check('thèmes : un autre fichier est refusé', themes.themeFromFile({ settings: {} }), null);
     check('thèmes : les fonds sont peints en JPEG', /^data:image\/jpeg;base64,/.test(themes.paintBackground('ocean')), true);
     await import('../src/popup/coinflip.js');
+    await import('../src/popup/profiles.js');
     await import('../src/popup/overlay.js');
     await import('../src/popup/share.js');
     const counter = await import('../src/popup/counter.js');

@@ -58,9 +58,9 @@ async function forget(keys) {
   if (hit) await B.storage.session?.set({ [STORE_KEY]: m }).catch(() => {});
 }
 
-async function fetchOne(kind, id) {
+async function fetchOne(kind, id, path = `${kind}/${id}`) {
   try {
-    const res = await fetch(`${NEURONAL.api}${kind}/${id}`, {
+    const res = await fetch(NEURONAL.api + path, {
       headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1' },
       credentials: 'omit'
     });
@@ -94,6 +94,32 @@ export async function neuronalLookup(kind, id, settings) {
   const run = fetchOne(kind, id).then(async (value) => {
     const ttl = value.data ? (value.data.known ? KNOWN_MS : UNKNOWN_MS) : FAIL_MS;
     await remember(key, value, ttl);
+    return value;
+  }).finally(() => pending.delete(key));
+  pending.set(key, run);
+  return run;
+}
+
+/**
+ * Les fiches Profile discovery (onglet Profils du popup) : `kind` = 'classic'
+ * (annonces Rolimon's) ou 'neuronal' (joueurs vus trader, palier « ghost »
+ * compris), `tier` = un palier ou rien. Mêmes conditions que les fiches ;
+ * gardées 2 min, comme le serveur. Rien n'est lu tant que l'onglet est fermé.
+ */
+const PROFILES_MS = 2 * 60e3;
+export async function neuronalProfiles(kind, tier, settings) {
+  if (kind !== 'classic' && kind !== 'neuronal') return { error: 'bad request' };
+  tier = /^[a-z]{3,12}$/.test(tier || '') ? tier : '';
+  if (!settings?.neuronalLookup) return { off: true };
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true, permission: false };
+
+  const key = `profiles:${kind}:${tier}`;
+  const hit = (await cache())[key];
+  if (hit && hit.until > Date.now()) return hit.value;
+  if (pending.has(key)) return pending.get(key);
+  const run = fetchOne('profiles', 0, `profiles?kind=${kind}${tier ? '&tier=' + tier : ''}`).then(async (value) => {
+    await remember(key, value, value.data ? PROFILES_MS : FAIL_MS);
     return value;
   }).finally(() => pending.delete(key));
   pending.set(key, run);

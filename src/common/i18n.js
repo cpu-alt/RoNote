@@ -1084,6 +1084,29 @@ const EN = {
   "SUR": "OVER",
   "Montants masqués": "Amounts hidden",
   "au {d}": "as of {d}",
+
+  /* --- onglet Profils (profiles.js) ------------------------------------- */
+  "Profils": "Profiles",
+  "Classique": "Classic",
+  "Liste": "List",
+  "Palier": "Tier",
+  "Tous": "All",
+  "Les joueurs que Neuronal a vus trader. Ghost : jamais une seule annonce.": "Players Neuronal saw trading. Ghost: never posted a single ad.",
+  "Les joueurs repérés par leurs annonces Rolimon's, rangés par nombre d'annonces.": "Players spotted through their Rolimon's ads, sorted by ad count.",
+  "{n} annonces": "{n} ads",
+  "aucune annonce": "no ads",
+  "1 annonce": "1 ad",
+  "a tradé avec {who}": "traded with {who}",
+  "Utilise RoNote et partage ses trades": "Uses RoNote and shares their trades",
+  "Fiches Neuronal coupées": "Neuronal sheets are off",
+  "Active « Fiches Neuronal » dans Réglages › Valeurs pour voir les profils.": "Turn on “Neuronal sheets” in Settings › Values to see the profiles.",
+  "Ouvrir les réglages": "Open settings",
+  "Profils indisponibles": "Profiles unavailable",
+  "Neuronal ne partage pas ces listes pour le moment.": "Neuronal isn't sharing these lists right now.",
+  "Trop de demandes": "Too many requests",
+  "Réessaie dans quelques minutes.": "Try again in a few minutes.",
+  "Aucun profil": "No profiles",
+  "Rien de posté dans ce palier ces 7 derniers jours.": "Nothing posted in this tier in the last 7 days.",
 };
 
 const DICT = { en: EN };

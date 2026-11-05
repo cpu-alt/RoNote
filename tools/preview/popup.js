@@ -296,6 +296,21 @@ const mockRuntime = {
         return { history: [...HISTORY, ...demoMonths()] };
       // Fiches Neuronal : Shedletsky est dans la base, Roblox n'y est pas ; tout objet
       // dont l'identifiant est pair y a des trades, les autres non.
+      case 'ronote:neuronal-profiles': {
+        await new Promise(r => setTimeout(r, 300));
+        const now = Date.now() / 1000;
+        const neuro = msg.kind === 'neuronal';
+        const tiers = neuro ? ['ghost', 'rookie', 'novice', 'beginner', 'casual', 'regular', 'active', 'experienced', 'veteran']
+          : ['rookie', 'novice', 'beginner', 'casual', 'regular', 'active', 'experienced', 'veteran'];
+        const all = [
+          { id: 21, name: 'QuietSwapper', ads: 0, tier: 'ghost', at: now - 240, value: 184000, ronote: true, partner: { id: 22, name: 'Telamon' }, trade: 1 },
+          { id: 23, name: 'FirstAdGuy', ads: 1, tier: 'rookie', at: now - 900, value: 32000 },
+          { id: 24, name: 'midnight_rap', ads: 4, tier: 'novice', at: now - 3600, value: 71500, partner: { id: 25, name: 'Builderman' }, trade: 2 },
+          { id: 26, name: 'ValkFlipper', ads: 22, tier: 'casual', at: now - 7200, value: 1240000, ronote: true },
+          { id: 27, name: 'shadow_lim', ads: 0, tier: 'ghost', at: now - 10800, value: 9800 }
+        ].filter(p => tiers.includes(p.tier) && (!msg.tier || p.tier === msg.tier));
+        return { data: { v: 1, kind: msg.kind, tier: msg.tier || null, tiers, profiles: all } };
+      }
       case 'ronote:neuronal': {
         await new Promise(r => setTimeout(r, 450));
         const now = Date.now() / 1000;

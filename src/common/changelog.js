@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item('Profils', 'Profiles'),
+    items: [
+      item("Onglet Profils (menu du compte) : les joueurs du Profile discovery de Neuronal, classiques ou vus en train de trader, filtrables par palier (ghost, rookie, novice…). Les utilisateurs RoNote portent leur étiquette.",
+        "Profiles tab (account menu): the players from Neuronal's Profile discovery, classic or seen trading, filterable by tier (ghost, rookie, novice…). RoNote users carry their tag.")
+    ]
+  },
+  {
     version: '2.16.0',
     title: item('Réseau Neuronal, interface, barre latérale et animations', 'Neuronal network, interface, sidebar and animations'),
     items: [

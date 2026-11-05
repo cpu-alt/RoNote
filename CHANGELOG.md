@@ -3,6 +3,16 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation
+
+- **Onglet Profils** (menu du compte › Profils) : le Profile discovery de Neuronal
+  dans le popup. Deux listes, *Classique* (les joueurs repérés par leurs annonces
+  Rolimon's) et *Neuronal* (les joueurs vus en train de trader), avec un filtre
+  par palier : ghost, rookie, novice, beginner… Les utilisateurs RoNote portent
+  l'étiquette « RoNote user ». Lu sur neuronal.live (`GET /ext/v1/profiles`),
+  seulement si les Fiches Neuronal sont actives ; seuls la liste et le palier
+  choisis sont envoyés, gardés 2 min.
+
 ## v2.16.0 — l'interface Neuronal, le réseau, la barre latérale et les animations
 
 **Une nouvelle interface par défaut dans le style du site Neuronal, la

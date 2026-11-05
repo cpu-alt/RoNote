@@ -10,6 +10,7 @@ import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '.
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
 import { renderCoin, coinKey } from './coinflip.js';
+import { renderProfiles } from './profiles.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
@@ -275,6 +276,7 @@ function fillMeMenu() {
     <div class="mm-sep"></div>
     ${menuRow('anon', anon ? 'eye-off' : 'eye', t(anon ? 'Quitter le mode anonyme' : 'Mode anonyme'), '<kbd>H</kbd>')}
     ${menuRow('pause', data.settings?.enabled ? 'pause' : 'play', t(data.settings?.enabled ? 'Mettre en pause' : 'Reprendre la surveillance'))}
+    ${menuRow('profiles', 'user', t('Profils'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
 }
@@ -345,6 +347,7 @@ async function onMeMenu(e) {
     data.settings = res.settings;
     renderHeader();
   } else if (act === 'coin') selectTab('coin');
+  else if (act === 'profiles') selectTab('profiles');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
 }
 
@@ -2671,6 +2674,8 @@ function renderList() {
   // La pièce ne se redessine qu'en arrivant sur l'onglet : un rafraîchissement
   // de fond couperait un lancer en plein vol.
   if (tab === 'coin') { lastListSig = ''; if (entering) renderCoin(listEl); return; }
+  // Les profils se relisent en arrivant sur l'onglet seulement (gardés 2 min par le worker).
+  if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;
