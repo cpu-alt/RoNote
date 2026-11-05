@@ -38,12 +38,21 @@ const TIERS = ['ghost', 'rookie', 'novice', 'beginner', 'casual', 'regular', 'ac
 const MINS = [0, 10e3, 50e3, 100e3, 500e3, 1e6];
 const PAGE = 15;
 const KEEP_MS = 2 * 60e3;
+// En direct : tant que l'onglet est affiché, la liste est relue chaque minute.
+// Le worker et le serveur gardent chacun la réponse 2 min, donc ça ne coûte
+// au plus qu'une vraie requête toutes les 2 min par liste ; rien ne part si
+// le popup est caché ou sur un autre onglet.
+const LIVE_MS = 60e3;
 
 const lists = {};            // 'classic' | 'neuronal' -> { at, res }
 let token = 0;
 let shown = [];              // les fiches filtrées, dans l'ordre
 let drawn = 0;
 let observer = null;
+let seen = new Set();        // `id:at` des fiches déjà montrées
+let fresh = 0;               // fiches arrivées pendant qu'on lisait plus bas
+let timer = 0;
+const keyOf = (x) => x.id + ':' + x.at;
 
 function pick() {
   const p = read();
@@ -55,9 +64,9 @@ function pick() {
 }
 
 /** Une liste, gardée 2 min ici (le worker la garde aussi) : un filtre ne relit rien. */
-async function list(kind) {
+async function list(kind, force = false) {
   const hit = lists[kind];
-  if (hit && Date.now() - hit.at < KEEP_MS) return hit.res;
+  if (!force && hit && Date.now() - hit.at < KEEP_MS) return hit.res;
   const res = await send({ type: 'ronote:neuronal-profiles', kind, tier: '' }).catch(() => null) || { error: 'empty' };
   if (res.data) lists[kind] = { at: Date.now(), res };
   return res;
@@ -83,7 +92,7 @@ function toolbarHtml(p, count) {
   return `<div class="pf-head">
     <div class="pf-bar"><div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${SOURCES.map(([k, label]) =>
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
-      <span class="pf-count">${count === null ? '' : t('{n} profils', { n: count })}</span></div>
+      <span class="pf-count${count === null ? '' : ' pf-live'}" title="${escapeHtml(t('En direct : les nouveaux profils arrivent tout seuls'))}">${count === null ? '' : t('{n} profils', { n: count })}</span></div>
     <div class="pf-row" role="radiogroup" aria-label="${escapeHtml(t('Palier'))}">
       ${chip('data-pf-tier', '', t('Tous'), !p.tier)}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
         chip('data-pf-tier', k, escapeHtml(k), k === p.tier, 't-' + k)).join('')}</div>
@@ -94,7 +103,7 @@ function toolbarHtml(p, count) {
 }
 
 /** Une fiche, comme sur Discord : qui, le trade qui l'a révélé ou son annonce, et les liens. */
-function cardHtml(p, both) {
+function cardHtml(p, both, isNew = false) {
   const id = Number(p.id);
   const name = escapeHtml(p.name || '#' + id);
   const ads = !p.ads ? t('aucune annonce') : p.ads === 1 ? t('1 annonce') : t('{n} annonces', { n: fmtNum(p.ads) });
@@ -106,7 +115,7 @@ function cardHtml(p, both) {
       <div class="pf-ad-s"><span class="pf-ad-l loss">${t('Cherche')}</span>${nwTilesHtml(p.wanting)}</div>
     </div>` : '';
   const trade = p.last ? nwTradeCard({ ...p.last, partner: p.partner }, true) : '';
-  return `<article class="pf-card">
+  return `<article class="pf-card${isNew ? ' pf-new' : ''}" data-pf-id="${id}">
     <header class="pf-top">
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
       <span class="pf-id"><span class="pf-nl"><b>${name}</b>${p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}</span>
@@ -135,6 +144,79 @@ function drawMore(root) {
   if (end) end.hidden = drawn >= shown.length;
 }
 
+/** Les deux listes mêlées puis filtrées : un joueur présent deux fois garde sa fiche la plus récente. */
+function merge(p, ok) {
+  const byId = new Map();
+  for (const { kind, res } of ok) {
+    for (const x of res.data.profiles || []) {
+      const had = byId.get(x.id);
+      if (!had || x.at > had.at) byId.set(x.id, { ...x, _kind: kind });
+    }
+  }
+  return [...byId.values()]
+    .filter(x => (!p.tier || x.tier === p.tier) && (!p.min || (x.value || 0) >= p.min))
+    .sort((a, b) => b.at - a.at);
+}
+
+const visible = (root) => root.isConnected && root.dataset.tab === 'profiles' && document.visibilityState === 'visible';
+
+/**
+ * Relecture en direct : seules les fiches NOUVELLES (ou dont le joueur a
+ * bougé) entrent, en haut, avec l'animation ; le reste de la liste ne bouge
+ * pas. Si on lit plus bas, la position est gardée et une pastille propose
+ * de remonter.
+ */
+async function poll(root) {
+  if (!visible(root) || !root.querySelector('.pf-list')) return;
+  const p = pick();
+  const mine = token;
+  const kinds = p.src === 'both' ? ['classic', 'neuronal'] : [p.src];
+  const results = await Promise.all(kinds.map(async kind => ({ kind, res: await list(kind, true) })));
+  if (mine !== token || !visible(root)) return;
+  const ok = results.filter(r => r.res.data);
+  if (!ok.length) return;                       // panne passagère : on garde ce qu'on a
+  const next = merge(p, ok);
+  const added = next.filter(x => !seen.has(keyOf(x)));
+  if (!added.length) return;
+
+  const box = root.querySelector('.pf-list');
+  const ids = new Set(added.map(x => x.id));
+  let gone = 0;                                 // anciennes fiches de ces joueurs, déjà dessinées
+  box.querySelectorAll('.pf-card').forEach(el => { if (ids.has(Number(el.dataset.pfId))) { el.remove(); gone++; } });
+
+  const anchor = box.querySelector('.pf-card');
+  const before = anchor?.getBoundingClientRect().top;
+  const reading = root.scrollTop > 60;
+  const both = p.src === 'both';
+  box.insertAdjacentHTML('afterbegin', added.map(x => cardHtml(x, both, true)).join(''));
+  if (reading && anchor) root.scrollTop += anchor.getBoundingClientRect().top - before;
+
+  shown = next;
+  drawn = Math.min(shown.length, drawn - gone + added.length);
+  added.forEach(x => seen.add(keyOf(x)));
+
+  const count = root.querySelector('.pf-count');
+  if (count) {
+    count.textContent = t('{n} profils', { n: shown.length });
+    count.classList.remove('pf-bump'); void count.offsetWidth; count.classList.add('pf-bump');
+  }
+  if (reading) {
+    fresh += added.length;
+    let pill = root.querySelector('.pf-pill');
+    if (!pill) {
+      pill = document.createElement('button');
+      pill.className = 'pf-pill';
+      root.querySelector('.pf-head')?.after(pill);
+    }
+    pill.textContent = '↑ ' + (fresh === 1 ? t('1 nouveau profil') : t('{n} nouveaux profils', { n: fresh }));
+  }
+}
+
+function live(root) {
+  clearInterval(timer);
+  timer = setInterval(() => poll(root), LIVE_MS);
+}
+
 function paint(root, p, results) {
   observer?.disconnect();
   if (!results) {
@@ -143,17 +225,9 @@ function paint(root, p, results) {
   }
   const ok = results.filter(r => r.res.data);
   if (!ok.length) { root.innerHTML = toolbarHtml(p, null) + stateHtml(results[0].res); return; }
-  // Un joueur peut être dans les deux listes : on garde sa fiche la plus récente.
-  const byId = new Map();
-  for (const { kind, res } of ok) {
-    for (const x of res.data.profiles || []) {
-      const had = byId.get(x.id);
-      if (!had || x.at > had.at) byId.set(x.id, { ...x, _kind: kind });
-    }
-  }
-  shown = [...byId.values()]
-    .filter(x => (!p.tier || x.tier === p.tier) && (!p.min || (x.value || 0) >= p.min))
-    .sort((a, b) => b.at - a.at);
+  shown = merge(p, ok);
+  seen = new Set(shown.map(keyOf));
+  fresh = 0;
   drawn = 0;
   root.innerHTML = toolbarHtml(p, shown.length) + (shown.length
     ? '<div class="pf-list"></div><div class="pf-end" aria-hidden="true"></div>'
@@ -183,6 +257,7 @@ export function renderProfiles(listEl, openOptions) {
     listEl.addEventListener('click', (e) => {
       if (listEl.dataset.tab !== 'profiles') return;
       if (e.target.closest('[data-pf-options]')) { openOptions(); return; }
+      if (e.target.closest('.pf-pill')) { listEl.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min]');
       if (!el) return;
       const p = pick();
@@ -195,6 +270,15 @@ export function renderProfiles(listEl, openOptions) {
       load(listEl);
       listEl.scrollTop = 0;
     });
+    // Revenu en haut : la pastille « nouveaux profils » n'a plus lieu d'être.
+    listEl.addEventListener('scroll', () => {
+      if (listEl.scrollTop > 60 || !fresh) return;
+      fresh = 0;
+      listEl.querySelector('.pf-pill')?.remove();
+    }, { passive: true });
+    // Popup de nouveau visible : on rattrape tout de suite au lieu d'attendre la minute.
+    document.addEventListener('visibilitychange', () => { if (visible(listEl)) poll(listEl); });
   }
+  live(listEl);
   load(listEl);
 }

@@ -1846,6 +1846,22 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-card { border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-soft); overflow: hidden;
   content-visibility: auto; contain-intrinsic-size: auto 190px; transition: border-color .15s; }
 .pf-card:hover { border-color: var(--line); }
+/* Une fiche arrivée en direct (rafraîchissement automatique) : elle s'ouvre
+   depuis le haut, rebondit, puis un halo bleu s'éteint en quelques secondes. */
+.pf-card.pf-new { content-visibility: visible; animation: pf-in .55s cubic-bezier(.2, 1.4, .4, 1) both, pf-glow 3.2s ease-out .2s both; }
+@keyframes pf-in { from { opacity: 0; transform: translateY(-14px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes pf-glow { 0% { border-color: var(--accent); box-shadow: 0 0 0 3px #4d9fff55, 0 0 22px #4d9fff66; } 100% { border-color: var(--line-soft); box-shadow: 0 0 0 0 #4d9fff00; } }
+.pf-live { display: inline-flex; align-items: center; gap: 5px; }
+.pf-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 0 0 #3fb95080; animation: pf-pulse 2s ease-out infinite; }
+@keyframes pf-pulse { 70% { box-shadow: 0 0 0 5px #3fb95000; } 100% { box-shadow: 0 0 0 0 #3fb95000; } }
+.pf-count.pf-bump { animation: pf-bump .5s ease; }
+@keyframes pf-bump { 40% { transform: scale(1.25); color: var(--accent); } }
+.pf-pill { position: sticky; top: 112px; z-index: 3; display: block; width: max-content; margin: 6px auto -30px; padding: 5px 12px; border: 0; border-radius: 20px;
+  background: var(--accent); color: #04101f; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; box-shadow: 0 4px 14px #0007; animation: pf-in .4s cubic-bezier(.2, 1.4, .4, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .pf-card.pf-new, .pf-pill, .pf-count.pf-bump { animation: none; }
+  .pf-live::before { animation: none; }
+}
 .pf-top { display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; }
 .pf-avw { flex: none; padding: 2px; border-radius: 50%; border: 2px solid currentColor; color: var(--line); line-height: 0; }
 .pf-av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--dim); font-weight: 700; font-size: 13px; line-height: 1; object-fit: cover; }
