@@ -126,28 +126,6 @@ export async function neuronalProfiles(kind, tier, settings) {
   return run;
 }
 
-/**
- * Le market cap des limiteds (carte de l'accueil) : `/ext/v1/marketcap`, une
- * seule réponse pour tout le monde, gardée 10 min comme sur le serveur.
- * Mêmes conditions que les fiches.
- */
-const MARKETCAP_MS = 10 * 60e3;
-export async function neuronalMarketcap(settings) {
-  if (!settings?.neuronalLookup) return { off: true };
-  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
-  if (!granted) return { off: true, permission: false };
-  const key = 'marketcap';
-  const hit = (await cache())[key];
-  if (hit && hit.until > Date.now()) return hit.value;
-  if (pending.has(key)) return pending.get(key);
-  const run = fetchOne('marketcap', 0, 'marketcap').then(async (value) => {
-    await remember(key, value, value.data ? MARKETCAP_MS : FAIL_MS);
-    return value;
-  }).finally(() => pending.delete(key));
-  pending.set(key, run);
-  return run;
-}
-
 /* ==========================================================================
  *  CONTRIBUER AU RÉSEAU : CE QUE RONOTE ENVOIE DE LUI-MÊME
  * --------------------------------------------------------------------------
