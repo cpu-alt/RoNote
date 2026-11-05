@@ -11,7 +11,9 @@
  *  Un filtre par palier. Les fiches viennent de neuronal.live (route
  *  /ext/v1/profiles, voir background/neuronal.js), avec les mêmes conditions
  *  que les fiches Neuronal : option `neuronalLookup` et permission accordée.
- *  Aucun appel à Roblox : pas de vignette, l'initiale du pseudo suffit.
+ *  Aucun appel à Roblox : avatars et vignettes viennent de la réponse de neuronal.live.
+ *  Chaque fiche montre ce que montre Discord (annonce ou dernier trade) et un bouton
+ *  « Envoyer un trade » (la page de trade de Roblox, dans un onglet).
  *  Le dernier choix (liste, palier) reste dans ce navigateur (localStorage).
  * ==========================================================================
  */
@@ -19,6 +21,7 @@ import { t } from '../common/i18n.js';
 import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
+import { nwTradeCard, nwTilesHtml } from './nwcard.js';
 
 const KEY = 'ronote.profiles';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -41,25 +44,42 @@ function empty(title, text, options = false) {
     ${options ? `<button class="pf-opt" data-pf-options>${t('Ouvrir les réglages')}</button>` : ''}</div>`;
 }
 
+/** Une fiche, comme sur Discord : qui, son annonce (classique) ou le trade qui l'a révélé (Neuronal), et les liens. */
 function rowHtml(p) {
-  const name = escapeHtml(p.name || '#' + p.id);
+  const id = Number(p.id);
+  const name = escapeHtml(p.name || '#' + id);
   const ads = !p.ads ? t('aucune annonce') : p.ads === 1 ? t('1 annonce') : t('{n} annonces', { n: fmtNum(p.ads) });
-  const partner = p.partner ? ' · ' + t('a tradé avec {who}', { who: escapeHtml(p.partner.name || '#' + p.partner.id) }) : '';
-  return `<a class="pf-row" href="https://www.roblox.com/users/${Number(p.id)}/profile" target="_blank" rel="noreferrer">
-    <span class="pf-av" aria-hidden="true">${escapeHtml((p.name || '?').slice(0, 1).toUpperCase())}</span>
-    <span class="pf-id"><b>${name}</b>${p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote user</span>` : ''}
-      <small>${ads}${partner} · ${timeAgo(p.at * 1000)}</small></span>
-    <span class="pf-end">${p.value ? `<span class="pf-val">${fmtNum(p.value)}</span>` : ''}<span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span></span>
-  </a>`;
+  const av = p.thumb
+    ? `<img class="pf-av" src="${escapeHtml(p.thumb)}" alt="" loading="lazy">`
+    : `<span class="pf-av" aria-hidden="true">${escapeHtml((p.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  const ad = (p.offering?.length || p.wanting?.length) ? `<div class="pf-ad">
+      ${p.offering?.length ? `<div class="pf-ad-s"><span class="pf-ad-l win">${t('Propose')}</span>${nwTilesHtml(p.offering)}</div>` : ''}
+      ${p.wanting?.length ? `<div class="pf-ad-s"><span class="pf-ad-l loss">${t('Cherche')}</span>${nwTilesHtml(p.wanting)}</div>` : ''}
+    </div>` : '';
+  const trade = p.last ? nwTradeCard({ ...p.last, partner: p.partner }, true) : '';
+  return `<article class="pf-card">
+    <header class="pf-top">
+      ${av}
+      <span class="pf-id"><b>${name}</b>${p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote user</span>` : ''}
+        <small>${ads} · ${timeAgo(p.at * 1000)}${p.value ? ' · ' + t('inventaire {v}', { v: fmtNum(p.value) }) : ''}</small></span>
+      <span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>
+    </header>
+    ${trade}${ad}
+    <footer class="pf-acts">
+      <button class="pf-send" data-open="https://www.roblox.com/users/${id}/trade">${ic('send')} ${t('Envoyer un trade')}</button>
+      <button data-open="https://www.roblox.com/users/${id}/profile">Roblox</button>
+      <button data-open="https://www.rolimons.com/player/${id}">Rolimon's</button>
+    </footer>
+  </article>`;
 }
 
 function paint(root, pick, res) {
   const head = `<div class="pf-head">
     <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${Object.entries(KINDS).map(([k, label]) =>
-      `<button role="radio" aria-checked="${k === pick.kind}" data-pf-kind="${k}">${t(label)}</button>`).join('')}</div>
-    <p class="pf-lede">${t(pick.kind === 'neuronal'
-      ? 'Les joueurs que Neuronal a vus trader. Ghost : jamais une seule annonce.'
-      : "Les joueurs repérés par leurs annonces Rolimon's, rangés par nombre d'annonces.")}</p>`;
+      `<button role="radio" aria-checked="${k === pick.kind}" data-pf-kind="${k}" title="${escapeHtml(t(k === 'neuronal'
+        ? 'Les joueurs que Neuronal a vus trader. Ghost : jamais une seule annonce.'
+        : "Les joueurs repérés par leurs annonces Rolimon's, rangés par nombre d'annonces."))}">${t(label)}</button>`).join('')}</div>
+`;
   const state = res ? stateHtml(res) : `<div class="empty"><b>${t('Chargement…')}</b></div>`;
   if (state !== null) { root.innerHTML = head + '</div>' + state; return; }
   const d = res.data;

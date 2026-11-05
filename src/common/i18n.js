@@ -1107,6 +1107,17 @@ const EN = {
   "Réessaie dans quelques minutes.": "Try again in a few minutes.",
   "Aucun profil": "No profiles",
   "Rien de posté dans ce palier ces 7 derniers jours.": "Nothing posted in this tier in the last 7 days.",
+  "Donné": "Gave",
+  "Propose": "Offering",
+  "Cherche": "Looking for",
+  "Envoyer un trade": "Send a trade",
+  "inventaire {v}": "inventory {v}",
+
+  /* --- objets sans value Rolimon's --------------------------------------- */
+  "Pas de value Rolimon's : compté au RAP ({v}).": "No Rolimon's value: counted at RAP ({v}).",
+  "pas de value Rolimon's": "no Rolimon's value",
+  "pas de value Rolimon's (compté au RAP)": "no Rolimon's value (counted at RAP)",
+  "RAP · pas de value": "RAP · no value",
 };
 
 const DICT = { en: EN };

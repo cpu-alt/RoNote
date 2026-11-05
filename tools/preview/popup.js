@@ -302,9 +302,12 @@ const mockRuntime = {
         const neuro = msg.kind === 'neuronal';
         const tiers = neuro ? ['ghost', 'rookie', 'novice', 'beginner', 'casual', 'regular', 'active', 'experienced', 'veteran']
           : ['rookie', 'novice', 'beginner', 'casual', 'regular', 'active', 'experienced', 'veteran'];
+        const it = (id, name, value, n = 1) => ({ id, name, value, n, thumb: '' });
+        const last = (gave, got, gv, gt) => ({ id: 1, at: now - 240, gave_items: gave, got_items: got, gave_more: 0, got_more: 0, gave: gv, got: gt, parts: 1 });
         const all = [
-          { id: 21, name: 'QuietSwapper', ads: 0, tier: 'ghost', at: now - 240, value: 184000, ronote: true, partner: { id: 22, name: 'Telamon' }, trade: 1 },
-          { id: 23, name: 'FirstAdGuy', ads: 1, tier: 'rookie', at: now - 900, value: 32000 },
+          { id: 21, name: 'QuietSwapper', ads: 0, tier: 'ghost', at: now - 240, value: 184000, ronote: true, partner: { id: 22, name: 'Telamon' }, trade: 1,
+            last: { ...last([it(1, 'Domino Crown', 52000), it(2, 'Sparkle Time Fedora', 9100, 2)], [it(3, 'Valkyrie Helm', 71000)], 70200, 71000), got_robux: 1200, via_ronote: true } },
+          { id: 23, name: 'FirstAdGuy', ads: 1, tier: 'rookie', at: now - 900, value: 32000, offering: [it(4, 'Clockwork Shades', 18000), it(5, 'Bucket', 4200)], wanting: [it(6, 'Tailflipped Cap', 0)] },
           { id: 24, name: 'midnight_rap', ads: 4, tier: 'novice', at: now - 3600, value: 71500, partner: { id: 25, name: 'Builderman' }, trade: 2 },
           { id: 26, name: 'ValkFlipper', ads: 22, tier: 'casual', at: now - 7200, value: 1240000, ronote: true },
           { id: 27, name: 'shadow_lim', ads: 0, tier: 'ghost', at: now - 10800, value: 9800 }

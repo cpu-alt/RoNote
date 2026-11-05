@@ -3,6 +3,20 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.2 — Profils comme sur Discord, trades Neuronal en cartes
+
+- **Profils** : chaque fiche montre ce que montre Discord, le trade qui a révélé
+  le joueur (Neuronal) ou son annonce *Propose / Cherche* (classique), avec les
+  vignettes et les values, son avatar, et un bouton **Envoyer un trade**
+  (plus Roblox et Rolimon's). En-tête compact et collant, paliers sur une ligne.
+- **Fiches Neuronal** (joueur et objet) : les derniers trades sont dessinés comme
+  sur neuronal.live, les deux côtés en vignettes avec leurs totaux et les Robux.
+  Un clic sur un objet ouvre sa page Rolimon's.
+- **Objets sans value Rolimon's** : la case Value affiche « — » au lieu du RAP,
+  et la fiche, les lignes de trade et le portefeuille disent que le chiffre est
+  un RAP.
+- Barre d'onglets resserrée : elle ne déborde plus avec l'onglet Profils.
+
 ## v2.16.1 — Profils
 
 - **Onglet Profils** (l'icône à droite de Journal, ou menu du compte › Profils) : le Profile discovery de Neuronal

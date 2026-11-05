@@ -1184,7 +1184,7 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 
 /* Six onglets dans 400 px : chacun prend la largeur de son libellé (plus long
    en anglais), l'espace restant se partage. */
-.tabs .tab { flex: 1 1 auto; padding: 7px 4px; }
+.tabs .tab { flex: 1 1 auto; padding: 7px 3px; }
 .tabs .tab.home { flex: 0 0 34px; padding: 7px 0; }
 .tab.home .ic { width: 15px; height: 15px; vertical-align: -3px; }
 
@@ -1302,7 +1302,7 @@ button.icon .ic { width: 16px; height: 16px; }
 /* ============================== pile ou face ============================ */
 /* Onglet icône, comme l'accueil. La scène reprend la carte du Portefeuille :
    verre bleu nuit, halo bleu, et un jeton aux couleurs de RoNote. */
-.tabs .tab.coin-tab { flex: 0 0 34px; padding: 7px 0; }
+.tabs .tab.coin-tab { flex: 0 0 30px; padding: 7px 0; }
 .tab.coin-tab .ic { width: 15px; height: 15px; vertical-align: -3px; }
 
 .cf { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
@@ -1687,21 +1687,10 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .nw-skel { height: 60px; margin-top: 4px; }
 .nw-none { padding: 6px 2px 2px; color: var(--dim); font-size: 11.5px; }
 .nw-none .ic { width: 12px; height: 12px; vertical-align: -2px; }
-.nw-list { gap: 0; padding: 2px 10px; }
-.nw-tr { padding: 7px 0; }
-.nw-tr + .nw-tr { border-top: 1px solid var(--line-soft); }
-.nw-tr-h { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
-.nw-who { flex: 1; min-width: 0; overflow: hidden; color: var(--dim); white-space: nowrap; text-overflow: ellipsis; }
-.nw-who b { color: var(--fg); font-weight: 600; }
-.nw-ago { color: var(--faint); font-size: 11px; white-space: nowrap; }
 .nw-tag { color: var(--warn); font-size: 10.5px; white-space: nowrap; }
 /* Joueurs et trades confirmés par RoNote : le bleu du cadre de la carte neuronal.live. */
 .nw-tag-ro { color: #3d8eff; font-weight: 600; }
 .p-flag.nw-ro { color: #3d8eff; border-color: rgba(61, 142, 255, .45); background: rgba(61, 142, 255, .12); }
-.nw-rbx { color: var(--win, #3fbf7f); font-weight: 600; white-space: nowrap; }
-.nw-tr-s { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; margin-top: 3px; color: var(--dim); font-size: 11px; line-height: 1.4; }
-.nw-tr-s > span:last-child { text-align: right; }
-.nw-x { color: var(--faint); }
 /* Quatre boutons au pied d'une fiche (Neuronal en plus) : ils passent à la ligne plutôt que de se couper. */
 .z-foot { flex-wrap: wrap; }
 .z-foot button { white-space: nowrap; }
@@ -1835,24 +1824,37 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 /* ------------------------------- profils -------------------------------- */
 /* L'onglet Profils (profiles.js) : le Profile discovery de Neuronal. */
-.pf-head { padding: 12px 12px 4px; }
+.pf-head { position: sticky; top: 0; z-index: 2; display: grid; gap: 6px; padding: 8px 12px 6px; background: var(--bg); border-bottom: 1px solid var(--line-soft); }
 .pf-seg { display: flex; gap: 4px; padding: 3px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
 .pf-seg button { flex: 1; padding: 6px 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--dim); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.pf-seg button { padding: 4px 0; }
 .pf-seg button[aria-checked="true"] { background: var(--surface-3); color: var(--fg); }
-.pf-lede { margin: 8px 2px 10px; color: var(--faint); font-size: 11.5px; line-height: 1.45; }
-.pf-tiers { display: flex; flex-wrap: wrap; gap: 4px; }
+.pf-tiers { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+.pf-tiers::-webkit-scrollbar { display: none; }
+.pf-tiers button { flex: none; }
 .pf-tiers button { padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); background: none; color: var(--dim); font: inherit; font-size: 10.5px; font-weight: 650; text-transform: capitalize; cursor: pointer; }
 .pf-tiers button[aria-checked="true"] { border-color: var(--accent); color: var(--fg); background: #13213a; }
-.pf-list { display: grid; gap: 4px; padding: 8px 12px 12px; }
-.pf-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line-soft); color: inherit; text-decoration: none; }
-.pf-row:hover { border-color: var(--line); background: var(--surface-2); }
-.pf-av { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--dim); font-weight: 700; font-size: 13px; }
+.pf-list { display: grid; gap: 8px; padding: 8px 12px 12px; }
+.pf-card { border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-soft); overflow: hidden; }
+.pf-top { display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; }
+.pf-av { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--dim); font-weight: 700; font-size: 13px; object-fit: cover; }
 .pf-id { flex: 1; min-width: 0; }
 .pf-id b { font-size: 12.5px; }
 .pf-id small { display: block; color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-rn { margin-left: 6px; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(61, 142, 255, .45); background: rgba(61, 142, 255, .12); color: #3d8eff; font-size: 9px; font-weight: 700; letter-spacing: .3px; vertical-align: 1px; }
-.pf-end { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.pf-val { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.pf-card > .nc { margin: 0 10px 8px; }
+.pf-ad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 10px 8px; padding: 7px 8px 8px; border-radius: var(--r-md); border: 1px solid var(--line-soft); background: var(--surface-2); }
+.pf-ad-s { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.pf-ad-s + .pf-ad-s { padding-left: 8px; border-left: 1px solid var(--line-soft); }
+.pf-ad > .pf-ad-s:only-child { grid-column: 1 / -1; }
+.pf-ad-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.pf-ad-l.win { color: var(--win); } .pf-ad-l.loss { color: var(--loss); }
+.pf-acts { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line-soft); background: var(--surface-2); }
+.pf-acts button { padding: 5px 9px; border-radius: var(--r-sm); border: 1px solid var(--line); background: none; color: var(--dim); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.pf-acts button:hover { color: var(--fg); border-color: var(--surface-3); }
+.pf-acts .pf-send { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-color: transparent; background: var(--accent); color: #fff; }
+.pf-acts .pf-send:hover { color: #fff; filter: brightness(1.1); }
+.pf-acts .pf-send .ic { width: 12px; height: 12px; }
 .pf-tier { padding: 1px 7px; border-radius: 20px; background: #ffffff0d; color: var(--dim); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
 .t-ghost { color: var(--face) !important; }
 .pf-tier.t-ghost { background: #241a33; }
@@ -1860,3 +1862,31 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .t-beginner, .t-casual { color: var(--spec) !important; }
 .t-regular { color: var(--warn) !important; }
 .pf-opt { margin-top: 10px; padding: 6px 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); font: inherit; font-size: 12px; cursor: pointer; }
+
+/* ----------------------- cartes de trade Neuronal ----------------------- */
+/* nwcard.js : un trade dessiné comme sur neuronal.live (fiches joueur et objet, Profils). */
+.nc-list { display: grid; gap: 6px; padding: 2px 0; }
+.nc { border-radius: var(--r-md); border: 1px solid var(--line-soft); background: var(--surface-2); padding: 7px 8px 8px; display: grid; gap: 6px; }
+.nc-h { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11.5px; color: var(--dim); }
+.nc-who { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nc-who b { color: var(--fg); }
+.nc-ago { color: var(--faint); font-size: 10.5px; white-space: nowrap; }
+.nc-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nc-side { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.nc-side + .nc-side { padding-left: 8px; border-left: 1px solid var(--line-soft); }
+.nc-lbl { display: flex; justify-content: space-between; font-size: 10px; color: var(--faint); font-weight: 650; text-transform: uppercase; letter-spacing: .3px; }
+.nc-lbl b { color: var(--dim); font-variant-numeric: tabular-nums; }
+.nc-tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.nc-it { position: relative; width: 44px; padding: 3px 2px 2px; border-radius: var(--r-sm); border: 1px solid var(--line-soft); background: var(--surface); cursor: pointer; display: grid; justify-items: center; gap: 1px; font: inherit; color: inherit; }
+.nc-it:hover { border-color: var(--accent); }
+.nc-it img, .nc-ph { width: 30px; height: 30px; object-fit: contain; }
+.nc-ph { display: grid; place-items: center; border-radius: 6px; background: var(--surface-3); color: var(--faint); font-size: 11px; font-weight: 700; }
+.nc-n { position: absolute; top: 1px; right: 2px; font-style: normal; font-size: 9px; font-weight: 700; color: var(--fg); background: #000a; border-radius: 4px; padding: 0 3px; }
+.nc-v { font-size: 9.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.nc-more, .nc-rbx { align-self: center; padding: 3px 7px; border-radius: 20px; font-size: 10.5px; font-weight: 650; background: #ffffff0d; color: var(--dim); }
+.nc-rbx { color: var(--win); background: #10261d; }
+.nc-none { color: var(--faint); font-size: 11px; }
+
+/* Sans value Rolimon's : le chiffre montré est un RAP, pas une cote. */
+.novalue { color: var(--face) !important; }
+.w-sh-amount.novalue { opacity: .75; }

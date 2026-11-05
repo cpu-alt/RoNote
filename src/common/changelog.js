@@ -16,6 +16,18 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.2',
+    title: item('Profils comme sur Discord, trades en cartes', 'Discord-style profiles, trades as cards'),
+    items: [
+      item("Profils : le dernier trade (Neuronal) ou l'annonce Propose / Cherche (classique) de chaque joueur, en vignettes, et un bouton Envoyer un trade.",
+        "Profiles: each player's latest trade (Neuronal) or Offering / Looking for ad (classic), as thumbnails, and a Send a trade button."),
+      item("Fiches Neuronal : les trades sont dessinés comme sur neuronal.live, les deux côtés en vignettes avec leurs totaux.",
+        "Neuronal sheets: trades are drawn like on neuronal.live, both sides as thumbnails with their totals."),
+      item("Un objet sans value Rolimon's n'affiche plus son RAP comme une value.",
+        "An item without a Rolimon's value no longer shows its RAP as a value.")
+    ]
+  },
+  {
     version: '2.16.1',
     title: item('Profils', 'Profiles'),
     items: [
