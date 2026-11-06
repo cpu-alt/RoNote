@@ -188,6 +188,36 @@ console.log('\nContre-offre envoyée depuis le popup');
   route = null;
 }
 
+console.log('\nInventaires de la contre-offre');
+{
+  preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777003 }], outbound: [] } });
+  calls = [];
+  route = async (url, json) => {
+    if (url.includes('/users/1/assets/collectibles')) return json({ data: [{ userAssetId: 11, assetId: 100, name: 'A' }], nextPageCursor: null });
+    if (url.includes('/users/42/assets/collectibles')) {
+      if (url.includes('cursor=')) return json({ errors: [{ message: 'InternalServerError' }] }, 503);
+      return json({ data: [{ userAssetId: 21, assetId: 200, name: 'B' }], nextPageCursor: 'p2' });
+    }
+    if (url.includes('/users/1/items/Asset/500')) return json({ data: [{ instanceId: 55 }] });
+    if (url.includes('/users/42/items/Asset/600')) return json({ data: [] });
+    return null;
+  };
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  const msg = { type: 'ronote:counter-load', tradeId: 777003, partnerId: 42,
+    give: [{ uaid: 'v2-instance', assetId: 500, name: 'C' }], get: [{ uaid: 61, assetId: 600 }] };
+  const res = await send(msg);
+  check('un objet absent des collectibles mais possédé est retrouvé avec son userAssetId', res?.me?.items?.some(i => i.uaid === 55));
+  check('une page perdue (503, 429) garde les objets déjà lus, inventaire marqué incomplet',
+    res?.them?.items?.some(i => i.uaid === 21) && res.them.complete === false && res.them.partial === true);
+  check('Roblox confirme l\'absence : notée comme sûre', res?.them?.absent?.includes('a600'));
+  const mine = () => calls.filter(c => c.includes('/users/1/assets/collectibles')).length;
+  const before = mine();
+  await send(msg);
+  check('rouvert dans la minute : mon inventaire vient du cache', mine() === before);
+  check('un inventaire incomplet n\'est pas gardé en cache', calls.filter(c => c.includes('/users/42/assets/collectibles') && !c.includes('cursor=')).length >= 2);
+  route = null;
+}
+
 console.log('\nLe son dit la qualité du trade');
 {
   const { soundFor } = await import(new URL('../src/background/notifier.js', import.meta.url).href);

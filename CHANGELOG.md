@@ -3,6 +3,17 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.6 : contre-offre fiable
+
+- **Contre-offre** : un objet n'est plus annoncé « plus dans l'inventaire » à
+  tort. Un objet que l'inventaire chargé ne montre pas (bundle, inventaire de
+  plus de 500 objets, page perdue sur une limite de débit) est vérifié auprès
+  de Roblox ; sans réponse, il reste dans le trade et Roblox tranche à l'envoi.
+- Affichage : série de chaque exemplaire, objet non vérifié signalé, Robux
+  inclus dans le total, chargement en squelette et bouton Recharger.
+- Plus rapide : les inventaires restent une minute en cache, mon inventaire et
+  celui du partenaire se chargent en parallèle avec les réglages.
+
 ## v2.16.5 : Découvrir, Profils et Deals
 
 - **Deals** (nouveau) : le Deal Sniper de Neuronal dans le popup. Les trade ads

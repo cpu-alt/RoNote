@@ -16,6 +16,17 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.6',
+    title: item('Contre-offre fiable', 'Reliable counter-offers'),
+    items: [
+      item("Contre-offre : un objet toujours présent n'est plus annoncé comme parti. Ce que l'inventaire ne montre pas est vérifié auprès de Roblox.",
+        "Counter-offer: an item you still own is no longer reported as gone. Anything the inventory doesn't show is checked with Roblox."),
+      item("Contre-offre plus lisible : série de chaque exemplaire, objet non vérifié signalé, Robux dans le total, bouton Recharger.",
+        "Clearer counter-offer: each copy's serial, unchecked items flagged, Robux in the total, a Reload button."),
+      item("Plus rapide : les inventaires restent une minute en cache.", "Faster: inventories stay cached for a minute.")
+    ]
+  },
+  {
     version: '2.16.5',
     title: item('Découvrir : Profils et Deals', 'Discover: Profiles and Deals'),
     items: [

@@ -20,6 +20,7 @@ import { t } from '../common/i18n.js';
 import { ic } from '../common/icons.js';
 import { send } from '../common/ui.js';
 import { openOverlay, releaseFocus } from './overlay.js';
+import { adopt } from '../common/counter-match.js';
 
 const MAX_ITEMS = 4;              // par côté, limite de Roblox
 const ROBUX_TAX = 0.3;            // comme analysis.js : les Robux reçus arrivent nets
@@ -51,14 +52,33 @@ export function openCounterEditor(card, deps) {
   bind(wrap);
   paint();
 
-  send({ type: 'ronote:counter-load', tradeId: card.tradeId, partnerId: card.partner?.id }).then((res) => {
+  load(card);
+}
+
+const wanted = (items) => (items || []).map(i => ({
+  uaid: i.uaid, assetId: i.assetId, bundleId: i.bundleId, legacyAssetId: i.legacyAssetId,
+  serial: i.serial, name: i.name, rap: i.rap
+}));
+
+/** Charge (ou recharge, `fresh`) les deux inventaires et y retrouve le trade. */
+function load(card, fresh = false) {
+  const a = card.analysis;
+  ed.loading = true; ed.loadError = null;
+  paint();
+  send({
+    type: 'ronote:counter-load', tradeId: card.tradeId, partnerId: card.partner?.id, fresh,
+    give: wanted(a?.give?.items), get: wanted(a?.get?.items)
+  }).then((res) => {
     if (!ed || ed.card !== card) return;
     ed.loading = false;
     if (res?.error && !res.me) { ed.loadError = res.error; paint(); return; }
     ed.me = res.me; ed.them = res.them;
-    ed.give = adopt(ed.give, res.me?.items);
-    ed.get = adopt(ed.get, res.them?.items);
+    // Ce qui est compose est garde (rechargement) ; la reference reste le
+    // trade d'origine, retrouve dans les memes inventaires.
+    const cur = { give: ed.give, get: ed.get };
+    ed.give = adopt(a?.give?.items, res.me); ed.get = adopt(a?.get?.items, res.them);
     ed.original = signature();
+    ed.give = adopt(cur.give, res.me); ed.get = adopt(cur.get, res.them);
     paint();
   }).catch((e) => {
     if (!ed) return;
@@ -72,25 +92,6 @@ function close() {
   ed?.wrap?.remove();
   ed = null;
   releaseFocus();
-}
-
-/**
- * Les objets du trade d'origine, retrouvés dans l'inventaire chargé : par
- * exemplaire d'abord (userAssetId), sinon par objet et série : la v2 de
- * l'API ne donne qu'un identifiant d'instance, inutilisable pour l'envoi.
- */
-function adopt(chosen, inventory) {
-  if (!inventory?.length) return chosen;
-  const used = new Set();
-  return chosen.map((c) => {
-    const same = (i) => !used.has(i.uaid) && (i.assetId === c.assetId || (c.bundleId && i.bundleId === c.bundleId));
-    const hit = inventory.find(i => i.uaid === Number(c.uaid))
-      || inventory.find(i => same(i) && c.serial != null && i.serial === c.serial)
-      || inventory.find(same);
-    if (!hit) return { ...c, gone: true };
-    used.add(hit.uaid);
-    return hit;
-  });
 }
 
 const signature = () => JSON.stringify([
@@ -148,6 +149,7 @@ function sheetHtml() {
             <button data-shelf="them" role="tab">${t('Son inventaire')}</button>
             <button data-shelf="me" role="tab">${t('Ton inventaire')}</button>
           </div>
+          <button class="ctr-reload" data-reload title="${escapeHtml(t('Recharger les inventaires'))}">${ic('refresh')}</button>
           <label class="ctr-search">${ic('search')}<input type="search" placeholder="${escapeHtml(t('Chercher un objet'))}" aria-label="${escapeHtml(t('Chercher un objet'))}"></label>
         </div>
         <div class="ctr-grid" data-part="shelf"></div>
@@ -168,10 +170,16 @@ const thumbHtml = (i) => (i.thumb
 const priceText = (i) => (i.unknown ? t('sans cote') : fmtNum(i.value));
 
 function chipHtml(i, sideKey) {
-  return `<button class="ctr-chip${i.gone ? ' gone' : ''}" data-drop="${sideKey}" data-uaid="${escapeHtml(String(i.uaid))}"
-      title="${escapeHtml(i.gone ? t("Plus dans l'inventaire : retire-le") : t('Retirer {name}', { name: i.name }))}">
+  const state = i.gone ? 'gone' : i.unsure ? 'unsure' : '';
+  const tip = i.gone ? t("Plus dans l'inventaire : retire-le")
+    : i.unsure ? t("Pas retrouvé dans l'inventaire chargé : Roblox vérifiera à l'envoi")
+      : t('Retirer {name}', { name: i.name });
+  return `<button class="ctr-chip${state ? ' ' + state : ''}" data-drop="${sideKey}" data-uaid="${escapeHtml(String(i.uaid))}"
+      title="${escapeHtml([tip, i.serial ? '#' + i.serial : ''].filter(Boolean).join(' · '))}">
     ${thumbHtml(i)}
-    <span class="ctr-chip-n">${escapeHtml(i.name)}</span>
+    ${i.serial ? `<i class="ctr-serial">#${escapeHtml(String(i.serial))}</i>` : ''}
+    ${state ? `<i class="ctr-flag">${ic(i.gone ? 'ban' : 'help')}</i>` : ''}
+    <span class="ctr-chip-n">${escapeHtml(i.acronym || i.name)}</span>
     <b>${priceText(i)}</b>
     <i class="ctr-x">${ic('x')}</i>
   </button>`;
@@ -183,11 +191,13 @@ function sideHtml(sideKey) {
   const robux = give ? ed.giveRobux : ed.getRobux;
   const sim = simulate();
   const total = give ? sim.mainGive : sim.mainGet;
+  // Les Robux comptes dans le total : nets de la taxe du cote recu.
+  const counted = give || ed.deps.settings?.robuxTax === false ? robux : Math.floor(robux * (1 - ROBUX_TAX));
   const empty = Array.from({ length: Math.max(0, MAX_ITEMS - items.length) },
     () => `<button class="ctr-chip empty" data-goshelf="${give ? 'me' : 'them'}" title="${escapeHtml(t('Ajouter un objet'))}">${ic('plus')}</button>`).join('');
   return `<div class="ctr-side-h">
       <span>${t(give ? 'Tu donnes' : 'Tu demandes')} <small>${items.length}/${MAX_ITEMS}</small></span>
-      <b>${fmtFull(total)}</b>
+      <b>${fmtFull(total)}${counted ? ` <small>${t('dont {n} R$', { n: fmtNum(counted) })}</small>` : ''}</b>
     </div>
     <div class="ctr-chips">${items.map(i => chipHtml(i, sideKey)).join('')}${empty}</div>
     <label class="ctr-rbx"><span>R$</span><input type="number" min="0" step="1" inputmode="numeric" data-robux="${sideKey}" value="${robux || ''}" placeholder="0">
@@ -196,7 +206,7 @@ function sideHtml(sideKey) {
 
 function shelfHtml() {
   const inv = ed.shelf === 'me' ? ed.me : ed.them;
-  if (ed.loading) return `<div class="ctr-note">${t('Chargement des inventaires…')}</div>`;
+  if (ed.loading) return Array.from({ length: 8 }, () => '<span class="ctr-item ctr-skel"></span>').join('');
   if (ed.loadError) return `<div class="ctr-note err">${escapeHtml(t('Inventaires indisponibles : {why}', { why: ed.loadError }))}</div>`;
   if (inv?.private) return `<div class="ctr-note">${ic('eye-off')} ${t('Inventaire privé : Roblox ne le montre pas.')}</div>`;
   if (inv?.error) return `<div class="ctr-note err">${escapeHtml(t('Inventaire indisponible : {why}', { why: inv.error }))}</div>`;
@@ -207,7 +217,9 @@ function shelfHtml() {
     .filter(i => !q || i.name.toLowerCase().includes(q) || (i.acronym || '').toLowerCase() === q)
     .sort((x, y) => (y.value || 0) - (x.value || 0));
   if (!items.length) return `<div class="ctr-note">${t(q ? 'Aucun objet ne correspond.' : 'Aucun limited dans cet inventaire.')}</div>`;
-  return items.map((i) => {
+  const partial = inv?.partial || inv?.complete === false
+    ? `<div class="ctr-note warn">${ic('alert')} ${t('Inventaire chargé en partie ({n} objets) : certains peuvent manquer.', { n: fmtNum(inv.items.length) })}</div>` : '';
+  return partial + items.map((i) => {
     const on = chosen.has(i.uaid);
     const off = !on && (i.onHold || full);
     const why = i.onHold ? t('En hold : pas échangeable pour le moment') : full ? t('Quatre objets maximum par côté') : '';
@@ -236,8 +248,12 @@ function paint({ shelf = true } = {}) {
   if (shelf) w.querySelector('[data-part="shelf"]').innerHTML = shelfHtml();
 
   const changed = signature() !== ed.original;
-  const gone = [...ed.give, ...ed.get].some(i => i.gone);
-  const sendable = !ed.loading && !ed.busy && !gone && changed
+  const chosen = [...ed.give, ...ed.get];
+  const gone = chosen.some(i => i.gone);
+  // Un identifiant v2 (non numerique) ne peut pas partir : Roblox veut un userAssetId.
+  const noId = chosen.some(i => !(Number(i.uaid) > 0));
+  const unsure = chosen.some(i => i.unsure);
+  const sendable = !ed.loading && !ed.busy && !gone && !noId && changed
     && (ed.give.length || ed.giveRobux) && (ed.get.length || ed.getRobux);
   const btn = w.querySelector('[data-send]');
   btn.disabled = !sendable;
@@ -248,7 +264,11 @@ function paint({ shelf = true } = {}) {
   w.querySelector('[data-reset]').disabled = !changed;
 
   const msg = w.querySelector('.z-msg');
-  const note = ed.msg || (gone ? { text: t("Un objet du trade d'origine n'est plus dans l'inventaire : retire-le avant d'envoyer."), err: true } : null);
+  const note = ed.msg
+    || (gone ? { text: t("Un objet du trade d'origine n'est plus dans l'inventaire : retire-le avant d'envoyer."), err: true }
+      : !ed.loading && noId ? { text: t("Un objet n'a pas pu être identifié : recharge les inventaires ou retire-le."), err: true }
+        : !ed.loading && unsure ? { text: t("Un objet n'a pas été vérifié (Roblox n'a pas répondu) : il reste dans le trade, Roblox tranchera à l'envoi.") }
+          : null);
   msg.hidden = !note;
   if (note) { msg.className = 'z-msg' + (note.err ? ' err' : ''); msg.textContent = note.text; }
 }
@@ -282,12 +302,13 @@ function bind(w) {
     }
     if ('reset' in el.dataset) {
       const a = ed.card.analysis;
-      ed.give = adopt((a?.give?.items || []), ed.me?.items);
-      ed.get = adopt((a?.get?.items || []), ed.them?.items);
+      ed.give = adopt(a?.give?.items, ed.me);
+      ed.get = adopt(a?.get?.items, ed.them);
       ed.giveRobux = a?.give?.robux || 0; ed.getRobux = a?.get?.robux || 0;
       disarm(); paint();
       return;
     }
+    if ('reload' in el.dataset) { if (!ed.loading) load(ed.card, true); return; }
     if ('roblox' in el.dataset) { B.tabs.create({ url: tradeUrl(ed.card.tradeId) }); return; }
     if ('send' in el.dataset) sendCounter();
   });

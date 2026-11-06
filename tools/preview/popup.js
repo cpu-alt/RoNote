@@ -456,7 +456,8 @@ const mockRuntime = {
         return {
           myId: ME,
           me: { items: [...fromTrade(card.analysis.give.items), ...extra(ids.slice(0, 24), 700000)] },
-          them: { items: [...fromTrade(card.analysis.get.items), ...extra(ids.slice(24, 60), 800000)] }
+          // Le premier objet demandé manque (inventaire incomplet) : il s'affiche « non vérifié ».
+          them: { complete: false, partial: true, items: [...fromTrade(card.analysis.get.items.slice(1)), ...extra(ids.slice(24, 60), 800000)] }
         };
       }
       case 'ronote:counter': {

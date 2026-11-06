@@ -648,7 +648,7 @@ export async function counterTrade(tradeId, { myId, partnerId, give = [], get = 
   }
 }
 
-const COLLECTIBLES_PAGES = 5;   // 500 objets : bien au-dela d'un inventaire de trade ordinaire
+const COLLECTIBLES_PAGES = 10;  // 1 000 objets ; au-dela, `complete: false` et rien n'est declare absent
 
 /**
  * Les limiteds d'un joueur, exemplaire par exemplaire (userAssetId, serie,
@@ -666,7 +666,10 @@ export async function getCollectibles(userId) {
     try {
       j = await apiGet(`https://inventory.roblox.com/v1/users/${uid}/assets/collectibles?${q}`);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 403) return { private: true, items: [] };
+      if (e instanceof ApiError && e.status === 403) return { private: true, items: [], complete: false };
+      // Une page perdue en route (429, reseau) : on garde ce qu'on a, sans
+      // pretendre que l'inventaire est complet.
+      if (items.length) return { private: false, items, complete: false, error: String(e?.message || e) };
       throw e;
     }
     for (const it of j?.data || []) {
@@ -680,7 +683,21 @@ export async function getCollectibles(userId) {
     cursor = j?.nextPageCursor || '';
     if (!cursor) break;
   }
-  return { private: false, items };
+  return { private: false, items, complete: !cursor };
+}
+
+/**
+ * Les exemplaires d'un objet precis chez un joueur (instanceId = userAssetId
+ * pour un asset). Verifie un objet que l'inventaire des collectibles n'a pas
+ * rendu (bundle, inventaire tronque) au lieu de le croire parti.
+ * @returns {Promise<number[]>}  les identifiants d'exemplaires, [] s'il n'en a aucun
+ */
+export async function getOwnedCopies(userId, type, targetId) {
+  const uid = Number(userId), id = Number(targetId);
+  const kind = type === 'Bundle' ? 'Bundle' : 'Asset';
+  if (!uid || !id) throw new ApiError('objet inconnu', 0);
+  const j = await apiGet(`https://inventory.roblox.com/v1/users/${uid}/items/${kind}/${id}`, { relayAnyError: false });
+  return (j?.data || []).map(d => Number(d.instanceId)).filter(n => n > 0);
 }
 
 /* ------------------ petites recherches mises en cache ------------------- */

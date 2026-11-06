@@ -1803,6 +1803,21 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .ctr-on .ic, .ctr-hold .ic { width: 10px; height: 10px; stroke-width: 2.6; }
 .ctr-note { grid-column: 1 / -1; padding: 14px 8px; color: var(--faint); font-size: 12px; text-align: center; }
 .ctr-note.err { color: var(--loss); }
+.ctr-note.warn { padding: 6px 8px; color: var(--warn); font-size: 11px; }
+.ctr-chip.unsure { border-color: var(--warn); }
+.ctr-chip.gone img { filter: grayscale(1); }
+.ctr-serial { position: absolute; top: 4px; left: 4px; padding: 0 4px; border-radius: 4px; background: var(--surface-3); color: var(--dim); font-size: 9px; font-style: normal; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ctr-flag { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-3); color: var(--warn); }
+.ctr-chip.gone .ctr-flag { color: var(--loss); }
+.ctr-flag .ic { width: 10px; height: 10px; stroke-width: 2.4; }
+.ctr-chip:hover .ctr-flag { opacity: 0; }
+.ctr-side-h b small { margin-left: 2px; }
+.ctr-reload { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: var(--r-md); background: var(--surface-2); color: var(--dim); cursor: pointer; }
+.ctr-reload:hover { color: var(--fg); }
+.ctr-reload .ic { width: 13px; height: 13px; }
+.ctr-skel { min-height: 76px; position: relative; overflow: hidden; background: var(--surface-2); pointer-events: none; }
+.ctr-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, #ffffff0d, transparent); animation: sweep 1.2s infinite; }
+@media (prefers-reduced-motion: reduce) { .ctr-skel::after { animation: none; } }
 .ctr-note .ic { width: 13px; height: 13px; vertical-align: -2px; }
 .z-foot .z-reset .ic { width: 13px; height: 13px; vertical-align: -2px; }
 .z-foot button:disabled { opacity: .45; cursor: not-allowed; }

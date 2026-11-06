@@ -11,6 +11,7 @@ import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, add
 import { setLang, t } from '../common/i18n.js';
 import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
+import { missing, itemKeys } from '../common/counter-match.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
@@ -1363,21 +1364,46 @@ async function handleMessage(msg) {
      */
     case 'ronote:counter-load': {
       const partnerId = Number(msg.partnerId);
-      const settings = await getSettings();
       const state = await getState();
       if (!state.userId) return { error: 'non connecté' };
       if (!partnerId) return { error: 'partenaire inconnu' };
+      const [settings, inv] = await Promise.all([
+        getSettings(),
+        Promise.allSettled([collectiblesOf(state.userId, msg.fresh), collectiblesOf(partnerId, msg.fresh)])
+      ]);
       const cat = await getCatalog(settings);
-      const [mine, theirs] = await Promise.allSettled([api.getCollectibles(state.userId), api.getCollectibles(partnerId)]);
-      const side = (r) => {
-        if (r.status !== 'fulfilled') return { items: [], error: String(r.reason?.message || r.reason) };
-        return { private: r.value.private, items: r.value.items.map(raw => resolveItem(raw, cat)) };
+      const side = async (r, uid, want) => {
+        if (r.status !== 'fulfilled') return { items: [], complete: false, absent: [], error: String(r.reason?.message || r.reason) };
+        const v = r.value;
+        const out = { private: v.private, complete: !!v.complete, absent: [], partial: !!v.error,
+          items: v.items.map(raw => resolveItem(raw, cat)) };
+        if (v.private) return out;
+        // Ce que l'inventaire n'a pas rendu, verifie objet par objet (en
+        // parallele, au plus 3) : present, on l'ajoute ; absent, c'est sur.
+        const lost = missing(Array.isArray(want) ? want : [], out.items).slice(0, 4);
+        await eachLimit(lost, 3, async (c) => {
+          const bundle = Number(c.bundleId) > 0 && !(Number(c.assetId) > 0);
+          const target = bundle ? Number(c.bundleId) : Number(c.legacyAssetId) || Number(c.assetId);
+          if (!target) return;
+          try {
+            const copies = await api.getOwnedCopies(uid, bundle ? 'Bundle' : 'Asset', target);
+            if (!copies.length) { out.absent.push(...itemKeys(c)); return; }
+            const have = new Set(out.items.map(i => i.uaid));
+            const uaid = copies.find(id => id === Number(c.uaid)) || copies.find(id => !have.has(id));
+            if (uaid) {
+              out.items.push(resolveItem({ id: uaid, assetId: c.assetId, bundleId: c.bundleId, name: c.name,
+                serialNumber: c.serial, recentAveragePrice: c.rap }, cat));
+            }
+          } catch { /* injoignable : l'objet reste « non verifie », pas « parti » */ }
+        });
+        return out;
       };
-      const me = side(mine), them = side(theirs);
+      const [me, them] = await Promise.all([side(inv[0], state.userId, msg.give), side(inv[1], partnerId, msg.get)]);
       const all = [...me.items, ...them.items];
       const thumbs = await safe(() => resolveThumbs(all.map(thumbKeysFor)), []);
       const lite = (i, n) => ({
-        uaid: Number(i.uaid), assetId: i.assetId, bundleId: i.bundleId, name: i.name, acronym: i.acronym,
+        uaid: Number(i.uaid), assetId: i.assetId, bundleId: i.bundleId, legacyAssetId: i.legacyAssetId,
+        name: i.name, acronym: i.acronym,
         serial: i.serial, value: i.value, rap: i.rap, prudent: i.prudent, unknown: i.unknown, noValue: i.noValue,
         onHold: i.onHold, projected: i.projected, rare: i.rare, isFace: i.isFace, thumb: thumbs?.[n] || null
       });
@@ -1397,6 +1423,8 @@ async function handleMessage(msg) {
           myId: state0.userId, partnerId: msg.partnerId,
           give: msg.give || [], get: msg.get || [], giveRobux: msg.giveRobux, getRobux: msg.getRobux
         });
+        // Les deux inventaires viennent de changer de main : le cache ment.
+        dropCollectibles(state0.userId, msg.partnerId);
         // Le trade d'origine passe en « Countered » (Inactive) : l'etape Inactive
         // y lira ma contre-offre et rattachera le nouvel envoi, sans alerte.
         const state = await editStore((st, streams, replay) => {
@@ -1557,3 +1585,30 @@ async function handleMessage(msg) {
 // Les regles de session ne survivent pas au redemarrage du navigateur : on les
 // repose a chaque reveil du worker, avant la premiere requete.
 installHeaderRules().finally(() => tick('boot'));
+
+
+/* ------------- inventaires de la contre-offre, gardes une minute ------------ */
+
+const COLLECTIBLES_TTL = 60 * 1000;
+const collectiblesCache = new Map();   // userId -> { at, p }
+
+/**
+ * Rouvrir l'editeur (ou en ouvrir un autre avec le meme joueur) ne recharge
+ * pas jusqu'a 10 pages d'inventaire : la meme promesse sert pendant une
+ * minute, et deux ouvertures simultanees n'en font qu'une. Un echec ou un
+ * inventaire incomplet n'est pas garde.
+ */
+function collectiblesOf(userId, fresh = false) {
+  const uid = Number(userId);
+  const hit = collectiblesCache.get(uid);
+  if (!fresh && hit && Date.now() - hit.at < COLLECTIBLES_TTL) return hit.p;
+  const p = api.getCollectibles(uid);
+  collectiblesCache.set(uid, { at: Date.now(), p });
+  p.then((v) => { if (!v?.complete && !v?.private) collectiblesCache.delete(uid); },
+    () => collectiblesCache.delete(uid));
+  return p;
+}
+
+function dropCollectibles(...ids) {
+  for (const id of ids) collectiblesCache.delete(Number(id));
+}

@@ -97,6 +97,7 @@ try {
   await import('../src/common/player.js');
   await import('../src/common/changelog.js');
   await import('../src/common/revalue.js');
+  await import('../src/common/counter-match.js');
   await import('../src/common/fluid.js');
   await import('../src/background/neuronal.js');
 
