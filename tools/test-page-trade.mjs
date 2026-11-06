@@ -98,7 +98,7 @@ const context = vm.createContext({
   console, Intl, Date, navigator: { language: 'fr' },
   location: { pathname: '/trades', href: 'https://www.roblox.com/trades' },
   document: { documentElement: { lang: 'fr' }, body: new Node(), hidden: false,
-    createElement: () => new Node(), addEventListener: (type, fn) => { docListeners[type] = fn; } },
+    createElement: () => new Node(), querySelectorAll: () => [], querySelector: () => null, addEventListener: (type, fn) => { docListeners[type] = fn; } },
   chrome: { runtime: { id: 'test', getURL: path => 'chrome-extension://test/' + path,
     // Le Lucky Cat a sa propre question, hors du compte des analyses.
     sendMessage: msg => msg.type === 'ronote:lucky-cat' ? Promise.resolve({ luckyCat: null })

@@ -190,6 +190,9 @@ console.log('\nContre-offre envoyée depuis le popup');
 
 console.log('\nInventaires de la contre-offre');
 {
+  // Les blocs d'avant simulent des 429 : la cadence apprise tombe au plancher et le seau est vide. Sans
+  // cette remise à zéro, chaque appel attend des secondes et dépasse le cache d'une minute testé plus bas.
+  (await import(new URL('../src/common/api.js', import.meta.url).href)).clearRateHolds();
   preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777003 }], outbound: [] } });
   calls = [];
   route = async (url, json) => {
