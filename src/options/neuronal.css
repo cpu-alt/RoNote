@@ -113,6 +113,8 @@
 [data-ui=neuronal] .btn.danger:hover { background: rgba(240, 86, 94, .2); }
 [data-ui=neuronal] .btn.ghost { background: none; color: var(--dim); }
 [data-ui=neuronal] .btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
+[data-ui=neuronal] .btn.pm-main { background: var(--accent-fill); color: #fff; }
+[data-ui=neuronal] .btn.pm-main:hover { background: var(--accent); }
 [data-ui=neuronal] button[data-play] { color: var(--accent); }
 
 /* Les événements à cocher : des puces pleines, la cochée sur un bleu doux. */

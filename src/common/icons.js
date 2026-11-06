@@ -62,6 +62,7 @@ export const ICONS = {
   /* --- interface ------------------------------------------------------ */
   x: path('M6 6l12 12M18 6 6 18'),
   check: path('m5 12.5 4.5 4.5L19 7.5'),
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.2"/>' + path('M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3'),
   chevron: path('m6.5 9.5 5.5 5.5 5.5-5.5'),
   external: path('M14 4h6v6') + path('M20 4l-8.5 8.5') + path('M18.5 13.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1h5.5'),
   pause: '<rect x="6.5" y="5" width="4" height="14" rx="1.2"' + FILL + '/><rect x="13.5" y="5" width="4" height="14" rx="1.2"' + FILL + '/>',

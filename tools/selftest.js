@@ -100,6 +100,7 @@ try {
   await import('../src/common/counter-match.js');
   await import('../src/common/fluid.js');
   await import('../src/background/neuronal.js');
+  await import('../src/background/premium.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
@@ -792,6 +793,8 @@ try {
     await import('../src/popup/profiles.js');
     await import('../src/popup/deals.js');
     await import('../src/popup/nwcard.js');
+    await import('../src/popup/lock.js');
+    await import('../src/options/premium.js');
     await import('../src/popup/overlay.js');
     await import('../src/popup/share.js');
     const counter = await import('../src/popup/counter.js');

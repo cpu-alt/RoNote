@@ -62,6 +62,17 @@ const mock = {
           return { luckyCat: { uaid: 2504983744, assetId: 233609198, serial: 1371, name: 'Mrs. Rabbit', since: Date.now() - 3 * 3600e3 } };
         case 'ronote:history':
           return { history: [] };
+        // RoNote premium : ?premium=in (connecté), ?premium=code (code à mettre dans la bio), sinon déconnecté.
+        case 'ronote:premium-status': {
+          const mode = new URLSearchParams(location.search).get('premium');
+          const roblox = { id: 2778878982, name: 'wars_choing' };
+          if (mode === 'code') return { signedIn: false, roblox, permission: true,
+            pending: { ticket: 't', code: 'ABEILLE CASTOR CITRON BISON', kind: 'key', roblox } };
+          if (mode === 'in') return { signedIn: true, roblox, permission: true, me: {
+            discord: { id: '1', name: 'MYd' }, roblox, services: [{ key: 'discovery', name: 'Insider' }],
+            features: { lookup: true, profiles: true, deals: true }, until: Date.now() / 1000 + 6 * 86400 } };
+          return { signedIn: false, roblox, permission: false };
+        }
         case 'ronote:unmute':
           settings.ignoredUsers = settings.ignoredUsers.filter(u => u.id !== msg.userId);
           return { settings };

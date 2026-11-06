@@ -23,10 +23,12 @@
  */
 import { B, IS_FIREFOX } from '../common/shim.js';
 import { NEURONAL } from '../common/defaults.js';
+import { premiumHeaders, premiumRetry } from './premium.js';
 
 const KNOWN_MS = 10 * 60e3;
 const UNKNOWN_MS = 30 * 60e3;
 const FAIL_MS = 60e3;
+const LOCKED_MS = 15e3;      // réservé aux abonnés : relu vite après une connexion ailleurs
 const STORE_KEY = 'neuronalCache';
 const STORE_MAX = 300;
 const pending = new Map();   // 'player:123' -> Promise de la lecture en cours
@@ -70,12 +72,19 @@ async function forget(keys) {
   if (hit) await persist(m);
 }
 
-async function fetchOne(kind, id, path = `${kind}/${id}`) {
+async function fetchOne(kind, id, path = `${kind}/${id}`, retried = false) {
   try {
     const res = await fetch(NEURONAL.api + path, {
-      headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1' },
+      // RoNote premium (premium.js) : le jeton de l'abonné, que Neuronal vérifie à chaque appel.
+      headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(await premiumHeaders()) },
       credentials: 'omit'
     });
+    // 401 / 403 : réservé aux abonnés (pas connecté, plus d'abonnement, compte Roblox à vérifier).
+    if (res.status === 401 || res.status === 403) {
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401 && !retried && await premiumRetry(body.error)) return fetchOne(kind, id, path, true);
+      return { locked: body.error || 'login', subscribeUrl: body.subscribe_url || '', needs: body.needs || [] };
+    }
     // 404 : la route n'est pas encore déployée sur le site ; 503 : elle y est, coupée.
     if (res.status === 404 || res.status === 503) return { unavailable: true };
     if (res.status === 429) return { limited: true };
@@ -84,6 +93,12 @@ async function fetchOne(kind, id, path = `${kind}/${id}`) {
   } catch (e) {
     return { error: String(e?.message || e) };
   }
+}
+
+/** Connexion, déconnexion premium : les réponses gardées (refus compris) ne valent plus. */
+export async function neuronalForget() {
+  memo = {};
+  await B.storage.session?.set({ [STORE_KEY]: {} }).catch(() => {});
 }
 
 /**
@@ -104,7 +119,7 @@ export async function neuronalLookup(kind, id, settings) {
   if (pending.has(key)) return pending.get(key);
 
   const run = fetchOne(kind, id).then(async (value) => {
-    const ttl = value.data ? (value.data.known ? KNOWN_MS : UNKNOWN_MS) : FAIL_MS;
+    const ttl = value.data ? (value.data.known ? KNOWN_MS : UNKNOWN_MS) : value.locked ? LOCKED_MS : FAIL_MS;
     await remember(key, value, ttl);
     return value;
   }).finally(() => pending.delete(key));

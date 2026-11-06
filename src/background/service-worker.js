@@ -19,7 +19,8 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup, neuronalProfiles, neuronalDeals, shareWithNeuronal, neuronalExternal, syncHelloScript } from './neuronal.js';
+import { neuronalLookup, neuronalProfiles, neuronalDeals, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
+import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumCancel, premiumLogout } from './premium.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1181,6 +1182,31 @@ async function handleMessage(msg) {
     // L'onglet Deals du popup : le Deal Sniper de Neuronal.
     case 'ronote:neuronal-deals':
       return neuronalDeals(await getSettings());
+
+    // RoNote premium (premium.js) : la carte Premium des réglages. Connecté ou déconnecté,
+    // les réponses Neuronal gardées (refus compris) sont oubliées, et les fiches s'allument.
+    case 'ronote:premium-status':
+      return premiumStatus({ fresh: !!msg.fresh });
+    case 'ronote:premium-connect':
+    case 'ronote:premium-verify': {
+      const r = msg.type === 'ronote:premium-connect' ? await premiumConnect() : await premiumVerify();
+      if (r.ok) {
+        await neuronalForget();
+        await saveSettings({ neuronalLookup: true });
+      }
+      return r;
+    }
+    case 'ronote:premium-key':
+      return premiumKey(msg.key);
+    case 'ronote:premium-link':
+      return premiumLink();
+    case 'ronote:premium-cancel':
+      return premiumCancel();
+    case 'ronote:premium-logout': {
+      const r = await premiumLogout();
+      await neuronalForget();
+      return r;
+    }
 
     case 'ronote:item-history': {
       const id = Number(msg.itemId);

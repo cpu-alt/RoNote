@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.16.6",
+  "version": "2.16.7",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -12,7 +12,8 @@
     "scripting",
     "offscreen",
     "sidePanel",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "identity"
   ],
   "optional_host_permissions": [
     "https://neuronal.live/*"

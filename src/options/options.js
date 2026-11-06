@@ -7,6 +7,7 @@ import { RELEASES } from '../common/changelog.js';
 import { $, send, ask, applyLang, onStoredChange } from '../common/ui.js';
 import { THEMES, THEME_KEYS, matchTheme, paintBackground, themeFromFile } from './themes.js';
 import { fluidHover } from '../common/fluid.js';
+import { mountPremium, repaintPremium } from './premium.js';
 
 /** Le bandeau de diagnostic sert aussi a annoncer qu'on n'a pas pu repondre. */
 function showUnreachable() {
@@ -1022,6 +1023,7 @@ async function load() {
   newest = r.newest || {};
   belowMark = r.belowMark || {};
   render();
+  repaintPremium();                 // ses textes suivent la langue qui vient d'être appliquée
   // Le bandeau « nouveautés » du popup ouvre la page sur #s-news : la liste
   // n'existe qu'une fois rendue, le défilement natif est donc passé trop tôt.
   if (!hashDone && location.hash) {
@@ -1035,6 +1037,7 @@ fillSounds();
 if (globalThis.RoNoteMarks) document.head.append(Object.assign(document.createElement('style'), { textContent: globalThis.RoNoteMarks.INLINE_CSS }));
 wire();
 wireNav();
+mountPremium($('#premium'));
 load();
 
 /**

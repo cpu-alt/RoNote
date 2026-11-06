@@ -1,6 +1,6 @@
 # Privacy Policy : RoNote
 
-**Last updated: 31 October 2026 · Version 2.16.0**
+**Last updated: 6 November 2026 · Version 2.16.7**
 
 *[Version française](PRIVACY.fr.md)*
 
@@ -74,6 +74,23 @@ Neuronal settings. Nothing else is answered: no account, no trade, no setting.
 On Chrome the page can ask this as soon as RoNote is installed; on Firefox only
 once you have granted access to `neuronal.live`.
 
+**RoNote premium (optional, for Neuronal Discord subscribers).** Neuronal lookups,
+Profiles and Deals are served by `neuronal.live` to subscribers only. To unlock
+them (Settings › Premium), you either **Connect Discord** or enter the **key** you
+received from the Neuronal Discord. *Connect Discord* opens Discord's own sign-in
+page through the browser (`identity` permission); Discord only gives Neuronal your
+**Discord ID and name** (`identify` scope: no e-mail, no server list, no messages).
+With a key, RoNote sends the key and the Roblox user ID and username of the account
+RoNote follows. To prove that Roblox account is yours, you paste a short code in
+your **public** Roblox profile description, which `neuronal.live` reads on the
+public profile page; RoNote never sends your Roblox session or cookie. RoNote then
+keeps a **signed token** (valid 24 h, renewed automatically) in its local storage
+and attaches it, with the Roblox user ID it follows, to premium requests only.
+Neuronal stores your Discord ID, the linked Roblox user ID and username, and your
+sessions (dates only), to check your subscription on every request. *Sign out*
+closes the session on the server and deletes the token. Premium is independent from
+the contribution option: signing in sends nothing about your trades.
+
 **Without these options, no request goes to any other domain.**
 
 ## How your Roblox session is used
@@ -111,6 +128,7 @@ reply to an inbound trade, on your click.
 | `scripting` | Read the trade shown on screen when the API does not return its detail |
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
 | `sidePanel` | Open RoNote in the browser's sidebar, if you choose that mode |
+| `identity` | Open Discord's sign-in page for *Connect Discord* (RoNote premium), only when you click it |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |

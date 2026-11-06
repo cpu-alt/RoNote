@@ -622,3 +622,32 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .nw-share-state { display: block; margin-top: 4px; opacity: .8; }
 .nw-link { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--accent, #3d8eff); text-decoration: none; }
 .nw-link:hover { text-decoration: underline; }
+
+/* ------------------------------ premium --------------------------------- */
+.premium { display: grid; gap: 10px; padding: 6px 0 2px; }
+.pm-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pm-actions .btn, .pm-warn .btn { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+.btn.pm-main { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.pm-main:hover { background: #3b8cf0; border-color: #3b8cf0; }
+.btn svg { width: 16px; height: 16px; }
+.pm-key { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pm-key input { flex: 1; min-width: 230px; font-family: ui-monospace, monospace; letter-spacing: .5px; text-transform: uppercase; }
+.pm-key small, .pm-code small, .pm-sub { width: 100%; color: var(--dim); font-size: 12px; line-height: 1.5; margin: 0; }
+.pm-sub a { color: var(--accent); }
+.pm-code { display: grid; gap: 10px; }
+.pm-code p { margin: 0; line-height: 1.5; }
+.pm-words { display: flex; gap: 8px; align-items: center; }
+.pm-words code { flex: 1; padding: 10px 14px; border-radius: 11px; border: 1px dashed var(--accent); background: var(--surface-2);
+  font-size: 15px; font-weight: 700; letter-spacing: .6px; user-select: all; }
+.pm-line, .pm-warn { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; line-height: 1.45; }
+.pm-line > svg, .pm-warn > svg { width: 17px; height: 17px; flex: none; color: var(--accent); }
+.pm-warn > svg { color: #ffb44d; }
+.pm-warn > span, .pm-line > span { flex: 1; min-width: 180px; }
+.pm-feats { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pm-feats li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.pm-feats li svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+.pm-feats li.on svg { color: #22e57a; }
+.pm-feats li.off { opacity: .6; }
+.pm-feats b { display: block; font-size: 13px; }
+.pm-feats small { display: block; color: var(--dim); font-size: 12px; }
+.pm-msg { margin: 0; color: var(--dim); font-size: 12.5px; }

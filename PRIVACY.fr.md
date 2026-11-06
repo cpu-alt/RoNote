@@ -1,6 +1,6 @@
 # Politique de confidentialité : RoNote
 
-**Dernière mise à jour : 31 octobre 2026 · Version 2.16.0**
+**Dernière mise à jour : 6 novembre 2026 · Version 2.16.7**
 
 *[English version](PRIVACY.md)*
 
@@ -76,6 +76,24 @@ Neuronal. Rien d'autre n'est répondu : ni compte, ni trade, ni réglage. Sur
 Chrome, la page peut le demander dès que RoNote est installé ; sur Firefox,
 seulement une fois l'accès à `neuronal.live` accordé.
 
+**RoNote premium (facultatif, pour les abonnés du Discord Neuronal).** Les Fiches
+Neuronal, les Profils et les Deals ne sont servis par `neuronal.live` qu'aux abonnés.
+Pour les débloquer (Réglages › Premium), tu choisis **Connecter Discord** ou tu
+entres la **clé** reçue du Discord Neuronal. *Connecter Discord* ouvre la page de
+connexion de Discord elle-même, par le navigateur (permission `identity`) ; Discord
+ne donne à Neuronal que ton **identifiant et ton nom Discord** (portée `identify` :
+ni e-mail, ni liste de serveurs, ni messages). Avec une clé, RoNote envoie la clé et
+l'identifiant et le pseudo Roblox du compte qu'il suit. Pour prouver que ce compte
+Roblox est bien le tien, tu colles un court code dans la description **publique** de
+ton profil Roblox, que `neuronal.live` relit sur la page publique du profil ; RoNote
+n'envoie jamais ta session ni ton cookie Roblox. RoNote garde ensuite un **jeton
+signé** (valable 24 h, renouvelé tout seul) dans son stockage local et le joint, avec
+l'identifiant Roblox suivi, aux seules requêtes premium. Neuronal garde ton
+identifiant Discord, l'identifiant et le pseudo Roblox liés, et tes sessions (des
+dates seulement), pour vérifier ton abonnement à chaque requête. *Se déconnecter*
+ferme la session sur le serveur et efface le jeton. Le premium est indépendant de la
+contribution : se connecter n'envoie rien de tes trades.
+
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
@@ -114,6 +132,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 | `scripting` | Lire le trade affiché à l'écran quand l'API ne renvoie pas le détail |
 | `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
 | `sidePanel` | Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode |
+| `identity` | Ouvrir la page de connexion de Discord pour *Connecter Discord* (RoNote premium), seulement quand tu cliques dessus |
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |

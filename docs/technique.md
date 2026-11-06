@@ -1047,3 +1047,26 @@ envoie une notification de démonstration avec le son.
 > Au tout premier démarrage, RoNote photographie silencieusement les trades déjà
 > présents : **aucune notification pour l'existant**. Seuls les trades qui arrivent
 > après comptent.
+
+## RoNote premium : le verrou est sur le serveur (2.16.7)
+
+Les fonctions servies par Neuronal (fiches joueur et objet, Profils, Deals) sont réservées
+aux abonnés du Discord Neuronal. RoNote est open source : un verrou dans l'extension se
+retirerait en une ligne. Le verrou est donc **côté Neuronal** : ses routes `/ext/v1/player`,
+`/item`, `/profiles`, `/deals` ne rendent rien sans un jeton signé (HMAC) et revérifient
+l'abonnement en base à chaque appel. L'extension ne fait qu'obtenir le jeton, le garder
+(`storage.local`, clé `premium`) et le renouveler (`background/premium.js`).
+
+- **Connecter Discord** : `identity.launchWebAuthFlow` sur `/ext/v1/auth/discord?redirect=<getRedirectURL>`.
+  Neuronal fait l'échange OAuth (le Client Secret reste sur la VM) et renvoie le jeton dans le
+  *fragment* de l'adresse de retour : un fragment ne part vers aucun serveur.
+- **Clé** (`RN-XXXX-…`, reçue en DM ou `/key`) : `POST auth/key` rend un code de quatre mots.
+- **Compte Roblox vérifié par la bio** : le code est collé dans la description publique du
+  profil, Neuronal la relit (`users.roblox.com/v1/users/{id}`). C'est la seule preuve qu'un
+  serveur peut vérifier sans le cookie Roblox, qui ne quitte jamais le navigateur. Avec Discord,
+  une fois ; avec une clé (secret au porteur), à chaque nouvel appareil.
+- Le jeton dure 24 h ; renouvelé d'avance sous 2 h, ou une fois après un 401 `expired`.
+  Un 401/403 devient `{ locked: raison }` (`login`, `subscribe`, `link`, `other_account`) et
+  le popup l'explique (`popup/lock.js`) ; la carte est dans les réglages (`options/premium.js`),
+  là où la demande de permission neuronal.live et la fenêtre Discord ne ferment pas le popup.
+- La contribution au réseau reste une option séparée : se connecter n'envoie aucun trade.

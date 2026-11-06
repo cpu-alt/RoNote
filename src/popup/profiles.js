@@ -29,6 +29,7 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTradeCard, nwTilesHtml } from './nwcard.js';
 import { discoverSwitch } from './deals.js';
+import { lockHtml } from './lock.js';
 
 const KEY = 'ronote.profiles';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -80,6 +81,7 @@ function empty(title, text, options = false) {
 }
 
 function stateHtml(res) {
+  if (res?.locked) return lockHtml(res);
   if (res?.off) return empty('Fiches Neuronal coupées',
     'Active « Fiches Neuronal » dans Réglages › Valeurs pour voir les profils.', true);
   if (res?.unavailable) return empty('Profils indisponibles', 'Neuronal ne partage pas ces listes pour le moment.');

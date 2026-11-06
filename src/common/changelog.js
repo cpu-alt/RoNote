@@ -16,6 +16,20 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.7',
+    title: item('RoNote premium', 'RoNote premium'),
+    items: [
+      item("Premium (Réglages › Premium) : les Fiches Neuronal, les Profils et les Deals sont réservés aux abonnés du Discord Neuronal. Le reste de RoNote reste gratuit.",
+        "Premium (Settings › Premium): Neuronal lookups, Profiles and Deals are for Neuronal Discord subscribers. The rest of RoNote stays free."),
+      item("Connecter Discord en un clic, ou entrer la clé reçue en DM (ou avec /key sur le Discord).",
+        "Connect Discord in one click, or enter the key you got by DM (or with /key on the Discord)."),
+      item("Ton compte Roblox est vérifié par un code à coller dans la description de ton profil. Un compte par abonnement, changeable tous les 7 jours.",
+        "Your Roblox account is verified with a code pasted in your profile description. One account per subscription, switchable every 7 days."),
+      item("Une fonction verrouillée dit pourquoi, avec Débloquer et S'abonner ; Premium dans le menu du compte.",
+        "A locked feature says why, with Unlock and Subscribe; Premium in the account menu.")
+    ]
+  },
+  {
     version: '2.16.6',
     title: item('Contre-offre fiable', 'Reliable counter-offers'),
     items: [

@@ -3,6 +3,26 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.7 : RoNote premium
+
+- **Premium** (nouveau, Réglages › Premium) : les Fiches Neuronal, les Profils
+  et les Deals sont réservés aux abonnés du Discord Neuronal. Tout le reste de
+  RoNote reste gratuit.
+- **Connecter Discord** en un clic (page de connexion de Discord, portée
+  `identify` seulement), ou **J'ai une clé** : la clé reçue en DM à
+  l'abonnement, ou avec `/key` sur le Discord.
+- Le compte Roblox est **vérifié** : un code de quatre mots à coller dans la
+  description du profil, relu par Neuronal sur la page publique. Un compte
+  Roblox par abonnement, changeable tous les 7 jours.
+- Le verrou est sur le serveur : sans jeton signé par Neuronal, rien n'est
+  rendu, et l'abonnement est revérifié à chaque appel. Le jeton (24 h) se
+  renouvelle tout seul.
+- Dans le popup, une fonction verrouillée dit pourquoi (pas connecté,
+  abonnement terminé, compte Roblox à vérifier) avec Débloquer et S'abonner ;
+  « Premium » dans le menu du compte.
+- Nouvelle permission `identity` (seulement pour Connecter Discord), politique
+  de confidentialité mise à jour. La contribution au réseau reste un choix à part.
+
 ## v2.16.6 : contre-offre fiable
 
 - **Contre-offre** : un objet n'est plus annoncé « plus dans l'inventaire » à

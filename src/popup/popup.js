@@ -13,6 +13,7 @@ import { renderCoin, coinKey } from './coinflip.js';
 import { renderProfiles } from './profiles.js';
 import { renderDeals } from './deals.js';
 import { nwTradeCard } from './nwcard.js';
+import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
@@ -281,6 +282,7 @@ function fillMeMenu() {
     ${menuRow('history', 'journal', t('Journal'))}
     ${menuRow('profiles', 'radar', t('Profils'))}
     ${menuRow('deals', 'flame', t('Deals'))}
+    ${menuRow('premium', 'star', t('Premium'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
 }
@@ -353,6 +355,7 @@ async function onMeMenu(e) {
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
   else if (act === 'deals') selectTab('deals');
+  else if (act === 'premium') B.tabs.create({ url: B.runtime.getURL('options/options.html#s-premium') });
   else if (act === 'history') selectTab('history');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
 }
@@ -1165,6 +1168,7 @@ const nwAgo = (sec) => (sec ? timeAgo(sec * 1000) : '');
 function nwStateHtml(res, unknownText) {
   if (!res) return '<div class="p-skel nw-skel"></div>';
   if (res.off) return '';
+  if (res.locked) return lockHtml(res, true);       // réservé aux abonnés (refus du serveur)
   if (res.unavailable) return `<div class="nw-none">${t("Neuronal n'a pas encore ouvert ses fiches à l'extension.")}</div>`;
   if (res.limited) return `<div class="nw-none">${t('Trop de fiches demandées : réessaie dans quelques minutes.')}</div>`;
   if (res.error || !res.data) return `<div class="nw-none">${t('Neuronal est injoignable.')}</div>`;
