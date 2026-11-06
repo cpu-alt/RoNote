@@ -3,6 +3,11 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.9 : message d'erreur de connexion
+
+- Premium : une connexion non confirmée (Discord ou Roblox) le dit sans accuser Discord à tort.
+  Côté Neuronal, « Se connecter avec Roblox » n'expire plus après « Confirm and Give Access ».
+
 ## v2.16.8 : se connecter avec Roblox
 
 - **Se connecter avec Roblox** (Réglages › Premium) : pour vérifier ton compte

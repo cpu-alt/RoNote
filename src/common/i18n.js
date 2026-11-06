@@ -1229,6 +1229,7 @@ const EN = {
   "Débloquer": "Unlock",
   "Ouvrir Premium": "Open Premium",
   "Pas abonné ?": "Not subscribed?",
+  "La connexion n'a pas été confirmée. Réessaie dans un instant.": "The sign-in was not confirmed. Try again in a moment.",
   "Prouve que {who} est bien ton compte :": "Prove that {who} is your account:",
   "Se connecter avec Roblox": "Sign in with Roblox",
   "La page officielle de Roblox. Neuronal ne reçoit que ton identifiant et ton pseudo.": "Roblox's official page. Neuronal only gets your user ID and username.",

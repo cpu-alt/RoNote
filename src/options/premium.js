@@ -21,7 +21,7 @@ const FEATURES = [
 const ERRORS = {
   permission: "Sans l'accès à neuronal.live, RoNote ne peut pas vérifier ton abonnement.",
   cancelled: 'Connexion annulée.',
-  failed: "Discord n'a pas confirmé la connexion. Réessaie.",
+  failed: "La connexion n'a pas été confirmée. Réessaie dans un instant.",
   not_member: "Ce compte Discord n'est pas sur le serveur Neuronal. Rejoins-le, puis réessaie.",
   not_configured: "Le premium n'est pas encore ouvert sur Neuronal. Réessaie plus tard.",
   bad_key: 'Clé inconnue ou expirée. Tape /key sur le Discord Neuronal pour revoir la tienne.',

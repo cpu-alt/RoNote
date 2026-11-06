@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.9',
+    title: item('Connexion plus claire', 'Clearer sign-in'),
+    items: [
+      item("Premium : « Se connecter avec Roblox » aboutit après « Confirm and Give Access », et une connexion non confirmée le dit clairement.",
+        "Premium: Sign in with Roblox completes after Confirm and Give Access, and an unconfirmed sign-in says so clearly.")
+    ]
+  },
+  {
     version: '2.16.8',
     title: item('Se connecter avec Roblox', 'Sign in with Roblox'),
     items: [
