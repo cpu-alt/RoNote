@@ -1,6 +1,6 @@
 # Politique de confidentialité : RoNote
 
-**Dernière mise à jour : 6 novembre 2026 · Version 2.16.7**
+**Dernière mise à jour : 6 novembre 2026 · Version 2.16.8**
 
 *[English version](PRIVACY.md)*
 
@@ -86,7 +86,10 @@ ni e-mail, ni liste de serveurs, ni messages). Avec une clé, RoNote envoie la c
 l'identifiant et le pseudo Roblox du compte qu'il suit. Pour prouver que ce compte
 Roblox est bien le tien, tu colles un court code dans la description **publique** de
 ton profil Roblox, que `neuronal.live` relit sur la page publique du profil ; RoNote
-n'envoie jamais ta session ni ton cookie Roblox. RoNote garde ensuite un **jeton
+n'envoie jamais ta session ni ton cookie Roblox. À la place du code, tu peux
+**te connecter avec Roblox** : la page d'autorisation de Roblox elle-même (OAuth 2.0,
+portées `openid` et `profile`) donne à `neuronal.live` ton identifiant et ton pseudo
+Roblox, rien d'autre. RoNote garde ensuite un **jeton
 signé** (valable 24 h, renouvelé tout seul) dans son stockage local et le joint, avec
 l'identifiant Roblox suivi, aux seules requêtes premium. Neuronal garde ton
 identifiant Discord, l'identifiant et le pseudo Roblox liés, et tes sessions (des

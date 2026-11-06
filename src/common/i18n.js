@@ -1229,6 +1229,13 @@ const EN = {
   "Débloquer": "Unlock",
   "Ouvrir Premium": "Open Premium",
   "Pas abonné ?": "Not subscribed?",
+  "Prouve que {who} est bien ton compte :": "Prove that {who} is your account:",
+  "Se connecter avec Roblox": "Sign in with Roblox",
+  "La page officielle de Roblox. Neuronal ne reçoit que ton identifiant et ton pseudo.": "Roblox's official page. Neuronal only gets your user ID and username.",
+  "ou, sans passer par Roblox :": "or, without going through Roblox:",
+  "Roblox a confirmé un autre compte que celui suivi par RoNote. Connecte-toi sur roblox.com avec le bon compte, puis réessaie.":
+    "Roblox confirmed a different account than the one RoNote follows. Sign in on roblox.com with the right account, then try again.",
+  "La connexion Roblox n'est pas encore ouverte : utilise le code dans la description.": "Sign in with Roblox isn't open yet: use the code in your description.",
 };
 
 const DICT = { en: EN };

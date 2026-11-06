@@ -180,7 +180,7 @@ export async function premiumLink() {
 
 async function pendingFrom(r, roblox, kind) {
   if (r.status !== 200) return { error: r.data.error || 'HTTP ' + r.status, ...r.data };
-  const pending = { ticket: r.data.ticket, code: r.data.code, kind, roblox,
+  const pending = { ticket: r.data.ticket, code: r.data.code, kind, roblox, oauth: !!r.data.roblox_oauth,
     until: Date.now() + (Number(r.data.expires_in) || 900) * 1000 };
   await premiumSet({ pending });
   return { ok: true, pending };
@@ -194,6 +194,33 @@ export async function premiumVerify() {
   if (r.status === 200) { await keep(r.data); return { ok: true }; }
   if (r.status === 410) await premiumSet({ pending: undefined });
   return { error: r.data.error || 'HTTP ' + r.status };
+}
+
+/**
+ * « Se connecter avec Roblox » (2.16.8) : la page d'autorisation officielle de Roblox
+ * (OAuth 2.0, scopes openid profile) prouve le compte à la place du code dans la bio.
+ * Neuronal vérifie que Roblox a confirmé LE compte du défi, puis rend le jeton dans le
+ * fragment, comme Connect Discord. Rend { ok } ou { error } (`other_account` : Roblox a
+ * confirmé un autre compte que celui suivi par RoNote).
+ */
+export async function premiumRobloxOAuth() {
+  const p = await premiumGet();
+  if (!p.pending?.ticket) return { error: 'expired' };
+  if (!B.identity?.launchWebAuthFlow) return { error: 'unsupported' };
+  const redirect = B.identity.getRedirectURL('roblox');
+  const r = await call('auth/roblox/start', { method: 'POST', body: { ticket: p.pending.ticket, redirect } });
+  if (r.status !== 200) return { error: r.data.error || 'HTTP ' + r.status };
+  let back;
+  try {
+    back = await B.identity.launchWebAuthFlow({ url: r.data.url, interactive: true });
+  } catch (e) {
+    return { error: 'cancelled' };
+  }
+  const f = fragment(back);
+  if (!f.token) return { error: f.error || 'failed', name: f.name || '' };
+  await premiumSet({ token: f.token, exp: Number(f.exp) || 0, pending: undefined, error: undefined });
+  await premiumStatus({ fresh: true });
+  return { ok: true };
 }
 
 export async function premiumCancel() {

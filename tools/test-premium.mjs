@@ -132,6 +132,27 @@ console.log('\nLa clé, puis le code dans la bio');
   check('pas de compte Roblox suivi : rien ne part', (await premium.premiumKey('RN-GOOD')).error === 'no_roblox');
 }
 
+console.log('\nSe connecter avec Roblox (2.16.8)');
+{
+  await reset(); store.set('state', { userId: 42, accounts: [{ id: 42, name: 'me' }] });
+  routes['auth/key'] = [200, { ticket: 'T2', code: 'A B C D', expires_in: 900, roblox_oauth: true }];
+  const k = await premium.premiumKey('RN-GOOD');
+  check('le défi dit que Roblox OAuth est ouvert', k.pending.oauth === true);
+  routes['auth/roblox/start'] = (init) => [200, { url: 'https://apis.roblox.com/oauth/v1/authorize?x=1', sent: JSON.parse(init.body) }];
+  flow = { back: 'https://x.chromiumapp.org/roblox#token=RBXTOK&exp=' + later(24) };
+  const r = await premium.premiumRobloxOAuth();
+  const sent = calls.find(c => c.path === 'auth/roblox/start').body;
+  check('le ticket et l\'adresse de retour de l\'extension partent', sent.ticket === 'T2' && sent.redirect.endsWith('.chromiumapp.org/roblox'));
+  check('la page de Roblox est ouverte', flow.asked.startsWith('https://apis.roblox.com/oauth/v1/authorize'));
+  check('jeton gardé, défi oublié', r.ok && (await premium.premiumGet()).token === 'RBXTOK' && !(await premium.premiumGet()).pending);
+  await premium.premiumKey('RN-GOOD');
+  flow = { back: 'https://x.chromiumapp.org/roblox#error=other_account&name=alt' };
+  const no = await premium.premiumRobloxOAuth();
+  check('Roblox confirme un autre compte : refusé, le défi reste', no.error === 'other_account' && (await premium.premiumGet()).pending);
+  routes['auth/roblox/start'] = [503, { error: 'roblox_oauth_off' }];
+  check('pas encore ouvert côté serveur : erreur claire', (await premium.premiumRobloxOAuth()).error === 'roblox_oauth_off');
+}
+
 console.log('\nSe déconnecter');
 {
   store.set('premium', { token: 'BYE', exp: later(10) });

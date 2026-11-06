@@ -67,7 +67,7 @@ const mock = {
           const mode = new URLSearchParams(location.search).get('premium');
           const roblox = { id: 2778878982, name: 'wars_choing' };
           if (mode === 'code') return { signedIn: false, roblox, permission: true,
-            pending: { ticket: 't', code: 'ABEILLE CASTOR CITRON BISON', kind: 'key', roblox } };
+            pending: { ticket: 't', code: 'ABEILLE CASTOR CITRON BISON', kind: 'key', roblox, oauth: true } };
           if (mode === 'in') return { signedIn: true, roblox, permission: true, me: {
             discord: { id: '1', name: 'MYd' }, roblox, services: [{ key: 'discovery', name: 'Insider' }],
             features: { lookup: true, profiles: true, deals: true }, until: Date.now() / 1000 + 6 * 86400 } };

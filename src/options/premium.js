@@ -38,7 +38,9 @@ const ERRORS = {
   unsupported: "Ce navigateur ne permet pas la connexion Discord : utilise une clé.",
   rate_limited: "Trop d'essais : attends un peu.",
   revoked: 'Ta session a été fermée : reconnecte-toi.',
-  login: 'Reconnecte-toi.'
+  login: 'Reconnecte-toi.',
+  other_account: "Roblox a confirmé un autre compte que celui suivi par RoNote. Connecte-toi sur roblox.com avec le bon compte, puis réessaie.",
+  roblox_oauth_off: "La connexion Roblox n'est pas encore ouverte : utilise le code dans la description."
 };
 const errorText = (e) => t(ERRORS[e] || 'Neuronal est injoignable.');
 
@@ -65,13 +67,20 @@ function signedOutHtml() {
 
 function pendingHtml(p) {
   const who = p.roblox?.name ? '@' + escapeHtml(p.roblox.name) : '#' + p.roblox?.id;
-  return `<div class="pm-code">
+  // 2.16.8 : la page officielle de Roblox d'abord (un clic), le code dans la bio en secours.
+  const oauth = p.oauth ? `<div class="pm-oauth">
+      <p>${t('Prouve que {who} est bien ton compte :', { who })}</p>
+      <div class="pm-actions"><button class="btn pm-main" data-pm="roblox" type="button"${busy ? ' disabled' : ''}>${t('Se connecter avec Roblox')}</button></div>
+      <small>${t('La page officielle de Roblox. Neuronal ne reçoit que ton identifiant et ton pseudo.')}</small>
+    </div>
+    <p class="pm-or">${t('ou, sans passer par Roblox :')}</p>` : '';
+  return `${oauth}<div class="pm-code">
       <p>${t('Colle ce code dans la description de ton profil Roblox ({who}), enregistre, puis clique sur « C’est fait ». Tu pourras le retirer juste après.', { who })}</p>
       <div class="pm-words"><code id="pm-code">${escapeHtml(p.code)}</code>
         <button class="btn" data-pm="copy" type="button" title="${escapeHtml(t('Copier'))}">${ic('copy')}</button></div>
       <div class="pm-actions">
         <a class="btn" href="https://www.roblox.com/users/${Number(p.roblox?.id) || 0}/profile" target="_blank" rel="noopener noreferrer">${ic('external')}<span>${t('Ouvrir mon profil Roblox')}</span></a>
-        <button class="btn pm-main" data-pm="verify" type="button"${busy ? ' disabled' : ''}>${t('C’est fait')}</button>
+        <button class="btn${p.oauth ? '' : ' pm-main'}" data-pm="verify" type="button"${busy ? ' disabled' : ''}>${t('C’est fait')}</button>
         <button class="btn" data-pm="cancel" type="button">${t('Annuler')}</button>
       </div>
       <small>${t('Pourquoi ? Neuronal relit ta description publique : c’est la preuve que ce compte Roblox est bien le tien, sans jamais toucher à ta session Roblox.')}</small>
@@ -145,6 +154,8 @@ async function onClick(e) {
     if (keyOpen) root.querySelector('#pm-key')?.focus();
   } else if (what === 'link') {
     await act('ronote:premium-link');
+  } else if (what === 'roblox') {
+    await act('ronote:premium-roblox', {}, t('Compte Roblox vérifié. Les fonctions premium sont ouvertes.'));
   } else if (what === 'verify') {
     await act('ronote:premium-verify', {}, t('Compte Roblox vérifié. Les fonctions premium sont ouvertes.'));
   } else if (what === 'cancel') {

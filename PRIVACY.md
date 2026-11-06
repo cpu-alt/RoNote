@@ -1,6 +1,6 @@
 # Privacy Policy : RoNote
 
-**Last updated: 6 November 2026 · Version 2.16.7**
+**Last updated: 6 November 2026 · Version 2.16.8**
 
 *[Version française](PRIVACY.fr.md)*
 
@@ -83,7 +83,10 @@ page through the browser (`identity` permission); Discord only gives Neuronal yo
 With a key, RoNote sends the key and the Roblox user ID and username of the account
 RoNote follows. To prove that Roblox account is yours, you paste a short code in
 your **public** Roblox profile description, which `neuronal.live` reads on the
-public profile page; RoNote never sends your Roblox session or cookie. RoNote then
+public profile page; RoNote never sends your Roblox session or cookie. Instead of the code, you can
+**Sign in with Roblox**: Roblox's own authorization page (OAuth 2.0, scopes `openid`
+and `profile`) tells `neuronal.live` your Roblox user ID and username, nothing else.
+RoNote then
 keeps a **signed token** (valid 24 h, renewed automatically) in its local storage
 and attaches it, with the Roblox user ID it follows, to premium requests only.
 Neuronal stores your Discord ID, the linked Roblox user ID and username, and your

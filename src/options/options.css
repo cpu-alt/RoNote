@@ -651,3 +651,7 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .pm-feats b { display: block; font-size: 13px; }
 .pm-feats small { display: block; color: var(--dim); font-size: 12px; }
 .pm-msg { margin: 0; color: var(--dim); font-size: 12.5px; }
+.pm-oauth { display: grid; gap: 8px; padding-bottom: 4px; }
+.pm-oauth p { margin: 0; line-height: 1.5; }
+.pm-oauth small { color: var(--dim); font-size: 12px; }
+.pm-or { margin: 2px 0 0; color: var(--dim); font-size: 12.5px; }

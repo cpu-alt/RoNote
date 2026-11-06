@@ -3,6 +3,14 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.8 : se connecter avec Roblox
+
+- **Se connecter avec Roblox** (Réglages › Premium) : pour vérifier ton compte
+  Roblox, la page d'autorisation officielle de Roblox (OAuth 2.0, identifiant et
+  pseudo seulement) remplace le code à coller dans la description. Le code reste
+  en secours tant que l'application RoNote n'est pas publiée par Roblox.
+- Si Roblox confirme un autre compte que celui suivi par RoNote, rien n'est lié.
+
 ## v2.16.7 : RoNote premium
 
 - **Premium** (nouveau, Réglages › Premium) : les Fiches Neuronal, les Profils

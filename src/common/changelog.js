@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.8',
+    title: item('Se connecter avec Roblox', 'Sign in with Roblox'),
+    items: [
+      item("Premium : ton compte Roblox se vérifie en un clic sur la page officielle de Roblox, sans code à coller dans ta description (le code reste en secours).",
+        "Premium: verify your Roblox account in one click on Roblox's official page, no code to paste in your description (the code stays as a fallback).")
+    ]
+  },
+  {
     version: '2.16.7',
     title: item('RoNote premium', 'RoNote premium'),
     items: [

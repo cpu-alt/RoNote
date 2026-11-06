@@ -20,7 +20,7 @@ import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalLookup, neuronalProfiles, neuronalDeals, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
-import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumCancel, premiumLogout } from './premium.js';
+import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1188,8 +1188,10 @@ async function handleMessage(msg) {
     case 'ronote:premium-status':
       return premiumStatus({ fresh: !!msg.fresh });
     case 'ronote:premium-connect':
-    case 'ronote:premium-verify': {
-      const r = msg.type === 'ronote:premium-connect' ? await premiumConnect() : await premiumVerify();
+    case 'ronote:premium-verify':
+    case 'ronote:premium-roblox': {
+      const r = msg.type === 'ronote:premium-connect' ? await premiumConnect()
+        : msg.type === 'ronote:premium-roblox' ? await premiumRobloxOAuth() : await premiumVerify();
       if (r.ok) {
         await neuronalForget();
         await saveSettings({ neuronalLookup: true });
