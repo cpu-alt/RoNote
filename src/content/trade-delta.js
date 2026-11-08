@@ -292,11 +292,11 @@
     .go svg{width:.8em;height:.8em;display:block}`;
   // Le petit lien vers la page Rolimon's de l'objet, au bout de sa pastille de value.
   const GO_SVG = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5H2.5v7h7V7M7 2h3v3M10 2 5.5 6.5"/></svg>';
-  // Rolimon's : un visage garde la page de son ancien asset, un autre bundle n'a que /bundle/<id>
-  // (/item/<id de bundle> rend 404).
+  // Rolimon's : tout bundle, visage compris, a sa page /bundle/<id> (la page de référence ; /item/<id de
+  // bundle> rend 404). Un visage seulement connu par son ancien asset garde /item/<ancien>, qui y renvoie.
   const roliUrl = (i) => {
     const legacy = Number(i?.legacyAssetId) || 0, bundle = Number(i?.bundleId) || 0, asset = Number(i?.assetId) || 0;
-    return legacy ? `https://www.rolimons.com/item/${legacy}` : bundle ? `https://www.rolimons.com/bundle/${bundle}`
+    return bundle ? `https://www.rolimons.com/bundle/${bundle}` : legacy ? `https://www.rolimons.com/item/${legacy}`
       : asset ? `https://www.rolimons.com/item/${asset}` : '';
   };
   function linkBadge(badge, url) {

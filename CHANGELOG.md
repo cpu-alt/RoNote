@@ -6,9 +6,8 @@ l'utilisateur, pas la liste des commits.
 ## En préparation
 
 - **Visages et bundles** : leur image s'affiche dans Deals, Profils et les cartes Neuronal (deux
-  lettres à la place jusqu'ici), et leur lien Rolimon's mène à la bonne page : l'ancienne fiche
-  d'un visage, la page `/bundle/` d'un autre bundle (fiche d'objet, page de l'objet sur Roblox,
-  pastilles de la page de trade).
+  lettres à la place jusqu'ici), et leur lien Rolimon's mène à leur page `/bundle/` (fiche d'objet,
+  page de l'objet sur Roblox, pastilles de la page de trade).
 
 ## v2.16.9 : message d'erreur de connexion
 

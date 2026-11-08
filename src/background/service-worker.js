@@ -1077,10 +1077,10 @@ async function handleMessage(msg) {
       if (item.unknown) return { known: false, ready: !!cat.ready };
       // Rolimon's range ses fiches par identifiant d'asset : un visage passe
       // en bundle garde celle de son ancien asset.
-      // Un autre bundle n'a qu'une page /bundle/<id> (/item/<id> rend 404).
+      // Tout bundle, visage compris : sa page /bundle/<id> (la page de référence chez Rolimon's).
       const roliId = item.legacyAssetId || (item.isBundle ? 0 : item.assetId);
-      const roliUrl = roliId ? `https://www.rolimons.com/item/${roliId}`
-        : item.bundleId ? `https://www.rolimons.com/bundle/${item.bundleId}` : '';
+      const roliUrl = item.bundleId ? `https://www.rolimons.com/bundle/${item.bundleId}`
+        : roliId ? `https://www.rolimons.com/item/${roliId}` : '';
       return { known: true, ready: !!cat.ready, roliId, roliUrl,
         value: item.noValue ? null : item.value, rap: item.rap || 0,
         demand: item.demand, trend: item.trend, projected: item.projected, rare: item.rare };

@@ -139,9 +139,9 @@ console.log('\nRoute absente, option ou permission coupée');
 }
 
 {
-  // 8 novembre : le lien Rolimon's d'une tuile suit `roli` (ancien id d'une face, /bundle/ d'un bundle)
+  // 8 novembre : le lien Rolimon's d'une tuile suit `roli` (/bundle/ d'un visage ou d'un bundle)
   const { nwTilesHtml } = await import('../src/popup/nwcard.js');
-  const face = nwTilesHtml([{ id: 494291269, name: 'Super Super Happy Face', value: 1, thumb: 'https://tr.rbxcdn.com/x', roli: 'https://www.rolimons.com/item/494291269' }]);
+  const face = nwTilesHtml([{ id: 494291269, name: 'Super Super Happy Face', value: 1, thumb: 'https://tr.rbxcdn.com/x', roli: 'https://www.rolimons.com/bundle/158380697314856' }]);
   check('tuile : vignette affichée', face.includes('<img src="https://tr.rbxcdn.com/x"'));
   const bundle = nwTilesHtml([{ id: 939596, name: 'The Jade Catseye', value: 1, roli: 'https://www.rolimons.com/bundle/939596' }]);
   check('tuile bundle : page /bundle/', bundle.includes('data-open="https://www.rolimons.com/bundle/939596"'));
