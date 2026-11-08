@@ -188,7 +188,8 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
   // Ordre du DOM et identifiants d'origine gardés, assets rattachés à un bundle compris.
   a.pageItems = page.sides.map((side, index) => { let k = 0; return side.items.map(raw => {
     const item = a[index === detail.mine ? 'give' : 'get'].items[k++];
-    return { assetId: raw.assetId || 0, bundleId: raw.bundleId || 0, name: raw.byName ? raw.name : undefined,
+    return { assetId: raw.assetId || 0, bundleId: raw.bundleId || 0, legacyAssetId: item?.legacyAssetId || 0,
+      name: raw.byName ? raw.name : undefined,
       value: cat?.ready && !cat?.veryStale && item && !item.noValue && !item.unknown ? item.value : null,
       uaid: item?.uaid ?? null, serial: item?.serial ?? null,
       matchedUaid: !page.composer && samePageOffers(detail, captured) ? item?.uaid ?? null : null,

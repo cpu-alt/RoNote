@@ -2358,7 +2358,9 @@ function openItemSheet(key, given = null, onClosed = null) {
   const sum = given ? 0 : items.reduce((s, x) => s + x.total, 0);
   const roliId = i.kind === 'asset' ? i.id : i.faceAssetId;
   const links = [
-    roliId ? { label: "Rolimon's", url: `https://www.rolimons.com/item/${roliId}` } : null,
+    // un autre bundle n'a qu'une page /bundle/<id> chez Rolimon's (/item/<id> rend 404)
+    roliId ? { label: "Rolimon's", url: `https://www.rolimons.com/item/${roliId}` }
+      : i.kind === 'bundle' && i.id ? { label: "Rolimon's", url: `https://www.rolimons.com/bundle/${Number(i.id)}` } : null,
     { label: 'Roblox', url: i.kind === 'bundle' ? `https://www.roblox.com/bundles/${i.id}` : `https://www.roblox.com/catalog/${i.id}` }
   ].filter(Boolean);
   const ch = i.change;

@@ -130,8 +130,10 @@
     if (data.rare && globalThis.RoNoteMarks?.DIAMOND) flags.push(`<span class="rare" title="${fr ? 'Objet rare selon Rolimon’s' : 'Rare item according to Rolimon’s'}">${globalThis.RoNoteMarks.DIAMOND}</span>`);
     const body = `<img class="logo" alt="" src="${logo}">` + parts.join('') + flags.join('');
     // Toute la ligne mène à la fiche Rolimon's : une seule cible, évidente.
-    const row = data.roliId
-      ? `<a class="r" href="https://www.rolimons.com/item/${data.roliId}" target="_blank" rel="noopener noreferrer"
+    const roliUrl = /^https:\/\/www\.rolimons\.com\/(item|bundle)\/\d+$/.test(data.roliUrl || '') ? data.roliUrl
+      : data.roliId ? `https://www.rolimons.com/item/${Number(data.roliId)}` : '';
+    const row = roliUrl
+      ? `<a class="r" href="${roliUrl}" target="_blank" rel="noopener noreferrer"
           title="${fr ? 'Voir sur Rolimon’s' : 'View on Rolimon’s'}">${body}${ARROW.replace('<svg', '<svg class="go"')}</a>`
       : `<span class="r">${body}</span>`;
     return `<style>${CSS}</style>${inRow ? `<div class="inrow">${row}</div>` : row}`;

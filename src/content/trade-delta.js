@@ -292,11 +292,17 @@
     .go svg{width:.8em;height:.8em;display:block}`;
   // Le petit lien vers la page Rolimon's de l'objet, au bout de sa pastille de value.
   const GO_SVG = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5H2.5v7h7V7M7 2h3v3M10 2 5.5 6.5"/></svg>';
-  function linkBadge(badge, assetId) {
-    const id = Number(assetId) || 0;
-    if (badge.goId === id) return;
-    badge.goId = id;
-    if (id) badge.go.dataset.on = ''; else delete badge.go.dataset.on;
+  // Rolimon's : un visage garde la page de son ancien asset, un autre bundle n'a que /bundle/<id>
+  // (/item/<id de bundle> rend 404).
+  const roliUrl = (i) => {
+    const legacy = Number(i?.legacyAssetId) || 0, bundle = Number(i?.bundleId) || 0, asset = Number(i?.assetId) || 0;
+    return legacy ? `https://www.rolimons.com/item/${legacy}` : bundle ? `https://www.rolimons.com/bundle/${bundle}`
+      : asset ? `https://www.rolimons.com/item/${asset}` : '';
+  };
+  function linkBadge(badge, url) {
+    if (badge.goId === url) return;
+    badge.goId = url;
+    if (url) badge.go.dataset.on = ''; else delete badge.go.dataset.on;
     badge.go.title = TEXT.openRolimons;
   }
   // La pastille est-elle vraiment visible ? Dans sa carte, sur la ligne de son RAP,
@@ -362,7 +368,7 @@
       const stop = (e) => { e.stopPropagation(); };
       const open = (e) => {
         e.preventDefault(); e.stopPropagation();
-        if (badge.goId) window.open(`https://www.rolimons.com/item/${badge.goId}`, '_blank', 'noopener');
+        if (badge.goId) window.open(badge.goId, '_blank', 'noopener');
       };
       for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'touchstart']) go.addEventListener(type, stop);
       go.addEventListener('click', open);
@@ -483,7 +489,8 @@
         paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : 'N/A',
           available || rapFallback ? 'ok' : pending ? 'wait' : 'none',
           available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card);
-        linkBadge(badge, item.assetId || (matched ? info.assetId : 0));
+        linkBadge(badge, roliUrl(matched ? { assetId: item.assetId || info.assetId, bundleId: item.bundleId || info.bundleId,
+          legacyAssetId: info.legacyAssetId } : item));
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
           ? info.projected : !!projectedKnown.get(itemKey(item)));
         showMarks(badge, card, matched && !!info.rare, !!globalThis.RoNoteMarks?.isLucky(lucky,
@@ -519,7 +526,7 @@
       if (info?.known && info.value) paintBadge(badge, number.format(info.value), 'ok', TEXT.currentValue, card);
       else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', TEXT.rapUsed, card);
       else paintBadge(badge, info?.known ? 'N/A' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
-      linkBadge(badge, item.assetId);
+      linkBadge(badge, roliUrl({ ...item, legacyAssetId: info?.legacyAssetId }));
       showFlag(badge, card, !!info?.projected);
       showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
@@ -558,7 +565,7 @@
       for (const item of missing.slice(0, 150)) if (!returned.has(item.key)) unknown(item.key);
       for (const r of res.items || []) {
         if (r.known === false) unknown(r.key);
-        else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected, rare: !!r.rare });
+        else invInfo.set(r.key, { known: true, value: r.value || 0, projected: !!r.projected, rare: !!r.rare, legacyAssetId: r.legacyAssetId || 0 });
       }
       if (invInfo.size > 3000) invInfo.delete(invInfo.keys().next().value);
     } catch {
