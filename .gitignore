@@ -13,3 +13,6 @@ client_secret*.json
 
 # Obsidian : réglages locaux du vault
 .obsidian/
+
+# Graphify (graphe local)
+graphify-out/

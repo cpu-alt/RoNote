@@ -32,6 +32,18 @@ On répond à l'utilisateur en **français** ; l'extension est en français **et
 - Pas de requête Roblox en plus quand une donnée est déjà en cache : le service worker est économe.
 - Ne jamais committer d'identifiants (`client_secret*.json`, clés des stores) : ils vivent dans les secrets GitHub.
 
+## Outils installés (Ponytail, Graphify, Agent Skills, OmniRoute)
+
+- **Ponytail** (plugin, actif d'office) : le plus petit changement complet. Il ne remplace pas les règles
+  ci-dessus : i18n, PRIVACY et tests restent obligatoires. `/ponytail-review` avant
+  une version, `/ponytail-debt` pour lister les `shortcut:`.
+- **Graphify** : pour une question d'architecture (« qui appelle quoi », `src/background` ↔ `src/common`), interroger
+  `graphify-out/` s'il existe **avant** de grepper ; sinon `/graphify` une fois pour le créer (ignoré par git).
+  Ne pas y mettre `dist/`, `node_modules/` ni `store-assets/`.
+- **Agent Skills d'Anthropic** (`document-skills`, `example-skills`) : seulement quand on demande un fichier
+  (.docx, .pdf, .xlsx, .pptx) ou un visuel ; jamais pour le code du bot.
+- **OmniRoute** : routeur de modèles côté poste, rien à faire dans le dépôt.
+
 ## Documentation : lire seulement ce qui sert à la tâche
 
 | Fichier | Quand le lire |
