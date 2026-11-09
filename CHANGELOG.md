@@ -3,7 +3,7 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## En préparation
+## v2.16.10 : visages et bundles
 
 - **Visages et bundles** : leur image s'affiche dans Deals, Profils et les cartes Neuronal (deux
   lettres à la place jusqu'ici), et leur lien Rolimon's mène à leur page `/bundle/` (fiche d'objet,

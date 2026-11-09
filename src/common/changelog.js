@@ -16,7 +16,7 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
+    version: '2.16.10',
     title: item('Visages et bundles', 'Faces and bundles'),
     items: [
       item("Les visages et les bundles montrent leur image dans Deals, Profils et les cartes Neuronal, et leur lien Rolimon's ouvre la bonne page.",
