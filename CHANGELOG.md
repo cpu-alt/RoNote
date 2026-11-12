@@ -9,6 +9,7 @@ l'utilisateur, pas la liste des commits.
   de quelques pixels : RoNote regarde ses quatre coins et fait exactement la place qui manque.
 - **Nom de l'objet sur une ligne** (« XXL Basketball… », le nom entier au survol) quand la demande
   est affichée : la ligne gagnée accueille la demande sous la value, sans rien pousser.
+- **Visages et bundles** : leur demande Neuronal est trouvée (elle affichait « aucun trade en 30 jours »).
 
 ## v2.16.12 : demande mieux placée
 

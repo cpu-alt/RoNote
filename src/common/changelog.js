@@ -22,7 +22,9 @@ export const RELEASES = [
       item("La note de demande ne passe plus sous « Total Value », même quand il ne manque que quelques pixels.",
         "The demand score no longer slips under “Total Value”, even when only a few pixels are missing."),
       item("Le nom d'un objet tient sur une ligne (le nom entier au survol) : la demande se place juste dessous.",
-        "Item names fit on one line (full name on hover): the demand score sits right below.")
+        "Item names fit on one line (full name on hover): the demand score sits right below."),
+      item("Visages et bundles : leur demande est trouvée (au lieu de « aucun trade en 30 jours »).",
+        "Faces and bundles: their demand is found (instead of “no trade in 30 days”).")
     ]
   },
   {

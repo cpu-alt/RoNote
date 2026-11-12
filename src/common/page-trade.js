@@ -165,7 +165,8 @@ export function demandOf(table, item) {
   if (item.demand >= 0 && item.demand <= 4) return { roli: item.demand, score: item.demand + 1 };
   if (!table?.items) return null;
   const base = { of: table.rated, days: table.days };
-  const hit = table.items[String(item.legacyAssetId || item.assetId || 0)] || table.items[String(item.assetId || 0)];
+  // Visages et bundles : Neuronal les range sous l'identifiant de Rolimon's, qui est le numéro du bundle.
+  const hit = [item.bundleId, item.assetId, item.legacyAssetId].map(id => table.items[String(id || 0)]).find(Boolean);
   if (hit) return { ...base, n: hit[0], rank: hit[1], score: hit[2] };
   if (!(item.value > 0)) return null;
   if (item.value < table.min_value) return { na: 'small' };

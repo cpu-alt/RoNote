@@ -16,6 +16,8 @@ import { analyze, netRobux } from '../src/common/analysis.js';
   assert.deepEqual(demandOf(table, { assetId: 77, value: 2000, demand: 3 }), { roli: 3, score: 4 }, "Rolimon's demand first");
   assert.deepEqual(demandOf(null, { assetId: 9, value: 2000, demand: 0 }), { roli: 0, score: 1 }, 'works without Neuronal');
   assert.equal(demandOf(table, { assetId: 77, value: 2000, demand: -1 }).score, 1, 'no Rolimon demand: Neuronal rank');
+  assert.equal(demandOf({ ...table, items: { 158380697314856: [525, 65, 5] } },
+    { assetId: 0, bundleId: 158380697314856, legacyAssetId: 494291269, value: 70000, demand: -1 }).score, 5, 'faces: found by bundle id');
   assert.equal(demandAverage([{ demand: { score: 5 }, value: 30000 }, { demand: { score: 1 }, value: 1000 },
     { demand: { na: 'small' }, value: 200 }]), 4.9, 'average weighted by value, N/A left out');
   assert.equal(demandAverage([{ demand: { na: 'small' }, value: 200 }]), null);
