@@ -93,6 +93,7 @@ export const DEFAULTS = {
   projectedSize: 'm',         // s | m | l ; l'image importee est a part (cle projectedIcon)
   projectedShape: 'rounded',  // rounded | circle | square
   projectedCorner: 'left',    // left | right : coin haut de la vignette
+  demandIcon: 'flame',        // icone de la note de demande (content/demand-icons.js) ; image importee a part (cle demandIconImage)
 
   // --- Filtres (uniquement pour les trades RECUS) ------------------------
   onlyWins: false,            // ne notifier que si gain de valeur

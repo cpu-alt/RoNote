@@ -130,7 +130,7 @@
 [data-ui=neuronal] .theme[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 [data-ui=neuronal] .th-sw { border-radius: 8px; }
 [data-ui=neuronal] .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
-[data-ui=neuronal] :is(.banner-preview, .proj-stage, .bg-stage) { border-radius: 10px; }
+[data-ui=neuronal] :is(.banner-preview, .proj-stage, .bg-stage, .demand-preview) { border-radius: 10px; }
 
 /* ----------------------------- quoi de neuf ------------------------------ */
 

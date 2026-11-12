@@ -16,6 +16,18 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.11',
+    title: item('Demande des objets', 'Item demand'),
+    items: [
+      item("Page de trade : une note de demande sur 5 à côté de la value de chaque objet (celle de Rolimon's, sinon le classement Neuronal des trades sur 30 jours), et la moyenne de chaque côté sous son total.",
+        "Trade page: a demand score out of 5 next to each item's value (Rolimon's demand, otherwise Neuronal's 30-day trade ranking), and each side's average under its total."),
+      item("Réglages › Apparence : choisis l'icône de la demande, ou importe ta propre image.",
+        "Settings › Appearance: pick the demand icon, or import your own image."),
+      item("Mode anonyme : ton pseudo et ton solde de Robux sont aussi masqués dans la barre du haut de Roblox.",
+        "Anonymous mode: your username and Robux balance are also hidden in Roblox's top bar.")
+    ]
+  },
+  {
     version: '2.16.10',
     title: item('Visages et bundles', 'Faces and bundles'),
     items: [

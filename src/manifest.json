@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.16.10",
+  "version": "2.16.11",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -78,7 +78,8 @@
       ],
       "js": [
         "content/relay.js",
-        "content/page-bg.js"
+        "content/page-bg.js",
+        "content/anon.js"
       ],
       "run_at": "document_start",
       "all_frames": false
@@ -91,6 +92,7 @@
         "content/tradedom.js",
         "content/projected-badge.js",
         "content/item-marks.js",
+        "content/demand-icons.js",
         "content/delta-banner.js",
         "content/scrape.js",
         "content/trade-flex.js",

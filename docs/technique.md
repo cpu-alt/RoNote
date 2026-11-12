@@ -1070,3 +1070,15 @@ l'abonnement en base à chaque appel. L'extension ne fait qu'obtenir le jeton, l
   le popup l'explique (`popup/lock.js`) ; la carte est dans les réglages (`options/premium.js`),
   là où la demande de permission neuronal.live et la fenêtre Discord ne ferment pas le popup.
 - La contribution au réseau reste une option séparée : se connecter n'envoie aucun trade.
+
+## Demande des objets (v2.16.11)
+
+Sur la page de trade, chaque objet a une note de demande sur 5, sur la ligne de sa value (une ligne
+de plus débordait des cartes de Roblox, de hauteur fixe ; faute de place la note passe à « 4 », puis
+disparaît, jamais la value). D'abord la demande publiée par Rolimon's (`demand` de la table, 0–4 → 1–5,
+sans réseau) ; pour un objet qui n'en a pas, avec les Fiches Neuronal, le rang de l'objet dans
+`neuronal.live/ext/v1/demand` (classement par trades prouvés sur 30 jours, même table pour tous,
+envoyée sans jeton, gardée 1 h en mémoire). Projected et objets sous `min_value` (400 : les eggs) :
+N/A. La moyenne d'un côté est pondérée par la value. `demandOf` / `demandAverage` (common/page-trade.js),
+icônes au choix dans content/demand-icons.js (partagé avec l'aperçu des réglages), image importée sous
+la clé `demandIconImage`.

@@ -19,7 +19,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup, neuronalProfiles, neuronalDeals, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
+import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -1037,10 +1037,13 @@ async function handleMessage(msg) {
         const id = Number(i.assetId) || 0, rap = Number(i.recentAveragePrice) || 0;
         if (id && rap > 0 && !knownRaps[id]) knownRaps[id] = rap;
       }
-      // Aucun appel réseau ici : cette réponse revient à chaque trade affiché
+      // Aucun appel à Roblox ici : cette réponse revient à chaque trade affiché
       // et l'API economy de Roblox se fâche vite (429 pour tout le reste de
       // l'extension). Ni pont bundle ni RAP officiel : ceux des trades connus.
-      return { analysis: addKnownInstances(analyzePage(page, detail, cat, captured, { extra: knownRaps }), details) };
+      // La demande Neuronal : une table gardée 1 h ; sa première lecture n'attend pas plus de 2,5 s.
+      const demand = await Promise.race([neuronalDemand(settings).catch(() => null),
+        new Promise(r => setTimeout(() => r(null), 2500))]);
+      return { analysis: addKnownInstances(analyzePage(page, detail, cat, captured, { extra: knownRaps, demand }), details) };
     }
     // Cote et « projected » des objets des inventaires, sur la page de création
     // d'un trade. Aucun réseau : la table Rolimon's déjà en cache suffit.

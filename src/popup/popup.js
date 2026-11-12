@@ -2095,6 +2095,8 @@ wallet.series = orderedSeries(wallet.series, WALLET_SERIES);
 /** Le mode anonyme s'applique à tout le popup : classe du document, bouton de l'entête, pseudo. */
 function applyAnon() {
   document.body.classList.toggle('anon', wallet.hidden);
+  // Les pages de Roblox suivent (content/anon.js) : pseudo et Robux de la barre du haut masqués.
+  B.storage.local.set({ anon: !!wallet.hidden }).catch(() => {});
   const b = document.getElementById('btn-anon');
   if (b) {
     b.innerHTML = ic(wallet.hidden ? 'eye-off' : 'eye');

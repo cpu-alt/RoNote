@@ -3,6 +3,17 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.11 : demande des objets
+
+- **Demande des objets** (page de trade) : une note sur 5 sur la ligne de la value Rolimon's de chaque
+  objet. C'est la demande publiée par Rolimon's (Terrible = 1 … Amazing = 5) ; pour un objet sans
+  demande Rolimon's, avec les Fiches Neuronal, son rang dans le classement Neuronal des objets les plus
+  tradés sur 30 jours. N/A pour les projected et les eggs à 200-300. Sous chaque total, la demande
+  moyenne du côté, pondérée par la value. L'infobulle dit d'où vient la note.
+- **Icône de la demande** (Réglages › Apparence) : flamme, étoile, éclair, losange, cœur, courbe,
+  point ou aucune, ou ta propre image.
+- **Mode anonyme sur roblox.com** : ton pseudo et ton solde de Robux de la barre du haut sont masqués aussi.
+
 ## v2.16.10 : visages et bundles
 
 - **Visages et bundles** : leur image s'affiche dans Deals, Profils et les cartes Neuronal (deux

@@ -54,7 +54,10 @@ Neuronal tenu par l'auteur de RoNote. Quand tu ouvres ensuite la fiche d'un
 joueur ou d'un objet, RoNote demande à `neuronal.live/ext/v1/` ce que le réseau
 en sait : **seul l'identifiant Roblox de ce joueur ou de cet objet** est envoyé,
 sans cookie ni rien te concernant. La route ne fait que lire : elle n'ajoute
-personne au réseau. Couper l'option rend la permission.
+personne au réseau. Avec cette option, RoNote télécharge aussi, une fois par
+heure au plus, la table de demande des objets (`neuronal.live/ext/v1/demand`)
+affichée sur les pages de trade : la même liste pour tous, **rien n'est envoyé**
+avec. Couper l'option rend la permission.
 
 **Option Contribuer au réseau Neuronal (coupée par défaut).** Si tu l'actives
 (Réglages › Valeurs), avec la même permission sur `neuronal.live`, RoNote envoie

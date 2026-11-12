@@ -44,7 +44,7 @@ async function cache() {
 // Les grandes listes (Profils : jusqu'à 140 ko ; Deals) ne vont pas dans storage.session :
 // chaque écriture y recopie TOUT le cache. Gardées en mémoire seulement ; un worker
 // réveillé les relit, et le cache HTTP du navigateur (ETag → 304) rend ça presque gratuit.
-const VOLATILE = /^(profiles:|deals$)/;
+const VOLATILE = /^(profiles:|deals$|demand$)/;
 
 async function remember(key, value, ttl) {
   const m = await cache();
@@ -76,7 +76,8 @@ async function fetchOne(kind, id, path = `${kind}/${id}`, retried = false) {
   try {
     const res = await fetch(NEURONAL.api + path, {
       // RoNote premium (premium.js) : le jeton de l'abonné, que Neuronal vérifie à chaque appel.
-      headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(await premiumHeaders()) },
+      // La table de demande est la même pour tous : elle part sans jeton.
+      headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(path === 'demand' ? {} : await premiumHeaders()) },
       credentials: 'omit'
     });
     // 401 / 403 : réservé aux abonnés (pas connecté, plus d'abonnement, compte Roblox à vérifier).
@@ -172,6 +173,29 @@ export async function neuronalDeals(settings) {
   }).finally(() => pending.delete(key));
   pending.set(key, run);
   return run;
+}
+
+/**
+ * La demande des objets (`/ext/v1/demand`) : le classement de Neuronal par trades sur
+ * 30 jours, une note sur 5 par objet, la même table pour tout le monde. Gardée 1 h
+ * comme sur le serveur ; un worker réveillé la relit (ETag → 304). Mêmes conditions
+ * que les fiches. Renvoie la table ou null.
+ */
+const DEMAND_MS = 60 * 60e3;
+export async function neuronalDemand(settings) {
+  if (!settings?.neuronalLookup) return null;
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return null;
+  const key = 'demand';
+  const hit = (await cache())[key];
+  if (hit && hit.until > Date.now()) return hit.value.data || null;
+  if (!pending.has(key)) {
+    pending.set(key, fetchOne('demand', 0, 'demand').then(async (value) => {
+      await remember(key, value, value.data ? DEMAND_MS : FAIL_MS);
+      return value;
+    }).finally(() => pending.delete(key)));
+  }
+  return (await pending.get(key)).data || null;
 }
 
 /* ==========================================================================

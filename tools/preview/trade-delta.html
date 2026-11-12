@@ -27,7 +27,9 @@ globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage
   const {pageDetail,analyzePage,resolveNames} = await import('/src/common/page-trade.js');
   if (page.composer && !offline) page = resolveNames(page, catalog);
   const detail = pageDetail(page,null);
-  return {analysis:detail ? analyzePage(page,detail,offline?null:catalog):null};
+  // Demande Neuronal de test : 202 est projected (N/A), 101 trop petit (N/A), 103 jamais tradé (1/5).
+  const demand = {days:30,rated:1965,min_value:1000,items:{102:[5904,1,5],201:[320,90,4],203:[22,980,3],301:[60,420,4],302:[4023,6,5],305:[9,1500,2],306:[3,1800,1]}};
+  return {analysis:detail ? analyzePage(page,detail,offline?null:catalog,null,{demand}):null};
 }}};
 // Settings, read and followed live like on Roblox: `window.__rnSet({...})` changes them.
 const listeners = [];
@@ -41,7 +43,7 @@ window.__rnSet = (patch) => {
 const fixture = ({ new: 'trade-new-page.html', rows: 'trade-new-rows.html', real: 'trade-new-real.html' })[new URLSearchParams(location.search).get('page')] || 'trade-page.html';
 const markup = await (await fetch('/tools/fixtures/' + fixture)).text();
 document.querySelector('#stage').innerHTML = markup;
-for(const file of ['tradedom.js','projected-badge.js','item-marks.js','delta-banner.js','trade-delta.js']) {
+for(const file of ['tradedom.js','projected-badge.js','item-marks.js','demand-icons.js','delta-banner.js','trade-delta.js']) {
   if(file==='trade-delta.js') history.replaceState(null,'','/trades?preview=regression');
   await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/src/content/'+file;script.onload=resolve;script.onerror=reject;document.head.append(script);});
 }

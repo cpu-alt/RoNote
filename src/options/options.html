@@ -389,6 +389,34 @@
         </div>
       </div>
 
+      <div class="row design" id="demand-row" data-needs="pageDelta" data-keys="demande demand icone icon image flamme flame etoile star design">
+        <div class="design-head"><span><b>Icône de la demande</b><small>À côté de la note sur 5 de chaque objet et de la moyenne de chaque côté. Tu peux importer ta propre image.</small></span></div>
+        <div class="design-body">
+          <span class="demand-preview" id="demand-preview" aria-hidden="true"></span>
+          <div class="design-side">
+            <div class="fields">
+              <label class="field"><span>Icône</span>
+                <select id="demandIcon">
+                  <option value="flame">Flamme</option>
+                  <option value="star">Étoile</option>
+                  <option value="bolt">Éclair</option>
+                  <option value="diamond">Losange</option>
+                  <option value="heart">Cœur</option>
+                  <option value="trend">Courbe</option>
+                  <option value="dot">Point</option>
+                  <option value="none">Aucune</option>
+                </select></label>
+            </div>
+            <div class="btnrow">
+              <label class="btn" for="demand-file" tabindex="0"><i data-ic="upload"></i>Importer une image</label>
+              <input type="file" id="demand-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+              <button class="btn" id="demand-clear" type="button" hidden>Retirer l'image</button>
+            </div>
+            <small class="proj-msg" id="demand-msg"></small>
+          </div>
+        </div>
+      </div>
+
       <h3>Listes de trades sur Roblox</h3>
       <label class="row switch"><input type="checkbox" id="listBadges">
         <span><b>Écarts RAP / Value sur les listes</b><small>Onglets Reçus, Envoyés et Terminés : l'écart de chaque trade à droite de sa ligne, sans l'ouvrir. La date passe sous le pseudo.</small></span></label>
@@ -482,6 +510,7 @@
 </div>
 <span class="saved" id="saved"><i data-ic="check"></i>Enregistré</span>
 <script src="../content/projected-badge.js"></script>
+<script src="../content/demand-icons.js"></script>
 <script src="../content/item-marks.js"></script>
 <script src="../content/delta-banner.js"></script>
 <script src="../content/list-look.js"></script>

@@ -27,7 +27,7 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
   'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
 const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
-  'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner'];
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
 // [min, max, décimales] : une saisie hors bornes est ramenée dedans.
 const NUMS = {
@@ -40,7 +40,7 @@ const NUMS = {
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
 // Ce qui redessine un aperçu dès que ça change, sans attendre la relecture.
 const LOOK_KEYS = new Set(['bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize', 'bannerPct',
-  'listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'projectedSize', 'projectedShape', 'projectedCorner', 'showLuckyCat', 'pageBgDim', 'pageBgBlur', ...THEME_KEYS]);
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'showLuckyCat', 'pageBgDim', 'pageBgBlur', ...THEME_KEYS]);
 
 let settings = null;
 let state = null;
@@ -80,6 +80,7 @@ const PROJ_MAX_FILE = 8 * 1024 * 1024;    // au-delà, refusé avant même de le
 const PROJ_GIF_KEEP = 400 * 1024;         // un GIF léger garde son animation
 const PROJ_PX = 96;                       // le reste est ramené à 96 px de côté
 let projectedIcon = '';
+let demandIconImage = '';
 // Ton image en fond de roblox.com (content/page-bg.js), à part des réglages : trop lourde pour eux.
 let pageBgImage = '';
 const BG_MAX_FILE = 20 * 1024 * 1024;    // au-delà, refusé avant même de le lire
@@ -206,6 +207,18 @@ function renderListLook() {
   }
 }
 
+/** L'aperçu de la note de demande : l'icône choisie ou l'image importée, en 4/5 puis N/A. */
+function renderDemandIcon() {
+  const box = $('#demand-preview');
+  if (!box) return;
+  const path = globalThis.RoNoteDemandIcons?.[settings.demandIcon || 'flame'];
+  const icon = (color) => demandIconImage ? `<img src="${demandIconImage}" alt="">`
+    : path ? `<svg viewBox="0 0 12 12" aria-hidden="true"><path fill="${color}" d="${path}"/></svg>` : '';
+  box.innerHTML = `<span>${icon('#8fd14f')}<b>4/5</b></span><span class="na">${icon('currentColor')}<b>N/A</b></span>`;
+  $('#demandIcon').disabled = !!demandIconImage;
+  $('#demand-clear').hidden = !demandIconImage;
+}
+
 function renderProjected() {
   const badge = globalThis.RoNoteBadge;
   const box = $('#proj-preview');
@@ -300,6 +313,7 @@ function renderLooks() {
   renderBg();
   renderMarks();
   renderProjected();
+  renderDemandIcon();
   renderBanner();       // redessine aussi la colonne des listes
 }
 
@@ -696,6 +710,11 @@ function wire() {
       message(msg, err?.message || t('Image illisible.'), true);
     }
   });
+  importImage('#demand-file', '#demand-msg', toProjectedIcon, (icon) => {
+    demandIconImage = icon;
+    storeImage('demandIconImage', icon);
+    renderDemandIcon();
+  });
   importImage('#proj-file', '#proj-msg', toProjectedIcon, (icon) => {
     projectedIcon = icon;
     storeImage('projectedIcon', icon);
@@ -742,6 +761,12 @@ function wire() {
     await storeImage('pageBgImage', '');
     renderBg();
     message('#bg-msg', t('Fond de Roblox rétabli.'));
+    flashSaved();
+  });
+  $('#demand-clear').addEventListener('click', async () => {
+    demandIconImage = '';
+    await storeImage('demandIconImage', '');
+    renderDemandIcon();
     flashSaved();
   });
   $('#proj-clear').addEventListener('click', async () => {
@@ -1068,6 +1093,7 @@ function follow(key, apply) {
   onStoredChange([key], 100, (v) => apply(v[key]));
 }
 follow('projectedIcon', (v) => { projectedIcon = v || ''; if (settings) renderProjected(); });
+follow('demandIconImage', (v) => { demandIconImage = v || ''; if (settings) renderDemandIcon(); });
 follow('pageBgImage', (v) => { pageBgImage = v || ''; if (settings) renderBg(); });
 follow('customSounds', (v) => { customSounds = Array.isArray(v) ? v : []; fillSounds(); });
 const setLuckyCat = (v) => { luckyCat = v?.uaid ? v : null; if (settings) renderMarks(); };

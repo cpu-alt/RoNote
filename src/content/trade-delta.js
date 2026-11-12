@@ -45,7 +45,17 @@
     insufficient: 'Données insuffisantes pour calculer cet écart.',
     explanation: 'Reçu − donné, par rapport à ce que tu donnes. Robux inclus ; les montants reçus déjà nets ne sont pas taxés une seconde fois.',
     cached: ' Cotes en cache, actualisation temporairement indisponible.',
-    rapForUnvalued: ' RAP utilisé pour les objets sans value.'
+    rapForUnvalued: ' RAP utilisé pour les objets sans value.',
+    demandLabel: 'Demande :',
+    demandWhy: (days) => `La demande est basée sur le nombre de fois où l’objet a été tradé ces ${days} derniers jours (trades prouvés par Neuronal).`,
+    demandRank: (s, rank, of, n, days) => `Demande ${s}/5 : n°${rank} sur ${of} objets, ${n} trade${n > 1 ? 's' : ''} en ${days} jours.`,
+    demandNone: (days) => `Demande 1/5 : aucun trade vu par Neuronal en ${days} jours.`,
+    demandProjected: 'Demande N/A : objet projected, son volume de trades n’est pas fiable.',
+    demandSmall: 'Demande N/A : petit objet, pas noté.',
+    demandRoli: (s, label) => `Demande ${s}/5 : demande « ${label} » sur Rolimon’s.`,
+    demandRoliLabels: ['Terrible', 'Faible', 'Normale', 'Haute', 'Excellente'],
+    demandAverage: 'Demande moyenne de ce côté, pondérée par la value de chaque objet : celle de Rolimon’s quand l’objet en a une, sinon le classement Neuronal des trades sur 30 jours. Les projected et les petits objets ne comptent pas.',
+    demandAverageNone: 'Demande N/A : aucun objet noté de ce côté.'
   } : {
     projected: 'Projected: RAP inflated by resales, unreliable figure',
     currentValue: 'Current Rolimon’s value',
@@ -70,8 +80,65 @@
     insufficient: 'Insufficient data to calculate this difference.',
     explanation: 'Received − given, relative to what you give. Includes Robux; received amounts already shown net are not taxed again.',
     cached: ' Cached prices; refresh temporarily unavailable.',
-    rapForUnvalued: ' RAP used for items without a value.'
+    rapForUnvalued: ' RAP used for items without a value.',
+    demandLabel: 'Demand:',
+    demandWhy: (days) => `Demand is based on the number of times the item was traded in the last ${days} days (trades proven by Neuronal).`,
+    demandRank: (s, rank, of, n, days) => `Demand ${s}/5: #${rank} of ${of} items, ${n} trade${n > 1 ? 's' : ''} in ${days} days.`,
+    demandNone: (days) => `Demand 1/5: no trade seen by Neuronal in ${days} days.`,
+    demandProjected: 'Demand N/A: projected item, its trade volume is unreliable.',
+    demandSmall: 'Demand N/A: small item, not rated.',
+    demandRoli: (s, label) => `Demand ${s}/5: “${label}” demand on Rolimon’s.`,
+    demandRoliLabels: ['Terrible', 'Low', 'Normal', 'High', 'Amazing'],
+    demandAverage: 'Average demand of this side, weighted by each item’s value: Rolimon’s demand when the item has one, otherwise Neuronal’s 30-day trade ranking. Projected and small items are not counted.',
+    demandAverageNone: 'Demand N/A: no rated item on this side.'
   };
+  // La demande (Neuronal, /ext/v1/demand) : une flamme colorée selon la note, la note à côté.
+  // Sur la ligne de la value (une ligne de plus déborde des cartes de Roblox, de hauteur fixe).
+  const DEMAND_COLORS = ['', '#e5534b', '#f0954a', '#e3b341', '#8fd14f', '#3fcf6e'];
+  const DEMAND_CSS = `
+    .d{display:none;align-items:center;gap:1px;flex:none;font:inherit;font-weight:600;line-height:1;color:inherit;white-space:nowrap;cursor:help}
+    .d[data-on]{display:inline-flex}
+    .d .ic{display:contents}
+    .d svg,.d img{display:block;width:.9em;height:.9em;flex:none;fill:var(--c);object-fit:contain}
+    .d[data-na] img{filter:grayscale(1)}
+    .d b{font:inherit}
+    .d[data-compact] b span{display:none}
+    .d[data-na]{opacity:.55}`;
+  // Les icônes au choix (Réglages › Apparence › Icône de la demande), ou l'image importée (`demandIconImage`).
+  const DEMAND_ICONS = globalThis.RoNoteDemandIcons || {};
+  const demandLook = { icon: 'flame', image: '' };
+  const DEMAND_HTML = '<i class="ic"></i><b></b>';
+  function iconize(el) {
+    const key = demandLook.image ? 'img:' + demandLook.image.length : demandLook.icon;
+    if (el.dataset.icon === key) return;
+    el.dataset.icon = key;
+    const slot = el.firstElementChild;
+    if (demandLook.image) { slot.innerHTML = '<img alt="">'; slot.firstChild.src = demandLook.image; return; }
+    const path = DEMAND_ICONS[demandLook.icon];
+    slot.innerHTML = path ? `<svg viewBox="0 0 12 12" aria-hidden="true"><path d="${path}"/></svg>` : '';
+  }
+  // Une autre icône choisie : toutes les pastilles et les totaux la reprennent sur place.
+  function restyleDemand() {
+    for (const b of badges.values()) if (b.demand) iconize(b.demand);
+    for (const t of totalBadges.values()) if (t.demand) iconize(t.demand);
+  }
+  // `score` (nombre) ou null pour N/A ; `title` = l'infobulle entière.
+  function paintDemand(el, score, title) {
+    const html = score == null ? '<span>N/A</span>' : `${score}<span>/5</span>`;
+    iconize(el);
+    el.style.setProperty('--c', DEMAND_COLORS[Math.round(score || 0)] || 'currentColor');
+    const b = el.lastElementChild;
+    if (b.innerHTML !== html) b.innerHTML = html;
+    el.toggleAttribute('data-na', score == null);
+    el.title = title;
+    el.setAttribute('aria-label', title);
+    el.dataset.on = '';
+  }
+  function demandTitle(d) {
+    if (d.na) return d.na === 'projected' ? TEXT.demandProjected : TEXT.demandSmall;
+    if (d.roli != null) return TEXT.demandRoli(d.score, TEXT.demandRoliLabels[d.roli]);
+    return (d.n ? TEXT.demandRank(d.score, d.rank, d.of, d.n, d.days) : TEXT.demandNone(d.days)) + ' ' + TEXT.demandWhy(d.days);
+  }
   // La liste des trades (/trades) et la page de création d'un trade, ouverte
   // depuis un profil (/users/123/trade), avec ou sans préfixe de langue (/fr/…).
   const onPage = () => /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/(?:trades|users\/\d+\/trade)(?:\/|$)/i.test(location.pathname);
@@ -111,7 +178,9 @@
   function restyleBanner() {
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
-  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat']).then(got => {
+  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat', 'demandIconImage']).then(got => {
+    demandLook.icon = got?.settings?.demandIcon || 'flame';
+    demandLook.image = got?.demandIconImage || '';
     enabled = got?.settings?.pageDelta !== false;
     itemValues = got?.settings?.pageItemValues !== false;
     showRare = got?.settings?.showRare !== false;
@@ -125,6 +194,7 @@
   if (alive()) B.storage?.onChanged?.addListener((changes, area) => {
     if (area !== 'local' || dead) return;
     if (changes.projectedIcon) { look.image = changes.projectedIcon.newValue || ''; restyleFlags(); }
+    if (changes.demandIconImage) { demandLook.image = changes.demandIconImage.newValue || ''; restyleDemand(); }
     if (changes.luckyCat) setLucky(changes.luckyCat.newValue);
     // Nouvelle table Rolimon's : on redemande tout de suite, sans attendre la minute.
     if (changes.roli && enabled) { cache.clear(); retryAt = 0; schedule(); }
@@ -134,6 +204,7 @@
       bannerSettings = nextSettings; restyleBanner();
       if (host?.isConnected && shownAnalysis !== undefined) render(shownAnalysis, analysisPending);
     }
+    if ((nextSettings.demandIcon || 'flame') !== demandLook.icon) { demandLook.icon = nextSettings.demandIcon || 'flame'; restyleDemand(); }
     const nextLook = lookOf(changes.settings.newValue);
     if (lookKey(nextLook) !== lookKey(look)) { Object.assign(look, nextLook); restyleFlags(); }
     const nextItems = nextSettings.pageItemValues !== false;
@@ -289,7 +360,9 @@
       color:inherit;opacity:.55;cursor:pointer;transition:opacity .15s,background .15s}
     .go[data-on]{display:inline-flex}
     .go:hover,.go:focus-visible{opacity:1;background:rgba(125,185,255,.22);outline:none}
-    .go svg{width:.8em;height:.8em;display:block}`;
+    .go svg{width:.8em;height:.8em;display:block}
+    .v .d{margin-left:.1em}
+    :host([data-over]) .d{display:none}` + DEMAND_CSS;
   // Le petit lien vers la page Rolimon's de l'objet, au bout de sa pastille de value.
   const GO_SVG = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5H2.5v7h7V7M7 2h3v3M10 2 5.5 6.5"/></svg>';
   // Rolimon's : tout bundle, visage compris, a sa page /bundle/<id> (la page de référence ; /item/<id de
@@ -361,8 +434,12 @@
       const value = document.createElement('b');
       const go = document.createElement('span');
       go.className = 'go'; go.setAttribute('role', 'link'); go.tabIndex = 0; go.innerHTML = GO_SVG;
-      pill.append(label, value, go); shadow.append(style, pill);
-      badge = { node, pill, label, value, go, goId: null };
+      pill.append(label, value, go);
+      const demand = document.createElement('span');
+      demand.className = 'd'; demand.innerHTML = DEMAND_HTML;
+      pill.append(demand);
+      shadow.append(style, pill);
+      badge = { node, pill, label, value, go, goId: null, demand };
       // La carte de Roblox réagit au clic (ajouter l'objet au trade, ouvrir sa page) : le lien
       // garde son clic pour lui et ouvre Rolimon's dans un nouvel onglet.
       const stop = (e) => { e.stopPropagation(); };
@@ -395,12 +472,27 @@
     return badge;
   }
 
-  function paintBadge(badge, text, state, title, card) {
+  function paintBadge(badge, text, state, title, card, demand = null) {
     // Values coupées : la pastille reste en place, cachée, pour le badge projected.
     if (!itemValues) { badge.node.style.display = 'none'; badge.checked = false; return; }
     if (badge.mode !== 'overlay' && badge.node.style.display === 'none') badge.node.style.display = '';
-    const grew = badge.value.textContent !== text;
+    let grew = badge.value.textContent !== text;
     if (grew) badge.value.textContent = text;
+    // La demande, sous la value. Sans la place pour elle, elle s'efface avant la value.
+    const demandKey = demand ? JSON.stringify(demand) : '';
+    if (badge.demandKey !== demandKey) {
+      badge.demandKey = demandKey; grew = true;
+      if (demand) paintDemand(badge.demand, demand.na ? null : demand.score, demandTitle(demand));
+      else delete badge.demand.dataset.on;
+    }
+    // Pas la place sur la ligne : la note seule (« 4 »), puis rien, avant de toucher à la value.
+    if (card && grew && badge.demand.dataset.on !== undefined && badge.mode !== 'overlay') {
+      // La pastille rétrécit (points de suspension) plutôt que de déborder : on compare aussi sa largeur.
+      const fits = () => chipVisible(badge, card) && badge.pill.scrollWidth <= badge.pill.clientWidth + 1;
+      delete badge.demand.dataset.compact;
+      if (!fits()) badge.demand.dataset.compact = '';
+      if (!fits()) delete badge.demand.dataset.on;
+    }
     if (badge.pill.dataset.state !== state) badge.pill.dataset.state = state;
     badge.pill.title = title;
     // Vérifié quand le texte change : un nombre plus long peut ne plus tenir. Sous
@@ -431,14 +523,27 @@
       const value = document.createElement('b');
       value.style.cssText = 'font:inherit;font-weight:inherit;';
       amount.append(icon, value); node.append(label, amount);
-      total = { node, value, amount, label, icon };
+      // La demande moyenne du côté, sur une ligne à elle, sous la Value.
+      const drow = document.createElement('div');
+      drow.dataset.rn = 'total-demand';
+      drow.style.cssText = node.style.cssText + 'margin-top:4px;';
+      const dlabel = document.createElement('span');
+      dlabel.textContent = TEXT.demandLabel;
+      const dhost = document.createElement('span');
+      const dshadow = dhost.attachShadow({ mode: 'closed' });
+      const dstyle = document.createElement('style'); dstyle.textContent = DEMAND_CSS + '.d{gap:4px}';
+      const demand = document.createElement('span');
+      demand.className = 'd'; demand.innerHTML = DEMAND_HTML;
+      dshadow.append(dstyle, demand); drow.append(dlabel, dhost);
+      total = { node, value, amount, label, icon, drow, dlabel, dhost, demand };
       totalBadges.set(side.root, total);
     }
     total.row = row;
     // Même libellé et même montant que Roblox, typographie du thème comprise.
     const sourceAmount = [...(row.querySelectorAll?.('*') || [])].reverse().find(el =>
       !el.childElementCount && /\d/.test(el.textContent || '')) || row.lastElementChild;
-    for (const [source, target] of [[side.totalLabel, total.label], [sourceAmount, total.amount]]) {
+    for (const [source, target] of [[side.totalLabel, total.label], [sourceAmount, total.amount],
+      [side.totalLabel, total.dlabel], [sourceAmount, total.dhost]]) {
       if (!source) continue;
       const css = getComputedStyle(source);
       for (const property of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'color']) {
@@ -465,9 +570,16 @@
       const title = available ? TEXT.totalOk : TEXT.totalMissing;
       if (total.amount.title !== title) total.amount.title = title;
       total.node.style.opacity = available ? '1' : pending ? '.7' : '.8';
+      // Pas de table de demande (option Neuronal coupée, réseau injoignable) : pas de ligne.
+      const avg = analysis?.pageDemand ? analysis.pageDemand[index] : undefined;
+      if (avg === undefined) total.drow.remove();
+      else {
+        paintDemand(total.demand, avg, avg == null ? TEXT.demandAverageNone : TEXT.demandAverage);
+        if (total.drow.previousElementSibling !== total.node) total.node.after(total.drow);
+      }
     }
     for (const [root, total] of totalBadges) if (!keep.has(root)) {
-      total.node.remove(); totalBadges.delete(root);
+      total.node.remove(); total.drow.remove(); totalBadges.delete(root);
     }
   }
 
@@ -488,7 +600,8 @@
         const rapFallback = matched && info.noValue && Number.isFinite(item.rap) && item.rap >= 0;
         paintBadge(badge, available ? number.format(info.value) : rapFallback ? number.format(item.rap) : pending ? '…' : 'N/A',
           available || rapFallback ? 'ok' : pending ? 'wait' : 'none',
-          available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card);
+          available ? TEXT.currentValue : rapFallback ? TEXT.rapUsed : TEXT.valueMissing, card,
+          matched ? info.demand : null);
         linkBadge(badge, roliUrl(matched ? { assetId: item.assetId || info.assetId, bundleId: item.bundleId || info.bundleId,
           legacyAssetId: info.legacyAssetId } : item));
         showFlag(badge, card, matched && typeof info.projected === 'boolean'

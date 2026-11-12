@@ -1,8 +1,25 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { pageDetail, samePageOffers, analyzePage, addKnownInstances } from '../src/common/page-trade.js';
+import { pageDetail, samePageOffers, analyzePage, addKnownInstances, demandOf, demandAverage } from '../src/common/page-trade.js';
 import { analyze, netRobux } from '../src/common/analysis.js';
+
+// La demande Neuronal : note du classement, N/A pour un projected ou un petit objet.
+{
+  const table = { days: 30, rated: 1965, min_value: 1000, items: { 10159600649: [5904, 1, 5], 77: [3, 1500, 1] } };
+  assert.deepEqual(demandOf(table, { assetId: 10159600649, value: 32000 }), { of: 1965, days: 30, n: 5904, rank: 1, score: 5 });
+  assert.deepEqual(demandOf(table, { assetId: 5, value: 9000, projected: true }), { na: 'projected' });
+  assert.deepEqual(demandOf(table, { assetId: 5, value: 200 }), { na: 'small' });
+  assert.equal(demandOf(table, { assetId: 5, value: 5000 }).score, 1, 'valued item never traded: lowest demand');
+  assert.equal(demandOf(table, { assetId: 5 }), null, 'unknown price: no demand');
+  assert.equal(demandOf(null, { assetId: 77, value: 2000 }), null);
+  assert.deepEqual(demandOf(table, { assetId: 77, value: 2000, demand: 3 }), { roli: 3, score: 4 }, "Rolimon's demand first");
+  assert.deepEqual(demandOf(null, { assetId: 9, value: 2000, demand: 0 }), { roli: 0, score: 1 }, 'works without Neuronal');
+  assert.equal(demandOf(table, { assetId: 77, value: 2000, demand: -1 }).score, 1, 'no Rolimon demand: Neuronal rank');
+  assert.equal(demandAverage([{ demand: { score: 5 }, value: 30000 }, { demand: { score: 1 }, value: 1000 },
+    { demand: { na: 'small' }, value: 200 }]), 4.9, 'average weighted by value, N/A left out');
+  assert.equal(demandAverage([{ demand: { na: 'small' }, value: 200 }]), null);
+}
 
 const page = { tradeId: '42', sides: [
   { userIds: [2], items: [{ assetId: 20 }] },

@@ -53,7 +53,10 @@ network website run by RoNote's author. When you then open a player's or an
 item's sheet, RoNote asks `neuronal.live/ext/v1/` what the network knows about
 it: **only that player's or item's Roblox ID** is sent, with no cookie and
 nothing about you. The endpoint only reads: it never adds anyone to the
-network. Turning the option off gives the permission back.
+network. With this option on, RoNote also downloads, at most once an hour, the
+item demand table (`neuronal.live/ext/v1/demand`) shown on trade pages: the
+same list for everyone, **nothing is sent** with it. Turning the option off
+gives the permission back.
 
 **Contribute to the Neuronal network option (off by default).** If you turn it
 on (Settings › Values), with the same `neuronal.live` permission, RoNote sends

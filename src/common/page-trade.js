@@ -152,7 +152,34 @@ export function pageDetail(page, myId) {
   return { id: page.tradeId || 0, offers, perspective, mine };
 }
 
-export function analyzePage(page, detail, cat, captured = null, { extra = null, bundleIds = null } = {}) {
+/**
+ * La demande d'un objet selon Neuronal (`/ext/v1/demand`) : note de 1 à 5 d'après son rang
+ * parmi les objets les plus tradés sur 30 jours. `{ na }` pour un projected ou un petit objet
+ * (sous `min_value`), que Neuronal ne note pas ; null quand la table ou le prix manque.
+ */
+export function demandOf(table, item) {
+  if (!item) return null;
+  if (item.projected) return { na: 'projected' };
+  // La demande que Rolimon's publie (0 Terrible … 4 Amazing) passe d'abord : Neuronal ne note
+  // que les objets qu'elle laisse sans demande.
+  if (item.demand >= 0 && item.demand <= 4) return { roli: item.demand, score: item.demand + 1 };
+  if (!table?.items) return null;
+  const base = { of: table.rated, days: table.days };
+  const hit = table.items[String(item.legacyAssetId || item.assetId || 0)] || table.items[String(item.assetId || 0)];
+  if (hit) return { ...base, n: hit[0], rank: hit[1], score: hit[2] };
+  if (!(item.value > 0)) return null;
+  if (item.value < table.min_value) return { na: 'small' };
+  return { ...base, n: 0, rank: null, score: 1 };   // noté, mais aucun trade vu en 30 jours
+}
+
+// La moyenne d'un côté, pondérée par la value : un gros objet pèse plus qu'un petit à côté.
+export function demandAverage(items) {
+  let sum = 0, weight = 0;
+  for (const i of items) if (i?.demand?.score && i.value > 0) { sum += i.demand.score * i.value; weight += i.value; }
+  return weight ? Math.round(sum / weight * 10) / 10 : null;
+}
+
+export function analyzePage(page, detail, cat, captured = null, { extra = null, bundleIds = null, demand = null } = {}) {
   // Une réponse captée complète le RAP manquant d'un objet ; elle ne remplace
   // jamais un montant affiché, ni ne retaxe de 30 % un montant déjà net.
   const raw = samePageOffers(detail, captured) ? {
@@ -197,9 +224,14 @@ export function analyzePage(page, detail, cat, captured = null, { extra = null, 
         .filter(i => Number(i.assetId || 0) === Number(raw.assetId || 0) && Number(i.bundleId || 0) === Number(raw.bundleId || 0))
         .map(i => ({ uaid: i.id, serial: i.serialNumber })) : [],
       noValue: !!item?.noValue, projected: cat?.ready && item ? !!item.projected : null,
-      rare: cat?.ready && item ? !!item.rare : null };
+      rare: cat?.ready && item ? !!item.rare : null,
+      demand: cat?.ready && item && !item.unknown ? demandOf(demand, item) : null };
   }); });
   a.pageTotals = page.sides.map((side, index) => index === detail.mine ? a.give.value : a.get.value);
+  a.pageDemand = a.pageItems.flat().some(p => p.demand) ? page.sides.map((side, index) => {
+    const items = a[index === detail.mine ? 'give' : 'get'].items;
+    return demandAverage(a.pageItems[index].map((p, k) => ({ demand: p.demand, value: items[k]?.value })));
+  }) : null;
   a.deltaRap = a.get.rap - a.give.rap;
   a.deltaValue = a.get.value - a.give.value;
   return a;
