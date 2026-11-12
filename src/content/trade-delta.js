@@ -549,11 +549,14 @@
           (badge.line && (badge.line.contains(el) || el.contains(badge.line)))) continue;
       const text = (el.textContent || '').trim();
       if (text.length < 4 || /^[\d\s,.#]+$/.test(text)) continue;
+      // Le texte vit plus bas (Roblox : .item-card-name-link > .item-card-name) : c'est l'enfant
+      // qui porte la limite à deux lignes et la hauteur fixe, c'est lui qu'on raccourcit.
+      if ([...el.children].some(c => (c.textContent || '').trim() === text)) continue;
       const css = getComputedStyle(el);
       const line = parseFloat(css.lineHeight) || parseFloat(css.fontSize) * 1.25;
       if (!(el.getBoundingClientRect().height > line * 1.6)) continue;
       badge.clamped = { el, css: el.style.cssText, title: el.getAttribute('title') };
-      el.style.cssText += ';display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;-webkit-line-clamp:unset';
+      el.style.cssText += ';display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;-webkit-line-clamp:unset;height:auto;max-height:none';
       if (!el.title) el.title = text;
       return true;
     }
