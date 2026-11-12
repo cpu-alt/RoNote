@@ -7,6 +7,8 @@ l'utilisateur, pas la liste des commits.
 
 - **Demande** : la ligne sous la value ne passe plus sous « Total Value » quand elle ne déborde que
   de quelques pixels : RoNote regarde ses quatre coins et fait exactement la place qui manque.
+- **Nom de l'objet sur une ligne** (« XXL Basketball… », le nom entier au survol) quand la demande
+  est affichée : la ligne gagnée accueille la demande sous la value, sans rien pousser.
 
 ## v2.16.12 : demande mieux placée
 

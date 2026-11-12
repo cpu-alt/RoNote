@@ -20,7 +20,9 @@ export const RELEASES = [
     title: item('Demande bien à sa place', 'Demand in its place'),
     items: [
       item("La note de demande ne passe plus sous « Total Value », même quand il ne manque que quelques pixels.",
-        "The demand score no longer slips under “Total Value”, even when only a few pixels are missing.")
+        "The demand score no longer slips under “Total Value”, even when only a few pixels are missing."),
+      item("Le nom d'un objet tient sur une ligne (le nom entier au survol) : la demande se place juste dessous.",
+        "Item names fit on one line (full name on hover): the demand score sits right below.")
     ]
   },
   {

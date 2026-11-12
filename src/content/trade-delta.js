@@ -259,6 +259,7 @@
 
   function dropBadge(badge) {
     restoreMargin(badge);
+    unclampName(badge);
     badge.node.remove();
     badge.shelf?.remove();
     dropFlag(badge);
@@ -493,13 +494,18 @@
     if (badge.demandKey !== demandKey) {
       badge.demandKey = demandKey; grew = true;
       if (demand) paintDemand(badge.demand, demand.na ? null : demand.score, demandTitle(demand));
-      else { delete badge.demand.dataset.on; restoreMargin(badge); }
+      else { delete badge.demand.dataset.on; restoreMargin(badge); unclampName(badge); }
     }
     if (badge.pill.dataset.state !== state) badge.pill.dataset.state = state;
     badge.pill.title = title;
     // Vérifié quand le texte change : un nombre plus long peut ne plus tenir. Sous
     // le RAP d'abord, puis sur sa ligne, et cachée seulement si rien ne tient.
     // La demande ne compte pas ici : elle cède sa place avant la value (fitDemand).
+    // Avec une demande, le nom passe sur une ligne d'abord : la value y gagne aussi sa place.
+    // Une value passée sur la ligne du RAP faute de place retente sa propre ligne.
+    if (card && demand && badge.mode !== 'overlay' && clampName(badge, card) && badge.mode === 'inline' && badge.line?.isConnected) {
+      badge.mode = 'below'; seat(badge, card); badge.checked = false;
+    }
     if (card && (grew || !badge.checked) && badge.mode !== 'overlay') {
       const on = badge.demand.dataset.on !== undefined;
       delete badge.demand.dataset.on;
@@ -532,6 +538,34 @@
     return true;
   }
   const demandSeen = (badge, el) => { const p = demandProbe(badge, el); return p === null ? null : p === true; };
+  // Le nom de l'objet sur une seule ligne (« XXL Basketball… », le nom entier au survol) : la ligne
+  // gagnée accueille la demande sans rien pousser. Le texte de la carte qui court sur plusieurs
+  // lignes, hors vignette, prix et pastilles.
+  function clampName(badge, card) {
+    if (badge.clamped?.el.isConnected) return false;
+    badge.clamped = null;
+    for (const el of card.querySelectorAll('*')) {
+      if (el.closest('[data-rn]') || el.querySelector('img,svg,[data-rn]') || el.contains(badge.node) ||
+          (badge.line && (badge.line.contains(el) || el.contains(badge.line)))) continue;
+      const text = (el.textContent || '').trim();
+      if (text.length < 4 || /^[\d\s,.#]+$/.test(text)) continue;
+      const css = getComputedStyle(el);
+      const line = parseFloat(css.lineHeight) || parseFloat(css.fontSize) * 1.25;
+      if (!(el.getBoundingClientRect().height > line * 1.6)) continue;
+      badge.clamped = { el, css: el.style.cssText, title: el.getAttribute('title') };
+      el.style.cssText += ';display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;-webkit-line-clamp:unset';
+      if (!el.title) el.title = text;
+      return true;
+    }
+    return false;
+  }
+  function unclampName(badge) {
+    const c = badge.clamped;
+    if (!c) return;
+    c.el.style.cssText = c.css;
+    if (c.title == null) c.el.removeAttribute('title');
+    badge.clamped = null;
+  }
   function restoreMargin(badge) {
     if (!badge.marginCard) return;
     badge.marginCard.style.marginBottom = badge.savedMargin;
@@ -546,6 +580,7 @@
     if (badge.mode === 'below') {
       d.dataset.line = '';
       if (d.parentNode !== badge.pill.parentNode) badge.pill.after(d);
+      clampName(badge, card);
       let probe = demandProbe(badge, d);
       if (probe === null) { badge.demandLater = true; return; }
       // La boîte à agrandir : la plus extérieure que la ligne dépasse (la carte, ou son cadre de hauteur fixe).
@@ -571,6 +606,8 @@
     delete d.dataset.line;
     badge.pill.append(d);
     // La pastille rétrécit (points de suspension) plutôt que de déborder : on compare aussi sa largeur.
+    // Hors de l'écran, impossible de savoir s'il est coupé : réessayé au prochain dessin.
+    if (demandSeen(badge, d) === null) badge.demandLater = true;
     const fits = () => demandSeen(badge, d) !== false && badge.pill.scrollWidth <= badge.pill.clientWidth + 1;
     if (!fits()) d.dataset.compact = '';
     if (!fits()) delete d.dataset.on;
