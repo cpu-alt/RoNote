@@ -519,13 +519,19 @@
    * reçoit la marge qui manque ; sinon elle passe sur la ligne de la value, puis en note seule
    * (« 4 »), puis disparaît. « Recouverte » = le point testé n'appartient pas à la pastille :
    * ça voit aussi un ancêtre qui la coupe. Hors de l'écran, on ne peut pas savoir : réessayé. */
-  function demandSeen(badge, el) {
+  // true = rien ne la touche ; null = hors écran, on ne peut pas savoir ; sinon l'élément qui la
+  // recouvre. Les quatre coins : un voisin qui ne mord que le bas de la ligne compte aussi.
+  function demandProbe(badge, el) {
     const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return false;
+    if (!r.width || !r.height) return el;
     if (r.top < 0 || r.left < 0 || r.bottom > innerHeight || r.right > innerWidth) return null;
-    const y = r.top + r.height / 2;
-    return [r.left + 1, r.right - 1].every(x => document.elementFromPoint(x, y) === badge.node);
+    for (const y of [r.top + 1, r.bottom - 1]) for (const x of [r.left + 1, r.right - 1]) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit !== badge.node) return hit || el;
+    }
+    return true;
   }
+  const demandSeen = (badge, el) => { const p = demandProbe(badge, el); return p === null ? null : p === true; };
   function restoreMargin(badge) {
     if (!badge.marginCard) return;
     badge.marginCard.style.marginBottom = badge.savedMargin;
@@ -540,19 +546,26 @@
     if (badge.mode === 'below') {
       d.dataset.line = '';
       if (d.parentNode !== badge.pill.parentNode) badge.pill.after(d);
-      let seen = demandSeen(badge, d);
-      if (seen === null) { badge.demandLater = true; return; }
+      let probe = demandProbe(badge, d);
+      if (probe === null) { badge.demandLater = true; return; }
       // La boîte à agrandir : la plus extérieure que la ligne dépasse (la carte, ou son cadre de hauteur fixe).
       const bottom = d.getBoundingClientRect().bottom;
       let box = card;
       for (let k = 0; k < 5 && box.parentElement && box.parentElement.getBoundingClientRect().bottom < bottom - 1; k++) box = box.parentElement;
-      const over = bottom - box.getBoundingClientRect().bottom;
-      if (!seen && over > 0 && over < 40) {
-        badge.savedMargin = box.style.marginBottom; badge.marginCard = box;
-        box.style.marginBottom = `${(parseFloat(getComputedStyle(box).marginBottom) || 0) + over + 2}px`;
-        seen = demandSeen(badge, d);
-        if (!seen) restoreMargin(badge);
+      // La place qui manque : ce que la ligne dépasse de sa boîte, ou ce que le voisin (les totaux) en recouvre.
+      let need = bottom - box.getBoundingClientRect().bottom;
+      // (un conteneur touché commence plus haut que la ligne : seul le débordement compte alors).
+      if (probe !== true) {
+        const top = probe.getBoundingClientRect().top;
+        if (top > d.getBoundingClientRect().top) need = Math.max(need, bottom - top);
       }
+      if (need > 0 && need < 40) {
+        badge.savedMargin = box.style.marginBottom; badge.marginCard = box;
+        box.style.marginBottom = `${(parseFloat(getComputedStyle(box).marginBottom) || 0) + need + 3}px`;
+        probe = demandProbe(badge, d);
+        if (probe !== true) restoreMargin(badge);
+      }
+      const seen = probe === true;
       if (seen !== false) return;
     }
     delete d.dataset.line;

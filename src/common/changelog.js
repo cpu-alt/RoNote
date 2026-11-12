@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item('Demande bien à sa place', 'Demand in its place'),
+    items: [
+      item("La note de demande ne passe plus sous « Total Value », même quand il ne manque que quelques pixels.",
+        "The demand score no longer slips under “Total Value”, even when only a few pixels are missing.")
+    ]
+  },
+  {
     version: '2.16.12',
     title: item('Demande mieux placée', 'Better placed demand'),
     items: [
