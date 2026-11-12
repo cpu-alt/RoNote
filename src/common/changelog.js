@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.16.12',
+    title: item('Demande mieux placée', 'Better placed demand'),
+    items: [
+      item("La note de demande revient sous la value, sans passer sous les totaux ; icône en barres par défaut.",
+        "The demand score is back under the value, never hidden by the totals; bars icon by default."),
+      item("Mode anonyme : le pseudo du menu de gauche de Roblox est masqué aussi.",
+        "Anonymous mode: the username in Roblox's left menu is hidden too.")
+    ]
+  },
+  {
     version: '2.16.11',
     title: item('Demande des objets', 'Item demand'),
     items: [

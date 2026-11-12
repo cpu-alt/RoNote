@@ -92,28 +92,37 @@
     demandAverage: 'Average demand of this side, weighted by each item’s value: Rolimon’s demand when the item has one, otherwise Neuronal’s 30-day trade ranking. Projected and small items are not counted.',
     demandAverageNone: 'Demand N/A: no rated item on this side.'
   };
-  // La demande (Neuronal, /ext/v1/demand) : une flamme colorée selon la note, la note à côté.
-  // Sur la ligne de la value (une ligne de plus déborde des cartes de Roblox, de hauteur fixe).
+  // La demande : une icône colorée selon la note (par défaut cinq barres, comme un signal), la note à côté.
   const DEMAND_COLORS = ['', '#e5534b', '#f0954a', '#e3b341', '#8fd14f', '#3fcf6e'];
   const DEMAND_CSS = `
     .d{display:none;align-items:center;gap:1px;flex:none;font:inherit;font-weight:600;line-height:1;color:inherit;white-space:nowrap;cursor:help}
     .d[data-on]{display:inline-flex}
     .d .ic{display:contents}
     .d svg,.d img{display:block;width:.9em;height:.9em;flex:none;fill:var(--c);object-fit:contain}
+    .d svg.bars{width:1.1em;margin-right:2px}
+    .d svg.bars rect{fill:currentColor;opacity:.25}.d svg.bars rect.f{fill:var(--c);opacity:1}
     .d[data-na] img{filter:grayscale(1)}
     .d b{font:inherit}
     .d[data-compact] b span{display:none}
     .d[data-na]{opacity:.55}`;
   // Les icônes au choix (Réglages › Apparence › Icône de la demande), ou l'image importée (`demandIconImage`).
   const DEMAND_ICONS = globalThis.RoNoteDemandIcons || {};
-  const demandLook = { icon: 'flame', image: '' };
+  const demandLook = { icon: 'bars', image: '' };
   const DEMAND_HTML = '<i class="ic"></i><b></b>';
-  function iconize(el) {
-    const key = demandLook.image ? 'img:' + demandLook.image.length : demandLook.icon;
+  function iconize(el, score = el.score) {
+    el.score = score;
+    const bars = !demandLook.image && demandLook.icon === 'bars';
+    const key = demandLook.image ? 'img:' + demandLook.image.length : demandLook.icon + (bars ? ':' + Math.round(score || 0) : '');
     if (el.dataset.icon === key) return;
     el.dataset.icon = key;
     const slot = el.firstElementChild;
     if (demandLook.image) { slot.innerHTML = '<img alt="">'; slot.firstChild.src = demandLook.image; return; }
+    if (bars) {
+      const n = Math.round(score || 0);
+      slot.innerHTML = '<svg class="bars" viewBox="0 0 14 12" aria-hidden="true">' + [3, 5, 7, 9, 11]
+        .map((h, k) => `<rect x="${k * 3}" y="${12 - h}" width="2" height="${h}" rx=".5"${k < n ? ' class="f"' : ''}/>`).join('') + '</svg>';
+      return;
+    }
     const path = DEMAND_ICONS[demandLook.icon];
     slot.innerHTML = path ? `<svg viewBox="0 0 12 12" aria-hidden="true"><path d="${path}"/></svg>` : '';
   }
@@ -125,7 +134,7 @@
   // `score` (nombre) ou null pour N/A ; `title` = l'infobulle entière.
   function paintDemand(el, score, title) {
     const html = score == null ? '<span>N/A</span>' : `${score}<span>/5</span>`;
-    iconize(el);
+    iconize(el, score);
     el.style.setProperty('--c', DEMAND_COLORS[Math.round(score || 0)] || 'currentColor');
     const b = el.lastElementChild;
     if (b.innerHTML !== html) b.innerHTML = html;
@@ -179,7 +188,7 @@
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
   if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat', 'demandIconImage']).then(got => {
-    demandLook.icon = got?.settings?.demandIcon || 'flame';
+    demandLook.icon = got?.settings?.demandIcon || 'bars';
     demandLook.image = got?.demandIconImage || '';
     enabled = got?.settings?.pageDelta !== false;
     itemValues = got?.settings?.pageItemValues !== false;
@@ -204,7 +213,7 @@
       bannerSettings = nextSettings; restyleBanner();
       if (host?.isConnected && shownAnalysis !== undefined) render(shownAnalysis, analysisPending);
     }
-    if ((nextSettings.demandIcon || 'flame') !== demandLook.icon) { demandLook.icon = nextSettings.demandIcon || 'flame'; restyleDemand(); }
+    if ((nextSettings.demandIcon || 'bars') !== demandLook.icon) { demandLook.icon = nextSettings.demandIcon || 'bars'; restyleDemand(); }
     const nextLook = lookOf(changes.settings.newValue);
     if (lookKey(nextLook) !== lookKey(look)) { Object.assign(look, nextLook); restyleFlags(); }
     const nextItems = nextSettings.pageItemValues !== false;
@@ -249,6 +258,7 @@
   }
 
   function dropBadge(badge) {
+    restoreMargin(badge);
     badge.node.remove();
     badge.shelf?.remove();
     dropFlag(badge);
@@ -362,6 +372,7 @@
     .go:hover,.go:focus-visible{opacity:1;background:rgba(125,185,255,.22);outline:none}
     .go svg{width:.8em;height:.8em;display:block}
     .v .d{margin-left:.1em}
+    .d[data-on][data-line]{display:flex;width:max-content;margin-top:3px}
     :host([data-over]) .d{display:none}` + DEMAND_CSS;
   // Le petit lien vers la page Rolimon's de l'objet, au bout de sa pastille de value.
   const GO_SVG = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5H2.5v7h7V7M7 2h3v3M10 2 5.5 6.5"/></svg>';
@@ -437,8 +448,7 @@
       pill.append(label, value, go);
       const demand = document.createElement('span');
       demand.className = 'd'; demand.innerHTML = DEMAND_HTML;
-      pill.append(demand);
-      shadow.append(style, pill);
+      shadow.append(style, pill, demand);
       badge = { node, pill, label, value, go, goId: null, demand };
       // La carte de Roblox réagit au clic (ajouter l'objet au trade, ouvrir sa page) : le lien
       // garde son clic pour lui et ouvre Rolimon's dans un nouvel onglet.
@@ -483,26 +493,74 @@
     if (badge.demandKey !== demandKey) {
       badge.demandKey = demandKey; grew = true;
       if (demand) paintDemand(badge.demand, demand.na ? null : demand.score, demandTitle(demand));
-      else delete badge.demand.dataset.on;
-    }
-    // Pas la place sur la ligne : la note seule (« 4 »), puis rien, avant de toucher à la value.
-    if (card && grew && badge.demand.dataset.on !== undefined && badge.mode !== 'overlay') {
-      // La pastille rétrécit (points de suspension) plutôt que de déborder : on compare aussi sa largeur.
-      const fits = () => chipVisible(badge, card) && badge.pill.scrollWidth <= badge.pill.clientWidth + 1;
-      delete badge.demand.dataset.compact;
-      if (!fits()) badge.demand.dataset.compact = '';
-      if (!fits()) delete badge.demand.dataset.on;
+      else { delete badge.demand.dataset.on; restoreMargin(badge); }
     }
     if (badge.pill.dataset.state !== state) badge.pill.dataset.state = state;
     badge.pill.title = title;
     // Vérifié quand le texte change : un nombre plus long peut ne plus tenir. Sous
     // le RAP d'abord, puis sur sa ligne, et cachée seulement si rien ne tient.
-    if (card && (grew || !badge.checked) && badge.mode !== 'overlay' && !chipVisible(badge, card)) {
-      badge.mode = badge.mode === 'below' && badge.anchor?.isConnected ? 'inline' : 'overlay';
-      seat(badge, card);
-      if (badge.mode === 'inline' && !chipVisible(badge, card)) { badge.mode = 'overlay'; seat(badge, card); }
+    // La demande ne compte pas ici : elle cède sa place avant la value (fitDemand).
+    if (card && (grew || !badge.checked) && badge.mode !== 'overlay') {
+      const on = badge.demand.dataset.on !== undefined;
+      delete badge.demand.dataset.on;
+      if (!chipVisible(badge, card)) {
+        badge.mode = badge.mode === 'below' && badge.anchor?.isConnected ? 'inline' : 'overlay';
+        seat(badge, card);
+        if (badge.mode === 'inline' && !chipVisible(badge, card)) { badge.mode = 'overlay'; seat(badge, card); }
+      }
+      if (on) badge.demand.dataset.on = '';
     }
     badge.checked = true;
+    if (card && demand && (grew || badge.demandLater) && badge.mode !== 'overlay') fitDemand(badge, card);
+  }
+
+  /* La demande d'un objet : sur sa propre ligne sous la value d'abord. Si quelque chose la
+   * recouvre (cartes de Roblox de hauteur fixe : les totaux passaient par-dessus), la carte
+   * reçoit la marge qui manque ; sinon elle passe sur la ligne de la value, puis en note seule
+   * (« 4 »), puis disparaît. « Recouverte » = le point testé n'appartient pas à la pastille :
+   * ça voit aussi un ancêtre qui la coupe. Hors de l'écran, on ne peut pas savoir : réessayé. */
+  function demandSeen(badge, el) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return false;
+    if (r.top < 0 || r.left < 0 || r.bottom > innerHeight || r.right > innerWidth) return null;
+    const y = r.top + r.height / 2;
+    return [r.left + 1, r.right - 1].every(x => document.elementFromPoint(x, y) === badge.node);
+  }
+  function restoreMargin(badge) {
+    if (!badge.marginCard) return;
+    badge.marginCard.style.marginBottom = badge.savedMargin;
+    badge.marginCard = null;
+  }
+  function fitDemand(badge, card) {
+    const d = badge.demand;
+    if (d.dataset.on === undefined) return;
+    badge.demandLater = false;
+    restoreMargin(badge);
+    delete d.dataset.compact;
+    if (badge.mode === 'below') {
+      d.dataset.line = '';
+      if (d.parentNode !== badge.pill.parentNode) badge.pill.after(d);
+      let seen = demandSeen(badge, d);
+      if (seen === null) { badge.demandLater = true; return; }
+      // La boîte à agrandir : la plus extérieure que la ligne dépasse (la carte, ou son cadre de hauteur fixe).
+      const bottom = d.getBoundingClientRect().bottom;
+      let box = card;
+      for (let k = 0; k < 5 && box.parentElement && box.parentElement.getBoundingClientRect().bottom < bottom - 1; k++) box = box.parentElement;
+      const over = bottom - box.getBoundingClientRect().bottom;
+      if (!seen && over > 0 && over < 40) {
+        badge.savedMargin = box.style.marginBottom; badge.marginCard = box;
+        box.style.marginBottom = `${(parseFloat(getComputedStyle(box).marginBottom) || 0) + over + 2}px`;
+        seen = demandSeen(badge, d);
+        if (!seen) restoreMargin(badge);
+      }
+      if (seen !== false) return;
+    }
+    delete d.dataset.line;
+    badge.pill.append(d);
+    // La pastille rétrécit (points de suspension) plutôt que de déborder : on compare aussi sa largeur.
+    const fits = () => demandSeen(badge, d) !== false && badge.pill.scrollWidth <= badge.pill.clientWidth + 1;
+    if (!fits()) d.dataset.compact = '';
+    if (!fits()) delete d.dataset.on;
   }
 
   function ensureTotal(side) {

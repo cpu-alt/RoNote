@@ -40,6 +40,8 @@ window.__rnSet = (patch) => {
   stored = { ...stored, settings: { ...oldValue, ...patch } };
   for (const fn of listeners) fn({ settings: { oldValue, newValue: stored.settings } }, 'local');
 };
+// ?fixed=1 : cartes de hauteur fixe, comme sur Roblox (la ligne de demande déborde sur les totaux).
+if (new URLSearchParams(location.search).has('fixed')) document.head.insertAdjacentHTML('beforeend', '<style>.item-card{height:185px}.offer{position:relative}.total{position:relative;background:#2d0061}</style>');
 const fixture = ({ new: 'trade-new-page.html', rows: 'trade-new-rows.html', real: 'trade-new-real.html' })[new URLSearchParams(location.search).get('page')] || 'trade-page.html';
 const markup = await (await fetch('/tools/fixtures/' + fixture)).text();
 document.querySelector('#stage').innerHTML = markup;

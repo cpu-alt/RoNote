@@ -612,6 +612,7 @@ const EN = {
   "Icône de la demande": "Demand icon",
   "À côté de la note sur 5 de chaque objet et de la moyenne de chaque côté. Tu peux importer ta propre image.": "Next to each item's score out of 5 and each side's average. You can import your own image.",
   "Icône": "Icon",
+  "Barres": "Bars",
   "Flamme": "Flame",
   "Étoile": "Star",
   "Éclair": "Bolt",

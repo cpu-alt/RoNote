@@ -211,10 +211,14 @@ function renderListLook() {
 function renderDemandIcon() {
   const box = $('#demand-preview');
   if (!box) return;
-  const path = globalThis.RoNoteDemandIcons?.[settings.demandIcon || 'flame'];
-  const icon = (color) => demandIconImage ? `<img src="${demandIconImage}" alt="">`
+  const name = settings.demandIcon || 'bars';
+  const path = globalThis.RoNoteDemandIcons?.[name];
+  const bars = (color, n) => '<svg viewBox="0 0 14 12" style="width:18px" aria-hidden="true">' + [3, 5, 7, 9, 11]
+    .map((h, k) => `<rect x="${k * 3}" y="${12 - h}" width="2" height="${h}" rx=".5" fill="${k < n ? color : 'currentColor'}"${k < n ? '' : ' opacity=".25"'}/>`).join('') + '</svg>';
+  const icon = (color, n) => demandIconImage ? `<img src="${demandIconImage}" alt="">`
+    : name === 'bars' ? bars(color, n)
     : path ? `<svg viewBox="0 0 12 12" aria-hidden="true"><path fill="${color}" d="${path}"/></svg>` : '';
-  box.innerHTML = `<span>${icon('#8fd14f')}<b>4/5</b></span><span class="na">${icon('currentColor')}<b>N/A</b></span>`;
+  box.innerHTML = `<span>${icon('#8fd14f', 4)}<b>4/5</b></span><span class="na">${icon('currentColor', 0)}<b>N/A</b></span>`;
   $('#demandIcon').disabled = !!demandIconImage;
   $('#demand-clear').hidden = !demandIconImage;
 }

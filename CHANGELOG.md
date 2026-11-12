@@ -3,6 +3,14 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## v2.16.12 : demande mieux placée
+
+- **Demande** : de nouveau sur sa propre ligne sous la value ; si la carte de Roblox est trop basse,
+  RoNote lui fait la place au lieu de la laisser passer sous les totaux. Icône par défaut : les barres
+  façon signal (les autres restent au choix). La table Neuronal est revalidée à chaque lecture : un
+  changement côté serveur (objets dès 400, comme Kuddle E. Koala ou Ultimate Victory) se voit tout de suite.
+- **Mode anonyme** : le pseudo et le portrait du menu de gauche de Roblox sont masqués aussi.
+
 ## v2.16.11 : demande des objets
 
 - **Demande des objets** (page de trade) : une note sur 5 sur la ligne de la value Rolimon's de chaque

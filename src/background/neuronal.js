@@ -78,7 +78,9 @@ async function fetchOne(kind, id, path = `${kind}/${id}`, retried = false) {
       // RoNote premium (premium.js) : le jeton de l'abonné, que Neuronal vérifie à chaque appel.
       // La table de demande est la même pour tous : elle part sans jeton.
       headers: { 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(path === 'demand' ? {} : await premiumHeaders()) },
-      credentials: 'omit'
+      credentials: 'omit',
+      // La table de demande est revalidée (ETag → 304) : le cache HTTP la gardait 1 h après un changement du serveur.
+      ...(path === 'demand' ? { cache: 'no-cache' } : {})
     });
     // 401 / 403 : réservé aux abonnés (pas connecté, plus d'abonnement, compte Roblox à vérifier).
     if (res.status === 401 || res.status === 403) {
