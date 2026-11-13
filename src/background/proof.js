@@ -43,9 +43,15 @@ export function itemLabel(item, cat) {
 export function proofDefaults({ labels, values, sender, receiver, date }) {
   return {
     items: `${labels[0].join(', ')} / ${labels[1].join(', ')}`,
-    values: values ? `${shortValue(values[0])} vs ${shortValue(values[1])}` : '',
+    values: values ? `${shortValue(values[0])} vs ${shortValue(values[1])}${gapNote(values[0], values[1])}` : '',
     sender: sender || '', receiver: receiver || '', date: date || ''
   };
+}
+
+/** « (8k op) » quand le second côté vaut plus, « (8k lb) » quand il vaut moins, rien à égalité (MYd, 13 nov.). */
+export function gapNote(a, b) {
+  const gap = Math.round((Number(b) || 0) - (Number(a) || 0));
+  return gap ? ` (${shortValue(Math.abs(gap))} ${gap > 0 ? 'op' : 'lb'})` : '';
 }
 
 /** Qui a envoyé ce trade ? Le journal le sait quand RoNote l'a vu passer (accepté par moi = c'est lui). */
