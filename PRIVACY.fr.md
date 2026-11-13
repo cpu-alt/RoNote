@@ -101,13 +101,14 @@ ferme la session sur le serveur et efface le jeton. Le premium est indépendant 
 contribution : se connecter n'envoie rien de tes trades.
 
 **Partager un proof (RoNote premium, Elite Neuronal seulement).** Sur un trade terminé,
-le menu *Partager un proof* du popup prépare les cinq lignes que Rolimons demande dans
-son salon #proofs (objets, values, expéditeur, destinataire, date), que tu peux
-modifier. Seulement quand tu cliques *Envoyer dans mes MP*, RoNote prend une capture
-de l'onglet (permission `activeTab`, donnée par ton clic sur l'icône de RoNote), la
-découpe sur le trade (et, si tu coches la case, la liste des trades avec les autres
-pseudos cachés par le mode proof), et envoie l'image et les cinq lignes à
-`neuronal.live` avec ton jeton premium. Neuronal te les renvoie, **à toi**, en MP
+le bouclier du mode proof ouvre à droite un panneau qui prépare les cinq lignes que Rolimons
+demande dans son salon #proofs (objets, values, expéditeur, destinataire, date), que tu
+peux modifier. Seulement quand tu cliques *Envoyer dans mes MP*, RoNote prend une capture de
+l'onglet, la découpe sur le trade (et, si tu coches la case, la liste des trades avec les
+autres pseudos cachés par le mode proof), et envoie l'image et les cinq lignes à
+`neuronal.live` avec ton jeton premium. La capture utilise la permission `activeTab`, donnée
+par un clic sur l'icône de RoNote dans cet onglet ; sans elle, tu peux la prendre avec le
+partage d'onglet de Chrome, qui te demande d'abord. Neuronal te les renvoie, **à toi**, en MP
 Discord par son bot RoOp Tracker, et ne garde pas l'image.
 
 **Sans ces options, aucune requête ne part vers un autre domaine.**

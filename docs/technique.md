@@ -1065,17 +1065,20 @@ envoie une notification de démonstration avec le son.
 
 ## Partager un proof (Elite, en préparation après 2.16.13)
 
-Menu du popup › *Partager un proof*, sur un trade terminé (onglet Completed de roblox.com/trades).
-Pourquoi le popup et pas un bouton dans la page : `tabs.captureVisibleTab` demande `activeTab` (ou
-`<all_urls>`, trop large), et `activeTab` n'est accordé que par un clic sur l'icône de l'extension.
-Le parcours : `content/trade-delta.js` répond `ronote:proof-info` (items en acronymes, values, partenaire,
-date de la ligne ouverte rendue en MM/JJ/AAAA) ; `background/proof.js` devine l'expéditeur par le
-journal (`accepted_by_me` = c'est lui, `outbound_accepted` = moi) ; le popup (`popup/proof.js`) fait
-relire les cinq lignes ; à l'envoi, `ronote:proof-frame` met le mode proof si la liste est demandée et
-cache nos boutons, la capture est découpée (rectangle CSS × rapport image/viewport) puis compressée en
-WebP jusqu'à 63 Ko : **Caddy coupe tout corps au-delà de 64 Ko** sur neuronal.live. Envoi
-`POST /ext/v1/proof`, corps = l'image, en-tête `X-Proof` = les champs en JSON base64 (UTF-8 hors des
-en-têtes), jeton premium. Le serveur (Neuronal 18qbfa) revérifie la fonction `proof` (service
+Le bouclier du mode proof (trade terminé) met le mode proof ET ouvre un panneau à droite
+(`openProofPanel`, shadow DOM fermé, dans `content/trade-delta.js`). Il lit le trade (`proofInfo` : ids
+des objets, values, partenaire, date de la ligne ouverte rendue en MM/JJ/AAAA) et demande au worker les
+champs (`ronote:proof-prepare`, `background/proof.js`) : objets nommés par le catalogue (acronyme, sinon
+nom ; le texte de la page traîne séries et RAP : « #21#21Fortune Teller35728 »), expéditeur deviné par
+le journal (`accepted_by_me` = c'est lui, `outbound_accepted` = moi), accès Elite. À l'envoi, le panneau et
+nos boutons sont cachés, la zone est mesurée (colonne `.trades-react`, sinon le plus petit bloc qui tient
+le titre et les deux côtés), puis le worker capture (`captureVisibleTab` sur l'onglet de l'expéditeur du
+message). **`captureVisibleTab` demande `activeTab` (ou `<all_urls>`, trop large)**, accordé par un clic
+sur l'icône de l'extension dans cet onglet : sans lui, le panneau propose le partage d'onglet de Chrome
+(`getDisplayMedia`, `preferCurrentTab`), une image prise puis le flux coupé. La capture est découpée
+(rectangle CSS × rapport image/viewport) et compressée en WebP jusqu'à 63 Ko : **Caddy coupe tout corps
+au-delà de 64 Ko** sur neuronal.live. Envoi `POST /ext/v1/proof`, corps = l'image, en-tête `X-Proof` = les
+champs en JSON base64, jeton premium. Le serveur (Neuronal 18qbfa) revérifie la fonction `proof` (service
 `bundle` = Elite), relit l'image avec Pillow et la réécrit en PNG, puis RoOp Tracker l'envoie en MP.
 
 ## RoNote premium : le verrou est sur le serveur (2.16.7)

@@ -29,8 +29,8 @@ export const RELEASES = [
         "The “Demand” line no longer shows twice under the totals."),
       item("Contre-offre : les visages ne passent plus « plus dans l'inventaire » à tort, et les limiteds UGC et doublons apparaissent tous.",
         "Counter offers: faces no longer show as “no longer in inventory” by mistake, and every UGC limited and duplicate is listed."),
-      item("Partager un proof (Elite) : sur un trade terminé, le popup prépare le format de Rolimons et RoOp Tracker t'envoie le texte et la capture en MP.",
-        "Share a proof (Elite): on a completed trade, the popup fills in the Rolimons format and RoOp Tracker DMs you the text and the screenshot.")
+      item("Partager un proof (Elite) : le bouclier du mode proof ouvre un panneau qui prépare le format de Rolimons ; RoOp Tracker t'envoie le texte et la capture en MP.",
+        "Share a proof (Elite): the proof mode shield opens a panel that fills in the Rolimons format; RoOp Tracker DMs you the text and the screenshot.")
     ]
   },
   {

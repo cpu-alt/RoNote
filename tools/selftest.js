@@ -800,9 +800,13 @@ try {
     await import('../src/popup/share.js');
     const counter = await import('../src/popup/counter.js');
     check('contre-offre : rien d\'ouvert au chargement', counter.counterOpen(), false);
-    const proof = await import('../src/popup/proof.js');
+    const proof = await import('../src/background/proof.js');
     check('proof : values à la Rolimons', [proof.shortValue(62316), proof.shortValue(1250000), proof.shortValue(950)], ['62.3k', '1.3M', '950']);
-    check('proof : les cinq champs pré-remplis', proof.proofDefaults({ give: ['RCHP', 'PLBH'], get: ['BTH', 'R$250'],
+    check('proof : le nom propre (acronyme, sinon catalogue, sinon page nettoyée)',
+      [proof.itemLabel({ assetId: 5, name: '#21#21Fortune Teller35728' }, { assets: { 5: ['Fortune Teller', 'FT', 1, 1] } }),
+        proof.itemLabel({ assetId: 6, name: 'x' }, { assets: { 6: ['Crimson Starface', '', 1, 1] } }),
+        proof.itemLabel({ assetId: 7, name: '#812#812Bunny Ears' }, { assets: {} })], ['FT', 'Crimson Starface', 'Bunny Ears']);
+    check('proof : les cinq champs pré-remplis', proof.proofDefaults({ labels: [['RCHP', 'PLBH'], ['BTH', 'R$250']],
       values: [62316, 63927], sender: 'blizzardnest', receiver: 'Marshal_l', date: '11/12/2026' }),
       { items: 'RCHP + PLBH for BTH + R$250', values: '62.3k vs 63.9k', sender: 'blizzardnest', receiver: 'Marshal_l', date: '11/12/2026' });
   }

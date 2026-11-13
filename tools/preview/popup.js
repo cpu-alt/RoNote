@@ -440,16 +440,6 @@ const mockRuntime = {
       }
       // Les deux inventaires de l'éditeur de contre-offre : les objets du
       // trade, puis des limiteds réels du fixture de portefeuille.
-      // Share proof : un membre Elite, un trade terminé ouvert, l'envoi simulé.
-      case 'ronote:premium-status':
-        return { signedIn: true, me: { features: { proof: true } } };
-      case 'ronote:proof-prepare':
-        return { ok: true, tradeId: '', partner: 'Marshal_l', give: ['RCHP', 'PLBH'], get: ['BTWTH', 'SWTH', 'Bunny Ears', 'The Blade of the Federation', 'R$250'],
-          values: [62316, 63927], date: '11/12/2026', me: 'DemoTrader', sender: 'Marshal_l', receiver: 'DemoTrader' };
-      case 'ronote:proof-share':
-        await new Promise(r => setTimeout(r, 600));
-        log.textContent = '→ enverrait le proof : ' + JSON.stringify(msg.fields) + (msg.list ? ' (avec la liste)' : '');
-        return { ok: true };
       case 'ronote:counter-load': {
         await new Promise(r => setTimeout(r, 500));
         const card = CARDS.inbound.find(c => c.partner.id === Number(msg.partnerId)) || CARDS.inbound[0];
@@ -514,8 +504,7 @@ const mockChrome = {
     },
     onChanged: { addListener: (fn) => storeListeners.push(fn) }
   },
-  tabs: { create: ({ url }) => { log.textContent = '→ ouvrirait ' + url; },
-    query: async () => [{ id: 1, windowId: 1, url: 'https://www.roblox.com/trades?tab=Completed' }] },
+  tabs: { create: ({ url }) => { log.textContent = '→ ouvrirait ' + url; } },
   // ?deny=1 : la boîte de permission refusée.
   permissions: {
     request: async () => !new URLSearchParams(location.search).has('deny'),

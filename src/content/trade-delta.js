@@ -39,6 +39,25 @@
     profile: (who) => `Ouvrir le profil de ${who || 'ce joueur'} sur Rolimon’s`,
     flex: 'Créer une image du trade',
     proof: 'Mode proof : cacher les autres trades de la liste (pseudo, avatar, date, gains)',
+    proofOn: 'Les autres trades de la liste sont cachés. Fais ta capture, ou envoie le proof sur Discord.',
+    proofLoading: 'Lecture du trade…',
+    proofNotCompleted: 'Ouvre un trade terminé (Completed) pour envoyer son proof.',
+    proofElite: 'Envoyer le proof sur Discord, au format de Rolimons : réservé aux membres Elite de Neuronal.',
+    proofLogin: 'Envoyer le proof sur Discord : connecte RoNote à Discord (Réglages › Premium), réservé aux Elite.',
+    proofSwap: 'Inverser Sender et Receiver',
+    proofList: 'Ajouter la liste des trades à la capture (autres pseudos cachés)',
+    proofHint: 'La capture prend ce qui est visible : garde le trade entier à l’écran. Le panneau disparaît le temps de la photo.',
+    proofSend: 'Envoyer dans mes MP',
+    proofSending: 'Capture et envoi…',
+    proofSent: 'Envoyé : regarde tes MP de RoOp Tracker sur Discord.',
+    proofShareBtn: 'Capturer avec le partage d’onglet de Chrome',
+    proofClose: 'Fermer et quitter le mode proof',
+    proofFailed: (why) => `Envoi impossible (${why}).`,
+    proofErrors: { capture: 'Chrome bloque la capture : clique une fois l’icône de RoNote sur cet onglet, puis renvoie, ou utilise le partage d’onglet ci-dessous.',
+      share: 'Partage d’onglet annulé ou refusé.', subscribe: 'Réservé aux membres Elite de Neuronal.', login: 'Connecte RoNote à Discord (Réglages › Premium).',
+      link: 'Lie ton compte Roblox dans Réglages › Premium.', dm_closed: 'Tes MP sont fermés : autorise les messages de RoOp Tracker.',
+      tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou décoche la liste.',
+      rate_limited: 'Trop de proofs cette heure : réessaie plus tard.', bad_date: 'Date attendue au format MM/JJ/AAAA.', network: 'Neuronal injoignable : réessaie.' },
     resend: 'Renvoyer',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
@@ -76,6 +95,25 @@
     profile: (who) => `Open ${who || 'this player'} on Rolimon’s`,
     flex: 'Create a trade image',
     proof: 'Proof mode: hide the other trades in the list (username, avatar, date, gains)',
+    proofOn: 'The other trades in the list are hidden. Take your screenshot, or send the proof to Discord.',
+    proofLoading: 'Reading the trade…',
+    proofNotCompleted: 'Open a completed trade to send its proof.',
+    proofElite: 'Sending the proof to Discord, in the Rolimons format, is for Neuronal Elite members.',
+    proofLogin: 'To send the proof to Discord, connect RoNote to Discord (Settings › Premium). Elite only.',
+    proofSwap: 'Swap Sender and Receiver',
+    proofList: 'Include the trade list in the screenshot (other usernames hidden)',
+    proofHint: 'The screenshot takes what is visible: keep the whole trade on screen. The panel hides for the shot.',
+    proofSend: 'Send to my DMs',
+    proofSending: 'Capturing and sending…',
+    proofSent: 'Sent: check your DMs from RoOp Tracker on Discord.',
+    proofShareBtn: 'Capture with Chrome’s tab sharing',
+    proofClose: 'Close and leave proof mode',
+    proofFailed: (why) => `Could not send (${why}).`,
+    proofErrors: { capture: 'Chrome blocks the screenshot: click the RoNote icon once on this tab, then send again, or use tab sharing below.',
+      share: 'Tab sharing cancelled or refused.', subscribe: 'Neuronal Elite members only.', login: 'Connect RoNote to Discord (Settings › Premium).',
+      link: 'Link your Roblox account in Settings › Premium.', dm_closed: 'Your DMs are closed: allow messages from RoOp Tracker.',
+      tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or untick the list.',
+      rate_limited: 'Too many proofs this hour: try again later.', bad_date: 'Date expected as MM/DD/YYYY.', network: 'Neuronal unreachable: try again.' },
     resend: 'Send again',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
@@ -904,51 +942,158 @@
     proofOn = on;
     paintProof();
     document.documentElement.toggleAttribute('data-rn-proof', on);
+    if (on) openProofPanel(); else closeProofPanel();
     if (proofControl) {
       proofControl.setAttribute('aria-pressed', String(on));
       proofControl.style.background = on ? 'rgba(63,207,110,.28)' : 'rgba(20,28,40,.45)';
       proofControl.style.borderColor = on ? '#3fcf6e' : 'rgba(128,170,210,.3)';
     }
   }
-  /* « Share proof » (popup, Elite) : la page dit ce qu'elle sait du trade terminé ouvert, puis prépare
-     la capture (mode proof si la liste est dedans, nos boutons cachés) et rend la zone à découper. */
-  let proofFrameWas = null;
+  /* Le panneau proof (13 nov., MYd : « que le bouclier ouvre un panel à droite qui cache la gauche, et qu'on
+     aille jusqu'au bout du proof là ») : le bouclier met le mode proof ET ouvre ce panneau. Pour tous : le
+     mode proof. Elite : les cinq lignes que Rolimons demande, modifiables, et « Send to my DMs » : la page
+     se capture sans le panneau, RoOp Tracker l'envoie en MP (background/proof.js). La capture passe par
+     l'onglet (activeTab : un clic sur l'icône de RoNote dans cet onglet) ; sinon, le partage d'onglet de
+     Chrome, sur un second clic. */
+  const PROOF_FIELDS = [['items', 'Item(s)'], ['values', 'Values'], ['sender', 'Sender'], ['receiver', 'Receiver'], ['date', 'Date']];
+  const PROOF_CSS = `
+    :host{all:initial}
+    aside{box-sizing:border-box;position:fixed;z-index:2147483000;top:0;right:0;width:340px;height:100vh;display:flex;flex-direction:column;
+      background:#111318;color:#e8e8ea;border-left:1px solid #2a2d33;box-shadow:-18px 0 40px rgba(0,0,0,.45);
+      font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+    header{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid #2a2d33}
+    header b{flex:1;font-size:15px}header b i{font-style:normal;color:#3fcf6e}
+    button{font:inherit;cursor:pointer}
+    .x{width:28px;height:28px;border-radius:8px;border:1px solid #2a2d33;background:none;color:#aeb2bb}
+    .body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+    p{margin:0;color:#aeb2bb}
+    label.f{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px;font-size:12px;color:#aeb2bb}
+    input:not([type]){min-width:0;padding:7px 9px;border-radius:8px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea;font:inherit}
+    input:not([type]):focus{outline:none;border-color:#3d8eff}
+    .swap{padding:4px 7px;border-radius:7px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea}
+    .chk{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;cursor:pointer}
+    pre{margin:0;padding:9px 10px;border-radius:9px;background:#0b0c0f;border:1px solid #23262c;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#c9d4e8}
+    footer{display:flex;flex-direction:column;gap:8px;padding:12px 16px;border-top:1px solid #2a2d33}
+    .send{padding:10px;border-radius:10px;border:1px solid #1f5a37;background:#10331f;color:#c9f5da;font-weight:700}
+    .send:hover{background:#154527}.send:disabled{opacity:.6;cursor:default}
+    .share{padding:9px;border-radius:10px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea}
+    .msg{min-height:1em;font-size:12px;color:#aeb2bb}.msg.err{color:#f2545b}
+    [hidden]{display:none!important}`;
+  let proofPanel = null;
   function proofInfo() {
     const a = shownAnalysis, page = shownPage;
     if (!a || !isCompleted(page)) return { ok: false };
-    const side = s => [...s.items.map(i => i.acronym || i.name), ...(s.robux ? [`R$${s.robux}`] : [])];
+    const items = s => s.items.map(i => ({ assetId: i.assetId || 0, bundleId: i.bundleId || 0, legacyAssetId: i.legacyAssetId || 0, name: i.name || '' }));
     // La date de la ligne ouverte, telle que Roblox l'écrit (jj/mm en français) : rendue en MM/JJ/AAAA.
     const d = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(document.querySelector('.trade-row.selected')?.textContent || '');
     const date = d ? (fr ? [d[2], d[1], d[3]] : [d[1], d[2], d[3]]).map((x, k) => k < 2 ? x.padStart(2, '0') : x).join('/') : '';
     return { ok: true, tradeId: page.tradeId || '', partner: (page.handle || '').replace(/^@/, ''),
-      give: side(a.give), get: side(a.get), values: a.valueAvailable !== false ? [a.give.value, a.get.value] : null, date };
+      give: { items: items(a.give), robux: a.give.robux || 0 }, get: { items: items(a.get), robux: a.get.robux || 0 },
+      values: a.valueAvailable !== false ? [a.give.value, a.get.value] : null, date };
   }
+  /** La zone à capturer, en pixels CSS : le trade, ou toute la colonne des trades avec la liste. */
   function proofFrame(list) {
     const root = document.querySelector('.trades-react');
     const detail = root && [...root.children].find(c => !c.classList.contains('trade-row-list'));
-    const box = list ? root : detail;
-    if (!box) return { ok: false };
-    proofFrameWas = proofOn;
-    if (list) setProof(true);
-    if (tools) tools.style.visibility = 'hidden';
+    // Sans ces classes de Roblox : le plus petit bloc qui tient le titre du trade et ses deux côtés.
+    const ends = [shownPage?.tradeHeading, ...(shownPage?.sides || []).map(s => s.root)].filter(n => n?.isConnected);
+    let common = ends[0] || null;
+    while (common && !ends.every(n => common.contains(n))) common = common.parentElement;
+    const box = (list ? root : detail) || common;
+    if (!box) return null;
     const r = box.getBoundingClientRect();
     const x = Math.max(0, r.left), y = Math.max(0, r.top);
-    return { ok: true, x, y, w: Math.min(innerWidth, r.right) - x, h: Math.min(innerHeight, r.bottom) - y, vw: innerWidth };
+    return { x, y, w: Math.min(innerWidth, r.right) - x, h: Math.min(innerHeight, r.bottom) - y, vw: innerWidth };
   }
-  if (alive()) B.runtime?.onMessage?.addListener((msg, _sender, reply) => {
-    if (msg?.type === 'ronote:proof-info') { reply(proofInfo()); return; }
-    if (msg?.type === 'ronote:proof-frame') {
-      const frame = proofFrame(!!msg.list);
-      requestAnimationFrame(() => requestAnimationFrame(() => reply(frame)));      // la page redessinée avant la capture
-      return true;
-    }
-    if (msg?.type === 'ronote:proof-restore') {
-      if (proofFrameWas !== null) setProof(proofFrameWas);
-      proofFrameWas = null;
+  const proofQ = s => proofPanel?.root.querySelector(s);
+  function proofSay(text, err = false) { const m = proofQ('.msg'); if (m) { m.textContent = text || ''; m.className = 'msg' + (err ? ' err' : ''); } }
+  function proofFields() { return Object.fromEntries(PROOF_FIELDS.map(([k]) => [k, proofQ(`[data-f="${k}"]`)?.value.trim() || ''])); }
+  function proofPreview() { const p = proofQ('pre'), f = proofFields(); if (p) p.textContent = PROOF_FIELDS.map(([k, l]) => `${l}: ${f[k]}`).join('\n') + '\n\n<screenshot>'; }
+  async function proofFill() {
+    const info = proofInfo(), body = proofQ('.body');
+    if (!body) return;
+    proofPanel.sig = JSON.stringify(info);
+    proofQ('footer').hidden = true;
+    if (!info.ok) { body.innerHTML = `<p>${TEXT.proofOn}</p>`; return; }
+    const res = await B.runtime.sendMessage({ type: 'ronote:proof-prepare', info }).catch(() => null);
+    if (!proofPanel || proofPanel.sig !== JSON.stringify(info)) return;
+    if (!res?.elite) { body.innerHTML = `<p>${TEXT.proofOn}</p><p>🔒 ${res?.signedIn ? TEXT.proofElite : TEXT.proofLogin}</p>`; return; }
+    const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    body.innerHTML = `<p>${TEXT.proofOn}</p>` + PROOF_FIELDS.map(([k, l]) => `<label class="f"><span>${l}</span>
+        <input data-f="${k}" value="${esc(res.fields[k] || '')}" maxlength="${k === 'items' ? 300 : 80}" spellcheck="false">
+        ${k === 'receiver' ? `<button class="swap" data-swap title="${TEXT.proofSwap}">⇄</button>` : ''}</label>`).join('')
+      + `<label class="chk"><input type="checkbox" data-list> ${TEXT.proofList}</label><pre></pre><p>${TEXT.proofHint}</p>`;
+    proofQ('footer').hidden = false;
+    proofQ('.share').hidden = true;
+    proofSay('');
+    proofPreview();
+  }
+  /** Le partage d'onglet de Chrome, une image : quand captureVisibleTab n'a pas la permission. */
+  async function proofShareCapture() {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false,
+      preferCurrentTab: true, selfBrowserSurface: 'include' });
+    try {
+      const video = document.createElement('video');
+      video.srcObject = stream; video.muted = true;
+      await video.play();
+      await new Promise(r => setTimeout(r, 350));              // la boîte de Chrome fermée, une image fraîche
+      const c = document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      c.getContext('2d').drawImage(video, 0, 0);
+      return c.toDataURL('image/png');
+    } finally { stream.getTracks().forEach(t => t.stop()); }
+  }
+  async function proofSend(viaShare) {
+    const send = proofQ('.send');
+    if (!send || send.disabled) return;
+    const fields = proofFields(), list = !!proofQ('[data-list]')?.checked;
+    const frame = proofFrame(list);
+    if (!frame) { proofSay(TEXT.proofNotCompleted, true); return; }
+    send.disabled = true; proofSay(TEXT.proofSending);
+    const host = proofPanel.host;
+    host.style.visibility = 'hidden';
+    if (tools) tools.style.visibility = 'hidden';
+    let res;
+    try {
+      const image = viaShare ? await proofShareCapture() : null;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));      // la page redessinée sans le panneau
+      res = await B.runtime.sendMessage({ type: 'ronote:proof-share', fields, frame, image });
+    } catch (e) {
+      res = { error: viaShare ? 'share' : 'capture', detail: String(e?.message || e) };
+    } finally {
+      host.style.visibility = '';
       if (tools) tools.style.visibility = '';
-      reply({ ok: true });
+      send.disabled = false;
     }
-  });
+    if (res?.ok) { proofSay(TEXT.proofSent); return; }
+    if (res?.error === 'capture') proofQ('.share').hidden = false;
+    proofSay((TEXT.proofErrors[res?.error] || TEXT.proofFailed(res?.error || '?')) + (res?.detail ? ` (${res.detail})` : ''), true);
+  }
+  function openProofPanel() {
+    if (proofPanel) return;
+    const host = document.createElement('div');
+    host.dataset.rn = 'proof-panel';
+    const root = host.attachShadow({ mode: 'closed' });
+    root.innerHTML = `<style>${PROOF_CSS}</style><aside role="dialog" aria-label="Proof">
+      <header><b><i>✓</i> Proof</b><button class="x" title="${TEXT.proofClose}" aria-label="${TEXT.proofClose}">✕</button></header>
+      <div class="body"><p>${TEXT.proofLoading}</p></div>
+      <footer hidden><button class="send">➤ ${TEXT.proofSend}</button><button class="share" hidden>${TEXT.proofShareBtn}</button><p class="msg"></p></footer></aside>`;
+    (document.body || document.documentElement).append(host);
+    proofPanel = { host, root, sig: '' };
+    root.addEventListener('input', proofPreview);
+    root.addEventListener('click', e => {
+      if (e.target.closest('.x')) setProof(false);
+      else if (e.target.closest('[data-swap]')) {
+        const s = proofQ('[data-f="sender"]'), r = proofQ('[data-f="receiver"]');
+        [s.value, r.value] = [r.value, s.value]; proofPreview();
+      } else if (e.target.closest('.send')) proofSend(false);
+      else if (e.target.closest('.share')) proofSend(true);
+    });
+    proofFill();
+  }
+  function closeProofPanel() { proofPanel?.host.remove(); proofPanel = null; }
+  // Un autre trade ouvert, panneau ouvert : ses lignes suivent.
+  function proofFollow() { if (proofPanel && proofPanel.sig !== JSON.stringify(proofInfo())) proofFill(); }
   const serialNodes = new Map();
   // En capture, avant le lien de la vignette et les écouteurs de React. Certains
   // badges sont dans le lien du catalogue, d'autres ont pointer-events:none.
@@ -1538,6 +1683,7 @@
         : missingWhy(a, field);
     }
     tidyBannerBoundary();
+    proofFollow();
   }
 
   async function update() {

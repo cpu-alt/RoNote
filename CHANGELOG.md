@@ -17,11 +17,12 @@ l'utilisateur, pas la liste des commits.
   celle de son propre éditeur de trade) : les visages ne passent plus « plus dans l'inventaire » à tort,
   les limiteds UGC et chaque doublon apparaissent (avant, Verdant Crown ×5 ou Quadri-Skull ×8 manquaient),
   et la contre-offre part par l'API v2, qui sait envoyer les visages.
-- **Partager un proof** (Elite Neuronal) : sur un trade terminé, menu du popup › *Partager un proof*.
-  Les cinq lignes que Rolimons demande (Item(s), Values, Sender, Receiver, Date) sont pré-remplies et
-  modifiables ; la capture de l'onglet (le trade, et au choix la liste de gauche en mode proof) part avec
-  elles en MP Discord, envoyées par RoOp Tracker, prêtes à poster dans #proofs. Nouvelle permission
-  `activeTab` (la capture, seulement après ton clic).
+- **Partager un proof** (Elite Neuronal) : sur un trade terminé, le bouclier du mode proof ouvre un
+  panneau à droite (la liste de gauche se cache). Les cinq lignes que Rolimons demande (Item(s), Values,
+  Sender, Receiver, Date) sont pré-remplies, objets en acronymes, et modifiables ; *Envoyer dans mes MP*
+  capture le trade (et au choix la liste) et RoOp Tracker t'envoie le tout en MP Discord, prêt pour
+  #proofs. Nouvelle permission `activeTab` : un clic sur l'icône de RoNote dans l'onglet autorise la
+  capture ; sinon, le partage d'onglet de Chrome.
 
 ## v2.16.13 : demande bien à sa place
 

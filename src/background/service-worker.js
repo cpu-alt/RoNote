@@ -920,7 +920,7 @@ B.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (typeof msg?.type !== 'string' || !msg.type.startsWith('ronote:')) return;
   if (msg.type === 'ronote:play-sound') return; // destine au document offscreen
   (async () => {
-    try { sendResponse(await handleMessage(msg)); }
+    try { sendResponse(await handleMessage(msg, _sender)); }
     catch (e) { sendResponse({ error: String(e?.message || e) }); }
   })();
   return true;
@@ -1000,7 +1000,7 @@ async function uiData({ lite = false } = {}) {
   return out;
 }
 
-async function handleMessage(msg) {
+async function handleMessage(msg, sender = null) {
   switch (msg.type) {
     case 'ronote:page-analysis': {
       const [settings, state] = await Promise.all([getSettings(), getState(), loadDetailCache()]);
@@ -1208,9 +1208,9 @@ async function handleMessage(msg) {
       return premiumKey(msg.key);
     // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.
     case 'ronote:proof-prepare':
-      return proofPrepare(Number(msg.tabId));
+      return proofPrepare(msg.info || {});
     case 'ronote:proof-share':
-      return proofShare(msg);
+      return proofShare(msg, sender?.tab);
     case 'ronote:premium-link':
       return premiumLink();
     case 'ronote:premium-cancel':

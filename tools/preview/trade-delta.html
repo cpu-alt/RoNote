@@ -13,6 +13,10 @@ let offline = false;
 const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks','',657,800,0,0,0,0],222:['Snow Leopard Fedora','',1485,1600,0,0,1,0],301:['Coolface','',7563,9000,0,0,1,0],305:['Camoface','',7563,12500,0,0,1,0],306:['White Ninja Headband of the Void','',1742,2100,0,0,0,0],302:['Verdant Crown','',3769,4200,0,0,0,0],401:['Gold Clockwork Headphones','',4813,5500,0,0,0,0]},Object.fromEntries([101,102,103,201,202,203].map((id,i)=>[id,['test','',100,[1500,4000,1800,500,8000,600][i],0,0,id===202?1:0,id===201?1:0]])))};
 globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
   if (type === 'ronote:lucky-cat') return { luckyCat: window.__lucky || null };
+  // Le panneau proof : un membre Elite (?elite=0 : pas Elite), l'envoi simulé.
+  if (type === 'ronote:proof-prepare') return new URLSearchParams(location.search).get('elite') === '0' ? { elite: false, signedIn: true }
+    : { elite: true, signedIn: true, fields: { items: 'TIX + PLBH + WNH for RLB + DT + GV', values: '7.1k vs 9.6k', sender: 'Marshal_l', receiver: 'DemoTrader', date: '11/12/2026' } };
+  if (type === 'ronote:proof-share') { window.__proofSent = (window.__proofSent || 0) + 1; return { ok: true }; }
   if (type === 'ronote:item-values') {
     const {findByName} = await import('/src/common/page-trade.js');
     const {resolveItem} = await import('/src/common/analysis.js');

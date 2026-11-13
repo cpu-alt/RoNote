@@ -18,7 +18,6 @@ import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
 import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
-import { openProofSheet } from './proof.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
 import { fluidHover } from '../common/fluid.js';
 import {
@@ -283,7 +282,6 @@ function fillMeMenu() {
     ${menuRow('history', 'journal', t('Journal'))}
     ${menuRow('profiles', 'radar', t('Profils'))}
     ${menuRow('deals', 'flame', t('Deals'))}
-    ${menuRow('proof', 'check-circle', t('Partager un proof'))}
     ${menuRow('premium', 'star', t('Premium'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
@@ -357,7 +355,6 @@ async function onMeMenu(e) {
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
   else if (act === 'deals') selectTab('deals');
-  else if (act === 'proof') openProofSheet();
   else if (act === 'premium') B.tabs.create({ url: B.runtime.getURL('options/options.html#s-premium') });
   else if (act === 'history') selectTab('history');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
@@ -3192,17 +3189,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && $('#me-menu')) { e.stopImmediatePropagation(); closeMeMenu({ focus: true }); }
 }, true);
 applyAnon();
-
-// Share proof : en vue dans l'entête quand l'onglet ouvert est la page des trades de Roblox (Elite, popup/proof.js).
-{
-  const btn = $('#btn-proof');
-  btn.innerHTML = `${ic('check-circle')}<span>${escapeHtml(t('Partager un proof'))}</span>`;
-  btn.title = t('Partager un proof');
-  btn.addEventListener('click', () => openProofSheet());
-  Promise.resolve().then(() => B.tabs.query({ active: true, currentWindow: true }))
-    .then(([tab]) => { btn.hidden = !/^https:\/\/www\.roblox\.com\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/)?trades/i.test(tab?.url || ''); })
-    .catch(() => {});
-}
 
 $('#btn-refresh').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
