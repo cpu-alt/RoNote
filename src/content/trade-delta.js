@@ -1044,7 +1044,8 @@
   const proofEsc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   function proofSay(text, tone = '') { const m = proofQ('.msg'); if (m) { m.textContent = text || ''; m.className = 'msg' + (tone ? ' ' + tone : ''); } }
   function proofFields() { return Object.fromEntries(PROOF_FIELDS.map(([k]) => [k, proofQ(`[data-f="${k}"]`)?.value.trim() || ''])); }
-  function proofPreview() { const p = proofQ('pre'), f = proofFields(); if (p) p.textContent = PROOF_FIELDS.map(([k, l]) => `${l}: ${f[k]}`).join('\n') + '\n\n<screenshot>'; }
+  // Le texte du MP (le même que Neuronal 18qbfa) : les objets, les values, puis S, R, D.
+  function proofPreview() { const p = proofQ('pre'), f = proofFields(); if (p) p.textContent = `${f.items}\n${f.values}\nS: ${f.sender}\nR: ${f.receiver}\nD: ${f.date}\n\n<screenshot>`; }
 
   /** 1. Le masquage de la liste : les réglages du mode proof, en boutons (les mêmes que Réglages › Apparence). */
   function proofMaskHtml() {
@@ -1080,7 +1081,7 @@
     return `<section><h3><span class="n">2</span>${TEXT.proofSendTitle}</h3>
       <div class="perm ${res.canCapture ? 'ok' : 'no'}" data-perm>${res.canCapture ? '✓ ' + TEXT.proofPermOk : 'ⓘ ' + TEXT.proofPermNo}</div>
       ${PROOF_FIELDS.map(([k, l]) => `<label class="f"><span>${l}</span>
-        <input data-f="${k}" value="${proofEsc(res.fields[k] || '')}" maxlength="${k === 'items' ? 300 : 80}" spellcheck="false">
+        <input data-f="${k}" value="${proofEsc(res.fields[k] || '')}" maxlength="${k === 'items' ? 600 : 80}" spellcheck="false">
         ${k === 'receiver' ? `<button class="swap" data-swap title="${TEXT.proofSwap}">⇄</button>` : ''}</label>`).join('')}
       <label class="chk"><input type="checkbox" data-list> ${TEXT.proofList}</label>
       <details><summary>${TEXT.proofPreview}</summary><pre></pre></details>

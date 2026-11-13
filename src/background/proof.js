@@ -31,17 +31,18 @@ export function shortValue(n) {
   return String(Math.round(n));
 }
 
-/** Le nom d'un objet pour Rolimons : son acronyme, sinon son nom au catalogue, sinon le texte de la page nettoyé. */
+/** Le nom d'un objet pour #proofs : « Black Iron Commando (BIC) », le nom seul sans acronyme ; sinon le texte de la page nettoyé. */
 export function itemLabel(item, cat) {
   const entry = readEntry(cat?.bundles?.[String(item.bundleId || 0)] || cat?.assets?.[String(item.assetId || 0)]
     || cat?.assets?.[String(item.legacyAssetId || 0)]);
-  return entry?.acronym || entry?.name || String(item.name || '').replace(/^(?:#\d+\s*)+/, '').trim() || '?';
+  if (entry?.name) return entry.acronym ? `${entry.name} (${entry.acronym})` : entry.name;
+  return entry?.acronym || String(item.name || '').replace(/^(?:#\d+\s*)+/, '').trim() || '?';
 }
 
-/** Les cinq champs pré-remplis. `labels` : [ce que je donne, ce que je reçois], déjà nommés. */
+/** Les cinq champs pré-remplis, au style des proofs (13 nov.) : « A, B / C, D ». `labels` : [ce que je donne, ce que je reçois]. */
 export function proofDefaults({ labels, values, sender, receiver, date }) {
   return {
-    items: `${labels[0].join(' + ')} for ${labels[1].join(' + ')}`,
+    items: `${labels[0].join(', ')} / ${labels[1].join(', ')}`,
     values: values ? `${shortValue(values[0])} vs ${shortValue(values[1])}` : '',
     sender: sender || '', receiver: receiver || '', date: date || ''
   };
@@ -62,7 +63,7 @@ async function senderGuess(info) {
 /** Ce que la page sait du trade terminé (proofInfo de trade-delta.js) → les champs, et l'accès Elite. */
 export async function proofPrepare(info) {
   const [status, cat] = await Promise.all([premiumStatus().catch(() => null), getSettings().then(getCatalog).catch(() => null)]);
-  const side = (s) => [...s.items.map(i => itemLabel(i, cat)), ...(s.robux ? [`R$${s.robux}`] : [])];
+  const side = (s) => [...s.items.map(i => itemLabel(i, cat)), ...(s.robux ? [`${s.robux} Robux`] : [])];
   return {
     elite: !!status?.me?.features?.proof, signedIn: !!status?.signedIn,
     canCapture: await B.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false),
