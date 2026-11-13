@@ -1909,7 +1909,13 @@
   document.addEventListener('input', event => {
     if (enabled && onPage() && event.target?.matches?.('input')) { retryAt = 0; schedule(); }
   }, true);
-  document.addEventListener('scroll', scheduleOnPage, { capture: true, passive: true });
+  // Défiler sur la page de trade relisait toute la page à chaque événement (mesuré : 20 lectures par
+  // seconde) : une toutes les 200 ms suffit, les nouvelles cartes de l'inventaire arrivent toujours.
+  let scrollTimer = null;
+  document.addEventListener('scroll', () => {
+    if (scrollTimer || !(onPage() || host)) return;
+    scrollTimer = setTimeout(() => { scrollTimer = null; schedule(); }, 200);
+  }, { capture: true, passive: true });
   // Retour sur l'onglet avec un bandeau gris : on redemande tout de suite.
   const refreshIncomplete = () => {
     if (!document.hidden && shownPage && !shownAnalysis?.valueAvailable) { retryAt = 0; }
