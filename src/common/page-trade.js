@@ -153,22 +153,38 @@ export function pageDetail(page, myId) {
 }
 
 /**
- * La demande d'un objet selon Neuronal (`/ext/v1/demand`) : note de 1 à 5 d'après son rang
+ * La demande d'un objet selon Neuronal (`/ext/v1/demand`) : note de 1 à 5, au dixième, d'après son rang
  * parmi les objets les plus tradés sur 30 jours. `{ na }` pour un projected ou un petit objet
  * (sous `min_value`), que Neuronal ne note pas ; null quand la table ou le prix manque.
  */
+// Part du classement (0 = le plus tradé) → note, en ligne droite entre ces points. Les anciens paliers
+// de Neuronal (top 10 % = 5, 30 % = 4, 55 % = 3, 80 % = 2) restent la note arrondie.
+const RANK_CURVE = [[0, 5], [0.10, 4.5], [0.30, 3.5], [0.55, 2.5], [0.80, 1.5], [1, 1]];
+const tenth = (x) => Math.round(x * 10) / 10;
+export function rankScore(rank, of) {
+  const part = Math.min(1, Math.max(0, (rank - 1) / Math.max(1, of)));
+  const k = RANK_CURVE.findIndex(([p]) => p >= part);
+  if (k <= 0) return 5;
+  const [[p0, s0], [p1, s1]] = [RANK_CURVE[k - 1], RANK_CURVE[k]];
+  return tenth(s0 + (s1 - s0) * (part - p0) / (p1 - p0));
+}
+
 export function demandOf(table, item) {
   if (!item) return null;
   if (item.projected) return { na: 'projected' };
-  // La demande que Rolimon's publie (0 Terrible … 4 Amazing) passe d'abord : Neuronal ne note
-  // que les objets qu'elle laisse sans demande.
-  if (item.demand >= 0 && item.demand <= 4) return { roli: item.demand, score: item.demand + 1 };
-  if (!table?.items) return null;
-  const base = { of: table.rated, days: table.days };
+  const base = table?.items ? { of: table.rated, days: table.days } : null;
   // Visages et bundles : Neuronal les range sous l'identifiant de Rolimon's, qui est le numéro du bundle.
-  const hit = [item.bundleId, item.assetId, item.legacyAssetId].map(id => table.items[String(id || 0)]).find(Boolean);
-  if (hit) return { ...base, n: hit[0], rank: hit[1], score: hit[2] };
-  if (!(item.value > 0)) return null;
+  const hit = base && [item.bundleId, item.assetId, item.legacyAssetId].map(id => table.items[String(id || 0)]).find(Boolean);
+  const ranked = hit ? { ...base, n: hit[0], rank: hit[1], score: rankScore(hit[1], table.rated) } : null;
+  // La demande que Rolimon's publie (0 Terrible … 4 Amazing) passe d'abord ; le rang Neuronal,
+  // s'il existe, la décale d'un demi-point au plus : « High » va de 3,5 à 4,5, jamais au-delà.
+  if (item.demand >= 0 && item.demand <= 4) {
+    const roli = item.demand + 1;
+    if (!ranked) return { roli: item.demand, score: roli };
+    return { ...ranked, roli: item.demand, score: tenth(Math.min(5, Math.max(1, roli + (ranked.score - 3) / 4))) };
+  }
+  if (ranked) return ranked;
+  if (!base || !(item.value > 0)) return null;
   if (item.value < table.min_value) return { na: 'small' };
   return { ...base, n: 0, rank: null, score: 1 };   // noté, mais aucun trade vu en 30 jours
 }

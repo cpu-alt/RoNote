@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item('Demande au dixième', 'Demand to one decimal'),
+    items: [
+      item("La note de demande est plus fine : « 3,7/5 » plutôt que « 4/5 », et la dernière barre se remplit en partie.",
+        "The demand score is finer: “3.7/5” instead of “4/5”, and the last bar fills partly."),
+      item("Une demande Rolimon's est affinée d'un demi-point au plus par le classement Neuronal des trades.",
+        "A Rolimon’s demand is refined by up to half a point with Neuronal’s trade ranking.")
+    ]
+  },
+  {
     version: '2.16.13',
     title: item('Demande bien à sa place', 'Demand in its place'),
     items: [

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { pageDetail, samePageOffers, analyzePage, addKnownInstances, demandOf, demandAverage } from '../src/common/page-trade.js';
+import { pageDetail, samePageOffers, analyzePage, addKnownInstances, demandOf, demandAverage, rankScore } from '../src/common/page-trade.js';
 import { analyze, netRobux } from '../src/common/analysis.js';
 
 // La demande Neuronal : note du classement, N/A pour un projected ou un petit objet.
@@ -13,11 +13,18 @@ import { analyze, netRobux } from '../src/common/analysis.js';
   assert.equal(demandOf(table, { assetId: 5, value: 5000 }).score, 1, 'valued item never traded: lowest demand');
   assert.equal(demandOf(table, { assetId: 5 }), null, 'unknown price: no demand');
   assert.equal(demandOf(null, { assetId: 77, value: 2000 }), null);
-  assert.deepEqual(demandOf(table, { assetId: 77, value: 2000, demand: 3 }), { roli: 3, score: 4 }, "Rolimon's demand first");
+  // Rang 1500 sur 1965 : part 0,763 → 1,6 ; « High » (4) descend donc à 4 + (1,6 − 3) / 4 = 3,7.
+  assert.deepEqual(demandOf(table, { assetId: 77, value: 2000, demand: 3 }),
+    { of: 1965, days: 30, n: 3, rank: 1500, roli: 3, score: 3.7 }, "Rolimon's demand first, refined by Neuronal");
+  assert.deepEqual(demandOf(table, { assetId: 6, value: 2000, demand: 3 }), { roli: 3, score: 4 }, 'not ranked: Rolimon alone');
+  assert.equal(demandOf(table, { assetId: 10159600649, value: 32000, demand: 4 }).score, 5, 'never above 5');
   assert.deepEqual(demandOf(null, { assetId: 9, value: 2000, demand: 0 }), { roli: 0, score: 1 }, 'works without Neuronal');
-  assert.equal(demandOf(table, { assetId: 77, value: 2000, demand: -1 }).score, 1, 'no Rolimon demand: Neuronal rank');
+  assert.equal(demandOf(table, { assetId: 77, value: 2000, demand: -1 }).score, 1.6, 'no Rolimon demand: Neuronal rank');
   assert.equal(demandOf({ ...table, items: { 158380697314856: [525, 65, 5] } },
-    { assetId: 0, bundleId: 158380697314856, legacyAssetId: 494291269, value: 70000, demand: -1 }).score, 5, 'faces: found by bundle id');
+    { assetId: 0, bundleId: 158380697314856, legacyAssetId: 494291269, value: 70000, demand: -1 }).score, 4.8, 'faces: found by bundle id');
+  // La courbe : les anciens paliers restent la note arrondie, entre eux la note glisse.
+  assert.deepEqual([1, 50, 197, 393, 590, 1081, 1572, 1965].map(r => rankScore(r, 1965)), [5, 4.9, 4.5, 4, 3.5, 2.5, 1.5, 1]);
+  assert.equal(rankScore(1, 1), 5);
   assert.equal(demandAverage([{ demand: { score: 5 }, value: 30000 }, { demand: { score: 1 }, value: 1000 },
     { demand: { na: 'small' }, value: 200 }]), 4.9, 'average weighted by value, N/A left out');
   assert.equal(demandAverage([{ demand: { na: 'small' }, value: 200 }]), null);

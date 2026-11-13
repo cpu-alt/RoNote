@@ -18,6 +18,8 @@
   const fr = (document.documentElement.lang || navigator.language || '').startsWith('fr');
   // Groupés comme les chiffres de Roblox : « 14 996 » en français, « 14,996 » en anglais.
   const number = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 });
+  // La note de demande, au dixième : « 3,7 » en français, « 3.7 » en anglais.
+  const note = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { maximumFractionDigits: 1 }).format;
   const deltaNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
   const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + deltaNumber.format(Math.abs(n));
   // Les textes de la page, dans la langue de Roblox : écrits une fois ici.
@@ -54,6 +56,7 @@
     demandSmall: 'Demande N/A : petit objet, pas noté.',
     demandRoli: (s, label) => `Demande ${s}/5 : demande « ${label} » sur Rolimon’s.`,
     demandRoliLabels: ['Terrible', 'Faible', 'Normale', 'Haute', 'Excellente'],
+    demandRoliRank: (rank, of, days) => `Affinée d’un demi-point au plus par Neuronal : n°${rank} sur ${of} objets tradés en ${days} jours.`,
     demandAverage: 'Demande moyenne de ce côté, pondérée par la value de chaque objet : celle de Rolimon’s quand l’objet en a une, sinon le classement Neuronal des trades sur 30 jours. Les projected et les petits objets ne comptent pas.',
     demandAverageNone: 'Demande N/A : aucun objet noté de ce côté.'
   } : {
@@ -89,6 +92,7 @@
     demandSmall: 'Demand N/A: small item, not rated.',
     demandRoli: (s, label) => `Demand ${s}/5: “${label}” demand on Rolimon’s.`,
     demandRoliLabels: ['Terrible', 'Low', 'Normal', 'High', 'Amazing'],
+    demandRoliRank: (rank, of, days) => `Refined by up to half a point with Neuronal: #${rank} of ${of} items traded in ${days} days.`,
     demandAverage: 'Average demand of this side, weighted by each item’s value: Rolimon’s demand when the item has one, otherwise Neuronal’s 30-day trade ranking. Projected and small items are not counted.',
     demandAverageNone: 'Demand N/A: no rated item on this side.'
   };
@@ -112,15 +116,17 @@
   function iconize(el, score = el.score) {
     el.score = score;
     const bars = !demandLook.image && demandLook.icon === 'bars';
-    const key = demandLook.image ? 'img:' + demandLook.image.length : demandLook.icon + (bars ? ':' + Math.round(score || 0) : '');
+    const key = demandLook.image ? 'img:' + demandLook.image.length : demandLook.icon + (bars ? ':' + (score || 0) : '');
     if (el.dataset.icon === key) return;
     el.dataset.icon = key;
     const slot = el.firstElementChild;
     if (demandLook.image) { slot.innerHTML = '<img alt="">'; slot.firstChild.src = demandLook.image; return; }
     if (bars) {
-      const n = Math.round(score || 0);
+      // Une note décimale remplit la dernière barre en partie : 3,5 = trois barres et demie.
+      const n = score || 0;
       slot.innerHTML = '<svg class="bars" viewBox="0 0 14 12" aria-hidden="true">' + [3, 5, 7, 9, 11]
-        .map((h, k) => `<rect x="${k * 3}" y="${12 - h}" width="2" height="${h}" rx=".5"${k < n ? ' class="f"' : ''}/>`).join('') + '</svg>';
+        .map((h, k) => `<rect x="${k * 3}" y="${12 - h}" width="2" height="${h}" rx=".5"${k + 1 <= n ? ' class="f"'
+          : k < n ? ` class="f" style="opacity:${(.25 + .75 * (n - k)).toFixed(2)}"` : ''}/>`).join('') + '</svg>';
       return;
     }
     const path = DEMAND_ICONS[demandLook.icon];
@@ -133,7 +139,7 @@
   }
   // `score` (nombre) ou null pour N/A ; `title` = l'infobulle entière.
   function paintDemand(el, score, title) {
-    const html = score == null ? '<span>N/A</span>' : `${score}<span>/5</span>`;
+    const html = score == null ? '<span>N/A</span>' : `${note(score)}<span>/5</span>`;
     iconize(el, score);
     el.style.setProperty('--c', DEMAND_COLORS[Math.round(score || 0)] || 'currentColor');
     const b = el.lastElementChild;
@@ -145,8 +151,8 @@
   }
   function demandTitle(d) {
     if (d.na) return d.na === 'projected' ? TEXT.demandProjected : TEXT.demandSmall;
-    if (d.roli != null) return TEXT.demandRoli(d.score, TEXT.demandRoliLabels[d.roli]);
-    return (d.n ? TEXT.demandRank(d.score, d.rank, d.of, d.n, d.days) : TEXT.demandNone(d.days)) + ' ' + TEXT.demandWhy(d.days);
+    if (d.roli != null) return TEXT.demandRoli(note(d.score), TEXT.demandRoliLabels[d.roli]) + (d.rank ? ' ' + TEXT.demandRoliRank(d.rank, d.of, d.days) : '');
+    return (d.n ? TEXT.demandRank(note(d.score), d.rank, d.of, d.n, d.days) : TEXT.demandNone(d.days)) + ' ' + TEXT.demandWhy(d.days);
   }
   // La liste des trades (/trades) et la page de création d'un trade, ouverte
   // depuis un profil (/users/123/trade), avec ou sans préfixe de langue (/fr/…).

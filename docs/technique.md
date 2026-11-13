@@ -1082,3 +1082,10 @@ envoyée sans jeton, gardée 1 h en mémoire). Projected et objets sous `min_val
 N/A. La moyenne d'un côté est pondérée par la value. `demandOf` / `demandAverage` (common/page-trade.js),
 icônes au choix dans content/demand-icons.js (partagé avec l'aperçu des réglages), image importée sous
 la clé `demandIconImage`.
+
+Note au dixième (version en préparation après 2.16.13) : le rang Neuronal ne passe plus par les paliers du serveur (3ᵉ champ
+de la table, ignoré) ; `rankScore` interpole en ligne droite la part du classement entre
+0 → 5 ; 10 % → 4,5 ; 30 % → 3,5 ; 55 % → 2,5 ; 80 % → 1,5 ; 100 % → 1. Les anciens paliers restent donc
+la note arrondie. La demande Rolimon's, entière, est décalée de (note Neuronal − 3) / 4, soit ±0,5 au
+plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
+la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).

@@ -3,6 +3,12 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation
+
+- **Demande au dixième** : la note n'est plus un entier mais une note comme « 3,7/5 », et la dernière
+  barre se remplit en partie. Le rang Neuronal donne une note continue (plus de paliers) ; pour un objet
+  qui a une demande Rolimon's, il l'affine d'un demi-point au plus (« High » va de 3,5 à 4,5).
+
 ## v2.16.13 : demande bien à sa place
 
 - **Demande** : la ligne sous la value ne passe plus sous « Total Value » quand elle ne déborde que
