@@ -1211,8 +1211,9 @@ async function handleMessage(msg, sender = null) {
       return proofPrepare(msg.info || {});
     case 'ronote:proof-share':
       return proofShare(msg, sender?.tab);
-    case 'ronote:proof-allow':                    // le bouton du panneau : la ligne « Mode proof » des réglages
-      await B.tabs.create({ url: B.runtime.getURL('options/options.html#proof-row') });
+    case 'ronote:proof-allow':                    // le bouton du panneau : une petite fenêtre, un bouton, la demande de Chrome
+      await B.windows.create({ url: B.runtime.getURL('options/capture.html?tab=' + (sender?.tab?.id || 0)),
+        type: 'popup', width: 420, height: 300, focused: true });
       return { ok: true };
     case 'ronote:premium-link':
       return premiumLink();

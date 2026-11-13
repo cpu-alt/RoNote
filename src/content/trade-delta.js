@@ -53,7 +53,7 @@
     proofShareBtn: 'Capturer avec le partage d’onglet de Chrome',
     proofClose: 'Fermer et quitter le mode proof',
     proofAllow: 'Autoriser les captures (une fois)',
-    proofAllowHint: 'Dans l’onglet des réglages qui s’ouvre : « Autoriser les captures », accepte, puis reviens et renvoie.',
+    proofAllowHint: 'Une petite fenêtre s’ouvre : clique « Autoriser », accepte la demande de Chrome, et le proof part tout seul.',
     proofSettings: 'Réglages du mode proof',
     proofMaskLabel: 'Remplacer par', proofMasks: ['Des points', 'Rien', 'Mon image'],
     proofScopeLabel: 'Cacher', proofScopes: ['Les autres trades', 'Toute la liste'],
@@ -115,7 +115,7 @@
     proofShareBtn: 'Capture with Chrome’s tab sharing',
     proofClose: 'Close and leave proof mode',
     proofAllow: 'Allow screenshots (once)',
-    proofAllowHint: 'In the settings tab that opens: “Allow screenshots”, accept, then come back and send again.',
+    proofAllowHint: 'A small window opens: click “Allow”, accept Chrome’s request, and the proof is sent on its own.',
     proofSettings: 'Proof mode settings',
     proofMaskLabel: 'Replace with', proofMasks: ['Dots', 'Nothing', 'My image'],
     proofScopeLabel: 'Hide', proofScopes: ['The other trades', 'The whole list'],
@@ -1143,6 +1143,8 @@
     proofFill();
   }
   function closeProofPanel() { proofPanel?.host.remove(); proofPanel = null; }
+  // La petite fenêtre « Autoriser » (options/capture.html) a eu la permission : on renvoie tout seul.
+  if (alive()) B.runtime?.onMessage?.addListener((msg) => { if (msg?.type === 'ronote:proof-retry' && proofPanel) proofSend(false); });
   // Un autre trade ouvert, panneau ouvert : ses lignes suivent.
   function proofFollow() { if (proofPanel && proofPanel.sig !== JSON.stringify(proofInfo())) proofFill(); }
   const serialNodes = new Map();

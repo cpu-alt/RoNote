@@ -102,6 +102,7 @@ try {
   await import('../src/background/neuronal.js');
   await import('../src/background/premium.js');
   await import('../src/background/proof.js');
+  await import('../src/options/capture.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
