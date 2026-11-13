@@ -38,6 +38,7 @@
     showSerials: 'Afficher les serials', blurSerials: 'Flouter les serials',
     profile: (who) => `Ouvrir le profil de ${who || 'ce joueur'} sur Rolimon’s`,
     flex: 'Créer une image du trade',
+    proof: 'Mode proof : cacher les pseudos et avatars des autres trades de la liste',
     resend: 'Renvoyer',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
@@ -74,6 +75,7 @@
     showSerials: 'Show serials', blurSerials: 'Blur serials',
     profile: (who) => `Open ${who || 'this player'} on Rolimon’s`,
     flex: 'Create a trade image',
+    proof: 'Proof mode: hide the usernames and avatars of the other trades in the list',
     resend: 'Send again',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
@@ -860,7 +862,30 @@
     }
   }
   const restore = () => { for (const reset of undo) reset(); undo = []; };
-  let serialControl, flexControl, serialHidden = false;
+  let serialControl, flexControl, proofControl, serialHidden = false;
+  /* Le mode proof (trades terminés) : dans la liste de gauche, seuls le pseudo et l'avatar du trade
+     ouvert (`.trade-row.selected`) restent. Le texte est remplacé, pas flouté : rien ne se relit sur
+     une capture agrandie. Il suit le trade ouvert et s'éteint quand on quitte les trades terminés. */
+  const PROOF_CSS = `
+    html[data-rn-proof] .trade-row:not(.selected) .text-lead{font-size:0!important;letter-spacing:0!important}
+    html[data-rn-proof] .trade-row:not(.selected) .text-lead::after{content:"••••••";font-size:15px;letter-spacing:1px;opacity:.55}
+    html[data-rn-proof] .trade-row:not(.selected) .avatar{visibility:hidden!important}`;
+  let proofOn = false;
+  function setProof(on) {
+    if (on === proofOn) return;
+    proofOn = on;
+    const root = document.documentElement;
+    if (on && !document.querySelector('style[data-rn="proof"]')) {
+      const st = document.createElement('style'); st.dataset.rn = 'proof'; st.textContent = PROOF_CSS;
+      (document.head || root).append(st);
+    }
+    root.toggleAttribute('data-rn-proof', on);
+    if (proofControl) {
+      proofControl.setAttribute('aria-pressed', String(on));
+      proofControl.style.background = on ? 'rgba(63,207,110,.28)' : 'rgba(20,28,40,.45)';
+      proofControl.style.borderColor = on ? '#3fcf6e' : 'rgba(128,170,210,.3)';
+    }
+  }
   const serialNodes = new Map();
   // En capture, avant le lien de la vignette et les écouteurs de React. Certains
   // badges sont dans le lien du catalogue, d'autres ont pointer-events:none.
@@ -1063,7 +1088,7 @@
   }
   function mountProfileLink(page) {
     const heading = page?.partnerId > 0 && page.tradeHeading?.isConnected ? page.tradeHeading : null;
-    if (!heading) { flexControl?.remove(); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
+    if (!heading) { flexControl?.remove(); proofControl?.remove(); setProof(false); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
     if (!profileLink) {
       profileLink = document.createElement('a');
       profileLink.dataset.rn = 'rolimons-profile';
@@ -1108,9 +1133,30 @@
     } else if (flexControl?.isConnected) {
       flexControl.remove(); globalThis.RoNoteFlex?.close();
     }
+    if (isCompleted(page)) {
+      if (!proofControl) {
+        proofControl = document.createElement('button');
+        proofControl.type = 'button';
+        proofControl.dataset.rn = 'trade-proof';
+        // Un bouclier coché : « preuve », sans texte à traduire.
+        proofControl.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>';
+        proofControl.title = TEXT.proof;
+        proofControl.setAttribute('aria-label', TEXT.proof);
+        proofControl.style.cssText = profileLink.style.cssText + 'padding:0;cursor:pointer;color:#3fcf6e;';
+        proofControl.addEventListener('click', () => setProof(!proofOn));
+      }
+      // Juste après Trade Flex (ou en tête) : une place fixe, sinon les deux s'échangent à chaque passage.
+      const flexOn = flexControl?.parentElement === tools;
+      if (flexOn ? flexControl.nextElementSibling !== proofControl : tools.firstElementChild !== proofControl) {
+        if (flexOn) flexControl.after(proofControl); else tools.prepend(proofControl);
+      }
+    } else if (proofControl?.isConnected) {
+      proofControl.remove(); setProof(false);
+    }
   }
   const clear = () => {
     flexControl?.remove(); globalThis.RoNoteFlex?.close();
+    proofControl?.remove(); setProof(false);
     resetSerials(); serialControl?.remove();
     clearNearbyLines();
     restore(); host?.remove(); host = null; signature = ''; generation++;
@@ -1119,7 +1165,7 @@
     releaseHeading();
     for (const badge of badges.values()) { dropBadge(badge); }
     badges.clear();
-    for (const total of totalBadges.values()) total.node.remove();
+    for (const total of totalBadges.values()) { total.node.remove(); total.drow.remove(); }
     totalBadges.clear(); clearInventories(); shownPage = null; shownAnalysis = null; analysisPending = false;
   };
 

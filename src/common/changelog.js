@@ -22,7 +22,11 @@ export const RELEASES = [
       item("La note de demande est plus fine : « 3,7/5 » plutôt que « 4/5 », et la dernière barre se remplit en partie.",
         "The demand score is finer: “3.7/5” instead of “4/5”, and the last bar fills partly."),
       item("Une demande Rolimon's est affinée d'un demi-point au plus par le classement Neuronal des trades.",
-        "A Rolimon’s demand is refined by up to half a point with Neuronal’s trade ranking.")
+        "A Rolimon’s demand is refined by up to half a point with Neuronal’s trade ranking."),
+      item("Mode proof sur un trade terminé : le bouclier vert cache les pseudos et avatars des autres trades de la liste.",
+        "Proof mode on a completed trade: the green shield hides the other trades’ usernames and avatars in the list."),
+      item("La ligne « Demande » ne se double plus sous les totaux.",
+        "The “Demand” line no longer shows twice under the totals.")
     ]
   },
   {
