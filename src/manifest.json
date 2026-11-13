@@ -13,7 +13,8 @@
     "offscreen",
     "sidePanel",
     "declarativeNetRequestWithHostAccess",
-    "identity"
+    "identity",
+    "activeTab"
   ],
   "optional_host_permissions": [
     "https://neuronal.live/*"

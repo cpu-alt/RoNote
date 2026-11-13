@@ -18,6 +18,7 @@ import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openShare } from './share.js';
 import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
+import { openProofSheet } from './proof.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
 import { fluidHover } from '../common/fluid.js';
 import {
@@ -282,6 +283,7 @@ function fillMeMenu() {
     ${menuRow('history', 'journal', t('Journal'))}
     ${menuRow('profiles', 'radar', t('Profils'))}
     ${menuRow('deals', 'flame', t('Deals'))}
+    ${menuRow('proof', 'check-circle', t('Partager un proof'))}
     ${menuRow('premium', 'star', t('Premium'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
@@ -355,6 +357,7 @@ async function onMeMenu(e) {
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
   else if (act === 'deals') selectTab('deals');
+  else if (act === 'proof') openProofSheet();
   else if (act === 'premium') B.tabs.create({ url: B.runtime.getURL('options/options.html#s-premium') });
   else if (act === 'history') selectTab('history');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });

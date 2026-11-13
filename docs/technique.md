@@ -1063,6 +1063,21 @@ envoie une notification de démonstration avec le son.
 > présents : **aucune notification pour l'existant**. Seuls les trades qui arrivent
 > après comptent.
 
+## Partager un proof (Elite, en préparation après 2.16.13)
+
+Menu du popup › *Partager un proof*, sur un trade terminé (onglet Completed de roblox.com/trades).
+Pourquoi le popup et pas un bouton dans la page : `tabs.captureVisibleTab` demande `activeTab` (ou
+`<all_urls>`, trop large), et `activeTab` n'est accordé que par un clic sur l'icône de l'extension.
+Le parcours : `content/trade-delta.js` répond `ronote:proof-info` (items en acronymes, values, partenaire,
+date de la ligne ouverte rendue en MM/JJ/AAAA) ; `background/proof.js` devine l'expéditeur par le
+journal (`accepted_by_me` = c'est lui, `outbound_accepted` = moi) ; le popup (`popup/proof.js`) fait
+relire les cinq lignes ; à l'envoi, `ronote:proof-frame` met le mode proof si la liste est demandée et
+cache nos boutons, la capture est découpée (rectangle CSS × rapport image/viewport) puis compressée en
+WebP jusqu'à 63 Ko : **Caddy coupe tout corps au-delà de 64 Ko** sur neuronal.live. Envoi
+`POST /ext/v1/proof`, corps = l'image, en-tête `X-Proof` = les champs en JSON base64 (UTF-8 hors des
+en-têtes), jeton premium. Le serveur (Neuronal 18qbfa) revérifie la fonction `proof` (service
+`bundle` = Elite), relit l'image avec Pillow et la réécrit en PNG, puis RoOp Tracker l'envoie en MP.
+
 ## RoNote premium : le verrou est sur le serveur (2.16.7)
 
 Les fonctions servies par Neuronal (fiches joueur et objet, Profils, Deals) sont réservées

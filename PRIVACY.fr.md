@@ -100,6 +100,16 @@ dates seulement), pour vérifier ton abonnement à chaque requête. *Se déconne
 ferme la session sur le serveur et efface le jeton. Le premium est indépendant de la
 contribution : se connecter n'envoie rien de tes trades.
 
+**Partager un proof (RoNote premium, Elite Neuronal seulement).** Sur un trade terminé,
+le menu *Partager un proof* du popup prépare les cinq lignes que Rolimons demande dans
+son salon #proofs (objets, values, expéditeur, destinataire, date), que tu peux
+modifier. Seulement quand tu cliques *Envoyer dans mes MP*, RoNote prend une capture
+de l'onglet (permission `activeTab`, donnée par ton clic sur l'icône de RoNote), la
+découpe sur le trade (et, si tu coches la case, la liste des trades avec les autres
+pseudos cachés par le mode proof), et envoie l'image et les cinq lignes à
+`neuronal.live` avec ton jeton premium. Neuronal te les renvoie, **à toi**, en MP
+Discord par son bot RoOp Tracker, et ne garde pas l'image.
+
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
@@ -139,6 +149,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 | `offscreen` | Jouer le son d'alerte, un service worker Chrome ne pouvant pas produire d'audio |
 | `sidePanel` | Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode |
 | `identity` | Ouvrir la page de connexion de Discord pour *Connecter Discord* (RoNote premium), seulement quand tu cliques dessus |
+| `activeTab` | Prendre la capture de *Partager un proof* (RoNote premium), seulement de l'onglet où tu as cliqué l'icône de RoNote, seulement quand tu cliques *Envoyer* |
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |

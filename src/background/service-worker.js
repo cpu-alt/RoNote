@@ -20,6 +20,7 @@ import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/u
 import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
+import { proofPrepare, proofShare } from './proof.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1205,6 +1206,11 @@ async function handleMessage(msg) {
     }
     case 'ronote:premium-key':
       return premiumKey(msg.key);
+    // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.
+    case 'ronote:proof-prepare':
+      return proofPrepare(Number(msg.tabId));
+    case 'ronote:proof-share':
+      return proofShare(msg);
     case 'ronote:premium-link':
       return premiumLink();
     case 'ronote:premium-cancel':

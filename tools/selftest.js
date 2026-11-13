@@ -101,6 +101,7 @@ try {
   await import('../src/common/fluid.js');
   await import('../src/background/neuronal.js');
   await import('../src/background/premium.js');
+  await import('../src/background/proof.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
@@ -799,6 +800,11 @@ try {
     await import('../src/popup/share.js');
     const counter = await import('../src/popup/counter.js');
     check('contre-offre : rien d\'ouvert au chargement', counter.counterOpen(), false);
+    const proof = await import('../src/popup/proof.js');
+    check('proof : values à la Rolimons', [proof.shortValue(62316), proof.shortValue(1250000), proof.shortValue(950)], ['62.3k', '1.3M', '950']);
+    check('proof : les cinq champs pré-remplis', proof.proofDefaults({ give: ['RCHP', 'PLBH'], get: ['BTH', 'R$250'],
+      values: [62316, 63927], sender: 'blizzardnest', receiver: 'Marshal_l', date: '11/12/2026' }),
+      { items: 'RCHP + PLBH for BTH + R$250', values: '62.3k vs 63.9k', sender: 'blizzardnest', receiver: 'Marshal_l', date: '11/12/2026' });
   }
 
   // --- Courbes : échantillonnage, modèle commun, lissage sans dépassement.

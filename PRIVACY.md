@@ -97,6 +97,16 @@ sessions (dates only), to check your subscription on every request. *Sign out*
 closes the session on the server and deletes the token. Premium is independent from
 the contribution option: signing in sends nothing about your trades.
 
+**Share proof (RoNote premium, Neuronal Elite only).** On a completed trade, the
+*Share a proof* menu of the popup prepares the five lines Rolimons asks for in its
+#proofs channel (items, values, sender, receiver, date), which you can edit. Only when
+you click *Send to my DMs*, RoNote takes a screenshot of the tab (`activeTab`
+permission, given by your click on RoNote's icon), cuts it to the trade (and, if you
+tick it, the trade list with the other usernames hidden by proof mode), and sends the
+image and the five lines to `neuronal.live` with your premium token. Neuronal posts
+them back to **you**, in a Discord DM from its bot RoOp Tracker, and does not keep the
+image.
+
 **Without these options, no request goes to any other domain.**
 
 ## How your Roblox session is used
@@ -135,6 +145,7 @@ reply to an inbound trade, on your click.
 | `offscreen` | Play the alert sound, since a Chrome service worker cannot produce audio |
 | `sidePanel` | Open RoNote in the browser's sidebar, if you choose that mode |
 | `identity` | Open Discord's sign-in page for *Connect Discord* (RoNote premium), only when you click it |
+| `activeTab` | Take the screenshot of *Share a proof* (RoNote premium), only of the tab where you clicked RoNote's icon, only when you click *Send* |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |

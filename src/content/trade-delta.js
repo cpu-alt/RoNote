@@ -910,6 +910,45 @@
       proofControl.style.borderColor = on ? '#3fcf6e' : 'rgba(128,170,210,.3)';
     }
   }
+  /* « Share proof » (popup, Elite) : la page dit ce qu'elle sait du trade terminé ouvert, puis prépare
+     la capture (mode proof si la liste est dedans, nos boutons cachés) et rend la zone à découper. */
+  let proofFrameWas = null;
+  function proofInfo() {
+    const a = shownAnalysis, page = shownPage;
+    if (!a || !isCompleted(page)) return { ok: false };
+    const side = s => [...s.items.map(i => i.acronym || i.name), ...(s.robux ? [`R$${s.robux}`] : [])];
+    // La date de la ligne ouverte, telle que Roblox l'écrit (jj/mm en français) : rendue en MM/JJ/AAAA.
+    const d = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(document.querySelector('.trade-row.selected')?.textContent || '');
+    const date = d ? (fr ? [d[2], d[1], d[3]] : [d[1], d[2], d[3]]).map((x, k) => k < 2 ? x.padStart(2, '0') : x).join('/') : '';
+    return { ok: true, tradeId: page.tradeId || '', partner: (page.handle || '').replace(/^@/, ''),
+      give: side(a.give), get: side(a.get), values: a.valueAvailable !== false ? [a.give.value, a.get.value] : null, date };
+  }
+  function proofFrame(list) {
+    const root = document.querySelector('.trades-react');
+    const detail = root && [...root.children].find(c => !c.classList.contains('trade-row-list'));
+    const box = list ? root : detail;
+    if (!box) return { ok: false };
+    proofFrameWas = proofOn;
+    if (list) setProof(true);
+    if (tools) tools.style.visibility = 'hidden';
+    const r = box.getBoundingClientRect();
+    const x = Math.max(0, r.left), y = Math.max(0, r.top);
+    return { ok: true, x, y, w: Math.min(innerWidth, r.right) - x, h: Math.min(innerHeight, r.bottom) - y, vw: innerWidth };
+  }
+  if (alive()) B.runtime?.onMessage?.addListener((msg, _sender, reply) => {
+    if (msg?.type === 'ronote:proof-info') { reply(proofInfo()); return; }
+    if (msg?.type === 'ronote:proof-frame') {
+      const frame = proofFrame(!!msg.list);
+      requestAnimationFrame(() => requestAnimationFrame(() => reply(frame)));      // la page redessinée avant la capture
+      return true;
+    }
+    if (msg?.type === 'ronote:proof-restore') {
+      if (proofFrameWas !== null) setProof(proofFrameWas);
+      proofFrameWas = null;
+      if (tools) tools.style.visibility = '';
+      reply({ ok: true });
+    }
+  });
   const serialNodes = new Map();
   // En capture, avant le lien de la vignette et les écouteurs de React. Certains
   // badges sont dans le lien du catalogue, d'autres ont pointer-events:none.
