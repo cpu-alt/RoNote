@@ -3193,6 +3193,17 @@ document.addEventListener('keydown', (e) => {
 }, true);
 applyAnon();
 
+// Share proof : en vue dans l'entête quand l'onglet ouvert est la page des trades de Roblox (Elite, popup/proof.js).
+{
+  const btn = $('#btn-proof');
+  btn.innerHTML = `${ic('check-circle')}<span>${escapeHtml(t('Partager un proof'))}</span>`;
+  btn.title = t('Partager un proof');
+  btn.addEventListener('click', () => openProofSheet());
+  Promise.resolve().then(() => B.tabs.query({ active: true, currentWindow: true }))
+    .then(([tab]) => { btn.hidden = !/^https:\/\/www\.roblox\.com\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/)?trades/i.test(tab?.url || ''); })
+    .catch(() => {});
+}
+
 $('#btn-refresh').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   if (btn.classList.contains('spin')) return;
