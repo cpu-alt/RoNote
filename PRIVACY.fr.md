@@ -107,7 +107,8 @@ peux modifier. Seulement quand tu cliques *Envoyer dans mes MP*, RoNote prend un
 l'onglet, la découpe sur le trade (et, si tu coches la case, la liste des trades avec les
 autres pseudos cachés par le mode proof), et envoie l'image et les cinq lignes à
 `neuronal.live` avec ton jeton premium. La capture utilise la permission `activeTab`, donnée
-par un clic sur l'icône de RoNote dans cet onglet ; sans elle, tu peux la prendre avec le
+par un clic sur l'icône de RoNote dans cet onglet, ou la permission facultative de capture
+si tu l'as accordée une fois (*Autoriser les captures*) ; sans elles, tu peux la prendre avec le
 partage d'onglet de Chrome, qui te demande d'abord. Neuronal te les renvoie, **à toi**, en MP
 Discord par son bot RoOp Tracker, et ne garde pas l'image.
 
@@ -151,6 +152,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 | `sidePanel` | Ouvrir RoNote dans la barre latérale du navigateur, si tu choisis ce mode |
 | `identity` | Ouvrir la page de connexion de Discord pour *Connecter Discord* (RoNote premium), seulement quand tu cliques dessus |
 | `activeTab` | Prendre la capture de *Partager un proof* (RoNote premium), seulement de l'onglet où tu as cliqué l'icône de RoNote, seulement quand tu cliques *Envoyer* |
+| Tous les sites (facultatif) | Seulement si tu cliques *Autoriser les captures* (Réglages › Apparence › Mode proof) : permet à *Partager un proof* de prendre sa capture sans clic préalable sur l'icône de RoNote. Ne sert à rien d'autre ; tu peux la retirer dans les réglages d'extensions du navigateur |
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |

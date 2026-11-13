@@ -21,8 +21,9 @@ l'utilisateur, pas la liste des commits.
   panneau à droite (la liste de gauche se cache). Les cinq lignes que Rolimons demande (Item(s), Values,
   Sender, Receiver, Date) sont pré-remplies, objets en acronymes, et modifiables ; *Envoyer dans mes MP*
   capture le trade (et au choix la liste) et RoOp Tracker t'envoie le tout en MP Discord, prêt pour
-  #proofs. Nouvelle permission `activeTab` : un clic sur l'icône de RoNote dans l'onglet autorise la
-  capture ; sinon, le partage d'onglet de Chrome.
+  #proofs. La capture : « Autoriser les captures » une fois (permission facultative, acceptée dans la
+  fenêtre de Chrome), sinon un clic sur l'icône de RoNote, sinon le partage d'onglet de Chrome. Les
+  réglages du mode proof (points, rien, ton image, portée) sont aussi dans le panneau.
 
 ## v2.16.13 : demande bien à sa place
 

@@ -1211,6 +1211,9 @@ async function handleMessage(msg, sender = null) {
       return proofPrepare(msg.info || {});
     case 'ronote:proof-share':
       return proofShare(msg, sender?.tab);
+    case 'ronote:proof-allow':                    // le bouton du panneau : la ligne « Mode proof » des réglages
+      await B.tabs.create({ url: B.runtime.getURL('options/options.html#proof-row') });
+      return { ok: true };
     case 'ronote:premium-link':
       return premiumLink();
     case 'ronote:premium-cancel':

@@ -103,8 +103,9 @@ its #proofs channel (items, values, sender, receiver, date), which you can edit.
 you click *Send to my DMs*, RoNote takes a screenshot of the tab, cuts it to the trade
 (and, if you tick it, the trade list with the other usernames hidden by proof mode), and
 sends the image and the five lines to `neuronal.live` with your premium token. The
-screenshot uses the `activeTab` permission, given by a click on RoNote's icon in that tab;
-without it, you can take it with Chrome's own tab sharing, which asks you first. Neuronal
+screenshot uses the `activeTab` permission, given by a click on RoNote's icon in that tab,
+or the optional screenshot permission if you allowed it once (*Allow screenshots*);
+without them, you can take it with Chrome's own tab sharing, which asks you first. Neuronal
 posts them back to **you**, in a Discord DM from its bot RoOp Tracker, and does not keep
 the image.
 
@@ -147,6 +148,7 @@ reply to an inbound trade, on your click.
 | `sidePanel` | Open RoNote in the browser's sidebar, if you choose that mode |
 | `identity` | Open Discord's sign-in page for *Connect Discord* (RoNote premium), only when you click it |
 | `activeTab` | Take the screenshot of *Share proof* (RoNote premium), only of the tab where you clicked RoNote's icon, only when you click *Send* |
+| All sites (optional) | Only if you click *Allow screenshots* (Settings › Appearance › Proof mode): lets *Share proof* take its screenshot without a click on RoNote's icon first. Used for nothing else; you can withdraw it in the browser's extension settings |
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |

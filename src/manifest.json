@@ -17,7 +17,8 @@
     "activeTab"
   ],
   "optional_host_permissions": [
-    "https://neuronal.live/*"
+    "https://neuronal.live/*",
+    "<all_urls>"
   ],
   "host_permissions": [
     "https://*.roblox.com/*",

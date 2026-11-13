@@ -52,8 +52,14 @@
     proofSent: 'Envoyé : regarde tes MP de RoOp Tracker sur Discord.',
     proofShareBtn: 'Capturer avec le partage d’onglet de Chrome',
     proofClose: 'Fermer et quitter le mode proof',
+    proofAllow: 'Autoriser les captures (une fois)',
+    proofAllowHint: 'Dans l’onglet des réglages qui s’ouvre : « Autoriser les captures », accepte, puis reviens et renvoie.',
+    proofSettings: 'Réglages du mode proof',
+    proofMaskLabel: 'Remplacer par', proofMasks: ['Des points', 'Rien', 'Mon image'],
+    proofScopeLabel: 'Cacher', proofScopes: ['Les autres trades', 'Toute la liste'],
+    proofImport: 'Importer une image', proofRemoveImage: 'Retirer l’image', proofBadImage: 'Image illisible.',
     proofFailed: (why) => `Envoi impossible (${why}).`,
-    proofErrors: { capture: 'Chrome bloque la capture : clique une fois l’icône de RoNote sur cet onglet, puis renvoie, ou utilise le partage d’onglet ci-dessous.',
+    proofErrors: { capture: 'Chrome bloque la capture : autorise-la une fois (bouton ci-dessous), ou utilise le partage d’onglet.',
       share: 'Partage d’onglet annulé ou refusé.', subscribe: 'Réservé aux membres Elite de Neuronal.', login: 'Connecte RoNote à Discord (Réglages › Premium).',
       link: 'Lie ton compte Roblox dans Réglages › Premium.', dm_closed: 'Tes MP sont fermés : autorise les messages de RoOp Tracker.',
       tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou décoche la liste.',
@@ -108,8 +114,14 @@
     proofSent: 'Sent: check your DMs from RoOp Tracker on Discord.',
     proofShareBtn: 'Capture with Chrome’s tab sharing',
     proofClose: 'Close and leave proof mode',
+    proofAllow: 'Allow screenshots (once)',
+    proofAllowHint: 'In the settings tab that opens: “Allow screenshots”, accept, then come back and send again.',
+    proofSettings: 'Proof mode settings',
+    proofMaskLabel: 'Replace with', proofMasks: ['Dots', 'Nothing', 'My image'],
+    proofScopeLabel: 'Hide', proofScopes: ['The other trades', 'The whole list'],
+    proofImport: 'Import an image', proofRemoveImage: 'Remove image', proofBadImage: 'Unreadable image.',
     proofFailed: (why) => `Could not send (${why}).`,
-    proofErrors: { capture: 'Chrome blocks the screenshot: click the RoNote icon once on this tab, then send again, or use tab sharing below.',
+    proofErrors: { capture: 'Chrome blocks the screenshot: allow it once (button below), or use tab sharing.',
       share: 'Tab sharing cancelled or refused.', subscribe: 'Neuronal Elite members only.', login: 'Connect RoNote to Discord (Settings › Premium).',
       link: 'Link your Roblox account in Settings › Premium.', dm_closed: 'Your DMs are closed: allow messages from RoOp Tracker.',
       tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or untick the list.',
@@ -255,6 +267,8 @@
       if (changes.proofImage) proofLook.image = changes.proofImage.newValue || '';
       if (changes.settings) Object.assign(proofLook, { mask: changes.settings.newValue?.proofMask || 'dots', scope: changes.settings.newValue?.proofScope || 'others' });
       paintProof();
+      const open = proofQ('details')?.open;
+      if (proofQ('details')) { proofQ('details').outerHTML = proofSettingsHtml(); if (open) proofQ('details').open = true; }
     }
     if (changes.luckyCat) setLucky(changes.luckyCat.newValue);
     // Nouvelle table Rolimon's : on redemande tout de suite, sans attendre la minute.
@@ -978,6 +992,14 @@
     .send:hover{background:#154527}.send:disabled{opacity:.6;cursor:default}
     .share{padding:9px;border-radius:10px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea}
     .msg{min-height:1em;font-size:12px;color:#aeb2bb}.msg.err{color:#f2545b}
+    details{border:1px solid #23262c;border-radius:10px;padding:8px 10px;background:#15171c}
+    summary{cursor:pointer;font-weight:600;color:#e8e8ea}
+    .set{display:flex;flex-direction:column;gap:8px;margin-top:9px}
+    .set label{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;font-size:12px;color:#aeb2bb}
+    select{padding:6px 8px;border-radius:8px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea;font:inherit}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .mini{padding:6px 10px;border-radius:8px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea;font-size:12px}
+    .allow{padding:9px;border-radius:10px;border:1px solid #2f5f9e;background:#13213a;color:#9dcbff;font-weight:600}
     [hidden]{display:none!important}`;
   let proofPanel = null;
   function proofInfo() {
@@ -1014,17 +1036,18 @@
     if (!body) return;
     proofPanel.sig = JSON.stringify(info);
     proofQ('footer').hidden = true;
-    if (!info.ok) { body.innerHTML = `<p>${TEXT.proofOn}</p>`; return; }
+    if (!info.ok) { body.innerHTML = `<p>${TEXT.proofOn}</p>` + proofSettingsHtml(); return; }
     const res = await B.runtime.sendMessage({ type: 'ronote:proof-prepare', info }).catch(() => null);
     if (!proofPanel || proofPanel.sig !== JSON.stringify(info)) return;
-    if (!res?.elite) { body.innerHTML = `<p>${TEXT.proofOn}</p><p>🔒 ${res?.signedIn ? TEXT.proofElite : TEXT.proofLogin}</p>`; return; }
+    if (!res?.elite) { body.innerHTML = `<p>${TEXT.proofOn}</p>` + proofSettingsHtml() + `<p>🔒 ${res?.signedIn ? TEXT.proofElite : TEXT.proofLogin}</p>`; return; }
     const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    body.innerHTML = `<p>${TEXT.proofOn}</p>` + PROOF_FIELDS.map(([k, l]) => `<label class="f"><span>${l}</span>
+    body.innerHTML = `<p>${TEXT.proofOn}</p>` + proofSettingsHtml() + PROOF_FIELDS.map(([k, l]) => `<label class="f"><span>${l}</span>
         <input data-f="${k}" value="${esc(res.fields[k] || '')}" maxlength="${k === 'items' ? 300 : 80}" spellcheck="false">
         ${k === 'receiver' ? `<button class="swap" data-swap title="${TEXT.proofSwap}">⇄</button>` : ''}</label>`).join('')
       + `<label class="chk"><input type="checkbox" data-list> ${TEXT.proofList}</label><pre></pre><p>${TEXT.proofHint}</p>`;
     proofQ('footer').hidden = false;
     proofQ('.share').hidden = true;
+    proofQ('.allow').hidden = true;
     proofSay('');
     proofPreview();
   }
@@ -1066,8 +1089,32 @@
       send.disabled = false;
     }
     if (res?.ok) { proofSay(TEXT.proofSent); return; }
-    if (res?.error === 'capture') proofQ('.share').hidden = false;
+    if (res?.error === 'capture') { proofQ('.share').hidden = false; proofQ('.allow').hidden = false; }
     proofSay((TEXT.proofErrors[res?.error] || TEXT.proofFailed(res?.error || '?')) + (res?.detail ? ` (${res.detail})` : ''), true);
+  }
+  /* Les réglages du mode proof, ici aussi (13 nov.) : les mêmes que Réglages › Apparence › Mode proof. */
+  function proofSettingsHtml() {
+    const opt = (v, cur, l) => `<option value="${v}"${v === cur ? ' selected' : ''}>${l}</option>`;
+    return `<details><summary>⚙ ${TEXT.proofSettings}</summary><div class="set">
+      <label>${TEXT.proofMaskLabel}<select data-set="proofMask">${opt('dots', proofLook.mask, TEXT.proofMasks[0])}${opt('blank', proofLook.mask, TEXT.proofMasks[1])}${opt('image', proofLook.mask, TEXT.proofMasks[2])}</select></label>
+      <label>${TEXT.proofScopeLabel}<select data-set="proofScope">${opt('others', proofLook.scope, TEXT.proofScopes[0])}${opt('list', proofLook.scope, TEXT.proofScopes[1])}</select></label>
+      <div class="row"><label class="mini" style="display:inline-block;cursor:pointer">${TEXT.proofImport}<input type="file" data-img accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>
+        ${proofLook.image ? `<button class="mini" data-clear>${TEXT.proofRemoveImage}</button>` : ''}</div></div></details>`;
+  }
+  async function proofSetting(el) {
+    if (el.dataset.set) { B.runtime.sendMessage({ type: 'ronote:settings', patch: { [el.dataset.set]: el.value } }).catch(() => {}); return; }
+    const file = el.matches('[data-img]') && el.files?.[0];
+    if (!file) return;
+    try {
+      // La même taille que l'import des réglages : 1 400 px au plus, en JPEG.
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      await B.storage.local.set({ proofImage: c.toDataURL('image/jpeg', 0.85) });
+      B.runtime.sendMessage({ type: 'ronote:settings', patch: { proofMask: 'image' } }).catch(() => {});
+    } catch { proofSay(TEXT.proofBadImage, true); }
   }
   function openProofPanel() {
     if (proofPanel) return;
@@ -1077,10 +1124,11 @@
     root.innerHTML = `<style>${PROOF_CSS}</style><aside role="dialog" aria-label="Proof">
       <header><b><i>✓</i> Proof</b><button class="x" title="${TEXT.proofClose}" aria-label="${TEXT.proofClose}">✕</button></header>
       <div class="body"><p>${TEXT.proofLoading}</p></div>
-      <footer hidden><button class="send">➤ ${TEXT.proofSend}</button><button class="share" hidden>${TEXT.proofShareBtn}</button><p class="msg"></p></footer></aside>`;
+      <footer hidden><button class="send">➤ ${TEXT.proofSend}</button><button class="allow" hidden>${TEXT.proofAllow}</button><button class="share" hidden>${TEXT.proofShareBtn}</button><p class="msg"></p></footer></aside>`;
     (document.body || document.documentElement).append(host);
     proofPanel = { host, root, sig: '' };
     root.addEventListener('input', proofPreview);
+    root.addEventListener('change', e => proofSetting(e.target));
     root.addEventListener('click', e => {
       if (e.target.closest('.x')) setProof(false);
       else if (e.target.closest('[data-swap]')) {
@@ -1088,6 +1136,9 @@
         [s.value, r.value] = [r.value, s.value]; proofPreview();
       } else if (e.target.closest('.send')) proofSend(false);
       else if (e.target.closest('.share')) proofSend(true);
+      else if (e.target.closest('.allow')) { B.runtime.sendMessage({ type: 'ronote:proof-allow' }).catch(() => {}); proofSay(TEXT.proofAllowHint); }
+      else if (e.target.closest('[data-clear]')) { B.storage.local.set({ proofImage: '' }).catch(() => {});
+        if (proofLook.mask === 'image') B.runtime.sendMessage({ type: 'ronote:settings', patch: { proofMask: 'dots' } }).catch(() => {}); }
     });
     proofFill();
   }

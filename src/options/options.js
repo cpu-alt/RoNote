@@ -789,6 +789,21 @@ function wire() {
     message('#bg-msg', t('Fond de Roblox rétabli.'));
     flashSaved();
   });
+  // Partager un proof (Elite) : la capture de l'onglet sans clic préalable sur l'icône. Chrome ne la
+  // permet qu'avec activeTab ou <all_urls> : cette permission facultative, demandée ici, une fois.
+  const CAPTURE = { origins: ['<all_urls>'] };
+  const paintCapture = async () => {
+    const ok = await B.permissions.contains(CAPTURE).catch(() => false);
+    $('#proof-capture').disabled = ok;
+    $('#proof-capture').lastChild.textContent = t(ok ? 'Captures autorisées' : 'Autoriser les captures');
+  };
+  paintCapture();
+  $('#proof-capture').addEventListener('click', async () => {
+    const ok = await B.permissions.request(CAPTURE).catch(() => false);
+    message('#proof-msg', t(ok ? 'Captures autorisées : le panneau proof envoie maintenant sans rien demander.'
+      : 'Permission refusée : le panneau proposera le partage d’onglet de Chrome.'), !ok);
+    paintCapture();
+  });
   $('#proof-clear').addEventListener('click', async () => {
     proofImage = '';
     await storeImage('proofImage', '');
