@@ -26,7 +26,9 @@ export const RELEASES = [
       item("Mode proof sur un trade terminé : le bouclier vert cache les autres trades de la liste (pseudo, avatar, date, gains), remplacés par des points, rien ou ton image (Réglages › Apparence).",
         "Proof mode on a completed trade: the green shield hides the other trades in the list (username, avatar, date, gains), replaced by dots, nothing or your image (Settings › Appearance)."),
       item("La ligne « Demande » ne se double plus sous les totaux.",
-        "The “Demand” line no longer shows twice under the totals.")
+        "The “Demand” line no longer shows twice under the totals."),
+      item("Contre-offre : les visages ne passent plus « plus dans l'inventaire » à tort, et les limiteds UGC et doublons apparaissent tous.",
+        "Counter offers: faces no longer show as “no longer in inventory” by mistake, and every UGC limited and duplicate is listed.")
     ]
   },
   {

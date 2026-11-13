@@ -3,15 +3,16 @@
  *  RETROUVER LES OBJETS D'UN TRADE DANS UN INVENTAIRE
  * --------------------------------------------------------------------------
  *  L'editeur de contre-offre repart du trade recu et doit retrouver chaque
- *  objet dans l'inventaire charge, pour en avoir le userAssetId (seul
- *  identifiant que Roblox accepte a l'envoi).
+ *  objet dans l'inventaire charge, pour en avoir l'identifiant d'exemplaire
+ *  v2 (seul identifiant que Roblox accepte a l'envoi d'une contre-offre).
  *
- *  Un objet n'est declare « plus la » (`gone`) que si on en est SUR : Roblox
- *  a repondu qu'il ne le possede plus, ou l'inventaire est complet et ne le
- *  contient pas. Sinon (inventaire tronque, bundle absent de l'API des
- *  collectibles, limite de debit, identifiant v2), il reste en place, marque
- *  `unsure` : c'est Roblox qui tranchera a l'envoi. Avant, tout objet non
- *  retrouve passait en « plus dans l'inventaire », a tort.
+ *  L'inventaire est la liste v2 des objets echangeables (`tradableItems`) :
+ *  visages, UGC et doublons compris, identifiant d'exemplaire = UUID v2.
+ *  Un objet n'est declare « plus la » (`gone`) que si on en est SUR : la liste
+ *  est complete et ne le contient pas. Sinon (liste tronquee, limite de debit),
+ *  il reste en place, marque `unsure` : c'est Roblox qui tranchera a l'envoi.
+ *  (Avec l'ancien inventaire v1, visages et UGC n'y etaient jamais : ils
+ *  passaient « plus dans l'inventaire » a tort.)
  * ==========================================================================
  */
 
@@ -47,7 +48,8 @@ export function adopt(chosen, side) {
   const used = new Set();
   // Les exemplaires exacts d'abord, pour ne pas les « voler » a un doublon.
   const exact = list.map(c => {
-    const hit = num(c.uaid) && inventory.find(i => i.uaid === num(c.uaid));
+    const id = c.uaid == null || c.uaid === '' ? '' : String(c.uaid);
+    const hit = id && inventory.find(i => String(i.uaid) === id);
     if (hit) used.add(hit.uaid);
     return hit || null;
   });
@@ -57,19 +59,8 @@ export function adopt(chosen, side) {
     const serial = num(c.serial);
     const hit = (serial && inventory.find(i => free(i) && num(i.serial) === serial)) || inventory.find(free);
     if (hit) { used.add(hit.uaid); return hit; }
-    const sure = itemKeys(c).some(k => absent.has(k)) || (s.complete && !itemKeys(c).some(k => k[0] === 'b'));
+    const sure = itemKeys(c).some(k => absent.has(k)) || !!s.complete;
     const { gone, unsure, ...rest } = c;
     return sure ? { ...rest, gone: true } : { ...rest, unsure: true };
   });
-}
-
-/** Les objets du trade qui manquent a l'inventaire : a verifier un par un. */
-export function missing(chosen, items) {
-  const left = [...(items || [])];
-  const out = [];
-  for (const c of chosen || []) {
-    const n = left.findIndex(i => (num(c.uaid) && i.uaid === num(c.uaid)) || sameItem(i, c));
-    if (n >= 0) left.splice(n, 1); else out.push(c);
-  }
-  return out;
 }

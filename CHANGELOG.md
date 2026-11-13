@@ -13,6 +13,10 @@ l'utilisateur, pas la liste des commits.
   Réglages › Apparence › Mode proof : des points, rien, ou ta propre image à la place ; sur les autres
   trades seulement ou sur toute la liste.
 - **Demande** : la ligne « Demande » ne se double plus sous les totaux après un changement de trade.
+- **Contre-offre** : les inventaires viennent maintenant de la liste « objets échangeables » de Roblox (v2,
+  celle de son propre éditeur de trade) : les visages ne passent plus « plus dans l'inventaire » à tort,
+  les limiteds UGC et chaque doublon apparaissent (avant, Verdant Crown ×5 ou Quadri-Skull ×8 manquaient),
+  et la contre-offre part par l'API v2, qui sait envoyer les visages.
 
 ## v2.16.13 : demande bien à sa place
 

@@ -175,15 +175,18 @@ console.log('\nContre-offre envoyée depuis le popup');
   await import(SW + '?run=6');
   const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
   const res = await send({ type: 'ronote:counter', tradeId: 777001, partnerId: 42, partner: 'bob',
-    give: [11, 12], get: [21], giveRobux: 0, getRobux: 500, giveValue: 1000, getValue: 1200, pct: 20 });
+    give: ['0000000b-0000-4000-8000-000000000000', '0000000c-0000-4000-8000-000000000000'], get: ['00000015-0000-4000-8000-000000000000'], giveRobux: 0, getRobux: 500, giveValue: 1000, getValue: 1200, pct: 20 });
   check('la contre-offre répond ok', res?.ok === true);
-  const sent = bodies.find(([u]) => /\/trades\/777001\/counter$/.test(u));
+  const sent = bodies.find(([u]) => /\/v2\/trades\/777001\/counter$/.test(u));
   const body = sent ? JSON.parse(sent[1]) : null;
-  check('Roblox reçoit les deux offres : ses objets et Robux, puis les miens',
-    JSON.stringify(body?.offers) === JSON.stringify([{ userId: 42, userAssetIds: [21], robux: 500 }, { userId: 1, userAssetIds: [11, 12], robux: 0 }]));
+  check('Roblox (v2) reçoit mon offre et la sienne, en exemplaires v2',
+    JSON.stringify(body) === JSON.stringify({ senderOffer: { userId: 1, robux: 0, collectibleItemInstanceIds: ['0000000b-0000-4000-8000-000000000000', '0000000c-0000-4000-8000-000000000000'] },
+      recipientOffer: { userId: 42, robux: 500, collectibleItemInstanceIds: ['00000015-0000-4000-8000-000000000000'] } }));
   check('le trade d\'origine sort des reçus', !store.get('state').snapshot.inbound.length && store.get('state').inboundCount === 0);
   check('le journal note la contre-offre', (store.get('history') || []).some(h => h.kind === 'countered_by_me' && h.tradeId === 777001));
-  const empty = await send({ type: 'ronote:counter', tradeId: 777002, partnerId: 42, give: [11], get: [] });
+  const empty = await send({ type: 'ronote:counter', tradeId: 777002, partnerId: 42, give: ['0000000b-0000-4000-8000-000000000000'], get: [] });
+  const legacy = await send({ type: 'ronote:counter', tradeId: 777004, partnerId: 42, give: [11], get: ['00000015-0000-4000-8000-000000000000'] });
+  check('un identifiant v1 (numérique) est refusé avant Roblox', !!legacy?.error && !bodies.some(([u]) => u.includes('777004')));
   check('une contre-offre sans rien demander est refusée avant Roblox', !!empty?.error && !bodies.some(([u]) => u.includes('777002')));
   route = null;
 }
@@ -195,29 +198,31 @@ console.log('\nInventaires de la contre-offre');
   (await import(new URL('../src/common/api.js', import.meta.url).href)).clearRateHolds();
   preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777003 }], outbound: [] } });
   calls = [];
+  // L'inventaire v2 (tradableItems) : un objet par groupe, chaque exemplaire dedans, visages compris.
   route = async (url, json) => {
-    if (url.includes('/users/1/assets/collectibles')) return json({ data: [{ userAssetId: 11, assetId: 100, name: 'A' }], nextPageCursor: null });
-    if (url.includes('/users/42/assets/collectibles')) {
+    if (url.includes('/v2/users/1/tradableItems')) return json({ items: [
+      { itemTarget: { itemType: 'Asset', targetId: '100' }, instances: [{ collectibleItemInstanceId: '0000000b-0000-4000-8000-000000000000', itemTarget: { itemType: 'Asset', targetId: '100' }, itemName: 'A' }, { collectibleItemInstanceId: '0000000c-0000-4000-8000-000000000000', itemTarget: { itemType: 'Asset', targetId: '100' }, itemName: 'A' }] },
+      { itemTarget: { itemType: 'Bundle', targetId: '77' }, instances: [{ collectibleItemInstanceId: '0000000d-0000-4000-8000-000000000000', itemTarget: { itemType: 'Bundle', targetId: '77' }, itemName: 'Face' }] }
+    ], nextPageCursor: null });
+    if (url.includes('/v2/users/42/tradableItems')) {
       if (url.includes('cursor=')) return json({ errors: [{ message: 'InternalServerError' }] }, 503);
-      return json({ data: [{ userAssetId: 21, assetId: 200, name: 'B' }], nextPageCursor: 'p2' });
+      return json({ items: [{ instances: [{ collectibleItemInstanceId: '00000015-0000-4000-8000-000000000000', itemTarget: { itemType: 'Asset', targetId: '200' }, itemName: 'B' }] }], nextPageCursor: 'p2' });
     }
-    if (url.includes('/users/1/items/Asset/500')) return json({ data: [{ instanceId: 55 }] });
-    if (url.includes('/users/42/items/Asset/600')) return json({ data: [] });
     return null;
   };
   const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
   const msg = { type: 'ronote:counter-load', tradeId: 777003, partnerId: 42,
     give: [{ uaid: 'v2-instance', assetId: 500, name: 'C' }], get: [{ uaid: 61, assetId: 600 }] };
   const res = await send(msg);
-  check('un objet absent des collectibles mais possédé est retrouvé avec son userAssetId', res?.me?.items?.some(i => i.uaid === 55));
+  check('les doublons sont deux exemplaires distincts', res?.me?.items?.filter(i => i.assetId === 100).length === 2);
+  check('un visage (bundle) est dans l’inventaire, avec son exemplaire v2', res?.me?.items?.some(i => i.bundleId === 77 && i.uaid === '0000000d-0000-4000-8000-000000000000'));
   check('une page perdue (503, 429) garde les objets déjà lus, inventaire marqué incomplet',
-    res?.them?.items?.some(i => i.uaid === 21) && res.them.complete === false && res.them.partial === true);
-  check('Roblox confirme l\'absence : notée comme sûre', res?.them?.absent?.includes('a600'));
-  const mine = () => calls.filter(c => c.includes('/users/1/assets/collectibles')).length;
+    res?.them?.items?.some(i => i.uaid === '00000015-0000-4000-8000-000000000000') && res.them.complete === false && res.them.partial === true);
+  const mine = () => calls.filter(c => c.includes('/v2/users/1/tradableItems')).length;
   const before = mine();
   await send(msg);
   check('rouvert dans la minute : mon inventaire vient du cache', mine() === before);
-  check('un inventaire incomplet n\'est pas gardé en cache', calls.filter(c => c.includes('/users/42/assets/collectibles') && !c.includes('cursor=')).length >= 2);
+  check('un inventaire incomplet n’est pas gardé en cache', calls.filter(c => c.includes('/v2/users/42/tradableItems') && !c.includes('cursor=')).length >= 2);
   route = null;
 }
 

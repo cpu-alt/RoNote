@@ -669,6 +669,21 @@ déclencher une fausse alerte « refusé ».
 
 ---
 
+## Contre-offre : inventaires et envoi en v2 (13/11/2026)
+
+L'éditeur de contre-offre lisait `inventory.roblox.com/v1/users/{id}/assets/collectibles` et envoyait
+`POST /v1/trades/{id}/counter` (userAssetIds). Cet inventaire v1 ne contient **ni les visages (bundles),
+ni les limiteds UGC** : mesuré sur un compte le 13/11, 337 exemplaires contre 370 en v2 (Verdant Crown ×5,
+Quadri-Skull Aura ×8, Catching Snowflakes ×2… absents). Et la vérification de secours
+`/v1/users/{id}/items/Bundle/{id}` répond `instanceId: null` pour un bundle possédé : le visage passait
+« plus dans l'inventaire ».
+
+Désormais, comme l'éditeur de trade de Roblox lui-même : inventaire `GET trades.roblox.com/v2/users/{id}/tradableItems`
+(groupes par objet, `instances[]` = chaque exemplaire, `collectibleItemInstanceId` UUID, `itemTarget` Asset ou
+Bundle), et envoi `POST /v2/trades/{id}/counter` avec `{ senderOffer, recipientOffer }`, chaque offre
+`{ userId, robux, collectibleItemInstanceIds }` (format relevé dans le code du site, 13/11). Un objet sans
+UUID (trade lu en v1 et pas retrouvé) bloque l'envoi plutôt que de partir sans lui.
+
 ## Chaînage des contre-offres
 
 Roblox ne relie pas un trade à la contre-offre qui en découle : quand quelqu'un

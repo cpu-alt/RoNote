@@ -22,6 +22,8 @@ import { send } from '../common/ui.js';
 import { openOverlay, releaseFocus } from './overlay.js';
 import { adopt } from '../common/counter-match.js';
 
+const INSTANCE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const MAX_ITEMS = 4;              // par côté, limite de Roblox
 const ROBUX_TAX = 0.3;            // comme analysis.js : les Robux reçus arrivent nets
 const BASIS_FIELD = { value: 'value', rap: 'rap', prudent: 'prudent' };
@@ -210,7 +212,7 @@ function shelfHtml() {
   if (ed.loadError) return `<div class="ctr-note err">${escapeHtml(t('Inventaires indisponibles : {why}', { why: ed.loadError }))}</div>`;
   if (inv?.private) return `<div class="ctr-note">${ic('eye-off')} ${t('Inventaire privé : Roblox ne le montre pas.')}</div>`;
   if (inv?.error) return `<div class="ctr-note err">${escapeHtml(t('Inventaire indisponible : {why}', { why: inv.error }))}</div>`;
-  const chosen = new Set((ed.shelf === 'me' ? ed.give : ed.get).map(i => i.uaid));
+  const chosen = new Set((ed.shelf === 'me' ? ed.give : ed.get).map(i => String(i.uaid)));
   const full = chosen.size >= MAX_ITEMS;
   const q = ed.query.trim().toLowerCase();
   const items = (inv?.items || [])
@@ -220,10 +222,10 @@ function shelfHtml() {
   const partial = inv?.partial || inv?.complete === false
     ? `<div class="ctr-note warn">${ic('alert')} ${t('Inventaire chargé en partie ({n} objets) : certains peuvent manquer.', { n: fmtNum(inv.items.length) })}</div>` : '';
   return partial + items.map((i) => {
-    const on = chosen.has(i.uaid);
+    const on = chosen.has(String(i.uaid));
     const off = !on && (i.onHold || full);
     const why = i.onHold ? t('En hold : pas échangeable pour le moment') : full ? t('Quatre objets maximum par côté') : '';
-    return `<button class="ctr-item${on ? ' on' : ''}" data-take="${i.uaid}"${off ? ' disabled' : ''} title="${escapeHtml([i.name, i.serial ? '#' + i.serial : '', why].filter(Boolean).join(' · '))}">
+    return `<button class="ctr-item${on ? ' on' : ''}" data-take="${escapeHtml(String(i.uaid))}"${off ? ' disabled' : ''} title="${escapeHtml([i.name, i.serial ? '#' + i.serial : '', why].filter(Boolean).join(' · '))}">
       ${thumbHtml(i)}
       ${on ? `<i class="ctr-on">${ic('check')}</i>` : ''}${i.onHold ? `<i class="ctr-hold">${ic('clock')}</i>` : ''}
       <span class="ctr-item-n">${escapeHtml(i.acronym || i.name)}</span>
@@ -250,8 +252,8 @@ function paint({ shelf = true } = {}) {
   const changed = signature() !== ed.original;
   const chosen = [...ed.give, ...ed.get];
   const gone = chosen.some(i => i.gone);
-  // Un identifiant v2 (non numerique) ne peut pas partir : Roblox veut un userAssetId.
-  const noId = chosen.some(i => !(Number(i.uaid) > 0));
+  // La contre-offre part en v2 : chaque objet doit avoir son identifiant d'exemplaire (UUID).
+  const noId = chosen.some(i => !INSTANCE_ID.test(String(i.uaid || '')));
   const unsure = chosen.some(i => i.unsure);
   const sendable = !ed.loading && !ed.busy && !gone && !noId && changed
     && (ed.give.length || ed.giveRobux) && (ed.get.length || ed.getRobux);
@@ -292,11 +294,11 @@ function bind(w) {
       return;
     }
     if (el.dataset.take) {
-      const uaid = Number(el.dataset.take);
+      const uaid = el.dataset.take;
       const key = ed.shelf === 'me' ? 'give' : 'get';
       const inv = (ed.shelf === 'me' ? ed.me : ed.them)?.items || [];
-      if (ed[key].some(i => i.uaid === uaid)) ed[key] = ed[key].filter(i => i.uaid !== uaid);
-      else if (ed[key].length < MAX_ITEMS) { const it = inv.find(i => i.uaid === uaid); if (it) ed[key] = [...ed[key], it]; }
+      if (ed[key].some(i => String(i.uaid) === uaid)) ed[key] = ed[key].filter(i => String(i.uaid) !== uaid);
+      else if (ed[key].length < MAX_ITEMS) { const it = inv.find(i => String(i.uaid) === uaid); if (it) ed[key] = [...ed[key], it]; }
       disarm(); paint();
       return;
     }

@@ -11,7 +11,6 @@ import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, add
 import { setLang, t } from '../common/i18n.js';
 import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
-import { missing, itemKeys } from '../common/counter-match.js';
 import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
@@ -1406,37 +1405,17 @@ async function handleMessage(msg) {
         Promise.allSettled([collectiblesOf(state.userId, msg.fresh), collectiblesOf(partnerId, msg.fresh)])
       ]);
       const cat = await getCatalog(settings);
-      const side = async (r, uid, want) => {
-        if (r.status !== 'fulfilled') return { items: [], complete: false, absent: [], error: String(r.reason?.message || r.reason) };
-        const v = r.value;
-        const out = { private: v.private, complete: !!v.complete, absent: [], partial: !!v.error,
-          items: v.items.map(raw => resolveItem(raw, cat)) };
-        if (v.private) return out;
-        // Ce que l'inventaire n'a pas rendu, verifie objet par objet (en
-        // parallele, au plus 3) : present, on l'ajoute ; absent, c'est sur.
-        const lost = missing(Array.isArray(want) ? want : [], out.items).slice(0, 4);
-        await eachLimit(lost, 3, async (c) => {
-          const bundle = Number(c.bundleId) > 0 && !(Number(c.assetId) > 0);
-          const target = bundle ? Number(c.bundleId) : Number(c.legacyAssetId) || Number(c.assetId);
-          if (!target) return;
-          try {
-            const copies = await api.getOwnedCopies(uid, bundle ? 'Bundle' : 'Asset', target);
-            if (!copies.length) { out.absent.push(...itemKeys(c)); return; }
-            const have = new Set(out.items.map(i => i.uaid));
-            const uaid = copies.find(id => id === Number(c.uaid)) || copies.find(id => !have.has(id));
-            if (uaid) {
-              out.items.push(resolveItem({ id: uaid, assetId: c.assetId, bundleId: c.bundleId, name: c.name,
-                serialNumber: c.serial, recentAveragePrice: c.rap }, cat));
-            }
-          } catch { /* injoignable : l'objet reste « non verifie », pas « parti » */ }
-        });
-        return out;
-      };
-      const [me, them] = await Promise.all([side(inv[0], state.userId, msg.give), side(inv[1], partnerId, msg.get)]);
+      // Les objets echangeables de Roblox (v2) : visages, UGC et doublons compris. Un objet du trade
+      // absent d'une liste complete est parti ; d'une liste tronquee, il reste « non verifie ».
+      const side = (r) => r.status !== 'fulfilled'
+        ? { items: [], complete: false, error: String(r.reason?.message || r.reason) }
+        : { private: r.value.private, complete: !!r.value.complete, partial: !!r.value.error,
+          items: r.value.items.map(raw => resolveItem(raw, cat)) };
+      const [me, them] = [side(inv[0]), side(inv[1])];
       const all = [...me.items, ...them.items];
       const thumbs = await safe(() => resolveThumbs(all.map(thumbKeysFor)), []);
       const lite = (i, n) => ({
-        uaid: Number(i.uaid), assetId: i.assetId, bundleId: i.bundleId, legacyAssetId: i.legacyAssetId,
+        uaid: String(i.uaid), assetId: i.assetId, bundleId: i.bundleId, legacyAssetId: i.legacyAssetId,
         name: i.name, acronym: i.acronym,
         serial: i.serial, value: i.value, rap: i.rap, prudent: i.prudent, unknown: i.unknown, noValue: i.noValue,
         onHold: i.onHold, projected: i.projected, rare: i.rare, isFace: i.isFace, thumb: thumbs?.[n] || null
@@ -1636,7 +1615,7 @@ function collectiblesOf(userId, fresh = false) {
   const uid = Number(userId);
   const hit = collectiblesCache.get(uid);
   if (!fresh && hit && Date.now() - hit.at < COLLECTIBLES_TTL) return hit.p;
-  const p = api.getCollectibles(uid);
+  const p = api.getTradableItems(uid);
   collectiblesCache.set(uid, { at: Date.now(), p });
   p.then((v) => { if (!v?.complete && !v?.private) collectiblesCache.delete(uid); },
     () => collectiblesCache.delete(uid));

@@ -625,46 +625,54 @@ const isChallenge = (e) => e instanceof ApiError && (e.status === 403 || e.statu
   && /challenge|verif|two.?step|2sv/i.test(e.message);
 
 /**
- * Contre-offre sur un trade recu. `give` : mes exemplaires (userAssetId),
- * `get` : ceux du partenaire. Roblox limite chaque cote a 4 objets et refuse
- * lui-meme ce qui ne tient pas (objet en hold, Robux au-dela de la moitie de
- * la valeur) : son message remonte tel quel.
+ * Contre-offre sur un trade recu, par l'API v2 (celle du site Roblox) : chaque cote
+ * est une liste d'exemplaires `collectibleItemInstanceId`, ce qui couvre les visages
+ * (bundles) et les limiteds UGC, que la v1 (userAssetIds) ne sait pas envoyer.
+ * `give` : mes exemplaires, `get` : ceux du partenaire. Roblox limite chaque cote a
+ * 4 objets et refuse lui-meme ce qui ne tient pas (hold, Robux au-dela de la moitie
+ * de la valeur) : son message remonte tel quel.
  */
 export async function counterTrade(tradeId, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
-  const uaids = (list) => list.map(Number).filter(n => n > 0);
+  const ids = (list) => list.map(String).filter(isInstanceId);
+  const robux = (n) => Math.max(0, Math.floor(Number(n) || 0));
   if (!id || !Number(myId) || !Number(partnerId)) throw new ApiError('contre-offre incomplète', 0);
-  const offers = [
-    { userId: Number(partnerId), userAssetIds: uaids(get), robux: Math.max(0, Math.floor(Number(getRobux) || 0)) },
-    { userId: Number(myId), userAssetIds: uaids(give), robux: Math.max(0, Math.floor(Number(giveRobux) || 0)) }
-  ];
-  if (!offers[0].userAssetIds.length && !offers[0].robux) throw new ApiError('demande au moins un objet', 0);
-  if (!offers[1].userAssetIds.length && !offers[1].robux) throw new ApiError('offre au moins un objet', 0);
+  const senderOffer = { userId: Number(myId), robux: robux(giveRobux), collectibleItemInstanceIds: ids(give) };
+  const recipientOffer = { userId: Number(partnerId), robux: robux(getRobux), collectibleItemInstanceIds: ids(get) };
+  if (ids(give).length !== give.length || ids(get).length !== get.length) throw new ApiError('objet non identifié', 0);
+  if (!recipientOffer.collectibleItemInstanceIds.length && !recipientOffer.robux) throw new ApiError('demande au moins un objet', 0);
+  if (!senderOffer.collectibleItemInstanceIds.length && !senderOffer.robux) throw new ApiError('offre au moins un objet', 0);
   try {
-    return await apiPost(`${TRADES}/trades/${id}/counter`, { offers });
+    return await apiPost(`${TRADES_V2}/trades/${id}/counter`, { senderOffer, recipientOffer });
   } catch (e) {
     if (isChallenge(e)) e.challenge = true;
     throw e;
   }
 }
 
-const COLLECTIBLES_PAGES = 10;  // 1 000 objets ; au-dela, `complete: false` et rien n'est declare absent
+/** Un identifiant d'exemplaire v2 (UUID), le seul que l'API v2 accepte. */
+export const isInstanceId = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+
+const TRADABLE_PAGES = 30;  // 50 objets (avec tous leurs exemplaires) par page ; au-dela, `complete: false`
 
 /**
- * Les limiteds d'un joueur, exemplaire par exemplaire (userAssetId, serie,
- * hold) : ce que l'editeur de contre-offre propose. Inventaire prive : `private`.
+ * Les objets echangeables d'un joueur, exemplaire par exemplaire : la liste que
+ * l'editeur de trade de Roblox affiche (`/v2/users/{id}/tradableItems`). Elle
+ * contient les visages (bundles), les limiteds UGC et chaque doublon, que
+ * l'inventaire v1 des collectibles oubliait (mesure le 13/11 : 337 contre 370
+ * exemplaires). Inventaire prive : `private`.
  */
-export async function getCollectibles(userId) {
+export async function getTradableItems(userId) {
   const uid = Number(userId);
   if (!uid) throw new ApiError('joueur inconnu', 0);
   const items = [];
   let cursor = '';
-  for (let page = 0; page < COLLECTIBLES_PAGES; page++) {
-    const q = new URLSearchParams({ sortOrder: 'Desc', limit: '100' });
+  for (let page = 0; page < TRADABLE_PAGES; page++) {
+    const q = new URLSearchParams({ sortBy: 'CreationTime', sortOrder: 'Desc', limit: '50' });
     if (cursor) q.set('cursor', cursor);
     let j;
     try {
-      j = await apiGet(`https://inventory.roblox.com/v1/users/${uid}/assets/collectibles?${q}`);
+      j = await apiGet(`${TRADES_V2}/users/${uid}/tradableItems?${q}`);
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) return { private: true, items: [], complete: false };
       // Une page perdue en route (429, reseau) : on garde ce qu'on a, sans
@@ -672,32 +680,24 @@ export async function getCollectibles(userId) {
       if (items.length) return { private: false, items, complete: false, error: String(e?.message || e) };
       throw e;
     }
-    for (const it of j?.data || []) {
-      if (!Number(it.userAssetId) || !Number(it.assetId)) continue;
-      items.push({
-        id: Number(it.userAssetId), assetId: Number(it.assetId), bundleId: 0,
-        name: it.name || '', recentAveragePrice: Number(it.recentAveragePrice) || 0,
-        serialNumber: it.serialNumber ?? null, stock: Number(it.assetStock) || 0, onHold: !!it.isOnHold
-      });
+    for (const group of j?.items || []) {
+      for (const it of group.instances || []) {
+        const target = it.itemTarget || group.itemTarget || {};
+        const targetId = Number(target.targetId) || 0;
+        if (!isInstanceId(it.collectibleItemInstanceId) || !targetId) continue;
+        const bundle = target.itemType === 'Bundle';
+        items.push({
+          id: String(it.collectibleItemInstanceId), assetId: bundle ? 0 : targetId, bundleId: bundle ? targetId : 0,
+          name: it.itemName || group.itemName || '',
+          recentAveragePrice: Number(it.recentAveragePrice ?? group.recentAveragePrice) || 0,
+          serialNumber: it.serialNumber ?? null, stock: Number(it.assetStock) || 0, onHold: !!it.isOnHold
+        });
+      }
     }
     cursor = j?.nextPageCursor || '';
     if (!cursor) break;
   }
   return { private: false, items, complete: !cursor };
-}
-
-/**
- * Les exemplaires d'un objet precis chez un joueur (instanceId = userAssetId
- * pour un asset). Verifie un objet que l'inventaire des collectibles n'a pas
- * rendu (bundle, inventaire tronque) au lieu de le croire parti.
- * @returns {Promise<number[]>}  les identifiants d'exemplaires, [] s'il n'en a aucun
- */
-export async function getOwnedCopies(userId, type, targetId) {
-  const uid = Number(userId), id = Number(targetId);
-  const kind = type === 'Bundle' ? 'Bundle' : 'Asset';
-  if (!uid || !id) throw new ApiError('objet inconnu', 0);
-  const j = await apiGet(`https://inventory.roblox.com/v1/users/${uid}/items/${kind}/${id}`, { relayAnyError: false });
-  return (j?.data || []).map(d => Number(d.instanceId)).filter(n => n > 0);
 }
 
 /* ------------------ petites recherches mises en cache ------------------- */
