@@ -23,8 +23,8 @@ export const RELEASES = [
         "The demand score is finer: “3.7/5” instead of “4/5”, and the last bar fills partly."),
       item("Une demande Rolimon's est affinée d'un demi-point au plus par le classement Neuronal des trades.",
         "A Rolimon’s demand is refined by up to half a point with Neuronal’s trade ranking."),
-      item("Mode proof sur un trade terminé : le bouclier vert cache les pseudos et avatars des autres trades de la liste.",
-        "Proof mode on a completed trade: the green shield hides the other trades’ usernames and avatars in the list."),
+      item("Mode proof sur un trade terminé : le bouclier vert cache les autres trades de la liste (pseudo, avatar, date, gains), remplacés par des points, rien ou ton image (Réglages › Apparence).",
+        "Proof mode on a completed trade: the green shield hides the other trades in the list (username, avatar, date, gains), replaced by dots, nothing or your image (Settings › Appearance)."),
       item("La ligne « Demande » ne se double plus sous les totaux.",
         "The “Demand” line no longer shows twice under the totals.")
     ]

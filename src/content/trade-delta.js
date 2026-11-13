@@ -38,7 +38,7 @@
     showSerials: 'Afficher les serials', blurSerials: 'Flouter les serials',
     profile: (who) => `Ouvrir le profil de ${who || 'ce joueur'} sur Rolimon’s`,
     flex: 'Créer une image du trade',
-    proof: 'Mode proof : cacher les pseudos et avatars des autres trades de la liste',
+    proof: 'Mode proof : cacher les autres trades de la liste (pseudo, avatar, date, gains)',
     resend: 'Renvoyer',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
@@ -75,7 +75,7 @@
     showSerials: 'Show serials', blurSerials: 'Blur serials',
     profile: (who) => `Open ${who || 'this player'} on Rolimon’s`,
     flex: 'Create a trade image',
-    proof: 'Proof mode: hide the usernames and avatars of the other trades in the list',
+    proof: 'Proof mode: hide the other trades in the list (username, avatar, date, gains)',
     resend: 'Send again',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
@@ -195,7 +195,8 @@
   function restyleBanner() {
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
-  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat', 'demandIconImage']).then(got => {
+  if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat', 'demandIconImage', 'proofImage']).then(got => {
+    Object.assign(proofLook, { mask: got?.settings?.proofMask || 'dots', scope: got?.settings?.proofScope || 'others', image: got?.proofImage || '' });
     demandLook.icon = got?.settings?.demandIcon || 'bars';
     demandLook.image = got?.demandIconImage || '';
     enabled = got?.settings?.pageDelta !== false;
@@ -212,6 +213,11 @@
     if (area !== 'local' || dead) return;
     if (changes.projectedIcon) { look.image = changes.projectedIcon.newValue || ''; restyleFlags(); }
     if (changes.demandIconImage) { demandLook.image = changes.demandIconImage.newValue || ''; restyleDemand(); }
+    if (changes.proofImage || changes.settings) {
+      if (changes.proofImage) proofLook.image = changes.proofImage.newValue || '';
+      if (changes.settings) Object.assign(proofLook, { mask: changes.settings.newValue?.proofMask || 'dots', scope: changes.settings.newValue?.proofScope || 'others' });
+      paintProof();
+    }
     if (changes.luckyCat) setLucky(changes.luckyCat.newValue);
     // Nouvelle table Rolimon's : on redemande tout de suite, sans attendre la minute.
     if (changes.roli && enabled) { cache.clear(); retryAt = 0; schedule(); }
@@ -863,23 +869,41 @@
   }
   const restore = () => { for (const reset of undo) reset(); undo = []; };
   let serialControl, flexControl, proofControl, serialHidden = false;
-  /* Le mode proof (trades terminés) : dans la liste de gauche, seuls le pseudo et l'avatar du trade
-     ouvert (`.trade-row.selected`) restent. Le texte est remplacé, pas flouté : rien ne se relit sur
-     une capture agrandie. Il suit le trade ouvert et s'éteint quand on quitte les trades terminés. */
-  const PROOF_CSS = `
-    html[data-rn-proof] .trade-row:not(.selected) .text-lead{font-size:0!important;letter-spacing:0!important}
-    html[data-rn-proof] .trade-row:not(.selected) .text-lead::after{content:"••••••";font-size:15px;letter-spacing:1px;opacity:.55}
-    html[data-rn-proof] .trade-row:not(.selected) .avatar{visibility:hidden!important}`;
+  /* Le mode proof (trades terminés) : dans la liste de gauche, les autres trades perdent pseudo, avatar,
+     statut, date et gains ; seul le trade ouvert (`.trade-row.selected`) reste. Rien n'est flouté : les
+     lignes sont vidées, puis montrent des points, rien, ou l'image importée (Réglages › Apparence ›
+     Mode proof), sur les autres trades seulement ou sur toute la liste. Il suit le trade ouvert et
+     s'éteint quand on quitte les trades terminés. */
+  const proofLook = { mask: 'dots', scope: 'others', image: '' };
+  function proofCss() {
+    const on = 'html[data-rn-proof]';
+    const rows = `${on} .trade-row${proofLook.scope === 'list' ? '' : ':not(.selected)'}`;
+    const mask = proofLook.mask === 'image' && !proofLook.image ? 'blank' : proofLook.mask;
+    let css = `${rows}>:not(.trade-row-divider){visibility:hidden!important}`;
+    if (mask === 'dots') css += `${rows}{position:relative}${rows}::after{content:"••••••";position:absolute;left:16px;top:50%;
+      transform:translateY(-50%);font-size:18px;letter-spacing:2px;opacity:.5;pointer-events:none}`;
+    if (mask === 'image') {
+      // Une seule image pour toute la liste ; le trade ouvert, s'il reste, garde un fond plein par-dessus.
+      css += `${on} .trade-row-list div:has(>.trade-row){background:url("${proofLook.image}") center/cover no-repeat!important}
+        ${on} .trade-row-list .trade-row:not(.selected),${on} .trade-row-list .trade-row-divider{background:transparent!important}
+        ${on} .trade-row-list .trade-row-divider{visibility:hidden!important}
+        ${on} .trade-row-list .trade-row.selected{background:${proofLook.scope === 'list' ? 'transparent' : 'rgb(24 12 46 / .94)'}!important}`;
+    }
+    return css;
+  }
+  function paintProof() {
+    let st = document.querySelector('style[data-rn="proof"]');
+    if (!proofOn) { st?.remove(); return; }
+    if (!st) { st = document.createElement('style'); st.dataset.rn = 'proof'; (document.head || document.documentElement).append(st); }
+    const css = proofCss();
+    if (st.textContent !== css) st.textContent = css;
+  }
   let proofOn = false;
   function setProof(on) {
     if (on === proofOn) return;
     proofOn = on;
-    const root = document.documentElement;
-    if (on && !document.querySelector('style[data-rn="proof"]')) {
-      const st = document.createElement('style'); st.dataset.rn = 'proof'; st.textContent = PROOF_CSS;
-      (document.head || root).append(st);
-    }
-    root.toggleAttribute('data-rn-proof', on);
+    paintProof();
+    document.documentElement.toggleAttribute('data-rn-proof', on);
     if (proofControl) {
       proofControl.setAttribute('aria-pressed', String(on));
       proofControl.style.background = on ? 'rgba(63,207,110,.28)' : 'rgba(20,28,40,.45)';

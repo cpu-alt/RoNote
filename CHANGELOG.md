@@ -8,8 +8,10 @@ l'utilisateur, pas la liste des commits.
 - **Demande au dixième** : la note n'est plus un entier mais une note comme « 3,7/5 », et la dernière
   barre se remplit en partie. Le rang Neuronal donne une note continue (plus de paliers) ; pour un objet
   qui a une demande Rolimon's, il l'affine d'un demi-point au plus (« High » va de 3,5 à 4,5).
-- **Mode proof** (trades terminés) : un bouclier vert à côté de Trade Flex cache les pseudos et les
-  avatars des autres trades de la liste de gauche ; seul le trade ouvert reste visible, pour une capture.
+- **Mode proof** (trades terminés) : un bouclier vert à côté de Trade Flex cache les autres trades de la
+  liste de gauche (pseudo, avatar, date, gains) ; seul le trade ouvert reste visible, pour une capture.
+  Réglages › Apparence › Mode proof : des points, rien, ou ta propre image à la place ; sur les autres
+  trades seulement ou sur toute la liste.
 - **Demande** : la ligne « Demande » ne se double plus sous les totaux après un changement de trade.
 
 ## v2.16.13 : demande bien à sa place

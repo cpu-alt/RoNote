@@ -27,7 +27,7 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
   'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
 const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
-  'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon'];
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'proofMask', 'proofScope'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];
 // [min, max, décimales] : une saisie hors bornes est ramenée dedans.
 const NUMS = {
@@ -40,7 +40,7 @@ const NUMS = {
 const OUTCOME_KEYS = ['accepted', 'declined', 'countered', 'expired', 'error'];
 // Ce qui redessine un aperçu dès que ça change, sans attendre la relecture.
 const LOOK_KEYS = new Set(['bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize', 'bannerPct',
-  'listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'showLuckyCat', 'pageBgDim', 'pageBgBlur', ...THEME_KEYS]);
+  'listShow', 'listFormat', 'listStyle', 'listSize', 'listLabels', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'proofMask', 'proofScope', 'showLuckyCat', 'pageBgDim', 'pageBgBlur', ...THEME_KEYS]);
 
 let settings = null;
 let state = null;
@@ -81,6 +81,7 @@ const PROJ_GIF_KEEP = 400 * 1024;         // un GIF léger garde son animation
 const PROJ_PX = 96;                       // le reste est ramené à 96 px de côté
 let projectedIcon = '';
 let demandIconImage = '';
+let proofImage = '';
 // Ton image en fond de roblox.com (content/page-bg.js), à part des réglages : trop lourde pour eux.
 let pageBgImage = '';
 const BG_MAX_FILE = 20 * 1024 * 1024;    // au-delà, refusé avant même de le lire
@@ -223,6 +224,19 @@ function renderDemandIcon() {
   $('#demand-clear').hidden = !demandIconImage;
 }
 
+/** L'aperçu du mode proof : quatre lignes, la deuxième est le trade ouvert. */
+function renderProof() {
+  const box = $('#proof-preview');
+  if (!box) return;
+  const image = settings.proofMask === 'image' && proofImage;
+  const all = settings.proofScope === 'list';
+  const mark = settings.proofMask === 'dots' ? '••••••' : '';
+  box.classList.toggle('img', !!image);
+  box.style.backgroundImage = image ? `url("${proofImage}")` : '';
+  box.innerHTML = [0, 1, 2, 3].map(k => k === 1 && !all ? '<i class="sel">WAugust</i>' : `<i class="hid">${mark}</i>`).join('');
+  $('#proof-clear').hidden = !proofImage;
+}
+
 function renderProjected() {
   const badge = globalThis.RoNoteBadge;
   const box = $('#proj-preview');
@@ -318,6 +332,7 @@ function renderLooks() {
   renderMarks();
   renderProjected();
   renderDemandIcon();
+  renderProof();
   renderBanner();       // redessine aussi la colonne des listes
 }
 
@@ -698,7 +713,7 @@ function wire() {
   resetter('#bg-reset', defaultsOf(['pageBgDim', 'pageBgBlur']));
   resetter('#proj-reset', defaultsOf(['projectedColor', 'projectedSize', 'projectedShape', 'projectedCorner']));
 
-  for (const id of ['proj-file', 'bg-file', 'theme-file', 'settings-file', 'snd-file']) {
+  for (const id of ['proof-file', 'proj-file', 'bg-file', 'theme-file', 'settings-file', 'snd-file']) {
     $(`label[for="${id}"]`).addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#' + id).click(); }
     });
@@ -718,6 +733,13 @@ function wire() {
     demandIconImage = icon;
     storeImage('demandIconImage', icon);
     renderDemandIcon();
+  });
+  // L'image du mode proof : importée, elle devient le masque choisi.
+  importImage('#proof-file', '#proof-msg', toPageBg, (image) => {
+    proofImage = image;
+    storeImage('proofImage', image);
+    if (settings.proofMask !== 'image') set({ proofMask: 'image' });
+    renderProof();
   });
   importImage('#proj-file', '#proj-msg', toProjectedIcon, (icon) => {
     projectedIcon = icon;
@@ -765,6 +787,13 @@ function wire() {
     await storeImage('pageBgImage', '');
     renderBg();
     message('#bg-msg', t('Fond de Roblox rétabli.'));
+    flashSaved();
+  });
+  $('#proof-clear').addEventListener('click', async () => {
+    proofImage = '';
+    await storeImage('proofImage', '');
+    if (settings.proofMask === 'image') await set({ proofMask: 'dots' });
+    renderProof();
     flashSaved();
   });
   $('#demand-clear').addEventListener('click', async () => {
@@ -1098,6 +1127,7 @@ function follow(key, apply) {
 }
 follow('projectedIcon', (v) => { projectedIcon = v || ''; if (settings) renderProjected(); });
 follow('demandIconImage', (v) => { demandIconImage = v || ''; if (settings) renderDemandIcon(); });
+follow('proofImage', (v) => { proofImage = v || ''; if (settings) renderProof(); });
 follow('pageBgImage', (v) => { pageBgImage = v || ''; if (settings) renderBg(); });
 follow('customSounds', (v) => { customSounds = Array.isArray(v) ? v : []; fillSounds(); });
 const setLuckyCat = (v) => { luckyCat = v?.uaid ? v : null; if (settings) renderMarks(); };

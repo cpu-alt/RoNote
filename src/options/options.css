@@ -665,3 +665,16 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .demand-preview svg, .demand-preview img { width: 15px; height: 15px; object-fit: contain; display: block; }
 .demand-preview .na { opacity: .55; }
 .demand-preview .na img { filter: grayscale(1); }
+/* Aperçu du mode proof : une mini liste, le trade ouvert en clair, les autres masqués. */
+.proof-preview {
+  flex: none; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  background: linear-gradient(145deg, #3a2a5c, #22183a) center/cover no-repeat; border: 1px solid var(--line);
+}
+.proof-preview i { flex: 1; display: flex; align-items: center; gap: 5px; padding: 0 7px; font: 600 10px/1 system-ui, sans-serif; color: #fff;
+  border-top: 1px solid rgba(255,255,255,.08); }
+.proof-preview i:first-child { border-top: 0; }
+.proof-preview i::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #9b8cc4; flex: none; }
+.proof-preview i.sel { background: rgb(24 12 46 / .94); }
+.proof-preview i.hid::before { display: none; }
+.proof-preview i.hid { color: rgba(255,255,255,.5); letter-spacing: 2px; font-size: 12px; }
+.proof-preview.img i.hid { border-color: transparent; }

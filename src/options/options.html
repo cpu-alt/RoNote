@@ -418,6 +418,34 @@
         </div>
       </div>
 
+      <div class="row design" id="proof-row" data-needs="pageDelta" data-keys="proof preuve capture masquer cacher hide pseudo image trades design">
+        <div class="design-head"><span><b>Mode proof</b><small>Le bouclier vert d'un trade terminé cache les autres trades de la liste : pseudo, avatar, date et gains. Choisis ce qui les remplace.</small></span></div>
+        <div class="design-body">
+          <span class="proof-preview" id="proof-preview" aria-hidden="true"></span>
+          <div class="design-side">
+            <div class="fields">
+              <label class="field"><span>Remplacer par</span>
+                <select id="proofMask">
+                  <option value="dots">Des points</option>
+                  <option value="blank">Rien</option>
+                  <option value="image">Mon image</option>
+                </select></label>
+              <label class="field"><span>Cacher</span>
+                <select id="proofScope">
+                  <option value="others">Les autres trades</option>
+                  <option value="list">Toute la liste</option>
+                </select></label>
+            </div>
+            <div class="btnrow">
+              <label class="btn" for="proof-file" tabindex="0"><i data-ic="upload"></i>Importer une image</label>
+              <input type="file" id="proof-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+              <button class="btn" id="proof-clear" type="button" hidden>Retirer l'image</button>
+            </div>
+            <small class="proj-msg" id="proof-msg"></small>
+          </div>
+        </div>
+      </div>
+
       <h3>Listes de trades sur Roblox</h3>
       <label class="row switch"><input type="checkbox" id="listBadges">
         <span><b>Écarts RAP / Value sur les listes</b><small>Onglets Reçus, Envoyés et Terminés : l'écart de chaque trade à droite de sa ligne, sans l'ouvrir. La date passe sous le pseudo.</small></span></label>
