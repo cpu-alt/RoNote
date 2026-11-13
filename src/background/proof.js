@@ -65,6 +65,7 @@ export async function proofPrepare(info) {
   const side = (s) => [...s.items.map(i => itemLabel(i, cat)), ...(s.robux ? [`R$${s.robux}`] : [])];
   return {
     elite: !!status?.me?.features?.proof, signedIn: !!status?.signedIn,
+    canCapture: await B.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false),
     fields: proofDefaults({ labels: [side(info.give), side(info.get)], values: info.values, date: info.date, ...(await senderGuess(info)) })
   };
 }
