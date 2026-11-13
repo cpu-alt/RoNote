@@ -10,6 +10,9 @@ On répond à l'utilisateur en **français** ; l'extension est en français **et
 - Vérifier : `python tools/check.py` (ou `npm run check:node`)
 - Tests : `npm test` (les tests utilisent de **vraies réponses d'API** dans `tools/fixtures/`)
 - Construire : `python tools/build.py` → `dist/chrome/`, `dist/firefox/` et les `.zip`
+- **Le navigateur charge `D:\RoNote\dist\chrome`**, pas le `dist/` d'un worktree : un changement ne se voit
+  qu'une fois sur `main` (`git -C D:/RoNote merge --ff-only <branche>`) **et** `python tools/build.py` relancé
+  dans `D:\RoNote`. Puis recharger l'extension **et** faire F5 sur l'onglet Roblox (l'ancien script y reste).
 - Prévisualiser : `python tools/serve.py`, puis `http://127.0.0.1:8777/tools/preview/popup.html`
   (`options.html`, `item-page.html`, `trade-delta.html`) et `tools/selftest.html`
 
