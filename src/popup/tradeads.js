@@ -16,7 +16,26 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
-const INTERVALS = [15, 20, 30, 60, 120];
+const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `smartGap`)
+
+/**
+ * Les modèles d'annonce : un clic choisit les items offerts dans l'inventaire et les tags demandés.
+ * Les projected ne sont jamais offerts (personne n'en veut au prix affiché). Exportés pour le test.
+ */
+export const PRESETS = {
+  upgrade:   { label: 'Upgrade', hint: 'Plusieurs petits items contre un plus gros', tags: ['upgrade', 'any'], pick: (inv) => inv.slice(-4) },
+  downgrade: { label: 'Downgrade', hint: 'Ton plus gros item contre plusieurs, avec adds', tags: ['downgrade', 'adds'], pick: (inv) => inv.slice(0, 1) },
+  demand:    { label: 'Demande', hint: 'Tes items les moins demandés contre des items demandés', tags: ['demand', 'rares'],
+    pick: (inv) => [...inv].sort((a, b) => (a.demand ?? 9) - (b.demand ?? 9)).slice(0, 4) },
+  robux:     { label: 'Robux', hint: 'Tes deux plus gros items contre des Robux', tags: ['robux'], pick: (inv) => inv.slice(0, 2) },
+  any:       { label: 'Tout', hint: 'Tes quatre plus gros items, ouvert à toute offre', tags: ['any'], pick: (inv) => inv.slice(0, 4) }
+};
+/** L'inventaire offrable, du plus cher au moins cher → { offer, tags, items } du modèle. */
+export function presetAd(key, inv, idOf = (i) => i.id) {
+  const p = PRESETS[key];
+  const pool = inv.filter(i => !i.projected && i.value > 0).sort((a, b) => b.value - a.value);
+  return p && pool.length ? { offer: p.pick(pool).map(idOf), tags: p.tags, items: [] } : null;
+}
 const MAX = 4;
 const STATES = {
   ok: ['win', 'Connecté'], login: ['loss', 'À connecter'], perm: ['n', 'Autorisation à donner'],
@@ -63,10 +82,15 @@ function paint(root) {
       <div class="ta-top"><b>${t('Trade ads automatiques')}</b>
         <label class="ta-check"><input type="checkbox" data-ta-on${cfg.on ? ' checked' : ''}${ready ? '' : ' disabled'}> ${t(cfg.on ? 'Activé' : 'Arrêté')}</label></div>
       <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Intervalle'))}">${INTERVALS.map(m =>
-        `<button role="radio" aria-checked="${m === cfg.interval}" data-ta-int="${m}">${m} min</button>`).join('')}</div>
+        `<button role="radio" aria-checked="${m === cfg.interval}" data-ta-int="${m}">${m ? m + ' min' : t('Malin')}</button>`).join('')}</div>
+      <small class="ta-why">${cfg.interval ? t('Une annonce par site à cet intervalle, dans la limite du site.')
+        : t("Malin : Rolimon's toutes les 27 min (53 par jour, sans jamais tomber sur la limite de 55), RoUtility toutes les 15 min en remplaçant ta plus vieille annonce.")}</small>
     </div>
     <div class="pf-list">
       <section class="pf-card ta-card"><h3>${t('Sites')}</h3>${Object.entries(sites).map(([k, s]) => siteHtml(k, s)).join('')}</section>
+      ${inv.length ? `<section class="pf-card ta-card"><h3>${t('Modèles')}</h3>
+        <div class="ta-grid">${Object.entries(PRESETS).map(([k, p]) =>
+          `<button data-ta-preset="${k}" title="${escapeHtml(t(p.hint))}">${escapeHtml(t(p.label))}</button>`).join('')}</div></section>` : ''}
       <section class="pf-card ta-card"><h3>${t('J\'offre')} <small>${cfg.offer.length}/${MAX}</small></h3>
         ${inv.length ? `<div class="ta-grid ta-inv">${inv.map(i => chip('data-ta-offer', tradeId(i),
           `${escapeHtml(i.acronym || i.name)} <small>${fmtNum(i.value)}</small>`, cfg.offer.includes(tradeId(i)))).join('')}</div>`
@@ -111,7 +135,7 @@ export function renderTradeAds(listEl, portfolioReport) {
     listEl.dataset.taBound = '1';
     listEl.addEventListener('click', async (e) => {
       if (listEl.dataset.tab !== 'tradeads' || !res?.cfg) return;
-      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now]');
+      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset]');
       if (!el) return;
       const { cfg } = res;
       const d = el.dataset;
@@ -125,6 +149,7 @@ export function renderTradeAds(listEl, portfolioReport) {
         const next = toggle(cfg.items, Number(d.taItem));
         if (next.length + cfg.tags.length <= MAX) save(listEl, { items: next });
       } else if (d.taInt) save(listEl, { interval: Number(d.taInt) });
+      else if (d.taPreset) { const ad = presetAd(d.taPreset, inventory(), tradeId); if (ad) save(listEl, ad); }
       else if (d.taLogin) {
         // L'autorisation est demandée ici, au clic : Chrome n'accepte la question que sur un geste de l'utilisateur.
         const origin = res.sites[d.taLogin]?.origin;

@@ -71,12 +71,21 @@ export const SITES = {
       });
       // 429 : 15 min entre deux annonces OU déjà 5 annonces en ligne (elles durent 14 jours).
       return outcome(res.status, { 401: 'login', 403: 'login', 429: 'limit' });
+    },
+    // Mode malin : 5 annonces en ligne au plus, alors la plus ancienne part pour laisser la place à la nouvelle
+    // (format de /ads/mine relevé dans l'extension RoUtility : { ads: [{ id, created_at }] }).
+    async refresh() {
+      const res = await fetch('https://routility.io/api/ads/mine', { credentials: 'include', cache: 'no-store' });
+      const ads = res.status === 200 ? (await res.json().catch(() => null))?.ads : null;
+      if (!Array.isArray(ads) || ads.length < 5) return;
+      const old = [...ads].sort((a, b) => Number(a.created_at) - Number(b.created_at))[0];
+      if (/^[\w-]{1,40}$/.test(String(old?.id))) await fetch('https://routility.io/api/ads/' + old.id, { method: 'DELETE', credentials: 'include' });
     }
   }
 };
 
 export const DEFAULTS = {
-  on: false, interval: 15,
+  on: false, interval: 0,             // 0 = malin : la fenêtre de chaque site remplie au mieux
   offer: [], items: [], tags: [],
   sites: { rolimons: true, routility: false },
   last: {}, sent: {}, status: {}, log: []
@@ -88,7 +97,7 @@ const ids = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(n 
 export function sanitize(patch, cur = DEFAULTS) {
   const out = { ...cur };
   if ('on' in patch) out.on = !!patch.on;
-  if ('interval' in patch) out.interval = Math.min(240, Math.max(15, Math.round(Number(patch.interval) || 15)));
+  if ('interval' in patch) out.interval = Number(patch.interval) === 0 ? 0 : Math.min(240, Math.max(15, Math.round(Number(patch.interval) || 15)));
   if ('offer' in patch) out.offer = ids(patch.offer).slice(0, MAX_SIDE);
   if ('tags' in patch) out.tags = [...new Set((patch.tags || []).filter(x => TAGS.includes(x)))].slice(0, MAX_SIDE);
   if ('items' in patch) out.items = ids(patch.items);
@@ -160,11 +169,18 @@ export async function saveTradeAds(patch) {
   return { cfg };
 }
 
-/** Une alarme par intervalle choisi ; coupée quand l'auto-post est éteint. */
+/**
+ * Mode malin : l'écart qui remplit la limite du jour sans jamais la toucher. Rolimon's : 55 par 24 h glissantes,
+ * donc une toutes les 27 min (53 par jour, toujours une place libre) au lieu de 15 min puis des heures bloquées.
+ * Sans limite du jour (RoUtility) : le délai du site.
+ */
+export const smartGap = (site) => Math.max(site.cooldown, site.daily ? Math.ceil(24 * 60 / site.daily) : 0);
+
+/** Une alarme par intervalle choisi (chaque minute en mode malin, les écarts par site font le tri) ; coupée à l'arrêt. */
 export async function scheduleTradeAds(cfg) {
   cfg ||= await getConfig();
   await safe(() => B.alarms.clear(ALARM));
-  if (cfg.on) await safe(() => B.alarms.create(ALARM, { periodInMinutes: cfg.interval }));
+  if (cfg.on) await safe(() => B.alarms.create(ALARM, { periodInMinutes: cfg.interval || 1 }));
 }
 
 /**
@@ -182,11 +198,12 @@ export async function runTradeAds({ me, offerable = null, force = false, now = D
   const results = {};
   for (const [k, site] of Object.entries(SITES)) {
     if (!cfg.sites[k]) continue;
-    const wait = Math.max(site.cooldown, force ? 0 : cfg.interval) * MIN;
+    const wait = (force ? site.cooldown : cfg.interval ? Math.max(site.cooldown, cfg.interval) : smartGap(site)) * MIN;
     if (now - (cfg.last[k] || 0) < wait - 30e3) continue;   // l'alarme peut sonner quelques secondes en avance
     const day = (cfg.sent[k] || []).filter(at => now - at < 24 * 60 * MIN);
     if (site.daily && day.length >= site.daily) { results[k] = 'daily'; continue; }
     if (!(await permitted(site))) { results[k] = 'perm'; continue; }
+    if (!cfg.interval && site.refresh) await site.refresh().catch(() => {});
     const r = await site.post(ad, me).catch(() => 'network');
     results[k] = r;
     cfg.last[k] = now;          // même en échec : pas de relance en boucle avant le prochain tour

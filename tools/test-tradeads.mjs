@@ -63,7 +63,7 @@ console.log('\nAlarme');
 console.log('\nEnvoi : format de chaque site');
 {
   reset();
-  await ta.saveTradeAds({ on: true, offer: [111, 222], items: [333], tags: ['any'], sites: { rolimons: true, routility: true } });
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [111, 222], items: [333], tags: ['any'], sites: { rolimons: true, routility: true } });
   routes[ROLI] = [201, {}];
   routes[RU] = [201, { id: 'a1' }];
   const r = await ta.runTradeAds({ me: 42, now: 1e12 });
@@ -89,7 +89,7 @@ console.log('\nEnvoi : format de chaque site');
 console.log('\nRefus et limites');
 {
   reset();
-  await ta.saveTradeAds({ on: true, offer: [1], tags: ['demand'], sites: { rolimons: true, routility: false } });
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['demand'], sites: { rolimons: true, routility: false } });
   routes[ROLI] = [422, {}];
   const r = await ta.runTradeAds({ me: 42, now: 1e12 });
   check('422 Rolimon\'s → connexion à refaire', r.results.rolimons === 'login' && (await ta.getConfig()).status.rolimons === 'login');
@@ -97,7 +97,7 @@ console.log('\nRefus et limites');
   check('400 → délai du site', (await ta.runTradeAds({ me: 42, now: 1e12 + 16 * MIN })).results.rolimons === 'cooldown');
 
   reset();
-  await ta.saveTradeAds({ on: true, offer: [1], tags: ['demand'] });
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['demand'] });
   const cfg = await ta.getConfig();
   cfg.sent.rolimons = Array.from({ length: 55 }, (_, i) => 1e12 - i * MIN);
   store.set('tradeads', cfg);
@@ -106,7 +106,7 @@ console.log('\nRefus et limites');
   check('55 annonces en 24 h → plus rien chez Rolimon\'s', d.results.rolimons === 'daily' && !calls.length);
 
   reset();
-  await ta.saveTradeAds({ on: true, offer: [1], tags: ['any'] });
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['any'] });
   check('éteint par l\'interrupteur → rien', (await ta.saveTradeAds({ on: false }), (await ta.runTradeAds({ me: 42 })).skipped === 'off'));
   check('sans compte suivi → rien', (await ta.runTradeAds({ me: 0, force: true })).skipped === 'me');
   check('item vendu depuis → annonce vide, rien ne part', (await ta.runTradeAds({ me: 42, force: true, offerable: new Set([7]) })).skipped === 'empty' && !calls.length);
@@ -129,7 +129,33 @@ console.log('\nÉtat des sites');
   check('sans permission routility.io → pas de requête, « perm »', s.routility.state === 'perm' && !calls.length);
 }
 
-console.log(`\n${passed} réussis, ${failed} échoué(s)`);
+console.log('Mode malin');
+{
+  reset();
+  check('par défaut : malin', ta.DEFAULTS.interval === 0 && ta.sanitize({ interval: 0 }).interval === 0);
+  check("Rolimon's : une toutes les 27 min (53 / 24 h, jamais bloqué)", ta.smartGap(ta.SITES.rolimons) === 27 && 24 * 60 / 27 <= 55);
+  check('RoUtility : le délai du site', ta.smartGap(ta.SITES.routility) === 15);
+  await ta.saveTradeAds({ on: true, offer: [1], tags: ['any'], sites: { rolimons: true, routility: true } });
+  check('alarme chaque minute', alarms.get(ta.ALARM)?.periodInMinutes === 1);
+  routes[ROLI] = [201, {}]; routes[RU] = [201, {}];
+  routes['https://routility.io/api/ads/mine'] = [200, { ads: [3, 1, 5, 2, 4].map(n => ({ id: 'ad' + n, created_at: n })) }];
+  routes['https://routility.io/api/ads/ad1'] = [200, {}];
+  await ta.runTradeAds({ me: 42, now: 1e12 });
+  check('RoUtility plein (5) : la plus ancienne supprimée avant la nouvelle',
+    calls.some(c => c.method === 'DELETE' && c.url.endsWith('/ad1')) && calls.findIndex(c => c.method === 'DELETE') < calls.findIndex(c => c.url === RU && c.method === 'POST'));
+  calls = [];
+  await ta.runTradeAds({ me: 42, now: 1e12 + 20 * MIN });
+  check("20 min : RoUtility repart, Rolimon's attend", calls.some(c => c.url === RU && c.method === 'POST') && !calls.some(c => c.url === ROLI));
+  calls = [];
+  await ta.runTradeAds({ me: 42, now: 1e12 + 27 * MIN });
+  check("27 min : Rolimon's repart", calls.some(c => c.url === ROLI));
+  let n = 0;   // une journée entière, une alarme par minute : la limite n'est jamais touchée
+  reset();
+  await ta.saveTradeAds({ on: true, offer: [1], tags: ['any'], sites: { rolimons: true, routility: false } });
+  routes[ROLI] = [201, {}];
+  for (let m = 0; m < 3 * 24 * 60; m++) if ((await ta.runTradeAds({ me: 42, now: 1e12 + m * MIN })).results?.rolimons) n++;
+  check(`3 jours : ${n} annonces Rolimon's, aucune refusée pour la limite`, n >= 159 && (await ta.getConfig()).log.every(l => l.result === 'ok'));
+}
 console.log('Se connecter avec Roblox');
 {
   reset();
@@ -148,4 +174,20 @@ console.log('Se connecter avec Roblox');
   await ta.onTradeAdsTab(70, { url: 'https://routility.io/trade-ads/create' });
   check('RoUtility : de retour sur le site, fermée', closed.length === 2);
 }
+console.log('\nModèles d\'annonce');
+{
+  Object.assign(globalThis.chrome, { runtime: { id: 'test', getURL: (x) => x } });
+  globalThis.chrome.storage.onChanged = { addListener() {} };
+  globalThis.localStorage ??= { getItem: () => null, setItem() {} };
+  const { presetAd } = await import('../src/popup/tradeads.js');
+  const inv = [{ id: 1, value: 100, demand: 3 }, { id: 2, value: 5000, demand: 1 }, { id: 3, value: 900, projected: true },
+    { id: 4, value: 300, demand: 0 }, { id: 5, value: 50, demand: 4 }, { id: 6, value: 80, demand: 2 }];
+  const all = ['upgrade', 'downgrade', 'demand', 'robux', 'any'].map(k => presetAd(k, inv));
+  check('un projected n\'est jamais offert', all.every(a => !a.offer.includes(3)));
+  check('4 offerts et 4 demandés au plus', all.every(a => a.offer.length <= 4 && a.tags.length <= 4));
+  check('Downgrade : le plus gros item seul', JSON.stringify(all[1].offer) === '[2]');
+  check('Demande : les moins demandés d\'abord', all[2].offer[0] === 4);
+  check('inventaire vide : aucun modèle', presetAd('any', []) === null);
+}
+console.log(`\n${passed} réussis, ${failed} échoué(s)`);
 if (failed) process.exit(1);
