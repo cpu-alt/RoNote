@@ -94,7 +94,8 @@ export const DEFAULTS = {
   projectedShape: 'rounded',  // rounded | circle | square
   projectedCorner: 'left',    // left | right : coin haut de la vignette
   demandIcon: 'bars',          // icone de la note de demande (content/demand-icons.js) ; image importee a part (cle demandIconImage)
-  proofMask: 'dots',           // mode proof (page des trades) : 'dots' | 'blank' | 'image' (image importee, cle proofImage)
+  proofMask: 'dots',           // mode proof (page des trades) : 'dots' | 'blur' | 'blank' | 'image' (image importee, cle proofImage)
+  proofZone: 'trade',          // ce que la capture du panneau proof prend : 'trade' (le trade seul) | 'list' (avec la liste)
   proofScope: 'others',        // ce que le mode proof cache : 'others' (les autres trades) | 'list' (toute la liste)
 
   // --- Filtres (uniquement pour les trades RECUS) ------------------------

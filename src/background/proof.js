@@ -13,7 +13,9 @@
  *     que la page a prise elle-même (partage d'onglet de Chrome) quand ce n'est
  *     pas possible ; découpée, compressée sous 63 Ko (Caddy refuse plus),
  *     envoyée à Neuronal avec le jeton premium. Neuronal revérifie Elite et la
- *     poste en MP au membre. Rien ne part sans le clic sur Send.
+ *     poste en MP au membre. Rien ne part sans le clic sur Send ;
+ *   - `proofSave` : la même capture recadrée, en PNG, rendue à la page pour
+ *     « Télécharger l'image » (pour tous, rien ne sort de l'ordinateur).
  * ==========================================================================
  */
 import { B } from '../common/shim.js';
@@ -77,12 +79,17 @@ export async function proofPrepare(info) {
   };
 }
 
-/** La capture découpée, en WebP de moins de MAX_BYTES (qualité, puis taille, revues à la baisse). */
-async function shrink(dataUrl, frame) {
+/** La capture découpée à la zone du trade : l'image et le rectangle source, en pixels de l'image. */
+async function crop(dataUrl, frame) {
   const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
   const k = bmp.width / frame.vw;                         // pixels de l'image par pixel CSS
   const sx = Math.round(frame.x * k), sy = Math.round(frame.y * k);
-  const sw = Math.max(1, Math.min(bmp.width - sx, Math.round(frame.w * k))), sh = Math.max(1, Math.min(bmp.height - sy, Math.round(frame.h * k)));
+  return { bmp, sx, sy, sw: Math.max(1, Math.min(bmp.width - sx, Math.round(frame.w * k))), sh: Math.max(1, Math.min(bmp.height - sy, Math.round(frame.h * k))) };
+}
+
+/** La capture découpée, en WebP de moins de MAX_BYTES (qualité, puis taille, revues à la baisse). */
+async function shrink(dataUrl, frame) {
+  const { bmp, sx, sy, sw, sh } = await crop(dataUrl, frame);
   let scale = Math.min(1, 1600 / sw), quality = 0.9;
   for (let tries = 0; tries < 14; tries++) {
     const c = new OffscreenCanvas(Math.round(sw * scale), Math.round(sh * scale));
@@ -94,6 +101,29 @@ async function shrink(dataUrl, frame) {
   throw new Error('too_large');
 }
 
+/** L'onglet photographié, ou l'image déjà prise par la page (partage d'onglet). */
+async function shoot(image, tab) {
+  if (image) return { shot: image };
+  try {
+    return { shot: await B.tabs.captureVisibleTab(tab?.windowId, { format: 'png' }) };
+  } catch (e) {
+    return { error: 'capture', detail: String(e?.message || e).slice(0, 200) };
+  }
+}
+
+/** « Télécharger l'image » (tout le monde, rien ne part) : la capture recadrée en PNG, pleine taille, en dataURL. */
+export async function proofSave({ frame, image }, tab) {
+  const got = await shoot(image, tab);
+  if (!got.shot) return got;
+  const { bmp, sx, sy, sw, sh } = await crop(got.shot, frame);
+  const c = new OffscreenCanvas(sw, sh);
+  c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+  const bytes = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return { ok: true, image: 'data:image/png;base64,' + btoa(bin) };
+}
+
 const b64 = (text) => btoa(Array.from(new TextEncoder().encode(text), c => String.fromCharCode(c)).join(''));
 
 /**
@@ -101,14 +131,8 @@ const b64 = (text) => btoa(Array.from(new TextEncoder().encode(text), c => Strin
  * `image` : une capture déjà prise par la page (dataURL), sinon on capture l'onglet de `tab`.
  */
 export async function proofShare({ fields, frame, image }, tab) {
-  let shot = image;
-  if (!shot) {
-    try {
-      shot = await B.tabs.captureVisibleTab(tab?.windowId, { format: 'png' });
-    } catch (e) {
-      return { error: 'capture', detail: String(e?.message || e).slice(0, 200) };
-    }
-  }
+  const { shot, ...failed } = await shoot(image, tab);
+  if (!shot) return failed;
   let blob;
   try { blob = await shrink(shot, frame); } catch { return { error: 'too_large' }; }
   for (let attempt = 0; attempt < 2; attempt++) {

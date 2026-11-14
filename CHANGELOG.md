@@ -5,6 +5,12 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Panneau proof refait** : plus sobre et plus clair, en deux cartes (« Masquer la liste », « Le proof ») et
+  une barre d'actions toujours visible en bas. Nouveau masque **Flou** à côté de Points / Rien / Image,
+  flou des numéros de série en un interrupteur, zone de capture au choix (le trade seul, ou avec la liste ;
+  retenue d'une fois sur l'autre). Pour tout le monde : **Télécharger l'image** (la capture recadrée, en PNG,
+  rien ne part) et **Copier le texte** ; l'envoi en MP reste réservé aux Elite. Au clavier : Échap ferme,
+  Ctrl+Entrée envoie. Le flou est aussi proposé dans Réglages › Apparence › Mode proof.
 - **Demande au dixième** : la note n'est plus un entier mais une note comme « 3,7/5 », et la dernière
   barre se remplit en partie. Le rang Neuronal donne une note continue (plus de paliers) ; pour un objet
   qui a une demande Rolimon's, il l'affine d'un demi-point au plus (« High » va de 3,5 à 4,5).

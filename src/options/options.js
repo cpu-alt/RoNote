@@ -233,7 +233,8 @@ function renderProof() {
   const mark = settings.proofMask === 'dots' ? '••••••' : '';
   box.classList.toggle('img', !!image);
   box.style.backgroundImage = image ? `url("${proofImage}")` : '';
-  box.innerHTML = [0, 1, 2, 3].map(k => k === 1 && !all ? '<i class="sel">WAugust</i>' : `<i class="hid">${mark}</i>`).join('');
+  const blur = settings.proofMask === 'blur';
+  box.innerHTML = [0, 1, 2, 3].map(k => k === 1 && !all ? '<i class="sel">WAugust</i>' : blur ? '<i class="blur">WAugust</i>' : `<i class="hid">${mark}</i>`).join('');
   $('#proof-clear').hidden = !proofImage;
 }
 

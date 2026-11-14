@@ -14,8 +14,9 @@ const catalog = {ready:true,ts:1,assets:Object.assign({111:['Signature Kicks',''
 globalThis.chrome = {runtime:{id:"preview",getURL:path=>'/src/'+path,sendMessage:async ({type,page,items})=>{
   if (type === 'ronote:lucky-cat') return { luckyCat: window.__lucky || null };
   // Le panneau proof : un membre Elite (?elite=0 : pas Elite), l'envoi simulé.
-  if (type === 'ronote:proof-prepare') return new URLSearchParams(location.search).get('elite') === '0' ? { elite: false, signedIn: true }
-    : { elite: true, signedIn: true, fields: { items: 'TIX + PLBH + WNH for RLB + DT + GV', values: '7.1k vs 9.6k', sender: 'Marshal_l', receiver: 'DemoTrader', date: '11/12/2026' } };
+  if (type === 'ronote:proof-prepare') return { elite: new URLSearchParams(location.search).get('elite') !== '0', signedIn: true, canCapture: true,
+    fields: { items: 'Tixer (TIX), Purple Lord Bear Hat (PLBH) / Red Lucky Bow (RLB), Dominus Taxi (DT)', values: '7.1k vs 9.6k (2.5k op)', sender: 'Marshal_l', receiver: 'DemoTrader', date: '11/12/2026' } };
+  if (type === 'ronote:proof-save') { window.__proofSaved = (window.__proofSaved || 0) + 1; return { ok: true, image: 'data:image/png;base64,iVBORw0KGgo=' }; }
   if (type === 'ronote:proof-share') { window.__proofSent = (window.__proofSent || 0) + 1; return { ok: true }; }
   if (type === 'ronote:item-values') {
     const {findByName} = await import('/src/common/page-trade.js');
