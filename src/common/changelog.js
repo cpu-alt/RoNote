@@ -25,6 +25,8 @@ export const RELEASES = [
         "A Rolimon’s demand is refined by up to half a point with Neuronal’s trade ranking."),
       item("Mode proof sur un trade terminé : le bouclier vert cache les autres trades de la liste (pseudo, avatar, date, gains), remplacés par des points, rien ou ton image (Réglages › Apparence).",
         "Proof mode on a completed trade: the green shield hides the other trades in the list (username, avatar, date, gains), replaced by dots, nothing or your image (Settings › Appearance)."),
+      item("Trade Flex refait : aperçu en grand et réglages à côté, format complet ou compact, cinq fonds ou ton image (assombrie, floutée), ce qu'on affiche, ta légende ; tout est retenu. Ctrl+S télécharge, Ctrl+C copie.",
+        "Trade Flex redesigned: big preview with settings beside it, full or compact format, five backgrounds or your image (dimmed, blurred), what to show, your caption; everything is remembered. Ctrl+S downloads, Ctrl+C copies."),
       item("Panneau proof refait : plus clair, masque « Flou », séries floutées en un clic, zone de capture au choix, et pour tous « Télécharger l'image » et « Copier le texte ». Échap ferme, Ctrl+Entrée envoie.",
         "Proof panel redesigned: clearer, a “Blur” mask, serials blurred in one click, a choice of screenshot area, and for everyone “Download image” and “Copy text”. Esc closes, Ctrl+Enter sends."),
       item("La ligne « Demande » ne se double plus sous les totaux.",

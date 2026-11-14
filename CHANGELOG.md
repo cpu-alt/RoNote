@@ -5,6 +5,13 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Trade Flex refait** (le trophée d'un trade terminé) : une fenêtre en deux colonnes, l'aperçu en grand et
+  les réglages à côté. Deux formats : la carte **complète** ou une carte **compacte** (1200 × 640, une ligne
+  par objet). Cinq fonds (Nuit, Violet, Émeraude, Coucher de soleil, Carbone) ou ton image, qu'on peut
+  assombrir **et flouter**. On choisit ce qui s'affiche (montant de chaque objet, comparateur RAP / Value,
+  Robux, date) et on écrit sa **légende** sous WIN / LOSS. Tout est retenu d'une fois sur l'autre, ton image
+  comprise (elle reste sur l'ordinateur). Télécharger, Copier, et **Partager** quand le système le permet ;
+  Ctrl+S télécharge, Ctrl+C copie, Échap ferme.
 - **Panneau proof refait** : plus sobre et plus clair, en deux cartes (« Masquer la liste », « Le proof ») et
   une barre d'actions toujours visible en bas. Nouveau masque **Flou** à côté de Points / Rien / Image,
   flou des numéros de série en un interrupteur, zone de capture au choix (le trade seul, ou avec la liste ;
