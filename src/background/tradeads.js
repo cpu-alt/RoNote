@@ -50,7 +50,7 @@ export const SITES = {
     origin: 'https://routility.io/*',   // permission facultative, demandée depuis le popup
     cooldown: 15, daily: 0,
     async status() {
-      const res = await fetch('https://routility.io/api/auth/me', { credentials: 'include', cache: 'no-store' });
+      const res = await fetch('https://routility.io/api/auth/me', { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(6000) });
       const d = res.status === 200 ? await res.json().catch(() => null) : null;
       return d?.roblox_id ? { ok: true, robloxId: Number(d.roblox_id), name: String(d.username || '') } : 'login';
     },

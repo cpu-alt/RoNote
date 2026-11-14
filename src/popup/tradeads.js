@@ -48,7 +48,7 @@ function siteHtml(k, s) {
   return `<div class="ta-site">
     <label class="ta-check"><input type="checkbox" data-ta-site="${k}"${s.on ? ' checked' : ''}>
       <b>${escapeHtml(s.name)}</b></label>
-    <span class="ta-st ${tone}">${t(label)}${who}</span>${btn}${why}
+    <span class="ta-st ${tone}">${t(label)}${who}</span>${btn}
   </div>`;
 }
 
@@ -58,6 +58,7 @@ function paint(root) {
   const inv = inventory();
   const asked = cfg.items.length + cfg.tags.length;
   const ready = cfg.offer.length && asked;
+  const scroller = root.closest('main, #list, body') || root, scroll = scroller.scrollTop;   // un clic redessine tout : on reste où on était
   root.innerHTML = `<div class="pf-head">
       <div class="ta-top"><b>${t('Trade ads automatiques')}</b>
         <label class="ta-check"><input type="checkbox" data-ta-on${cfg.on ? ' checked' : ''}${ready ? '' : ' disabled'}> ${t(cfg.on ? 'Activé' : 'Arrêté')}</label></div>
@@ -86,6 +87,7 @@ function paint(root) {
           <small class="ta-why">${t('Jamais plus d\'une annonce par site toutes les 15 min.')}</small></footer>
       </section>
     </div>`;
+  scroller.scrollTop = scroll;
 }
 
 async function load(root) {
