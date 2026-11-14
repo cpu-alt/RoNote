@@ -25,7 +25,8 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
   'sound', 'soundByQuality', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
-  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel'];
+  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel',
+  'anonShowValues', 'anonShowRobux'];
 const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
   'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'proofMask', 'proofScope'];
 const NUM_SELECTS = ['pollSeconds', 'historyLimit', 'pageBgDim', 'pageBgBlur'];

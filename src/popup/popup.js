@@ -249,7 +249,7 @@ function fillMeMenu() {
   const others = (st.accounts || []).filter(a => Number(a.id) !== Number(st.userId));
   const anon = wallet.hidden;
   const last = st.portfolioLast;
-  const worth = last?.v && !anon ? `<span class="mm-worth">${fmtFull(last.v)} <small>value</small></span>` : '';
+  const worth = last?.v && !hideAmounts() ? `<span class="mm-worth">${fmtFull(last.v)} <small>value</small></span>` : '';
   const hint = menu.querySelector('.mm-hint:not([hidden])')?.textContent || '';
 
   const head = me
@@ -1606,7 +1606,7 @@ function homeSignature() {
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
     data.state?.portfolioLast?.v, data.state?.portfolioLast?.at,
     data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
-    wallet.hidden, newsPending(), marksSig(), !!data.settings?.neuronalAsked, !!data.settings?.neuronalShare, joinRefused]);
+    wallet.hidden, hideAmounts(), newsPending(), marksSig(), !!data.settings?.neuronalAsked, !!data.settings?.neuronalShare, joinRefused]);
 }
 
 /**
@@ -1898,7 +1898,7 @@ function openGoal() {
   mountGoalEditor(card, {
     goal: walletGoal,
     now: walletView().nowOf.v,
-    hidden: wallet.hidden,
+    hidden: hideAmounts(),
     search: (query) => send({ type: 'ronote:catalog-search', query }).then(r => r?.items || []).catch(() => []),
     onSave: async (goal) => { await B.storage.local.set({ walletGoal: goal }).catch(() => {}); closeZoom(); },
     onClose: closeZoom
@@ -2026,7 +2026,7 @@ function openSharing(mode = 'wallet') {
     series: walletSeries(),   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
     history: data.history,
     historyLimit: data.settings?.historyLimit,
-    anon: wallet.hidden,
+    anon: hideAmounts(),
     close: closeZoom
   });
 }
@@ -2100,7 +2100,7 @@ function applyAnon() {
   const b = document.getElementById('btn-anon');
   if (b) {
     b.innerHTML = ic(wallet.hidden ? 'eye-off' : 'eye');
-    b.title = wallet.hidden ? t('Quitter le mode anonyme (H)') : t('Mode anonyme : masquer montants et pseudo (H)');
+    b.title = wallet.hidden ? t('Quitter le mode anonyme (H)') : (!data.settings?.anonShowValues ? t('Mode anonyme : masquer montants et pseudo (H)') : t('Mode anonyme : masquer le pseudo (H)'));
     b.setAttribute('aria-pressed', String(wallet.hidden));
   }
 }
@@ -2125,18 +2125,20 @@ function saveWallet() {
  * n'est dans la page : pas même son nombre de chiffres, qui trahirait
  * l'ordre de grandeur. Les pourcentages, eux, restent lisibles.
  */
+/** Montants masqués : mode anonyme, sauf si les réglages gardent la value visible (seul le pseudo part). */
+const hideAmounts = () => wallet.hidden && !data.settings?.anonShowValues;
 const masked = (s) => `<span class="amt" aria-label="${t('montant masqué')}">${s}</span>`;
-const amount = (n) => (wallet.hidden ? masked(fmtFull(8888888)) : fmtFull(n));
-const amountShort = (n) => (wallet.hidden ? masked(fmtNum(8880000)) : fmtNum(n));
-const amountSigned = (n, full = false) => (wallet.hidden ? masked(fmtSigned(88888, full)) : fmtSigned(n, full));
-const rankText = (r) => (!r ? '' : wallet.hidden ? masked('#' + fmtFull(8888)) : '#' + fmtFull(r));
+const amount = (n) => (hideAmounts() ? masked(fmtFull(8888888)) : fmtFull(n));
+const amountShort = (n) => (hideAmounts() ? masked(fmtNum(8880000)) : fmtNum(n));
+const amountSigned = (n, full = false) => (hideAmounts() ? masked(fmtSigned(88888, full)) : fmtSigned(n, full));
+const rankText = (r) => (!r ? '' : hideAmounts() ? masked('#' + fmtFull(8888)) : '#' + fmtFull(r));
 const sharePct = (p) => (p >= 10 ? String(Math.round(p)) : p.toFixed(1)) + '%';
 
 setMoneyFormat(amount, amountShort);
 
 const seriesSigned = (def, n) => (def.money ? amountSigned(n, true) : fmtSigned(n, true));
 const pillText = (def, delta, pct) =>
-  `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${wallet.hidden && def.money ? '' : seriesSigned(def, delta) + ' · '}${fmtPct(pct)}`;
+  `${delta > 0 ? ic('caret-up') : delta < 0 ? ic('caret-down') : '•'} ${hideAmounts() && def.money ? '' : seriesSigned(def, delta) + ' · '}${fmtPct(pct)}`;
 
 /* ------------------------------- le mouvement ---------------------------- */
 
@@ -2153,7 +2155,7 @@ let heroFrame = 0;
 function countUp(el, from, to, format, ms = 800) {
   cancelAnimationFrame(heroFrame);
   if (!el) return;
-  if (REDUCED_MOTION || wallet.hidden || from === to || !Number.isFinite(from)) { el.innerHTML = format(to); return; }
+  if (REDUCED_MOTION || hideAmounts() || from === to || !Number.isFinite(from)) { el.innerHTML = format(to); return; }
   const start = performance.now();
   const step = (now) => {
     const k = Math.min(1, (now - start) / ms);
@@ -2513,7 +2515,7 @@ function renderStats() {
         ${seriesChips(WALLET_SERIES, keys, 'data-series')}
         <span class="w-tools">
           <button class="w-flex" data-share="wallet" title="${t('Partager une carte de ton portefeuille')}">${ic('sparkle')}${t('Flex')}</button>
-          <button class="w-eye" data-eye title="${wallet.hidden ? t('Quitter le mode anonyme (H)') : t('Mode anonyme : masquer montants et pseudo (H)')}">${ic(wallet.hidden ? 'eye-off' : 'eye')}</button>
+          <button class="w-eye" data-eye title="${wallet.hidden ? t('Quitter le mode anonyme (H)') : (!data.settings?.anonShowValues ? t('Mode anonyme : masquer montants et pseudo (H)') : t('Mode anonyme : masquer le pseudo (H)'))}">${ic(wallet.hidden ? 'eye-off' : 'eye')}</button>
         </span>
       </div>
       <div class="w-label">${t(HERO_LABEL[primary])}</div>
@@ -2534,7 +2536,7 @@ function renderStats() {
       <div class="w-tile" title="${escapeHtml(t('Effet des réévaluations Rolimon\'s des 7 derniers jours sur tes objets'))}"><span>${t('Réévalué · 7 j')}</span>
         <b class="${moved.length ? toneOf(movedImpact) : ''}">${moved.length ? amountSigned(movedImpact) : 'N/A'}</b></div>
     </section>
-    ${goalHtml(walletGoal, all, nowOf.v, wallet.hidden)}
+    ${goalHtml(walletGoal, all, nowOf.v, hideAmounts())}
     ${items ? allocationHtml(items) : ''}
     ${collectionHtml(rep, items, owned)}
     <div class="w-foot">

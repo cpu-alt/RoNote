@@ -68,6 +68,10 @@ export const DEFAULTS = {
   showRare: true,             // petit diamant sur les objets « rares » de Rolimon's
   showLuckyCat: true,         // l'exemplaire tire par le Lucky Cat de Rolimon's
 
+  // --- Mode anonyme (le pseudo est toujours masqué) -----------------------
+  anonShowValues: false,      // garder value, RAP, rang et gains visibles
+  anonShowRobux: false,       // garder le solde de Robux visible sur roblox.com
+
   // --- Apparence sur roblox.com -------------------------------------------
   pageDelta: true,            // ecarts RAP / Value et cote des objets sur la page des trades Roblox
   pageItemValues: true,       // cote Rolimon's sous chaque objet et total des deux offres

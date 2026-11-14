@@ -14,26 +14,36 @@
   if (!B?.runtime?.id || globalThis.__rnAnon) return;
   globalThis.__rnAnon = true;
 
-  const CSS = `
-    .age-bracket-label-username,#nav-robux-amount,#nav-robux-balance{font-size:0!important;letter-spacing:0!important}
+  // Le pseudo part toujours ; le solde de Robux seulement si les réglages ne le gardent pas (`anonShowRobux`).
+  const NAME_CSS = `
+    .age-bracket-label-username{font-size:0!important;letter-spacing:0!important}
     .age-bracket-label-username::after{content:"Anonymous";font-size:12px;font-weight:600}
-    #nav-robux-amount::after,#nav-robux-balance::after{content:"•••";font-size:14px}
     nav li:first-child>a[href$="/users/profile"]>span:last-child>*{display:none!important}
     nav li:first-child>a[href$="/users/profile"]>span:last-child::after{content:"Anonymous"}
     nav li:first-child>a[href$="/users/profile"] img,.age-bracket-label img{visibility:hidden!important}`;
+  const ROBUX_CSS = `
+    #nav-robux-amount,#nav-robux-balance{font-size:0!important;letter-spacing:0!important}
+    #nav-robux-amount::after,#nav-robux-balance::after{content:"•••";font-size:14px}`;
   let style = null;
-  const apply = (on) => {
-    if (on && !style) {
+  let anon = false, showRobux = false;
+  const apply = () => {
+    const css = anon ? NAME_CSS + (showRobux ? '' : ROBUX_CSS) : '';
+    if (css && !style) {
       style = document.createElement('style');
       style.dataset.rn = 'anon';
-      style.textContent = CSS;
       (document.head || document.documentElement).append(style);
-    } else if (!on && style) { style.remove(); style = null; }
+    } else if (!css && style) { style.remove(); style = null; }
+    if (style) style.textContent = css;
   };
   try {
-    B.storage.local.get('anon').then(r => apply(!!r?.anon)).catch(() => {});
+    B.storage.local.get(['anon', 'settings']).then(r => {
+      anon = !!r?.anon; showRobux = !!r?.settings?.anonShowRobux; apply();
+    }).catch(() => {});
     B.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && 'anon' in changes) apply(!!changes.anon.newValue);
+      if (area !== 'local') return;
+      if ('anon' in changes) anon = !!changes.anon.newValue;
+      if ('settings' in changes) showRobux = !!changes.settings.newValue?.anonShowRobux;
+      apply();
     });
   } catch { /* extension rechargée : rien à masquer */ }
 })();
