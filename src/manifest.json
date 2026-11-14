@@ -18,6 +18,7 @@
   ],
   "optional_host_permissions": [
     "https://neuronal.live/*",
+    "https://routility.io/*",
     "<all_urls>"
   ],
   "host_permissions": [

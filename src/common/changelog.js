@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item('Demande au dixième', 'Demand to one decimal'),
     items: [
+      item("Trade ads automatiques (menu du compte) : ton annonce publiée toute seule sur Rolimon's et RoUtility, avec la session que tu y as ouverte, toutes les 15 min au plus.",
+        "Automatic trade ads (account menu): your ad posted on its own on Rolimon’s and RoUtility, with the session you opened there, at most every 15 min."),
       item("La note de demande est plus fine : « 3,7/5 » plutôt que « 4/5 », et la dernière barre se remplit en partie.",
         "The demand score is finer: “3.7/5” instead of “4/5”, and the last bar fills partly."),
       item("Une demande Rolimon's est affinée d'un demi-point au plus par le classement Neuronal des trades.",

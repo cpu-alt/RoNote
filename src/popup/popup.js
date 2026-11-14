@@ -12,6 +12,7 @@ import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, RED
 import { renderCoin, coinKey } from './coinflip.js';
 import { renderProfiles } from './profiles.js';
 import { renderDeals } from './deals.js';
+import { renderTradeAds } from './tradeads.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
@@ -282,6 +283,7 @@ function fillMeMenu() {
     ${menuRow('history', 'journal', t('Journal'))}
     ${menuRow('profiles', 'radar', t('Profils'))}
     ${menuRow('deals', 'flame', t('Deals'))}
+    ${menuRow('tradeads', 'send', t('Trade ads automatiques'))}
     ${menuRow('premium', 'star', t('Premium'))}
     ${menuRow('coin', 'coin', t('Pile ou face'))}
     ${me ? menuRow('profile', 'external', t('Mon profil Roblox')) : ''}`;
@@ -355,6 +357,7 @@ async function onMeMenu(e) {
   } else if (act === 'coin') selectTab('coin');
   else if (act === 'profiles') selectTab('profiles');
   else if (act === 'deals') selectTab('deals');
+  else if (act === 'tradeads') selectTab('tradeads');
   else if (act === 'premium') B.tabs.create({ url: B.runtime.getURL('options/options.html#s-premium') });
   else if (act === 'history') selectTab('history');
   else if (act === 'profile') B.tabs.create({ url: `https://www.roblox.com/users/${Number(data.state?.userId)}/profile` });
@@ -2673,6 +2676,8 @@ function renderList() {
   if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
   // Le Deal Sniper : relu en arrivant, puis chaque minute tant que l'onglet est affiché (deals.js).
   if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
+  // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
+  if (tab === 'tradeads') { lastListSig = ''; if (entering) renderTradeAds(listEl, data.report); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;

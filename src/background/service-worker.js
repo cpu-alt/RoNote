@@ -21,6 +21,7 @@ import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
+import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -118,6 +119,7 @@ B.runtime.onStartup?.addListener(async () => {
   const settings = await getSettings();
   await configureAlarm(settings);
   await applySidePanel(settings);
+  await safe(() => scheduleTradeAds());
   tick('startup');
 });
 
@@ -143,7 +145,17 @@ async function applySidePanel(settings) {
 // laterale active. `toggle()` exige le geste de l'utilisateur : aucun await avant.
 B.action.onClicked.addListener(() => { B.sidebarAction?.toggle(); });
 
-B.alarms.onAlarm.addListener(a => { if (a.name === ALARM) tick('alarm'); });
+B.alarms.onAlarm.addListener(a => {
+  if (a.name === ALARM) tick('alarm');
+  if (a.name === TRADEADS_ALARM) postTradeAds();
+});
+
+/** Un tour d'auto-post (tradeads.js) : le compte suivi, et seulement les items encore dans l'inventaire. */
+async function postTradeAds(force = false) {
+  const [state, report] = await Promise.all([getState(), getPortfolioReport()]);
+  const offerable = report?.items?.length ? new Set(report.items.map(i => (i.kind === 'bundle' ? i.faceAssetId : i.id))) : null;
+  return runTradeAds({ me: Number(state.userId) || 0, offerable, force });
+}
 
 async function configureAlarm(settings) {
   await safe(() => B.alarms.clear(ALARM));
@@ -1206,6 +1218,13 @@ async function handleMessage(msg, sender = null) {
     }
     case 'ronote:premium-key':
       return premiumKey(msg.key);
+    // Auto-post de trade ads (tradeads.js) : l'onglet Trade ads du popup.
+    case 'ronote:tradeads-get':
+      return tradeAdsStatus();
+    case 'ronote:tradeads-save':
+      return saveTradeAds(msg.patch);
+    case 'ronote:tradeads-post':
+      return postTradeAds(true);
     // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.
     case 'ronote:proof-prepare':
       return proofPrepare(msg.info || {});

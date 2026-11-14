@@ -1063,6 +1063,38 @@ envoie une notification de démonstration avec le son.
 > présents : **aucune notification pour l'existant**. Seuls les trades qui arrivent
 > après comptent.
 
+## Auto-post de trade ads (fondations, en préparation après 2.16.13)
+
+`background/tradeads.js` (un adaptateur par site), `popup/tradeads.js` (onglet ouvert depuis le menu du
+compte), messages `ronote:tradeads-get|save|post`, état sous `tradeads` dans `storage.local`, alarme
+`ronote:tradeads` à l'intervalle choisi (15 min au moins). **Pas de connexion propre** : le worker fait ses
+requêtes avec `credentials: 'include'`, le navigateur joint la session que l'utilisateur a ouverte lui-même
+sur le site (host permission requise). Aucun mot de passe, aucun cookie lu, rien vers un autre domaine.
+Les items offerts sont refiltrés par le dernier portefeuille au moment d'envoyer (un item vendu ne part pas ;
+un visage part sous son ancien asset, `faceAssetId`). « Publier maintenant » saute l'intervalle, jamais le
+délai du site. Un échec compte comme un envoi pour le délai : pas de relance en boucle.
+
+- **Rolimon's** : `POST https://api.rolimons.com/tradeads/v1/createad`, JSON `{ player_id, offer_item_ids,
+  request_item_ids, request_tags }` (tags : any demand rares robux upgrade downgrade rap wishlist projecteds
+  adds), 4 + 4 au plus. Auth = cookie `_RoliVerification`, posé après la vérification du compte Roblox sur
+  rolimons.com/tradeads (code dans la description du profil). Réponses : 201 publié, 400 délai pas écoulé,
+  422 vérification invalide ou expirée, 429 trop de requêtes. Limites : 15 min, **55 annonces / 24 h**
+  (comptées côté RoNote). Source : la crate Rust `roli` (non officielle), pas de doc Rolimon's. Pas de
+  « qui suis-je » connu : l'état vient du dernier envoi. **Non vérifié en vrai** : que le cookie soit
+  posé sur `.rolimons.com` (sinon il ne part pas vers `api.`) et que l'API accepte l'`Origin`
+  `chrome-extension://` (sinon : une règle DNR comme pour Roblox, `Origin: https://www.rolimons.com`).
+- **RoUtility** (`routility.io`, permission facultative demandée au clic) : `GET /api/auth/me` →
+  `{ roblox_id, username }` si connecté ; `POST /api/ads/` JSON `{ offering: [{asset_id}], looking_for:
+  [{asset_id} | {type:'tag', tag}], note }`. Session = cookie du site (connexion sur routility.io).
+  Limites : 15 min entre deux annonces **et 5 annonces en ligne** (elles durent 14 jours), 429 sinon.
+  Source : le code de l'extension RoUtility elle-même (MIT, `reqonn/routility-extension`, `background.js`),
+  qui fait exactement ces appels depuis son worker. Reste à faire : supprimer la plus ancienne
+  (`DELETE /api/ads/{id}`, `GET /api/ads/mine`) avant de republier, sinon tout bloque à 5.
+- **Rotility** (`rotility.com`, sans doute le « Raw Utility » demandé) : connexion OAuth Roblox ou code
+  dans la description, cookie `rt_session` ; **chaque annonce passe par Cloudflare Turnstile**, l'API
+  publique est en lecture seule, et les CGU interdisent bots et automatisation (« For anything automated,
+  use the API »). Pas d'adaptateur : le popup le montre « Non automatisable » avec un lien vers le site.
+
 ## Partager un proof (Elite, en préparation après 2.16.13)
 
 Le bouclier du mode proof (trade terminé) met le mode proof ET ouvre un panneau à droite
