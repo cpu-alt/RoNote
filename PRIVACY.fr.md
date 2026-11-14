@@ -119,8 +119,7 @@ plus d'une fois toutes les 15 minutes par site. Il réutilise la session que **t
 sur chaque site dans ton navigateur : RoNote ne demande, ne garde ni ne tape aucun mot de
 passe, et ne lit aucun cookie. Ce qui part, c'est l'annonce elle-même et ton identifiant
 Roblox : vers `api.rolimons.com` (Rolimon's), et vers `routility.io` (RoUtility) seulement
-après que tu as accordé cette permission facultative. Rotility n'est pas automatisé
-(vérification anti-robot à chaque annonce, et ses conditions l'interdisent).
+après que tu as accordé cette permission facultative.
 
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 

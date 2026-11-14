@@ -322,8 +322,7 @@ const mockRuntime = {
           log: [{ at: Date.now() - 6e5, site: 'rolimons', result: 'ok' }, { at: Date.now() - 6e5, site: 'routility', result: 'limit' }] };
         return { cfg: globalThis.__ta, sites: {
           rolimons: { name: "Rolimon's", login: 'https://www.rolimons.com/tradeads', state: 'unknown', on: globalThis.__ta.sites.rolimons },
-          routility: { name: 'RoUtility', origin: 'https://routility.io/*', state: 'ok', account: { name: 'wars_choing' }, on: globalThis.__ta.sites.routility },
-          rotility: { name: 'Rotility', login: 'https://rotility.com/ads/new', state: 'blocked', on: false } } };
+          routility: { name: 'RoUtility', origin: 'https://routility.io/*', state: 'ok', account: { name: 'wars_choing' }, on: globalThis.__ta.sites.routility } } };
       }
       case 'ronote:tradeads-post':
         return { results: {} };

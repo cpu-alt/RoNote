@@ -1,6 +1,6 @@
 // Tests de l'auto-post de trade ads (background/tradeads.js) : format envoyé à chaque site,
 // session du navigateur réutilisée (credentials: 'include', aucun mot de passe ni cookie lu),
-// délais et limites des sites respectés, Rotility jamais appelé. Aucun réseau (fetch simulé).
+// délais et limites des sites respectés, rien vers roblox.com. Aucun réseau (fetch simulé).
 // Usage : node tools/test-tradeads.mjs
 const store = new Map();
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -38,12 +38,12 @@ const MIN = 60e3;
 console.log('\nRéglages nettoyés');
 {
   reset();
-  const c = ta.sanitize({ interval: 3, offer: [1, 1, 2, 3, 4, 5, -1, 'x'], tags: ['any', 'hack', 'demand'], items: [9, 8, 7], sites: { rotility: true, routility: true } });
+  const c = ta.sanitize({ interval: 3, offer: [1, 1, 2, 3, 4, 5, -1, 'x'], tags: ['any', 'hack', 'demand'], items: [9, 8, 7], sites: { inconnu: true, routility: true } });
   check('intervalle 15 min au moins', c.interval === 15);
   check('4 offerts au plus, sans doublon ni id invalide', JSON.stringify(c.offer) === '[1,2,3,4]');
   check('tags inconnus retirés', JSON.stringify(c.tags) === '["any","demand"]');
   check('items + tags demandés ≤ 4', c.items.length + c.tags.length === 4);
-  check('Rotility ne peut pas être coché', !c.sites.rotility && c.sites.routility);
+  check('un site inconnu ne peut pas être coché', !c.sites.inconnu && c.sites.routility);
   check('interrupteur éteint par défaut', ta.DEFAULTS.on === false);
 }
 
@@ -71,7 +71,7 @@ console.log('\nEnvoi : format de chaque site');
   check('RoUtility : offering / looking_for (items puis tags)',
     JSON.stringify(ru.body) === '{"offering":[{"asset_id":"111"},{"asset_id":"222"}],"looking_for":[{"asset_id":"333"},{"type":"tag","tag":"any"}],"note":""}');
   check('session du navigateur réutilisée (credentials include)', calls.every(c => c.credentials === 'include'));
-  check('aucun appel à Rotility ni à roblox.com', calls.every(c => !/rotility|roblox\.com/.test(c.url)));
+  check('aucun appel à roblox.com', calls.every(c => !/roblox\.com/.test(c.url)));
   const cfg = await ta.getConfig();
   check('journal : deux lignes « ok »', cfg.log.length === 2 && cfg.log.every(l => l.result === 'ok'));
 
@@ -116,7 +116,7 @@ console.log('\nÉtat des sites');
   let s = (await ta.tradeAdsStatus()).sites;
   check('RoUtility connecté, avec le compte', s.routility.state === 'ok' && s.routility.account.name === 'wars_choing');
   check('Rolimon\'s : inconnu avant le premier envoi', s.rolimons.state === 'unknown');
-  check('Rotility : bloqué (Turnstile)', s.rotility.state === 'blocked' && s.rotility.why === 'turnstile');
+  check('deux sites seulement', Object.keys(s).join() === 'rolimons,routility');
   routes[ME] = [401, {}];
   check('RoUtility sans session → à connecter', (await ta.tradeAdsStatus()).sites.routility.state === 'login');
   granted = new Set();

@@ -11,9 +11,7 @@
  *
  *  Un adaptateur par site : `status()` (connecté ou non), `post(ad)` → un
  *  code court ('ok' | 'login' | 'cooldown' | 'limit' | 'error'), `cooldown`
- *  et `daily` (limites du site). Rotility n'a pas d'adaptateur d'envoi : sa
- *  publication passe par une vérification anti-robot (Turnstile) et ses CGU
- *  interdisent l'automatisation, on ne la contourne pas.
+ *  et `daily` (limites du site). Deux sites : Rolimon's et RoUtility (MYd, 14 nov.).
  * ==========================================================================
  */
 import { B, safe } from '../common/shim.js';
@@ -68,11 +66,6 @@ export const SITES = {
       // 429 : 15 min entre deux annonces OU déjà 5 annonces en ligne (elles durent 14 jours).
       return outcome(res.status, { 401: 'login', 403: 'login', 429: 'limit' });
     }
-  },
-  rotility: {
-    name: 'Rotility',
-    login: 'https://rotility.com/ads/new',
-    blocked: 'turnstile'
   }
 };
 
@@ -96,7 +89,7 @@ export function sanitize(patch, cur = DEFAULTS) {
   out.items = out.items.slice(0, MAX_SIDE - out.tags.length);
   if (patch.sites && typeof patch.sites === 'object') {
     out.sites = { ...cur.sites };
-    for (const k of Object.keys(SITES)) if (k in patch.sites && !SITES[k].blocked) out.sites[k] = !!patch.sites[k];
+    for (const k of Object.keys(SITES)) if (k in patch.sites) out.sites[k] = !!patch.sites[k];
   }
   return out;
 }
@@ -115,7 +108,6 @@ export async function tradeAdsStatus() {
   const out = {};
   for (const [k, site] of Object.entries(SITES)) {
     const base = { name: site.name, login: site.login, origin: site.origin, cooldown: site.cooldown || 0, on: !!cfg.sites[k] };
-    if (site.blocked) { out[k] = { ...base, state: 'blocked', why: site.blocked }; continue; }
     if (!(await permitted(site))) { out[k] = { ...base, state: 'perm' }; continue; }
     const st = await safe(() => site.status(cfg), 'network');
     out[k] = typeof st === 'object' ? { ...base, state: 'ok', account: st } : { ...base, state: st };
@@ -151,7 +143,7 @@ export async function runTradeAds({ me, offerable = null, force = false, now = D
   const ad = { offer, items: cfg.items, tags: cfg.tags };
   const results = {};
   for (const [k, site] of Object.entries(SITES)) {
-    if (site.blocked || !cfg.sites[k]) continue;
+    if (!cfg.sites[k]) continue;
     const wait = Math.max(site.cooldown, force ? 0 : cfg.interval) * MIN;
     if (now - (cfg.last[k] || 0) < wait - 30e3) continue;   // l'alarme peut sonner quelques secondes en avance
     const day = (cfg.sent[k] || []).filter(at => now - at < 24 * 60 * MIN);

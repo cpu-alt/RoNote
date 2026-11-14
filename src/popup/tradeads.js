@@ -20,7 +20,7 @@ const INTERVALS = [15, 20, 30, 60, 120];
 const MAX = 4;
 const STATES = {
   ok: ['win', 'Connecté'], login: ['loss', 'À connecter'], perm: ['n', 'Autorisation à donner'],
-  unknown: ['n', 'Vérifié au premier envoi'], network: ['loss', 'Injoignable'], blocked: ['n', 'Non automatisable']
+  unknown: ['n', 'Vérifié au premier envoi'], network: ['loss', 'Injoignable']
 };
 const RESULTS = {
   ok: 'publiée', login: 'connexion à refaire', cooldown: 'délai du site pas écoulé', limit: 'limite du site atteinte',
@@ -44,10 +44,9 @@ function siteHtml(k, s) {
   const [tone, label] = STATES[s.state] || STATES.unknown;
   const who = s.account?.name ? ` · @${escapeHtml(s.account.name)}` : '';
   const btn = s.state === 'perm' ? `<button class="pf-send" data-ta-perm="${k}">${t('Autoriser')}</button>`
-    : s.state === 'ok' ? '' : `<button data-open="${escapeHtml(s.login)}">${t(s.state === 'blocked' ? 'Ouvrir le site' : 'Se connecter')}</button>`;
-  const why = s.state === 'blocked' ? `<small class="ta-why">${t('Vérification anti-robot à chaque annonce, et les conditions du site interdisent l\'automatisation.')}</small>` : '';
+    : s.state === 'ok' ? '' : `<button data-open="${escapeHtml(s.login)}">${t('Se connecter')}</button>`;
   return `<div class="ta-site">
-    <label class="ta-check"><input type="checkbox" data-ta-site="${k}"${s.on ? ' checked' : ''}${s.state === 'blocked' ? ' disabled' : ''}>
+    <label class="ta-check"><input type="checkbox" data-ta-site="${k}"${s.on ? ' checked' : ''}>
       <b>${escapeHtml(s.name)}</b></label>
     <span class="ta-st ${tone}">${t(label)}${who}</span>${btn}${why}
   </div>`;

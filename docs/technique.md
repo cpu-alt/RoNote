@@ -1090,10 +1090,7 @@ délai du site. Un échec compte comme un envoi pour le délai : pas de relance 
   Source : le code de l'extension RoUtility elle-même (MIT, `reqonn/routility-extension`, `background.js`),
   qui fait exactement ces appels depuis son worker. Reste à faire : supprimer la plus ancienne
   (`DELETE /api/ads/{id}`, `GET /api/ads/mine`) avant de republier, sinon tout bloque à 5.
-- **Rotility** (`rotility.com`, sans doute le « Raw Utility » demandé) : connexion OAuth Roblox ou code
-  dans la description, cookie `rt_session` ; **chaque annonce passe par Cloudflare Turnstile**, l'API
-  publique est en lecture seule, et les CGU interdisent bots et automatisation (« For anything automated,
-  use the API »). Pas d'adaptateur : le popup le montre « Non automatisable » avec un lien vers le site.
+- Rotility (`rotility.com`) retiré le 14 nov. : MYd ne garde que Rolimon's et RoUtility.
 
 ## Partager un proof (Elite, en préparation après 2.16.13)
 

@@ -115,8 +115,7 @@ items or tags you want) to the sites you ticked, at the interval you chose, neve
 than once every 15 minutes per site. It reuses the session **you** opened on each site in
 your browser: RoNote never asks for, stores or types a password, and reads no cookie. What
 is sent is the ad itself and your Roblox user ID: to `api.rolimons.com` (Rolimon's), and to
-`routility.io` (RoUtility) only after you allow that optional permission. Rotility is
-not automated (bot check on every ad, and its terms forbid it).
+`routility.io` (RoUtility) only after you allow that optional permission.
 
 **Without these options, no request goes to any other domain.**
 
