@@ -112,6 +112,16 @@ si tu l'as accordée une fois (*Autoriser les captures*) ; sans elles, tu peux l
 partage d'onglet de Chrome, qui te demande d'abord. Neuronal te les renvoie, **à toi**, en MP
 Discord par son bot RoOp Tracker, et ne garde pas l'image.
 
+**Trade ads automatiques (désactivées par défaut, en préparation).** Si tu les actives (menu
+du compte › Trade ads automatiques), RoNote publie l'annonce que tu as composée (les items
+que tu offres, les items ou tags demandés) sur les sites cochés, à l'intervalle choisi, jamais
+plus d'une fois toutes les 15 minutes par site. Il réutilise la session que **tu** as ouverte
+sur chaque site dans ton navigateur : RoNote ne demande, ne garde ni ne tape aucun mot de
+passe, et ne lit aucun cookie. Ce qui part, c'est l'annonce elle-même et ton identifiant
+Roblox : vers `api.rolimons.com` (Rolimon's), et vers `routility.io` (RoUtility) seulement
+après que tu as accordé cette permission facultative. Rotility n'est pas automatisé
+(vérification anti-robot à chaque annonce, et ses conditions l'interdisent).
+
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
@@ -156,6 +166,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 | `declarativeNetRequestWithHostAccess` | Corriger les en-têtes `Origin` et `Referer` des requêtes de RoNote vers Roblox, que Roblox rejetterait sinon. S'applique **uniquement aux requêtes émises par l'extension** (hors onglet), jamais à ta navigation |
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |
+| `routility.io` (optionnelle) | Demandée seulement si tu coches RoUtility dans les trade ads automatiques : vérifie que tu y es connecté et publie ton annonce, avec la session que tu as ouverte toi-même |
 | `neuronal.live` (optionnelle) | Demandée seulement si tu actives les Fiches Neuronal ou la contribution : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche ; avec la contribution, la présence de ton compte et tes trades terminés |
 
 ## Enfants et âge minimum

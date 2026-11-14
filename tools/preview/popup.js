@@ -314,6 +314,19 @@ const mockRuntime = {
         ].filter(p => tiers.includes(p.tier) && (!msg.tier || p.tier === msg.tier));
         return { data: { v: 1, kind: msg.kind, tier: msg.tier || null, tiers, profiles: all } };
       }
+      // Trade ads automatiques : la vraie logique de réglages, trois sites dans trois états.
+      case 'ronote:tradeads-get':
+      case 'ronote:tradeads-save': {
+        const { sanitize, DEFAULTS } = await import('../../src/background/tradeads.js');
+        globalThis.__ta = msg.patch ? sanitize(msg.patch, globalThis.__ta) : globalThis.__ta || { ...DEFAULTS,
+          log: [{ at: Date.now() - 6e5, site: 'rolimons', result: 'ok' }, { at: Date.now() - 6e5, site: 'routility', result: 'limit' }] };
+        return { cfg: globalThis.__ta, sites: {
+          rolimons: { name: "Rolimon's", login: 'https://www.rolimons.com/tradeads', state: 'unknown', on: globalThis.__ta.sites.rolimons },
+          routility: { name: 'RoUtility', origin: 'https://routility.io/*', state: 'ok', account: { name: 'wars_choing' }, on: globalThis.__ta.sites.routility },
+          rotility: { name: 'Rotility', login: 'https://rotility.com/ads/new', state: 'blocked', on: false } } };
+      }
+      case 'ronote:tradeads-post':
+        return { results: {} };
       // Le Deal Sniper : trois deals de paliers et tailles différents.
       case 'ronote:neuronal-deals': {
         await new Promise(r => setTimeout(r, 250));

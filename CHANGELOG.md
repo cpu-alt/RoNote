@@ -5,6 +5,11 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Trade ads automatiques** (fondations, menu du compte) : compose une annonce (jusqu'à 4 items de ton
+  inventaire, jusqu'à 4 items ou tags demandés), choisis l'intervalle et les sites, et RoNote la publie
+  tout seul sur Rolimon's et RoUtility avec la session que tu y as ouverte, jamais plus d'une fois toutes
+  les 15 min par site. Aucun mot de passe. État de connexion par site, « Publier maintenant », journal des
+  derniers envois. Rotility n'est pas automatisable (vérification anti-robot, conditions du site).
 - **Trade Flex refait** (le trophée d'un trade terminé) : une fenêtre en deux colonnes, l'aperçu en grand et
   les réglages à côté. Deux formats : la carte **complète** ou une carte **compacte** (1200 × 640, une ligne
   par objet). Cinq fonds (Nuit, Violet, Émeraude, Coucher de soleil, Carbone) ou ton image, qu'on peut

@@ -109,6 +109,15 @@ without them, you can take it with Chrome's own tab sharing, which asks you firs
 posts them back to **you**, in a Discord DM from its bot RoOp Tracker, and does not keep
 the image.
 
+**Automatic trade ads (off by default, in preparation).** If you turn them on (account
+menu › Automatic trade ads), RoNote posts the ad you composed (the items you offer, the
+items or tags you want) to the sites you ticked, at the interval you chose, never more
+than once every 15 minutes per site. It reuses the session **you** opened on each site in
+your browser: RoNote never asks for, stores or types a password, and reads no cookie. What
+is sent is the ad itself and your Roblox user ID: to `api.rolimons.com` (Rolimon's), and to
+`routility.io` (RoUtility) only after you allow that optional permission. Rotility is
+not automated (bot check on every ad, and its terms forbid it).
+
 **Without these options, no request goes to any other domain.**
 
 ## How your Roblox session is used
@@ -152,6 +161,7 @@ reply to an inbound trade, on your click.
 | `declarativeNetRequestWithHostAccess` | Fix the `Origin` and `Referer` headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies **only to requests issued by the extension** (outside any tab), never to your browsing |
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |
+| `routility.io` (optional) | Only requested if you tick RoUtility in Automatic trade ads: checks that you are signed in there and posts your ad, with the session you opened yourself |
 | `neuronal.live` (optional) | Only requested if you turn on Neuronal lookups or the contribution: what the network knows about a player or an item whose sheet you open; with the contribution, your account's presence and your completed trades |
 
 ## Children and minimum age
