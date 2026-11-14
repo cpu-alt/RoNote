@@ -196,6 +196,21 @@ console.log('\nModèles d\'annonce');
   check('Upgrade avec value min. 100 : 50 et 80 exclus', !presetAd('upgrade', inv, (i) => i.id, { minValue: 100 }).offer.some(id => id === 5 || id === 6));
   check('filtres gardés par le worker, valeur hors liste refusée',
     ta.sanitize({ noEggs: false, minValue: 5000 }).minValue === 5000 && ta.sanitize({ minValue: 1234 }).minValue === 0 && ta.sanitize({ noEggs: false }).noEggs === false);
+  check('item exclu : jamais proposé ni par un modèle', !offerable(inv, { exclude: [2] }).some(i => i.id === 2) && !presetAd('downgrade', inv, (i) => i.id, { exclude: [2] }).offer.includes(2));
+  check('« Sans les projected » les cache de la liste', !offerable(inv, { noProjected: true }).some(i => i.id === 3));
+  const ex = ta.sanitize({ offer: [1, 2, 3], exclude: [2] });
+  check('worker : un item exclu sort de l\'annonce', JSON.stringify(ex.offer) === '[1,3]');
+  check('message borné à 200 caractères, sans retour à la ligne', ta.sanitize({ note: 'a\nb' + 'x'.repeat(300) }).note.length === 200 && !ta.sanitize({ note: 'a\nb' }).note.includes('\n'));
+
+  console.log('\nImport / export');
+  const { parseConfigFile } = await import('../src/popup/tradeads.js');
+  const file = JSON.stringify({ ronote: 'tradeads', v: 1, ad: ta.pickAd({ ...ta.DEFAULTS, offer: [5], tags: ['any'], on: true }) });
+  const back = parseConfigFile(file);
+  check('export → import : l\'annonce revient', JSON.stringify(back.offer) === '[5]' && back.tags[0] === 'any');
+  check('l\'interrupteur ne voyage jamais dans un fichier', !('on' in back) && !('on' in (parseConfigFile('{"on":true,"tags":["any"]}') || {})));
+  check('fichier invalide ou étranger refusé', parseConfigFile('pas du json') === null && parseConfigFile('{"foo":1}') === null);
+  const sv = ta.sanitize({ saved: [{ name: 'A', ad: { offer: [1, 'x'], tags: ['hack', 'rap'], on: true } }, null, { name: 'sans ad' }] });
+  check('configs enregistrées nettoyées', sv.saved.length === 1 && JSON.stringify(sv.saved[0].ad.offer) === '[1]' && JSON.stringify(sv.saved[0].ad.tags) === '["rap"]' && !('on' in sv.saved[0].ad));
 }
 console.log(`\n${passed} réussis, ${failed} échoué(s)`);
 if (failed) process.exit(1);

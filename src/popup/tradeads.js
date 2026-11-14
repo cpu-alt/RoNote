@@ -15,7 +15,7 @@ import { t } from '../common/i18n.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { ic } from '../common/icons.js';
-import { smartGap, MIN_VALUES } from '../background/tradeads.js';
+import { smartGap, MIN_VALUES, pickAd, onlyAd } from '../background/tradeads.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
 const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `smartGap`)
@@ -35,13 +35,26 @@ export const PRESETS = {
 /** L'inventaire offrable, du plus cher au moins cher → { offer, tags, items } du modèle. */
 export function presetAd(key, inv, idOf = (i) => i.id, filters = {}) {
   const p = PRESETS[key];
-  const pool = offerable(inv, filters).filter(i => !i.projected).sort((a, b) => b.value - a.value);
+  const pool = offerable(inv, { ...filters, noProjected: true }, idOf).sort((a, b) => b.value - a.value);
   return p && pool.length ? { offer: p.pick(pool).map(idOf), tags: p.tags, items: [] } : null;
 }
 /** Les œufs (limiteds de Pâques, « Egg… ») et les petits items n'intéressent personne en trade ad : filtrés au choix. */
 export const isEgg = (i) => /\begg/i.test(i.name || '');
-export const offerable = (inv, { noEggs = false, minValue = 0 } = {}) =>
-  inv.filter(i => i.value > 0 && i.value >= minValue && !(noEggs && isEgg(i)));
+export const offerable = (inv, { noEggs = false, minValue = 0, noProjected = false, exclude = [] } = {}, idOf = (i) => i.id) =>
+  inv.filter(i => i.value > 0 && i.value >= minValue && !(noEggs && isEgg(i)) && !(noProjected && i.projected) && !exclude.includes(idOf(i)));
+/** Le tri de la liste « Mes items ». */
+export const SORTS = {
+  value: ['Value', (a, b) => b.value - a.value],
+  demand: ['Demande', (a, b) => (b.demand ?? -1) - (a.demand ?? -1) || b.value - a.value],
+  name: ['Nom', (a, b) => String(a.name).localeCompare(String(b.name))]
+};
+/** Un fichier de configuration lu → patch (le worker re-nettoie tout), ou null s'il n'en est pas un. */
+export function parseConfigFile(text) {
+  let o; try { o = JSON.parse(text); } catch { return null; }
+  if (o?.ronote === 'tradeads' && o.ad) o = o.ad;
+  const ad = onlyAd(o);
+  return Object.keys(ad).length ? ad : null;
+}
 const MAX = 4;
 const STATES = {
   ok: ['win', 'Connecté'], login: ['loss', 'À connecter'], perm: ['n', 'Autorisation à donner'],
@@ -58,11 +71,17 @@ let found = [];            // la recherche d'items demandés
 let query = '';
 let pickTab = 'mine';      // le sélecteur d'items : « Mes items » ou « Ce que je demande »
 let invQuery = '';
+let invSort = 'value';
+let showExcluded = false;
+const askInfo = new Map();   // assetId → { name, acronym, value, thumb } des items demandés (catalogue du worker)
+let flash = '';              // message bref (import réussi, copié…)
 
 /** L'id que les sites attendent : l'asset, ou l'ancien asset d'un visage (bundle). */
 const tradeId = (i) => (i.kind === 'bundle' ? i.faceAssetId : i.id);
 const inventory = () => (report?.items || []).filter(i => tradeId(i) > 0);
-const nameOf = (id) => inventory().find(i => tradeId(i) === id)?.name || found.find(i => i.assetId === id)?.name || '#' + id;
+const nameOf = (id) => inventory().find(i => tradeId(i) === id)?.name || askInfo.get(id)?.name || found.find(i => i.assetId === id)?.name || '#' + id;
+const filtersOf = (cfg) => ({ noEggs: cfg.noEggs, minValue: cfg.minValue, noProjected: cfg.noProjected, exclude: cfg.exclude || [] });
+const dots = (d) => (d == null || d < 0 ? '' : `<i class="ta-dem" title="${escapeHtml(t('Demande'))} ${d}/4">${'●'.repeat(Math.min(5, d + 1))}</i>`);
 
 const chip = (attr, value, label, on) =>
   `<button role="checkbox" aria-checked="${on}" ${attr}="${escapeHtml(String(value))}">${label}</button>`;
@@ -112,21 +131,27 @@ function adPreview(cfg, inv) {
     if (!a) return '<span class="ta-slot empty"></span>';
     return a.tag
       ? `<button class="ta-slot" data-ta-tag="${escapeHtml(a.tag)}" title="${escapeHtml(t('Retirer'))}"><span class="ph tag">#</span><small>${escapeHtml(a.tag)}</small></button>`
-      : `<button class="ta-slot" data-ta-item="${a.item}" title="${escapeHtml(t('Retirer'))}"><span class="ph">${ic('star')}</span><small>${escapeHtml(nameOf(a.item))}</small></button>`;
+      : `<button class="ta-slot" data-ta-item="${a.item}" title="${escapeHtml(t('Retirer'))} : ${escapeHtml(nameOf(a.item))}">${askInfo.get(a.item)?.thumb ? thumb(askInfo.get(a.item)) : `<span class="ph">${ic('star')}</span>`}<small>${escapeHtml(askInfo.get(a.item)?.acronym || nameOf(a.item))}</small></button>`;
   }).join('');
   const total = cfg.offer.reduce((sum, id) => sum + (byId.get(id)?.value || 0), 0);
+  const want = cfg.items.reduce((sum, id) => sum + (askInfo.get(id)?.value || 0), 0);
+  const bal = total && want ? `<div class="ta-bal" title="${escapeHtml(t("Équilibre de l'annonce"))}"><i style="width:${Math.round(100 * total / (total + want))}%"></i></div>
+    <small class="ta-why">${want > total ? t('Tu demandes {p} % de plus que ce que tu offres', { p: Math.round(100 * (want - total) / total) })
+      : t('Tu offres {p} % de plus que ce que tu demandes', { p: Math.round(100 * (total - want) / want) })}</small>` : '';
   return `<div class="ta-trade">
       <div class="ta-side"><div class="ta-side-h"><span>${t('Tu offres')}</span><small>${total ? fmtNum(total) : `${cfg.offer.length}/${MAX}`}</small></div><div class="ta-slots">${give}</div></div>
       <span class="ta-swap">${ic('swap')}</span>
-      <div class="ta-side"><div class="ta-side-h"><span>${t('Tu demandes')}</span><small>${asks.length}/${MAX}</small></div><div class="ta-slots">${get}</div></div>
-    </div>`;
+      <div class="ta-side"><div class="ta-side-h"><span>${t('Tu demandes')}</span><small>${want ? fmtNum(want) : `${asks.length}/${MAX}`}</small></div><div class="ta-slots">${get}</div></div>
+    </div>${bal}`;
 }
 
 function pickerHtml(cfg, all) {
-  const shown = offerable(all, { noEggs: cfg.noEggs, minValue: cfg.minValue });
+  const excl = cfg.exclude || [];
+  const shown = offerable(all, filtersOf(cfg), tradeId);
   const hidden = all.length - shown.length;
   const q = invQuery.trim().toLowerCase();
-  const list = q ? shown.filter(i => `${i.name} ${i.acronym || ''}`.toLowerCase().includes(q)) : shown;
+  const base = showExcluded ? all.filter(i => excl.includes(tradeId(i))) : shown;
+  const list = (q ? base.filter(i => `${i.name} ${i.acronym || ''}`.toLowerCase().includes(q)) : base).slice().sort(SORTS[invSort][1]);
   const tabs = `<div class="ta-tabs" role="tablist">
       <button role="tab" aria-selected="${pickTab === 'mine'}" data-ta-pick="mine">${t('Mes items')} <small>${cfg.offer.length}/${MAX}</small></button>
       <button role="tab" aria-selected="${pickTab === 'ask'}" data-ta-pick="ask">${t('Ce que je demande')} <small>${cfg.items.length + cfg.tags.length}/${MAX}</small></button></div>`;
@@ -134,21 +159,26 @@ function pickerHtml(cfg, all) {
       <div class="ta-tags">${TAGS.map(g => `<button role="checkbox" aria-checked="${cfg.tags.includes(g)}" data-ta-tag="${g}">#${g}</button>`).join('')}</div>
       <input class="ta-q" type="search" data-ta-q placeholder="${escapeHtml(t('Ajouter un item demandé…'))}" value="${escapeHtml(query)}">
       <div class="ta-items">${found.filter(i => !cfg.items.includes(i.assetId)).map(i =>
-        `<button class="ta-item" data-ta-item="${i.assetId}"><span class="ph">${ic('plus')}</span><span class="ta-item-n">${escapeHtml(i.name)}</span><b>${fmtNum(i.value)}</b></button>`).join('')}</div>`;
+        `<button class="ta-item" data-ta-item="${i.assetId}">${i.thumb ? thumb(i) : `<span class="ph">${ic('plus')}</span>`}<span class="ta-item-n">${escapeHtml(i.name)}</span><b>${fmtNum(i.value)}</b></button>`).join('')}</div>`;
   if (!all.length) return `${tabs}<p class="ta-why">${t('Ouvre l\'onglet Portefeuille une fois : RoNote y lit ton inventaire.')}</p>`;
   return `${tabs}
       <div class="ta-filters">
         <input class="ta-q" type="search" data-ta-invq placeholder="${escapeHtml(t('Chercher dans mes items…'))}" value="${escapeHtml(invQuery)}">
         <label class="ta-chk"><input type="checkbox" data-ta-noeggs${cfg.noEggs ? ' checked' : ''}>${t('Sans les œufs')}</label>
+        <label class="ta-chk"><input type="checkbox" data-ta-noproj${cfg.noProjected ? ' checked' : ''}>${t('Sans les projected')}</label>
         <label class="ta-sel">${t('Value min.')}<select data-ta-min>${MIN_VALUES.map(v =>
           `<option value="${v}"${v === cfg.minValue ? ' selected' : ''}>${v ? fmtNum(v) : t('aucune')}</option>`).join('')}</select></label>
+        <label class="ta-sel">${t('Trier')}<select data-ta-sort>${Object.entries(SORTS).map(([k, [l]]) =>
+          `<option value="${k}"${k === invSort ? ' selected' : ''}>${t(l)}</option>`).join('')}</select></label>
       </div>
+      ${excl.length ? `<button class="ta-link" data-ta-showx>${showExcluded ? t('← Retour à mes items') : t('{n} items exclus : les voir', { n: excl.length })}</button>` : ''}
       <div class="ta-items">${list.map(i => {
-        const on = cfg.offer.includes(tradeId(i));
-        return `<button class="ta-item${on ? ' on' : ''}" role="checkbox" aria-checked="${on}" data-ta-offer="${tradeId(i)}">${thumb(i)}
-          <span class="ta-item-n">${escapeHtml(i.name)}${i.projected ? ' <em>P</em>' : ''}</span><b>${fmtNum(i.value)}</b></button>`;
+        const id = tradeId(i), on = cfg.offer.includes(id), x = excl.includes(id);
+        return `<div class="ta-row"><button class="ta-item${on ? ' on' : ''}" role="checkbox" aria-checked="${on}" ${x ? 'disabled' : `data-ta-offer="${id}"`}>${thumb(i)}
+          <span class="ta-item-n">${escapeHtml(i.name)}${i.projected ? ' <em>P</em>' : ''}${dots(i.demand)}</span><b>${fmtNum(i.value)}</b></button>
+          <button class="ta-x" data-ta-excl="${id}" title="${escapeHtml(t(x ? 'Remettre dans la liste' : 'Exclure : ne jamais offrir cet item'))}">${ic(x ? 'undo' : 'ban')}</button></div>`;
       }).join('') || `<p class="ta-why">${t('Aucun item ne passe les filtres.')}</p>`}</div>
-      ${hidden ? `<small class="ta-why">${t('{n} items cachés par les filtres', { n: hidden })}</small>` : ''}`;
+      ${hidden && !showExcluded ? `<small class="ta-why">${t('{n} items cachés par les filtres', { n: hidden })}</small>` : ''}`;
 }
 
 function paint(root) {
@@ -183,6 +213,8 @@ function paint(root) {
           `<button data-ta-preset="${k}"><b>${escapeHtml(t(p.label))}</b><small>${escapeHtml(t(p.hint))}</small></button>`).join('')}</div>` : ''}
         ${adPreview(cfg, all)}
         ${pickerHtml(cfg, all)}
+        <label class="ta-note"><span>${t("Message de l'annonce")} <small>(RoUtility)</small></span>
+          <input class="ta-q" type="text" maxlength="200" data-ta-note value="${escapeHtml(cfg.note || '')}" placeholder="${escapeHtml(t('Ex. : ouvert aux overpays, pas de lowball'))}"></label>
       </section>
 
       <section class="pf-card ta-card"><h3><i>3</i>${t('Rythme')}</h3>
@@ -190,6 +222,22 @@ function paint(root) {
           `<button role="radio" aria-checked="${m === cfg.interval}" data-ta-int="${m}">${m ? m + ' min' : t('Malin')}</button>`).join('')}</div>
         <small class="ta-why">${cfg.interval ? t('Une annonce par site à cet intervalle, dans la limite du site.')
           : t("Malin : Rolimon's toutes les 27 min (53 par jour, sans jamais tomber sur la limite de 55), RoUtility toutes les 15 min en remplaçant ta plus vieille annonce.")}</small>
+      </section>
+
+      <section class="pf-card ta-card"><h3><i>4</i>${t('Configurations')}</h3>
+        ${(cfg.saved || []).length ? `<ul class="ta-saved">${cfg.saved.map((c, n) => `<li>
+          <button class="ta-saved-n" data-ta-load="${n}" title="${escapeHtml(t('Charger cette configuration'))}"><b>${escapeHtml(c.name)}</b>
+            <small>${t('{o} offerts · {d} demandés', { o: c.ad.offer.length, d: c.ad.items.length + c.ad.tags.length })}</small></button>
+          <button class="ta-x" data-ta-del="${n}" title="${escapeHtml(t('Supprimer'))}">${ic('x')}</button></li>`).join('')}</ul>` : ''}
+        <div class="ta-cfg-row"><input class="ta-q" type="text" maxlength="40" data-ta-name placeholder="${escapeHtml(t('Nom de la configuration'))}">
+          <button class="ta-btn" data-ta-savecfg>${ic('plus')}${t('Enregistrer')}</button></div>
+        <div class="ta-cfg-row">
+          <button class="ta-btn" data-ta-export>${ic('download')}${t('Exporter')}</button>
+          <button class="ta-btn" data-ta-copy>${ic('copy')}${t('Copier')}</button>
+          <button class="ta-btn" data-ta-import>${ic('upload')}${t('Importer')}</button>
+          <input type="file" accept=".json,application/json" data-ta-file hidden>
+        </div>
+        <small class="ta-why">${flash ? escapeHtml(flash) : t("Un fichier .json garde l'annonce, les filtres, les exclus et le rythme : à réimporter ou à partager.")}</small>
       </section>
 
       <details class="pf-card ta-card ta-hist"><summary>${ic('journal')}<b>${t('Derniers envois')}</b><small>${cfg.log.length}</small>${ic('chevron')}</summary>
@@ -204,13 +252,30 @@ function paint(root) {
 async function load(root) {
   res = await send({ type: 'ronote:tradeads-get' }).catch(() => null);
   if (root.dataset.tab === 'tradeads') paint(root);
+  refreshAsk(root);
+}
+
+/** Vignette, nom et value des items demandés : le catalogue déjà en cache du worker, une fois par item. */
+async function refreshAsk(root) {
+  const miss = (res?.cfg?.items || []).filter(id => !askInfo.has(id));
+  if (!miss.length) return;
+  const r = await send({ type: 'ronote:catalog-search', ids: miss.map(assetId => ({ assetId })) }).catch(() => null);
+  for (const i of r?.items || []) askInfo.set(i.assetId, i);
+  if (r?.items?.length && root.dataset.tab === 'tradeads') paint(root);
 }
 
 async function save(root, patch) {
   const r = await send({ type: 'ronote:tradeads-save', patch }).catch(() => null);
   if (r?.cfg) res = { ...res, cfg: r.cfg };
   paint(root);
+  refreshAsk(root);
 }
+function say(root, msg) {
+  flash = msg;
+  paint(root);
+  setTimeout(() => { if (flash !== msg) return; flash = ''; if (root.dataset.tab === 'tradeads') paint(root); }, 4000);
+}
+const exportText = (cfg) => JSON.stringify({ ronote: 'tradeads', v: 1, ad: pickAd(cfg) }, null, 2);
 
 const toggle = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
 let searchTimer = 0;
@@ -222,11 +287,27 @@ export function renderTradeAds(listEl, portfolioReport) {
     listEl.dataset.taBound = '1';
     listEl.addEventListener('click', async (e) => {
       if (listEl.dataset.tab !== 'tradeads' || !res?.cfg) return;
-      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick]');
+      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick], [data-ta-excl], [data-ta-showx], [data-ta-load], [data-ta-del], [data-ta-savecfg], [data-ta-export], [data-ta-copy], [data-ta-import]');
       if (!el) return;
       const { cfg } = res;
       const d = el.dataset;
       if (d.taPick) { pickTab = d.taPick; paint(listEl); }
+      else if (d.taExcl) save(listEl, { exclude: toggle(cfg.exclude || [], Number(d.taExcl)) });
+      else if ('taShowx' in d) { showExcluded = !showExcluded; paint(listEl); }
+      else if (d.taLoad) { const c = cfg.saved[Number(d.taLoad)]; if (c) { await save(listEl, c.ad); say(listEl, t('« {n} » chargée', { n: c.name })); } }
+      else if (d.taDel) save(listEl, { saved: cfg.saved.filter((_, n) => n !== Number(d.taDel)) });
+      else if ('taSavecfg' in d) {
+        const name = listEl.querySelector('[data-ta-name]')?.value.trim() || t('Config {n}', { n: cfg.saved.length + 1 });
+        await save(listEl, { saved: [...cfg.saved.filter(c => c.name !== name), { name, ad: pickAd(cfg) }] });
+        say(listEl, t('« {n} » enregistrée', { n: name }));
+      } else if ('taExport' in d) {
+        const url = URL.createObjectURL(new Blob([exportText(cfg)], { type: 'application/json' }));
+        Object.assign(document.createElement('a'), { href: url, download: 'ronote-tradeads.json' }).click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } else if ('taCopy' in d) {
+        const ok = await navigator.clipboard.writeText(exportText(cfg)).then(() => true, () => false);
+        say(listEl, ok ? t('Configuration copiée') : t('Copie refusée par le navigateur'));
+      } else if ('taImport' in d) listEl.querySelector('[data-ta-file]')?.click();
       else if (d.taOffer) {
         const next = toggle(cfg.offer, Number(d.taOffer));
         if (next.length <= MAX) save(listEl, { offer: next });
@@ -235,9 +316,11 @@ export function renderTradeAds(listEl, portfolioReport) {
         if (next.length + cfg.items.length <= MAX) save(listEl, { tags: next });
       } else if (d.taItem) {
         const next = toggle(cfg.items, Number(d.taItem));
+        const f = found.find(i => i.assetId === Number(d.taItem));
+        if (f) askInfo.set(f.assetId, f);
         if (next.length + cfg.tags.length <= MAX) save(listEl, { items: next });
       } else if (d.taInt) save(listEl, { interval: Number(d.taInt) });
-      else if (d.taPreset) { const ad = presetAd(d.taPreset, inventory(), tradeId, { noEggs: cfg.noEggs, minValue: cfg.minValue }); if (ad) save(listEl, ad); }
+      else if (d.taPreset) { const ad = presetAd(d.taPreset, inventory(), tradeId, filtersOf(cfg)); if (ad) save(listEl, ad); }
       else if (d.taLogin) {
         // L'autorisation est demandée ici, au clic : Chrome n'accepte la question que sur un geste de l'utilisateur.
         const origin = res.sites[d.taLogin]?.origin;
@@ -257,6 +340,17 @@ export function renderTradeAds(listEl, portfolioReport) {
       else if (el.dataset.taSite) save(listEl, { sites: { [el.dataset.taSite]: el.checked } });
       else if ('taNoeggs' in el.dataset) save(listEl, { noEggs: el.checked });
       else if ('taMin' in el.dataset) save(listEl, { minValue: Number(el.value) });
+      else if ('taNoproj' in el.dataset) save(listEl, { noProjected: el.checked });
+      else if ('taSort' in el.dataset) { invSort = SORTS[el.value] ? el.value : 'value'; paint(listEl); }
+      else if ('taNote' in el.dataset) save(listEl, { note: el.value });
+      else if ('taFile' in el.dataset && el.files?.[0]) {
+        el.files[0].text().then(async (txt) => {
+          const ad = parseConfigFile(txt);
+          if (!ad) return say(listEl, t("Ce fichier n'est pas une configuration RoNote"));
+          await save(listEl, ad);
+          say(listEl, t('Configuration importée'));
+        });
+      }
     });
     listEl.addEventListener('input', (e) => {
       if (listEl.dataset.tab !== 'tradeads') return;

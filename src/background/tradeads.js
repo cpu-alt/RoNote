@@ -67,7 +67,7 @@ export const SITES = {
         body: JSON.stringify({
           offering: ad.offer.map(id => ({ asset_id: String(id) })),
           looking_for: [...ad.items.map(id => ({ asset_id: String(id) })), ...ad.tags.map(tag => ({ type: 'tag', tag }))],
-          note: ''
+          note: ad.note || ''
         })
       });
       // 429 : 15 min entre deux annonces OU déjà 5 annonces en ligne (elles durent 14 jours).
@@ -89,10 +89,17 @@ export const DEFAULTS = {
   on: false, interval: 0,             // 0 = malin : la fenêtre de chaque site remplie au mieux
   offer: [], items: [], tags: [],
   noEggs: true, minValue: 0,          // filtres du choix des items (popup) : sans les œufs, sans les petits items
+  noProjected: true, exclude: [],     // projected cachés ; items que l'utilisateur ne veut jamais offrir
+  note: '',                           // texte de l'annonce (RoUtility ; Rolimon's n'en a pas)
+  saved: [],                          // configurations enregistrées : [{ name, ad }]
   sites: { rolimons: true, routility: false },
   last: {}, sent: {}, status: {}, log: []
 };
 
+const NOTE_MAX = 200, SAVED_MAX = 12, EXCLUDE_MAX = 1000;
+/** Ce qu'une configuration exportée ou enregistrée contient (jamais l'interrupteur ni le journal). */
+export const AD_KEYS = ['offer', 'items', 'tags', 'interval', 'noEggs', 'minValue', 'noProjected', 'exclude', 'note', 'sites'];
+export const pickAd = (cfg) => Object.fromEntries(AD_KEYS.map(k => [k, cfg[k]]));
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(n => Number.isInteger(n) && n > 0))];
 
 /** Ce que le popup peut changer, nettoyé : le reste (journal, horodatages) n'appartient qu'au worker. */
@@ -102,7 +109,11 @@ export function sanitize(patch, cur = DEFAULTS) {
   if ('noEggs' in patch) out.noEggs = !!patch.noEggs;
   if ('minValue' in patch) out.minValue = MIN_VALUES.includes(Number(patch.minValue)) ? Number(patch.minValue) : 0;
   if ('interval' in patch) out.interval = Number(patch.interval) === 0 ? 0 : Math.min(240, Math.max(15, Math.round(Number(patch.interval) || 15)));
+  if ('noProjected' in patch) out.noProjected = !!patch.noProjected;
+  if ('note' in patch) out.note = String(patch.note || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, NOTE_MAX);
+  if ('exclude' in patch) out.exclude = ids(patch.exclude).slice(0, EXCLUDE_MAX);
   if ('offer' in patch) out.offer = ids(patch.offer).slice(0, MAX_SIDE);
+  out.offer = out.offer.filter(id => !out.exclude.includes(id));   // un item exclu n'est jamais offert
   if ('tags' in patch) out.tags = [...new Set((patch.tags || []).filter(x => TAGS.includes(x)))].slice(0, MAX_SIDE);
   if ('items' in patch) out.items = ids(patch.items);
   out.items = out.items.slice(0, MAX_SIDE - out.tags.length);
@@ -110,8 +121,15 @@ export function sanitize(patch, cur = DEFAULTS) {
     out.sites = { ...cur.sites };
     for (const k of Object.keys(SITES)) if (k in patch.sites) out.sites[k] = !!patch.sites[k];
   }
+  if (Array.isArray(patch.saved)) {
+    out.saved = patch.saved.filter(x => x && typeof x === 'object' && x.ad && typeof x.ad === 'object').slice(0, SAVED_MAX)
+      .map(x => ({ name: String(x.name || '').trim().slice(0, 40) || '?', ad: pickAd(sanitize(onlyAd(x.ad), DEFAULTS)) }));
+  }
   return out;
 }
+
+/** Une configuration venue d'ailleurs (fichier importé, config enregistrée) : seulement les clés d'annonce. */
+export const onlyAd = (o) => Object.fromEntries(AD_KEYS.filter(k => o && k in o).map(k => [k, o[k]]));
 
 export async function getConfig() {
   const { [KEY]: c } = await B.storage.local.get(KEY);
@@ -198,7 +216,7 @@ export async function runTradeAds({ me, offerable = null, force = false, now = D
   if (!me) return { skipped: 'me' };
   const offer = offerable ? cfg.offer.filter(id => offerable.has(id)) : cfg.offer;
   if (!offer.length || !(cfg.items.length + cfg.tags.length)) return { skipped: 'empty' };
-  const ad = { offer, items: cfg.items, tags: cfg.tags };
+  const ad = { offer, items: cfg.items, tags: cfg.tags, note: cfg.note };
   const results = {};
   for (const [k, site] of Object.entries(SITES)) {
     if (!cfg.sites[k]) continue;
