@@ -21,6 +21,7 @@ const KEY = 'tradeads';
 const LOG_CAP = 30;
 const MIN = 60e3;
 export const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
+export const MIN_VALUES = [0, 1000, 5000, 10000, 50000];
 export const MAX_SIDE = 4;              // 4 offerts, 4 demandés (items + tags) : la règle des trois sites
 
 const json = { 'content-type': 'application/json' };
@@ -87,6 +88,7 @@ export const SITES = {
 export const DEFAULTS = {
   on: false, interval: 0,             // 0 = malin : la fenêtre de chaque site remplie au mieux
   offer: [], items: [], tags: [],
+  noEggs: true, minValue: 0,          // filtres du choix des items (popup) : sans les œufs, sans les petits items
   sites: { rolimons: true, routility: false },
   last: {}, sent: {}, status: {}, log: []
 };
@@ -97,6 +99,8 @@ const ids = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(n 
 export function sanitize(patch, cur = DEFAULTS) {
   const out = { ...cur };
   if ('on' in patch) out.on = !!patch.on;
+  if ('noEggs' in patch) out.noEggs = !!patch.noEggs;
+  if ('minValue' in patch) out.minValue = MIN_VALUES.includes(Number(patch.minValue)) ? Number(patch.minValue) : 0;
   if ('interval' in patch) out.interval = Number(patch.interval) === 0 ? 0 : Math.min(240, Math.max(15, Math.round(Number(patch.interval) || 15)));
   if ('offer' in patch) out.offer = ids(patch.offer).slice(0, MAX_SIDE);
   if ('tags' in patch) out.tags = [...new Set((patch.tags || []).filter(x => TAGS.includes(x)))].slice(0, MAX_SIDE);
@@ -122,7 +126,7 @@ export async function tradeAdsStatus() {
   const cfg = await getConfig();
   const out = {};
   for (const [k, site] of Object.entries(SITES)) {
-    const base = { name: site.name, login: site.login, origin: site.origin, cooldown: site.cooldown || 0, on: !!cfg.sites[k] };
+    const base = { name: site.name, login: site.login, origin: site.origin, cooldown: site.cooldown || 0, daily: site.daily || 0, on: !!cfg.sites[k] };
     if (!(await permitted(site))) { out[k] = { ...base, state: 'perm' }; continue; }
     const st = await safe(() => site.status(cfg), 'network');
     out[k] = typeof st === 'object' ? { ...base, state: 'ok', account: st } : { ...base, state: st };

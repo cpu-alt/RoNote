@@ -188,6 +188,14 @@ console.log('\nModèles d\'annonce');
   check('Downgrade : le plus gros item seul', JSON.stringify(all[1].offer) === '[2]');
   check('Demande : les moins demandés d\'abord', all[2].offer[0] === 4);
   check('inventaire vide : aucun modèle', presetAd('any', []) === null);
+  const { offerable, isEgg } = await import('../src/popup/tradeads.js');
+  const eggs = [{ id: 7, name: 'Eggcellent Egg', value: 2000 }, { id: 8, name: 'Dominus Egg', value: 900000 }, { id: 9, name: 'Legendary Leggings', value: 3000 }];
+  check('œufs reconnus au nom, pas « Leggings »', isEgg(eggs[0]) && isEgg(eggs[1]) && !isEgg(eggs[2]));
+  check('« Sans les œufs » les retire', offerable(eggs, { noEggs: true }).map(i => i.id).join() === '9');
+  check('value minimale : les petits items partent', offerable(inv, { minValue: 1000 }).map(i => i.id).join() === '2');
+  check('Upgrade avec value min. 100 : 50 et 80 exclus', !presetAd('upgrade', inv, (i) => i.id, { minValue: 100 }).offer.some(id => id === 5 || id === 6));
+  check('filtres gardés par le worker, valeur hors liste refusée',
+    ta.sanitize({ noEggs: false, minValue: 5000 }).minValue === 5000 && ta.sanitize({ minValue: 1234 }).minValue === 0 && ta.sanitize({ noEggs: false }).noEggs === false);
 }
 console.log(`\n${passed} réussis, ${failed} échoué(s)`);
 if (failed) process.exit(1);
