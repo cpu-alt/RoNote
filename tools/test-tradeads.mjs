@@ -10,12 +10,16 @@ globalThis.chrome = {
   storage: {
     local: {
       async get(k) { return store.has(k) ? { [k]: clone(store.get(k)) } : {}; },
-      async set(obj) { for (const [k, v] of Object.entries(obj)) store.set(k, clone(v)); }
+      async set(obj) { for (const [k, v] of Object.entries(obj)) store.set(k, clone(v)); },
+      async remove(k) { store.delete(k); }
     }
   },
   permissions: { contains: async ({ origins }) => origins.every(o => granted.has(o)) },
-  alarms: { async clear(n) { alarms.delete(n); }, async create(n, o) { alarms.set(n, o); } }
+  alarms: { async clear(n) { alarms.delete(n); }, async create(n, o) { alarms.set(n, o); } },
+  windows: { async create(o) { windows.push(o); return { id: 7, tabs: [{ id: 70 }] }; }, async remove(id) { closed.push(id); } },
+  tabs: { async create() {} }
 };
+const windows = [], closed = [];
 
 let calls = [];
 let routes = {};
@@ -126,4 +130,22 @@ console.log('\nÉtat des sites');
 }
 
 console.log(`\n${passed} réussis, ${failed} échoué(s)`);
+console.log('Se connecter avec Roblox');
+{
+  reset();
+  await ta.tradeAdsLogin('rolimons');
+  check('fenêtre ouverte sur le login OAuth de Roblox', windows[0]?.url.startsWith('https://apis.roblox.com/oauth/v1/authorize') && windows[0].type === 'popup');
+  await ta.onTradeAdsTab(70, { url: 'https://apis.roblox.com/oauth/v1/authorize?x' });
+  check('encore chez Roblox : rien ne se ferme', !closed.length);
+  await ta.onTradeAdsTab(99, { url: 'https://www.rolimons.com/' });
+  check('un autre onglet ne compte pas', !closed.length);
+  await ta.onTradeAdsTab(70, { url: 'https://www.rolimons.com/verify' });
+  check("retour sur rolimons.com : fenêtre fermée, Rolimon's connecté", closed[0] === 7 && (await ta.tradeAdsStatus()).sites.rolimons.state === 'ok');
+  await ta.tradeAdsLogin('routility');
+  check('RoUtility : son « Sign in with Roblox »', windows[1]?.url.startsWith('https://routility.io/api/auth/roblox'));
+  await ta.onTradeAdsTab(70, { url: 'https://routility.io/api/auth/callback?code=1' });
+  check('RoUtility : le retour /api/ ne ferme pas encore', closed.length === 1);
+  await ta.onTradeAdsTab(70, { url: 'https://routility.io/trade-ads/create' });
+  check('RoUtility : de retour sur le site, fermée', closed.length === 2);
+}
 if (failed) process.exit(1);

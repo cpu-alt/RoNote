@@ -43,8 +43,8 @@ const chip = (attr, value, label, on) =>
 function siteHtml(k, s) {
   const [tone, label] = STATES[s.state] || STATES.unknown;
   const who = s.account?.name ? ` · @${escapeHtml(s.account.name)}` : '';
-  const btn = s.state === 'perm' ? `<button class="pf-send" data-ta-perm="${k}">${t('Autoriser')}</button>`
-    : s.state === 'ok' ? '' : `<button data-open="${escapeHtml(s.login)}">${t('Se connecter')}</button>`;
+  // Un seul bouton : l'autorisation du site si elle manque (même geste), puis le login Roblox du site.
+  const btn = s.state === 'ok' ? '' : `<button class="pf-send" data-ta-login="${k}">${t('Se connecter avec Roblox')}</button>`;
   return `<div class="ta-site">
     <label class="ta-check"><input type="checkbox" data-ta-site="${k}"${s.on ? ' checked' : ''}>
       <b>${escapeHtml(s.name)}</b></label>
@@ -111,7 +111,7 @@ export function renderTradeAds(listEl, portfolioReport) {
     listEl.dataset.taBound = '1';
     listEl.addEventListener('click', async (e) => {
       if (listEl.dataset.tab !== 'tradeads' || !res?.cfg) return;
-      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-perm], [data-ta-now]');
+      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now]');
       if (!el) return;
       const { cfg } = res;
       const d = el.dataset;
@@ -125,10 +125,12 @@ export function renderTradeAds(listEl, portfolioReport) {
         const next = toggle(cfg.items, Number(d.taItem));
         if (next.length + cfg.tags.length <= MAX) save(listEl, { items: next });
       } else if (d.taInt) save(listEl, { interval: Number(d.taInt) });
-      else if (d.taPerm) {
-        // Demandée ici, au clic : Chrome n'accepte la question que sur un geste de l'utilisateur.
-        const origin = res.sites[d.taPerm]?.origin;
-        if (origin && await B.permissions.request({ origins: [origin] }).catch(() => false)) load(listEl);
+      else if (d.taLogin) {
+        // L'autorisation est demandée ici, au clic : Chrome n'accepte la question que sur un geste de l'utilisateur.
+        const origin = res.sites[d.taLogin]?.origin;
+        if (origin && !(await B.permissions.request({ origins: [origin] }).catch(() => false))) return;
+        await send({ type: 'ronote:tradeads-login', site: d.taLogin }).catch(() => null);
+        load(listEl);   // panneau latéral : il reste ouvert, on relit l'état
       } else if ('taNow' in d) {
         el.disabled = true;
         await send({ type: 'ronote:tradeads-post' }).catch(() => null);

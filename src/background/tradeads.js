@@ -31,7 +31,11 @@ const outcome = (status, map) => map[status] || (status >= 200 && status < 300 ?
 export const SITES = {
   rolimons: {
     name: "Rolimon's",
-    login: 'https://www.rolimons.com/tradeads',
+    login: 'https://www.rolimons.com/verify',
+    // « Verify Using Your Roblox Account » de rolimons.com/verify (relevé le 14 nov.) : Roblox renvoie sur api.rolimons.com,
+    // qui pose `_RoliVerification` puis redirige vers www.rolimons.com.
+    oauth: 'https://apis.roblox.com/oauth/v1/authorize?client_id=3367241575729602289&redirect_uri=https://api.rolimons.com/auth/v1/robloxoauth&scope=openid%20profile&response_type=code',
+    done: (u) => u.hostname === 'www.rolimons.com',
     origin: null,                       // api.rolimons.com est déjà dans host_permissions
     cooldown: 15, daily: 55,
     // Pas de « qui suis-je » connu chez Rolimon's : l'état vient du dernier envoi (422 = vérification à refaire).
@@ -47,6 +51,8 @@ export const SITES = {
   routility: {
     name: 'RoUtility',
     login: 'https://routility.io/trade-ads/create',
+    oauth: 'https://routility.io/api/auth/roblox?next=%2Ftrade-ads%2Fcreate',   // « Sign in with Roblox » du site
+    done: (u) => u.hostname === 'routility.io' && !u.pathname.startsWith('/api/'),
     origin: 'https://routility.io/*',   // permission facultative, demandée depuis le popup
     cooldown: 15, daily: 0,
     async status() {
@@ -113,6 +119,38 @@ export async function tradeAdsStatus() {
     out[k] = typeof st === 'object' ? { ...base, state: 'ok', account: st } : { ...base, state: st };
   }
   return { cfg, sites: out };
+}
+
+/**
+ * « Se connecter avec Roblox » : le login OAuth du site dans une petite fenêtre. Le popup se ferme dès qu'elle
+ * s'ouvre, donc le worker suit l'onglet (`onTradeAdsTab`) et referme la fenêtre quand le site a repris la main.
+ */
+const LOGIN_KEY = 'tradeadsLogin';
+export async function tradeAdsLogin(k) {
+  const site = SITES[k];
+  if (!site?.oauth) return { ok: false };
+  const win = await B.windows.create({ url: site.oauth, type: 'popup', width: 520, height: 720, focused: true }).catch(() => null);
+  const tabId = win?.tabs?.[0]?.id;
+  if (tabId == null) { await B.tabs.create({ url: site.oauth }); return { ok: true }; }
+  await B.storage.local.set({ [LOGIN_KEY]: { site: k, tabId, windowId: win.id, at: Date.now() } });
+  return { ok: true };
+}
+
+/** tabs.onUpdated (service-worker.js) : la fenêtre de login est revenue sur le site → connecté, on ferme. */
+export async function onTradeAdsTab(tabId, info) {
+  if (!info.url) return;
+  const { [LOGIN_KEY]: p } = await B.storage.local.get(LOGIN_KEY);
+  if (!p || p.tabId !== tabId) return;
+  if (Date.now() - p.at > 10 * MIN) { await B.storage.local.remove(LOGIN_KEY); return; }
+  let u; try { u = new URL(info.url); } catch { return; }
+  if (!SITES[p.site]?.done(u)) return;
+  await B.storage.local.remove(LOGIN_KEY);
+  if (p.site === 'rolimons') {   // pas de « qui suis-je » : on le croit connecté, un 422 au prochain envoi dira le contraire
+    const cfg = await getConfig();
+    cfg.status = { ...cfg.status, rolimons: 'ok' };
+    await saveConfig(cfg);
+  }
+  await safe(() => B.windows.remove(p.windowId));
 }
 
 export async function saveTradeAds(patch) {

@@ -21,7 +21,7 @@ import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
-import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds } from './tradeads.js';
+import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -149,6 +149,8 @@ B.alarms.onAlarm.addListener(a => {
   if (a.name === ALARM) tick('alarm');
   if (a.name === TRADEADS_ALARM) postTradeAds();
 });
+// La fenêtre « Se connecter avec Roblox » des trade ads (tradeads.js) : refermée quand le site a repris la main.
+B.tabs?.onUpdated?.addListener((tabId, info) => { onTradeAdsTab(tabId, info).catch(() => {}); });
 
 /** Un tour d'auto-post (tradeads.js) : le compte suivi, et seulement les items encore dans l'inventaire. */
 async function postTradeAds(force = false) {
@@ -1223,6 +1225,8 @@ async function handleMessage(msg, sender = null) {
       return tradeAdsStatus();
     case 'ronote:tradeads-save':
       return saveTradeAds(msg.patch);
+    case 'ronote:tradeads-login':
+      return tradeAdsLogin(msg.site);
     case 'ronote:tradeads-post':
       return postTradeAds(true);
     // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.

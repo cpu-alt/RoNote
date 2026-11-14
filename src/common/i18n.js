@@ -1103,6 +1103,7 @@ const EN = {
   "Le mode anonyme (H) ne cache alors que ton pseudo et ton portrait : value, RAP, rang et gains restent lisibles.": "Anonymous mode (H) then only hides your username and avatar: value, RAP, rank and gains stay readable.",
   "Garder mon solde de Robux visible": "Keep my Robux balance visible",
   "Dans la barre du haut de Roblox, en mode anonyme.": "In Roblox's top bar, in anonymous mode.",
+  "Se connecter avec Roblox": "Sign in with Roblox",
   "Mode anonyme : masquer le pseudo (H)": "Anonymous mode: hide username (H)",
   "Partager une carte de ton portefeuille": "Share a card of your portfolio",
   "Flex mon portefeuille": "Flex my portfolio",

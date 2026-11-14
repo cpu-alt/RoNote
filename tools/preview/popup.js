@@ -324,6 +324,8 @@ const mockRuntime = {
           rolimons: { name: "Rolimon's", login: 'https://www.rolimons.com/tradeads', state: 'unknown', on: globalThis.__ta.sites.rolimons },
           routility: { name: 'RoUtility', origin: 'https://routility.io/*', state: 'ok', account: { name: 'wars_choing' }, on: globalThis.__ta.sites.routility } } };
       }
+      case 'ronote:tradeads-login':
+        return { ok: true };
       case 'ronote:tradeads-post':
         return { results: {} };
       // Le Deal Sniper : trois deals de paliers et tailles différents.
