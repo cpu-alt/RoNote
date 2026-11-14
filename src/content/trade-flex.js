@@ -6,6 +6,13 @@
  *  canvas, en 2× pour rester nette une fois partagée. Ni pseudo ni serial
  *  n'y figure, et une image de fond importée ne quitte jamais l'ordinateur.
  *
+ *  Refaite le 14 nov. (MYd : « vieillot, pas très clean ni intuitif ») : une
+ *  fenêtre en deux colonnes, l'aperçu en grand et les réglages à côté :
+ *  format (carte complète ou compacte), fond (cinq thèmes ou son image,
+ *  assombrie et floutée), résultat mis en avant, ce qu'on affiche, une
+ *  légende à soi. Les réglages sont retenus (storage `flexPrefs`, le fond
+ *  dans `flexBackground`). Copier, Télécharger, Partager (si le système sait).
+ *
  *  Script classique : la page Roblox n'accepte pas les imports d'une
  *  extension. Seul point d'entrée : globalThis.RoNoteFlex.open(page, analysis).
  * ==========================================================================
@@ -18,12 +25,20 @@
   const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
   const TONES = { win: '#3ee6a0', loss: '#ff5c7a', even: '#a9b8d0' };
   const THEMES = {
-    night: { from: '#0c1428', to: '#060a14', glow: '#3b82f6' },
-    purple: { from: '#2b0f52', to: '#0e0720', glow: '#a855f7' }
+    night: { from: '#0c1428', to: '#060a14', glow: '#3b82f6', name: L('Nuit', 'Night') },
+    purple: { from: '#2b0f52', to: '#0e0720', glow: '#a855f7', name: L('Violet', 'Purple') },
+    emerald: { from: '#062a21', to: '#03110d', glow: '#10b981', name: L('Émeraude', 'Emerald') },
+    sunset: { from: '#3a1420', to: '#120812', glow: '#f97316', name: L('Coucher de soleil', 'Sunset') },
+    carbon: { from: '#1c1c20', to: '#09090b', glow: '#a1a1aa', name: L('Carbone', 'Carbon') }
   };
+  const DEFAULTS = { format: 'card', theme: 'night', metric: '', dim: 55, blur: 0, caption: '',
+    show: { itemValues: true, compare: true, robux: true, date: true } };
+  const store = globalThis.browser?.storage?.local || globalThis.chrome?.storage?.local;
+  const load = async (keys) => { try { return (await store?.get(keys)) || {}; } catch { return {}; } };
+  const save = (obj) => { try { store?.set(obj)?.catch?.(() => {}); } catch { /* aperçu sans extension */ } };
 
-  let active = null, customBackground = null;
-  function close() { if (active) { active.remove(); active = null; } }
+  let active = null, customBackground = null, backgroundLoaded = false;
+  function close() { if (active) { active.close?.(); active?.remove(); active = null; } }
 
   /* ------------------------------ données ------------------------------- */
 
@@ -129,25 +144,23 @@
   }
 
   const TILE_W = 256, TILE_H = 188, GAP = 16, PAD = 40, HEAD = 240;
-  const PANEL_H = 24 + 30 + 18 + TILE_H + 78 + 58;
+  const panelHeight = (opts) => 24 + 30 + 18 + TILE_H + (opts.show.itemValues ? 78 : 50) + 58;
+  const gaveLabel = (index) => index ? L('Tu as reçu', 'You received') : L('Tu as donné', 'You gave');
 
-  function draw(canvas, sides, images, opts) {
-    const H = HEAD + PANEL_H + 112 + PANEL_H + 84;
-    canvas.width = W * S; canvas.height = H * S;
-    const c = canvas.getContext('2d');
-    c.setTransform(S, 0, 0, S, 0, 0);
-    const p = painter(c);
-    const hero = result(sides, opts.metric);
+  /** Le fond (thème ou image importée, assombrie et floutée), les halos et le liseré du résultat. */
+  function backdrop(c, p, H, opts, hero) {
     const theme = THEMES[opts.theme] || THEMES.night;
     const custom = opts.theme === 'custom' && customBackground;
-
-    // Fond : dégradé du thème, ou l'image importée assombrie.
     const bg = c.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, theme.from); bg.addColorStop(1, theme.to);
     c.fillStyle = bg; c.fillRect(0, 0, W, H);
     if (custom) {
       const img = customBackground, k = Math.max(W / img.width, H / img.height);
-      c.drawImage(img, (W - img.width * k) / 2, (H - img.height * k) / 2, img.width * k, img.height * k);
+      // Flouter déborde des bords : on agrandit un peu l'image pour qu'ils restent pleins.
+      const grow = opts.blur ? 1 + opts.blur / 100 : 1;
+      if (opts.blur) c.filter = `blur(${opts.blur}px)`;
+      c.drawImage(img, (W - img.width * k * grow) / 2, (H - img.height * k * grow) / 2, img.width * k * grow, img.height * k * grow);
+      c.filter = 'none';
       c.fillStyle = `rgba(5,8,16,${opts.dim / 100})`; c.fillRect(0, 0, W, H);
     }
     const glow = (x, y, r, color, a) => {
@@ -157,61 +170,79 @@
     };
     glow(W - 120, 60, 520, hero.color, custom ? .16 : .22);
     if (!custom) glow(80, H - 60, 560, theme.glow, .14);
-
-    // Liseré de la couleur du résultat, fondu vers le bas.
     const edge = c.createLinearGradient(0, 0, 0, H);
     edge.addColorStop(0, alpha(hero.color, .9)); edge.addColorStop(.55, alpha(hero.color, .25)); edge.addColorStop(1, alpha(hero.color, .5));
     p.box(10, 10, W - 20, H - 20, 30, null, edge, 2);
+    return !!custom;
+  }
 
-    // En-tête : marque, verdict, pourcentage.
+  /** L'en-tête commun : la marque, le verdict et sa légende, le pourcentage et l'écart. */
+  function heading(c, p, opts, hero, { word = 88, pct = 84, base = 178 } = {}) {
     logo(c, PAD, 40, 40);
     p.text('RONOTE', PAD + 54, 58, { size: 15, weight: 800, color: '#e8eef8', track: 2.5 });
     p.text('TRADE FLEX', PAD + 54, 78, { size: 13, weight: 600, color: '#8795ad', track: 2 });
-
-    const word = hero.valid ? { win: 'WIN', loss: 'LOSS', even: 'EVEN' }[hero.tone] : 'TRADE';
+    const verdict = hero.valid ? { win: 'WIN', loss: 'LOSS', even: 'EVEN' }[hero.tone] : 'TRADE';
     c.save(); c.shadowColor = alpha(hero.color, .55); c.shadowBlur = 34;
-    p.text(word, PAD - 3, 178, { size: 88, weight: 850, color: hero.color, track: -1 });
+    p.text(verdict, PAD - 3, base, { size: word, weight: 850, color: hero.color, track: -1 });
     c.restore();
-    p.text(L('Mon trade, en un regard', 'My trade at a glance'), PAD, 210, { size: 18, weight: 500, color: '#93a1b8' });
-
-    const pctGrad = c.createLinearGradient(W - 480, 100, W - PAD, 180);
+    p.text(p.fit(opts.caption || L('Mon trade, en un regard', 'My trade at a glance'), W / 2 - PAD, 18, 500), PAD, base + 32, { size: 18, weight: 500, color: '#93a1b8' });
+    const pctGrad = c.createLinearGradient(W - 480, base - 78, W - PAD, base + 2);
     pctGrad.addColorStop(0, hero.color); pctGrad.addColorStop(1, alpha('#ffffff', .92));
     c.save(); c.shadowColor = alpha(hero.color, .35); c.shadowBlur = 28;
-    p.text(hero.pct, W - PAD, 168, { size: 84, weight: 850, color: pctGrad, align: 'right', track: -1 });
+    p.text(hero.pct, W - PAD, base - 10, { size: pct, weight: 850, color: pctGrad, align: 'right', track: -1 });
     c.restore();
-    p.text(`${hero.amount} ${opts.metric === 'rap' ? 'RAP' : 'Value'}`, W - PAD, 206, { size: 24, weight: 700, color: '#f3f6fc', align: 'right' });
-
-    // Les deux offres, et le comparateur entre elles.
-    let top = HEAD, imageIndex = 0;
-    sides.forEach((side, index) => {
-      panel(c, p, side, top, index, images, imageIndex, custom);
-      imageIndex += side.items.length;
-      top += PANEL_H;
-      if (index === 0) { comparator(c, p, sides, top + 16); top += 112; }
-    });
-
-    // Pied : ce que montre la carte, et ce qu'elle cache.
-    const date = new Date().toLocaleDateString(fr ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-    p.text(L("Cotes Rolimon's · Robux inclus · pseudos et serials masqués", "Rolimon's values · Robux included · names and serials hidden"),
-      PAD, H - 38, { size: 15, weight: 500, color: '#7f8ca3' });
-    p.text(date, W - PAD, H - 38, { size: 15, weight: 600, color: '#7f8ca3', align: 'right' });
+    p.text(`${hero.amount} ${opts.metric === 'rap' ? 'RAP' : 'Value'}`, W - PAD, base + 28, { size: 24, weight: 700, color: '#f3f6fc', align: 'right' });
   }
 
-  function panel(c, p, side, top, index, images, imageIndex, custom) {
-    const x = PAD - 8, w = W - 2 * (PAD - 8), h = PANEL_H - 16;
+  function footer(c, p, H, opts) {
+    p.text(L("Cotes Rolimon's · pseudos et serials masqués", "Rolimon's values · names and serials hidden"),
+      PAD, H - 38, { size: 15, weight: 500, color: '#7f8ca3' });
+    if (opts.show.date) {
+      const date = new Date().toLocaleDateString(fr ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      p.text(date, W - PAD, H - 38, { size: 15, weight: 600, color: '#7f8ca3', align: 'right' });
+    }
+  }
+
+  function robuxPill(p, right, top, robux) {
+    const label = `+ R$ ${fmt(robux)}`, lw = p.width(label, 15, 700) + 24;
+    p.box(right - lw, top, lw, 30, 15, 'rgba(62,230,160,.12)', 'rgba(62,230,160,.35)');
+    p.text(label, right - lw / 2, top + 20, { size: 15, weight: 700, color: '#7ff0c0', align: 'center' });
+  }
+
+  function draw(canvas, sides, images, opts) {
+    const H = opts.format === 'compact' ? 640 : HEAD + 2 * panelHeight(opts) + (opts.show.compare ? 112 : 8) + 84;
+    canvas.width = W * S; canvas.height = H * S;
+    const c = canvas.getContext('2d');
+    c.setTransform(S, 0, 0, S, 0, 0);
+    const p = painter(c);
+    const hero = result(sides, opts.metric);
+    const custom = backdrop(c, p, H, opts, hero);
+    if (opts.format === 'compact') {
+      heading(c, p, opts, hero, { word: 76, pct: 72, base: 168 });
+      let imageIndex = 0;
+      sides.forEach((side, index) => { column(c, p, side, index, images, imageIndex, custom, opts); imageIndex += side.items.length; });
+    } else {
+      heading(c, p, opts, hero);
+      let top = HEAD, imageIndex = 0;
+      sides.forEach((side, index) => {
+        panel(c, p, side, top, index, images, imageIndex, custom, opts);
+        imageIndex += side.items.length;
+        top += panelHeight(opts);
+        if (index === 0) { if (opts.show.compare) { comparator(c, p, sides, top + 16); top += 112; } else top += 8; }
+      });
+    }
+    footer(c, p, H, opts);
+  }
+
+  function panel(c, p, side, top, index, images, imageIndex, custom, opts) {
+    const x = PAD - 8, w = W - 2 * (PAD - 8), h = panelHeight(opts) - 16;
     p.box(x, top, w, h, 24, custom ? 'rgba(8,12,22,.74)' : 'rgba(255,255,255,.035)', 'rgba(255,255,255,.08)');
     const inner = x + 24;
-    const dot = index ? '#3ee6a0' : '#ff8a5c';
-    p.box(inner, top + 28, 10, 10, 5, dot);
-    p.text(index ? L('Tu as reçu', 'You received') : L('Tu as donné', 'You gave'), inner + 20, top + 39, { size: 21, weight: 700 });
+    p.box(inner, top + 28, 10, 10, 5, index ? '#3ee6a0' : '#ff8a5c');
+    p.text(gaveLabel(index), inner + 20, top + 39, { size: 21, weight: 700 });
     p.text(`${side.items.length} ${side.items.length > 1 ? L('objets', 'items') : L('objet', 'item')}`,
-      inner + 20 + p.width(index ? L('Tu as reçu', 'You received') : L('Tu as donné', 'You gave'), 21, 700) + 12, top + 39,
-      { size: 15, weight: 500, color: '#7f8ca3' });
-    if (side.robux) {
-      const label = `+ R$ ${fmt(side.robux)}`, lw = p.width(label, 15, 700) + 24;
-      p.box(x + w - 24 - lw, top + 18, lw, 30, 15, 'rgba(62,230,160,.12)', 'rgba(62,230,160,.35)');
-      p.text(label, x + w - 24 - lw / 2, top + 38, { size: 15, weight: 700, color: '#7ff0c0', align: 'center' });
-    }
+      inner + 20 + p.width(gaveLabel(index), 21, 700) + 12, top + 39, { size: 15, weight: 500, color: '#7f8ca3' });
+    if (side.robux && opts.show.robux) robuxPill(p, x + w - 24, top + 18, side.robux);
 
     const ty = top + 72;
     if (!side.items.length) {
@@ -235,6 +266,7 @@
       }
       if (item.projected) projectedBadge(c, tx + 10, ty + 10);
       p.text(p.fit(item.name, TILE_W - 4, 17, 700), tx + 2, ty + TILE_H + 28, { size: 17, weight: 700 });
+      if (!opts.show.itemValues) return;
       p.text('RAP', tx + 2, ty + TILE_H + 56, { size: 13, weight: 700, color: '#7f8ca3', track: 1 });
       p.text(fmt(item.rap), tx + 38, ty + TILE_H + 56, { size: 16, weight: 600, color: '#c9d3e3' });
       const value = fmt(item.value);
@@ -245,11 +277,40 @@
     // Totaux de l'offre, sur une barre à part.
     const fy = top + h - 50;
     p.box(inner, fy, w - 48, 36, 12, 'rgba(255,255,255,.04)');
-    p.text(L('Total RAP', 'Total RAP'), inner + 16, fy + 24, { size: 15, weight: 600, color: '#8795ad' });
-    p.text(fmt(side.rap), inner + 16 + p.width(L('Total RAP', 'Total RAP'), 15) + 10, fy + 24, { size: 16, weight: 700 });
+    p.text('Total RAP', inner + 16, fy + 24, { size: 15, weight: 600, color: '#8795ad' });
+    p.text(fmt(side.rap), inner + 16 + p.width('Total RAP', 15) + 10, fy + 24, { size: 16, weight: 700 });
     const val = fmt(side.value);
     p.text(val, x + w - 40, fy + 24, { size: 16, weight: 800, color: '#7cc4ff', align: 'right' });
-    p.text(L('Total Value', 'Total Value'), x + w - 40 - p.width(val, 16, 800) - 10, fy + 24, { size: 15, weight: 600, color: '#8795ad', align: 'right' });
+    p.text('Total Value', x + w - 40 - p.width(val, 16, 800) - 10, fy + 24, { size: 15, weight: 600, color: '#8795ad', align: 'right' });
+  }
+
+  /** Format compact (1200 × 640, l'aperçu d'un lien) : deux colonnes, une ligne par objet. */
+  function column(c, p, side, index, images, imageIndex, custom, opts) {
+    const y = 236, h = 352, w = (W - 2 * PAD - 24) / 2, x = PAD + index * (w + 24);
+    const field = opts.metric === 'rap' ? 'rap' : 'value', color = field === 'rap' ? '#c9d3e3' : '#7cc4ff';
+    p.box(x, y, w, h, 22, custom ? 'rgba(8,12,22,.74)' : 'rgba(255,255,255,.035)', 'rgba(255,255,255,.08)');
+    p.box(x + 22, y + 27, 10, 10, 5, index ? '#3ee6a0' : '#ff8a5c');
+    p.text(gaveLabel(index), x + 42, y + 38, { size: 20, weight: 700 });
+    if (side.robux && opts.show.robux) robuxPill(p, x + w - 20, y + 17, side.robux);
+    if (!side.items.length) {
+      p.text(side.robux ? L('Robux seulement', 'Robux only') : L('Aucun objet', 'No items'),
+        x + w / 2, y + h / 2, { size: 19, weight: 600, color: '#7f8ca3', align: 'center' });
+    }
+    side.items.forEach((item, i) => {
+      const ry = y + 62 + i * 52;
+      p.box(x + 18, ry, 42, 42, 10, 'rgba(255,255,255,.07)');
+      const img = images[imageIndex + i];
+      if (img) { const k = Math.min(38 / img.width, 38 / img.height); c.drawImage(img, x + 39 - img.width * k / 2, ry + 21 - img.height * k / 2, img.width * k, img.height * k); }
+      if (item.projected) p.box(x + 52, ry - 3, 12, 12, 6, '#ffc400', 'rgba(255,255,255,.85)', 1.5);
+      const amount = opts.show.itemValues ? fmt(item[field]) : '';
+      p.text(p.fit(item.name, w - 96 - (amount ? p.width(amount, 16, 700) + 16 : 0), 17, 650), x + 72, ry + 27, { size: 17, weight: 650 });
+      if (amount) p.text(amount, x + w - 20, ry + 27, { size: 16, weight: 700, color, align: 'right' });
+    });
+    const fy = y + h - 52;
+    p.box(x + 16, fy, w - 32, 36, 12, 'rgba(255,255,255,.05)');
+    const label = field === 'rap' ? 'Total RAP' : 'Total Value', total = fmt(side[field]);
+    p.text(label, x + 32, fy + 24, { size: 15, weight: 600, color: '#8795ad' });
+    p.text(total, x + w - 32, fy + 24, { size: 17, weight: 800, color, align: 'right' });
   }
 
   /** Entre les deux offres : les deux écarts, de part et d'autre d'un rond ⇄. */
@@ -276,48 +337,73 @@
 
   const CSS = `
     *{box-sizing:border-box}
-    section{padding:20px 22px 22px;font:14px/1.45 ${FONT};color:#e8eef8}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-    h2{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:750;letter-spacing:.2px}
-    h2 svg{width:22px;height:22px;color:#ffc94d}
-    button,.upload{font:inherit;color:#e8eef8;background:#1a2336;border:1px solid #2b3650;border-radius:10px;padding:8px 14px;cursor:pointer;transition:background .15s,border-color .15s}
-    button:hover,.upload:hover{background:#222d45;border-color:#3a4868}
-    button:focus-visible,.upload:focus-within,input:focus-visible{outline:2px solid #71d9fb;outline-offset:2px}
-    .x{width:34px;height:34px;padding:0;display:grid;place-items:center;border-radius:10px}
-    .x svg{width:16px;height:16px}
-    .stage{display:flex;justify-content:center;border-radius:16px;background:#070b14;box-shadow:0 20px 50px rgba(0,0,0,.45)}
-    .stage img{display:block;max-width:100%;max-height:calc(94vh - 190px);border-radius:16px}
-    .status{padding:80px 20px;text-align:center;color:#93a1b8}
-    .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px}
-    .seg{display:inline-flex;padding:3px;background:#111827;border:1px solid #243049;border-radius:12px;gap:2px}
-    .seg button{border:0;background:transparent;padding:6px 12px;border-radius:9px;color:#93a1b8;font-weight:600}
-    .seg button:hover{background:#1a2336;color:#e8eef8}
-    .seg button[aria-pressed=true]{background:#2a3754;color:#fff;box-shadow:inset 0 0 0 1px #3a4b70}
-    .dim{display:none;align-items:center;gap:8px;color:#93a1b8}
-    .dim.on{display:inline-flex}
-    input[type=range]{width:110px;accent-color:#3ee6a0}
-    .upload{position:relative;overflow:hidden}
-    .upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
-    .grow{flex:1}
-    .primary{background:linear-gradient(180deg,#34d399,#10b981);border-color:#34d399;color:#04140d;font-weight:750}
-    .primary:hover{background:linear-gradient(180deg,#4ade9f,#16c28d);border-color:#4ade9f}
-    .hint{margin:12px 2px 0;color:#7f8ca3;font-size:12.5px}
-    .error{color:#ff9aae}
-    a.primary{display:inline-block;padding:8px 18px;border:1px solid #34d399;border-radius:10px;text-decoration:none;cursor:pointer}
-    .error:empty{display:none}
-    .error{margin:-4px 2px 12px}
-    @media(max-width:560px){section{padding:14px}.bar{gap:8px}.grow{display:none}}
-    @media(prefers-reduced-motion:reduce){button,.upload{transition:none}}`;
+    section{display:flex;flex-direction:column;max-height:94vh;font:13px/1.45 ${FONT};color:#e7e9ee}
+    header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #1d2026}
+    .logo{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#2a2410;color:#ffc94d;flex:none}
+    .logo svg{width:19px;height:19px}
+    .ttl{flex:1;min-width:0}.ttl b{display:block;font-size:16px}.ttl small{display:block;color:#8a909b;font-size:12px}
+    button,input,label{font:inherit;color:inherit}
+    button{cursor:pointer}
+    :focus-visible{outline:2px solid #5aa2ff;outline-offset:2px}
+    .x{display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:9px;border:1px solid #262a31;background:none;color:#9aa0aa}
+    .x:hover{color:#fff;background:#191c22}.x svg{width:15px;height:15px}
+    .wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:0;flex:1}
+    .stage{display:flex;align-items:center;justify-content:center;min-height:0;padding:20px;overflow:auto;
+      background:#08090c radial-gradient(circle at 50% 40%,#151821,#08090c 70%)}
+    .stage img{display:block;max-width:100%;max-height:calc(94vh - 150px);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+    .status{padding:80px 20px;text-align:center;color:#8a909b}
+    aside{display:flex;flex-direction:column;min-height:0;border-left:1px solid #1d2026;background:#0f1115}
+    .opts{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+    .grp{display:flex;flex-direction:column;gap:8px}
+    h3{margin:0;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a909b}
+    .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:10px;background:#0b0c10;border:1px solid #1f2229}
+    .seg button{padding:7px 4px;border-radius:7px;border:0;background:none;color:#aeb3bc;font-size:12.5px;white-space:nowrap}
+    .seg button:hover{color:#fff}
+    .seg button[aria-pressed="true"]{background:#23272f;color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+    .sw-row{display:flex;flex-wrap:wrap;gap:8px}
+    .swatch{width:34px;height:34px;padding:0;border-radius:50%;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+    .swatch[aria-pressed="true"]{border-color:#fff}
+    .swatch.img{display:grid;place-items:center;background:#191c22;color:#cfd3da;background-size:cover;background-position:center}
+    .swatch.img svg{width:16px;height:16px}
+    .range{display:grid;grid-template-columns:72px 1fr 34px;align-items:center;gap:8px;color:#aeb3bc;font-size:12px}
+    .range output{text-align:right;color:#8a909b;font-variant-numeric:tabular-nums}
+    input[type=range]{width:100%;accent-color:#3ee6a0}
+    .links{display:flex;gap:12px}
+    .link{padding:0;border:0;background:none;color:#8fb8ff;font-size:12px;text-decoration:underline;cursor:pointer;position:relative;overflow:hidden}
+    .link input{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;cursor:pointer}
+    .sw[aria-disabled="true"]{opacity:.45}
+    .sw input{appearance:none;position:relative;width:34px;height:20px;margin:0;border-radius:99px;background:#2a2e36;cursor:pointer;flex:none;transition:background .15s}
+    .sw input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#cfd3da;transition:transform .15s}
+    .sw input:checked{background:#2f9e5a}.sw input:checked::after{transform:translateX(14px);background:#fff}
+    .txt{width:100%;padding:8px 10px;border-radius:9px;border:1px solid #262a31;background:#0b0c10;color:#e7e9ee}
+    .txt:focus{outline:none;border-color:#5aa2ff}
+    .acts{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-top:1px solid #1d2026}
+    .row{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:10px;border:1px solid #262a31;background:#191c22;font-size:12.5px;text-decoration:none}
+    .btn:hover{background:#20242b}.btn svg{width:15px;height:15px}
+    .primary{border:0;background:#2f9e5a;color:#fff;font-weight:700;padding:11px}
+    .primary:hover{background:#36ad64}
+    .msg{min-height:1.2em;margin:0;font-size:12px;text-align:center;color:#8a909b}.msg.err{color:#ff9aae}.msg.ok{color:#3fcf6e}
+    .hint{margin:0;font-size:11.5px;color:#666c77;text-align:center}
+    [hidden]{display:none!important}
+    @media(max-width:820px){.wrap{grid-template-columns:1fr;overflow-y:auto}aside{border-left:0;border-top:1px solid #1d2026}.stage img{max-height:55vh}}
+    @media(prefers-reduced-motion:reduce){.sw input,.sw input::after{transition:none}}`;
 
-  const ICON_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
-  const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const icon = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"${extra}>${d}</svg>`;
+  const ICON_TROPHY = icon('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>');
+  const ICON_X = icon('<path d="M6 6l12 12M18 6L6 18"/>', ' stroke-width="2.4"');
+  const ICON_IMAGE = icon('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>');
+  const ICON_SAVE = icon('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>');
+  const ICON_COPY = icon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>');
+  const ICON_SHARE = icon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>');
 
   function el(tag, props = {}, children = []) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
       if (k === 'html') node.innerHTML = v;
       else if (k === 'class') node.className = v;
-      else if (k.startsWith('aria-') || k === 'type' || k === 'accept') node.setAttribute(k, v);
+      else if (k.startsWith('aria-') || k.startsWith('data-') || ['type', 'accept', 'for', 'role'].includes(k)) node.setAttribute(k, v);
       else node[k] = v;
     }
     node.append(...children);
@@ -335,21 +421,32 @@
     return seg;
   }
 
+  const group = (title, ...children) => el('div', { class: 'grp' }, [el('h3', { textContent: title }), ...children]);
+
+  /** Une image (fichier ou dataURL) réduite à `max` px, dans un canvas : seule cette copie reste en mémoire. */
+  async function shrinkImage(src, max) {
+    const img = new Image(); img.src = src; await img.decode();
+    const scaled = document.createElement('canvas'), k = Math.min(1, max / Math.max(img.width, img.height));
+    scaled.width = Math.max(1, Math.round(img.width * k)); scaled.height = Math.max(1, Math.round(img.height * k));
+    scaled.getContext('2d').drawImage(img, 0, 0, scaled.width, scaled.height);
+    return scaled;
+  }
+
   async function open(page, analysis) {
     close();
     const dialog = document.createElement('dialog');
     dialog.dataset.rn = 'flex';
-    dialog.style.cssText = 'padding:0;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:#0b1020;color:#e8eef8;width:min(960px,95vw);max-height:94vh;overflow:auto;box-shadow:0 40px 120px rgba(0,0,0,.6);';
+    dialog.style.cssText = 'padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:#0f1115;color:#e7e9ee;width:min(1180px,96vw);max-height:94vh;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6);';
     const container = document.createElement('div'); dialog.append(container);
     const root = container.attachShadow({ mode: 'closed' });
-    const style = el('style', { textContent: CSS });
-    const dismiss = el('button', { type: 'button', class: 'x', html: ICON_X, 'aria-label': L('Fermer', 'Close'), title: L('Fermer', 'Close') });
+    const dismiss = el('button', { type: 'button', class: 'x', html: ICON_X, 'aria-label': L('Fermer', 'Close'), title: L('Fermer (Échap)', 'Close (Esc)') });
     dismiss.onclick = close;
-    const header = el('header', {}, [el('h2', { html: ICON_TROPHY + '<span>Trade Flex</span>' }), dismiss]);
+    const header = el('header', {}, [el('span', { class: 'logo', html: ICON_TROPHY }),
+      el('div', { class: 'ttl' }, [el('b', { textContent: 'Trade Flex' }), el('small', { textContent: L('Une image de ton trade, prête à partager', 'An image of your trade, ready to share') })]), dismiss]);
     const status = el('div', { class: 'status', textContent: L('Création de ton image…', 'Creating your image…') });
     const stage = el('div', { class: 'stage' }, [status]);
-    const section = el('section', {}, [header, stage]);
-    root.append(style, section);
+    const wrap = el('div', { class: 'wrap' }, [stage]);
+    root.append(el('style', { textContent: CSS }), el('section', {}, [header, wrap]));
     document.body.append(dialog); active = dialog;
     dialog.addEventListener('close', () => { dialog.remove(); if (active === dialog) active = null; });
     dialog.addEventListener('click', e => { if (e.target === dialog) close(); });
@@ -359,37 +456,108 @@
     try { sides = snapshot(page, analysis); }
     catch { status.textContent = L('Impossible de créer la carte. Attends que les deux offres soient chargées, puis réessaie.', 'Could not create the card. Wait for both offers to load and try again.'); return; }
 
-    const images = await Promise.all(sides.flatMap(s => s.items).map(i => loadImage(i.src)));
+    const [images, stored] = await Promise.all([
+      Promise.all(sides.flatMap(s => s.items).map(i => loadImage(i.src))),
+      load(['flexPrefs', 'flexBackground'])
+    ]);
+    if (active !== dialog) return;
+    if (!backgroundLoaded && stored.flexBackground) customBackground = await shrinkImage(stored.flexBackground, 2400).catch(() => null);
+    backgroundLoaded = true;
     if (active !== dialog) return;
 
-    const opts = {
-      theme: customBackground ? 'custom' : 'night',
-      metric: Number.isFinite(sides[0].value) && Number.isFinite(sides[1].value) ? 'value' : 'rap',
-      dim: 55
-    };
+    const hasValue = Number.isFinite(sides[0].value) && Number.isFinite(sides[1].value);
+    const prefs = stored.flexPrefs || {};
+    const opts = { ...DEFAULTS, ...prefs, show: { ...DEFAULTS.show, ...prefs.show } };
+    if (!THEMES[opts.theme] && !(opts.theme === 'custom' && customBackground)) opts.theme = 'night';
+    if (!hasValue || !opts.metric) opts.metric = hasValue ? 'value' : 'rap';
+    const remember = () => save({ flexPrefs: { format: opts.format, theme: opts.theme, metric: opts.metric, dim: opts.dim, blur: opts.blur, caption: opts.caption, show: opts.show } });
+
     const canvas = document.createElement('canvas');
     const image = el('img', { alt: L('Carte récapitulative du trade', 'Trade summary card') });
     status.replaceWith(image);
+    const msg = el('p', { class: 'msg', role: 'status', 'aria-live': 'polite' });
+    const say = (text, tone = '') => { msg.textContent = text; msg.className = 'msg' + (tone ? ' ' + tone : ''); };
 
-    const error = el('p', { class: 'hint error', role: 'status' });
-    const dim = el('input', { type: 'range', min: 20, max: 85, value: opts.dim, 'aria-label': L('Assombrir le fond', 'Dim the background') });
-    const dimWrap = el('label', { class: 'dim' + (opts.theme === 'custom' ? ' on' : '') }, [L('Assombrir', 'Dim'), dim]);
+    // Format
+    const formatSeg = segmented(L('Format', 'Format'), [['card', L('Complète', 'Full')], ['compact', L('Compacte', 'Compact')]], opts.format,
+      key => { opts.format = key; sync(); });
+
+    // Fond : les thèmes en pastilles, puis « Mon image » avec ses réglages.
     const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', 'aria-label': L('Importer un fond', 'Import a background') });
-    const upload = el('label', { class: 'upload' }, [L('Importer…', 'Import…'), file]);
-    const themeSeg = segmented(L('Fond', 'Background'),
-      [['night', L('Nuit', 'Night')], ['purple', L('Violet', 'Purple')], ['custom', L('Mon image', 'My image')]],
-      opts.theme, key => {
-        if (key === 'custom' && !customBackground) { file.click(); return; }
-        opts.theme = key; dimWrap.classList.toggle('on', key === 'custom'); refresh();
-      });
-    const metricSeg = segmented(L('Résultat mis en avant', 'Featured result'),
-      [['value', 'Value'], ['rap', 'RAP']], opts.metric, key => { opts.metric = key; refresh(); });
-    const copy = el('button', { type: 'button', textContent: L('Copier', 'Copy') });
-    const download = el('a', { class: 'primary', textContent: L('Télécharger', 'Download'), download: 'ronote-trade-flex.png', role: 'button' });
-    const bar = el('div', { class: 'bar' }, [themeSeg, metricSeg, dimWrap, upload, el('span', { class: 'grow' }), copy, download]);
-    const hint = el('p', { class: 'hint', textContent: L('Pseudos et serials ne figurent jamais sur la carte. Une image importée reste sur ton ordinateur.', 'Names and serials never appear on the card. An imported image stays on your computer.') });
-    stage.before(bar, error);
-    section.append(hint);
+    const swatches = Object.entries(THEMES).map(([key, t]) => {
+      const b = el('button', { type: 'button', class: 'swatch', title: t.name, 'aria-label': t.name, 'data-theme': key });
+      b.style.background = `linear-gradient(135deg,${t.glow},${t.from} 55%,${t.to})`;
+      b.onclick = () => { opts.theme = key; sync(); };
+      return b;
+    });
+    const imgSwatch = el('button', { type: 'button', class: 'swatch img', html: ICON_IMAGE, title: L('Mon image', 'My image'), 'aria-label': L('Mon image', 'My image'), 'data-theme': 'custom' });
+    imgSwatch.onclick = () => { if (!customBackground) { file.click(); return; } opts.theme = 'custom'; sync(); };
+    const range = (label, key, min, max) => {
+      const input = el('input', { type: 'range', min, max, value: opts[key], 'aria-label': label });
+      const out = el('output', { textContent: opts[key] });
+      input.oninput = () => { opts[key] = Number(input.value); out.textContent = input.value; sync(); };
+      return el('label', { class: 'range' }, [el('span', { textContent: label }), input, out]);
+    };
+    const dimRange = range(L('Assombrir', 'Dim'), 'dim', 20, 85);
+    const blurRange = range(L('Flou', 'Blur'), 'blur', 0, 20);
+    const remove = el('button', { type: 'button', class: 'link', textContent: L('Retirer', 'Remove') });
+    /** La pastille « Mon image » montre l'image (une petite copie, faite une fois par import). */
+    const paintImgSwatch = () => {
+      imgSwatch.style.backgroundImage = customBackground ? `url(${customBackground.toDataURL('image/jpeg', .5)})` : '';
+      imgSwatch.innerHTML = customBackground ? '' : ICON_IMAGE;
+    };
+    remove.onclick = () => { customBackground = null; save({ flexBackground: '' }); opts.theme = 'night'; paintImgSwatch(); sync(); };
+    const change = el('label', { class: 'link' }, [L('Changer…', 'Change…'), file]);
+    const custom = el('div', { class: 'grp' }, [dimRange, blurRange, el('div', { class: 'links' }, [change, remove])]);
+
+    // Résultat mis en avant
+    const metricSeg = segmented(L('Résultat mis en avant', 'Featured result'), [['value', 'Value'], ['rap', 'RAP']], opts.metric,
+      key => { opts.metric = key; sync(); });
+    if (!hasValue) metricSeg.firstElementChild.disabled = true;
+
+    // Afficher
+    const toggle = (key, label) => {
+      const input = el('input', { type: 'checkbox' }); input.checked = !!opts.show[key];
+      input.onchange = () => { opts.show[key] = input.checked; sync(); };
+      return el('label', { class: 'sw', 'data-key': key }, [label, input]);
+    };
+    const toggles = [toggle('itemValues', L('Montant de chaque objet', 'Amount of each item')), toggle('compare', L('Comparateur RAP / Value', 'RAP / Value comparison')),
+      toggle('robux', 'Robux'), toggle('date', L('Date', 'Date'))];
+
+    // Légende
+    const caption = el('input', { class: 'txt', type: 'text', value: opts.caption, maxLength: 60, placeholder: L('Mon trade, en un regard', 'My trade at a glance'), 'aria-label': L('Légende', 'Caption') });
+    caption.oninput = () => { opts.caption = caption.value.trim(); sync(); };
+
+    // Actions
+    const blob = () => new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/png'));
+    const fileName = () => `ronote-trade-flex-${new Date().toISOString().slice(0, 10)}.png`;
+    const download = el('a', { class: 'btn primary', html: ICON_SAVE + `<span>${L('Télécharger', 'Download')}</span>`, role: 'button' });
+    download.onclick = () => { download.download = fileName(); say(L('Image enregistrée dans tes téléchargements.', 'Image saved to your downloads.'), 'ok'); };
+    const copy = el('button', { type: 'button', class: 'btn', html: ICON_COPY + `<span>${L('Copier', 'Copy')}</span>` });
+    copy.onclick = async () => {
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': await blob() })]); say(L('Image copiée : colle-la dans Discord.', 'Image copied: paste it into Discord.'), 'ok'); }
+      catch { say(L("Copie refusée par le navigateur : clic droit sur l'image → Copier l'image.", 'The browser refused the copy: right-click the image → Copy image.'), 'err'); }
+    };
+    const probe = typeof File === 'function' ? new File([''], 'x.png', { type: 'image/png' }) : null;
+    const share = el('button', { type: 'button', class: 'btn', html: ICON_SHARE + `<span>${L('Partager', 'Share')}</span>` });
+    share.hidden = !(probe && navigator.canShare?.({ files: [probe] }));
+    share.onclick = async () => {
+      try { await navigator.share({ files: [new File([await blob()], fileName(), { type: 'image/png' })], title: 'Trade Flex' }); say(''); }
+      catch (e) { if (e?.name !== 'AbortError') say(L('Partage impossible.', 'Could not share.'), 'err'); }
+    };
+
+    const aside = el('aside', {}, [
+      el('div', { class: 'opts' }, [
+        group(L('Format', 'Format'), formatSeg),
+        group(L('Fond', 'Background'), el('div', { class: 'sw-row', role: 'group', 'aria-label': L('Fond', 'Background') }, [...swatches, imgSwatch]), custom),
+        group(L('Résultat mis en avant', 'Featured result'), metricSeg),
+        group(L('Afficher', 'Show'), ...toggles),
+        group(L('Légende', 'Caption'), caption)
+      ]),
+      el('div', { class: 'acts' }, [download, el('div', { class: 'row' }, [copy, share]), msg,
+        el('p', { class: 'hint', textContent: L('Pseudos et serials ne figurent jamais sur la carte. Ton image reste sur ton ordinateur.', 'Names and serials never appear on the card. Your image stays on your computer.') })])
+    ]);
+    wrap.append(aside);
 
     let frame;
     const render = () => {
@@ -397,47 +565,51 @@
       image.src = canvas.toDataURL('image/png');
       download.href = image.src;
     };
-    const refresh = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { if (active === dialog) render(); }); };
-    dim.oninput = () => { opts.dim = Number(dim.value); refresh(); };
-
-    copy.onclick = async () => {
-      try {
-        const blob = await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/png'));
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        copy.textContent = L('Copiée ✓', 'Copied ✓');
-        error.textContent = '';
-      } catch {
-        error.textContent = L("Copie refusée par le navigateur : clic droit sur l'image → Copier l'image.", 'The browser refused the copy: right-click the image → Copy image.');
+    /** L'état des réglages suit `opts`, puis la carte est redessinée à la prochaine image et les choix retenus. */
+    function sync() {
+      for (const b of [...swatches, imgSwatch]) b.setAttribute('aria-pressed', String(b.dataset.theme === opts.theme));
+      custom.hidden = opts.theme !== 'custom';
+      for (const t of toggles) if (t.dataset.key === 'compare') {
+        const off = opts.format === 'compact';
+        t.setAttribute('aria-disabled', String(off)); t.querySelector('input').disabled = off;
       }
-      setTimeout(() => { copy.textContent = L('Copier', 'Copy'); }, 1600);
-    };
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => { if (active === dialog) render(); });
+      remember();
+    }
 
     let importId = 0;
     file.onchange = async () => {
       const selected = file.files[0], id = ++importId;
       if (!selected) return;
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(selected.type) || selected.size > 15 * 1024 * 1024) {
-        error.textContent = L('Choisis un PNG, JPEG ou WebP de moins de 15 Mo.', 'Choose a PNG, JPEG or WebP under 15 MB.');
+        say(L('Choisis un PNG, JPEG ou WebP de moins de 15 Mo.', 'Choose a PNG, JPEG or WebP under 15 MB.'), 'err');
         return;
       }
       const url = URL.createObjectURL(selected);
       try {
-        const img = new Image(); img.src = url; await img.decode();
+        const scaled = await shrinkImage(url, 2400);
         if (active !== dialog || id !== importId) return;
-        // Seule une copie réduite reste en mémoire ; rien n'est envoyé nulle part.
-        const scaled = document.createElement('canvas'), k = Math.min(1, 2400 / Math.max(img.width, img.height));
-        scaled.width = Math.max(1, Math.round(img.width * k)); scaled.height = Math.max(1, Math.round(img.height * k));
-        scaled.getContext('2d').drawImage(img, 0, 0, scaled.width, scaled.height);
         customBackground = scaled;
-        opts.theme = 'custom'; dimWrap.classList.add('on');
-        for (const b of themeSeg.children) b.setAttribute('aria-pressed', String(b === themeSeg.lastElementChild));
-        error.textContent = ''; refresh();
+        // Retenue pour la prochaine fois, plus petite : rien n'est envoyé nulle part.
+        save({ flexBackground: (await shrinkImage(scaled.toDataURL('image/jpeg', .9), 1600)).toDataURL('image/jpeg', .85) });
+        opts.theme = 'custom'; say(''); paintImgSwatch(); sync();
       } catch {
-        error.textContent = L('Cette image ne peut pas être chargée.', 'This image could not be loaded.');
+        say(L('Cette image ne peut pas être chargée.', 'This image could not be loaded.'), 'err');
       } finally { URL.revokeObjectURL(url); file.value = ''; }
     };
 
+    // Raccourcis : Ctrl+S télécharge, Ctrl+C copie (hors du champ de légende). Échap ferme (la boîte de dialogue).
+    dialog.addEventListener('keydown', e => {
+      if (!(e.ctrlKey || e.metaKey) || e.composedPath()[0] === caption) return;
+      if (e.key === 's') { e.preventDefault(); download.click(); }
+      else if (e.key === 'c') { e.preventDefault(); copy.click(); }
+    });
+
+    paintImgSwatch();
+    sync();
     render();
+    download.focus();
   }
 
   globalThis.RoNoteFlex = { open, close };

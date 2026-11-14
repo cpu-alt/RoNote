@@ -1,6 +1,7 @@
 // Contre-offre : un objet du trade n'est déclaré « plus là » que si c'est sûr.
 // Usage : node tools/test-counter.mjs
 import { adopt } from '../src/common/counter-match.js';
+import { itemMatch } from '../src/popup/deals.js';
 
 let passed = 0, failed = 0;
 const check = (label, ok) => { if (ok) { passed++; console.log('  ✓ ' + label); } else { failed++; console.error('  ✗ ' + label); } };
@@ -32,6 +33,16 @@ console.log('\nRetrouver le trade dans l\'inventaire');
   check('inventaire vide et non vérifié : rien ne change', !adopt([{ uaid: 1, assetId: 1 }], { items: [] })[0].gone);
   const again = adopt(adopt([{ uaid: 99, assetId: 300 }], { items: inv }), { items: [...inv, { uaid: 99, assetId: 300 }] });
   check('rechargé : l\'état « non vérifié » s\'efface', again[0].uaid === 99 && !again[0].unsure);
+}
+
+console.log('\nDeals : chercher un item');
+{
+  const de = { name: 'Dominus Empyreus' };
+  check('par un morceau du nom', itemMatch(de, 'empy'));
+  check('par les initiales (acronyme)', itemMatch(de, 'de'));
+  check('accents ignorés', itemMatch({ name: 'Épée' }, 'epee'));
+  check('autre item non pris', !itemMatch({ name: 'Valkyrie Helm' }, 'de'));
+  check('acronyme de trois mots', itemMatch({ name: 'Black Iron Commando' }, 'bic'));
 }
 
 console.log(`\n${passed} ok, ${failed} échec(s)`);

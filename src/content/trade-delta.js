@@ -40,31 +40,33 @@
     flex: 'Créer une image du trade',
     proof: 'Mode proof : cacher les autres trades de la liste (pseudo, avatar, date, gains)',
     proofLoading: 'Lecture du trade…',
-    proofNotCompleted: 'Ouvre un trade terminé (Completed) pour envoyer son proof.',
-    proofMaskTitle: 'Masquer la liste', proofMaskLabel: 'Les autres trades deviennent', proofMasks: ['Points', 'Rien', 'Mon image'],
+    proofNotCompleted: 'Ouvre un trade terminé (Completed) pour faire son proof.',
+    proofTradeWith: (who) => `Trade avec @${who}`,
+    proofMaskTitle: 'Masquer la liste', proofMaskLabel: 'Les autres trades deviennent', proofMasks: ['Points', 'Flou', 'Rien', 'Image'],
     proofScopeLabel: 'Sur', proofScopes: ['Les autres trades', 'Toute la liste'],
     proofImport: 'Choisir une image', proofChangeImage: 'Changer', proofRemoveImage: 'Retirer', proofBadImage: 'Image illisible.',
-    proofSendTitle: 'Envoyer le proof sur Discord',
-    proofElite: 'Réservé aux membres Elite de Neuronal : le texte au format Rolimons et la capture, envoyés en MP par RoOp Tracker.',
-    proofLogin: 'Réservé aux Elite : connecte RoNote à Discord (Réglages › Premium).',
-    proofPermOk: 'Captures autorisées : rien à demander.',
-    proofPermNo: 'Première fois : Chrome demandera la permission de capturer (une seule fois).',
+    proofSerials: 'Flouter les numéros de série',
+    proofTextTitle: 'Le proof',
     proofSwap: 'Inverser Sender et Receiver',
-    proofList: 'Mettre la liste des trades sur la capture',
+    proofZoneLabel: 'Capture', proofZones: ['Le trade', 'Trade + liste'],
     proofPreview: 'Aperçu du message',
     proofHint: 'La capture prend ce qui est à l’écran : garde le trade entier visible. Le panneau se cache le temps de la photo.',
     proofSend: 'Envoyer dans mes MP',
     proofAllowSend: 'Autoriser puis envoyer',
-    proofAllowHint: 'Une petite fenêtre s’ouvre : clique « Autoriser », accepte la demande de Chrome. Le proof part tout seul.',
-    proofSending: 'Capture et envoi…',
+    proofAllowHint: 'Une petite fenêtre s’ouvre : clique « Autoriser », accepte la demande de Chrome. La suite se fait toute seule.',
+    proofSending: 'Capture et envoi…', proofSaving: 'Capture…',
     proofSent: 'Envoyé : regarde tes MP de RoOp Tracker sur Discord.',
-    proofShareBtn: 'ou capturer avec le partage d’onglet de Chrome',
+    proofSave: 'Télécharger l’image', proofSaved: 'Image enregistrée dans tes téléchargements.',
+    proofCopy: 'Copier le texte', proofCopied: 'Texte copié.',
+    proofLocked: (signedIn) => signedIn ? 'Envoi sur Discord réservé aux Elite de Neuronal (RoOp Tracker te l’envoie en MP).' : 'Envoi sur Discord réservé aux Elite : connecte RoNote à Discord (Réglages › Premium).',
+    proofShareBtn: 'Capturer avec le partage d’onglet de Chrome',
+    proofKeys: 'Échap ferme · Ctrl+Entrée envoie',
     proofClose: 'Fermer et quitter le mode proof',
-    proofFailed: (why) => `Envoi impossible (${why}).`,
-    proofErrors: { capture: 'Chrome bloque la capture : clique « Autoriser puis envoyer ».',
+    proofFailed: (why) => `Échec (${why}).`,
+    proofErrors: { capture: 'Chrome bloque la capture : autorise-la d’abord.',
       share: 'Partage d’onglet annulé ou refusé.', subscribe: 'Réservé aux membres Elite de Neuronal.', login: 'Connecte RoNote à Discord (Réglages › Premium).',
       link: 'Lie ton compte Roblox dans Réglages › Premium.', dm_closed: 'Tes MP sont fermés : autorise les messages de RoOp Tracker.',
-      tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou décoche la liste.',
+      tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou capture le trade seul.',
       rate_limited: 'Trop de proofs cette heure : réessaie plus tard.', bad_date: 'Date attendue au format MM/JJ/AAAA.', network: 'Neuronal injoignable : réessaie.' },
     resend: 'Renvoyer',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
@@ -104,31 +106,33 @@
     flex: 'Create a trade image',
     proof: 'Proof mode: hide the other trades in the list (username, avatar, date, gains)',
     proofLoading: 'Reading the trade…',
-    proofNotCompleted: 'Open a completed trade to send its proof.',
-    proofMaskTitle: 'Hide the list', proofMaskLabel: 'The other trades become', proofMasks: ['Dots', 'Nothing', 'My image'],
+    proofNotCompleted: 'Open a completed trade to make its proof.',
+    proofTradeWith: (who) => `Trade with @${who}`,
+    proofMaskTitle: 'Hide the list', proofMaskLabel: 'The other trades become', proofMasks: ['Dots', 'Blur', 'Nothing', 'Image'],
     proofScopeLabel: 'On', proofScopes: ['The other trades', 'The whole list'],
     proofImport: 'Choose an image', proofChangeImage: 'Change', proofRemoveImage: 'Remove', proofBadImage: 'Unreadable image.',
-    proofSendTitle: 'Send the proof to Discord',
-    proofElite: 'Neuronal Elite members only: the Rolimons-format text and the screenshot, DMed to you by RoOp Tracker.',
-    proofLogin: 'Elite only: connect RoNote to Discord (Settings › Premium).',
-    proofPermOk: 'Screenshots allowed: nothing to ask.',
-    proofPermNo: 'First time: Chrome will ask permission to take screenshots (only once).',
+    proofSerials: 'Blur serial numbers',
+    proofTextTitle: 'The proof',
     proofSwap: 'Swap Sender and Receiver',
-    proofList: 'Put the trade list on the screenshot',
+    proofZoneLabel: 'Screenshot', proofZones: ['The trade', 'Trade + list'],
     proofPreview: 'Message preview',
     proofHint: 'The screenshot takes what is on screen: keep the whole trade visible. The panel hides for the shot.',
     proofSend: 'Send to my DMs',
     proofAllowSend: 'Allow, then send',
-    proofAllowHint: 'A small window opens: click “Allow”, accept Chrome’s request. The proof is sent on its own.',
-    proofSending: 'Capturing and sending…',
+    proofAllowHint: 'A small window opens: click “Allow”, accept Chrome’s request. The rest happens on its own.',
+    proofSending: 'Capturing and sending…', proofSaving: 'Capturing…',
     proofSent: 'Sent: check your DMs from RoOp Tracker on Discord.',
-    proofShareBtn: 'or capture with Chrome’s tab sharing',
+    proofSave: 'Download image', proofSaved: 'Image saved to your downloads.',
+    proofCopy: 'Copy text', proofCopied: 'Text copied.',
+    proofLocked: (signedIn) => signedIn ? 'Sending to Discord is for Neuronal Elite members (RoOp Tracker DMs it to you).' : 'Sending to Discord is Elite only: connect RoNote to Discord (Settings › Premium).',
+    proofShareBtn: 'Capture with Chrome’s tab sharing',
+    proofKeys: 'Esc closes · Ctrl+Enter sends',
     proofClose: 'Close and leave proof mode',
-    proofFailed: (why) => `Could not send (${why}).`,
-    proofErrors: { capture: 'Chrome blocks the screenshot: click “Allow, then send”.',
+    proofFailed: (why) => `Failed (${why}).`,
+    proofErrors: { capture: 'Chrome blocks the screenshot: allow it first.',
       share: 'Tab sharing cancelled or refused.', subscribe: 'Neuronal Elite members only.', login: 'Connect RoNote to Discord (Settings › Premium).',
       link: 'Link your Roblox account in Settings › Premium.', dm_closed: 'Your DMs are closed: allow messages from RoOp Tracker.',
-      tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or untick the list.',
+      tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or capture the trade alone.',
       rate_limited: 'Too many proofs this hour: try again later.', bad_date: 'Date expected as MM/DD/YYYY.', network: 'Neuronal unreachable: try again.' },
     resend: 'Send again',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
@@ -250,7 +254,7 @@
     if (host?._style && globalThis.RoNoteBanner) host._style.textContent = globalThis.RoNoteBanner.css(bannerSettings);
   }
   if (alive()) B.storage?.local?.get(['settings', 'projectedIcon', 'luckyCat', 'demandIconImage', 'proofImage']).then(got => {
-    Object.assign(proofLook, { mask: got?.settings?.proofMask || 'dots', scope: got?.settings?.proofScope || 'others', image: got?.proofImage || '' });
+    Object.assign(proofLook, proofLookOf(got?.settings), { image: got?.proofImage || '' });
     demandLook.icon = got?.settings?.demandIcon || 'bars';
     demandLook.image = got?.demandIconImage || '';
     enabled = got?.settings?.pageDelta !== false;
@@ -269,7 +273,7 @@
     if (changes.demandIconImage) { demandLook.image = changes.demandIconImage.newValue || ''; restyleDemand(); }
     if (changes.proofImage || changes.settings) {
       if (changes.proofImage) proofLook.image = changes.proofImage.newValue || '';
-      if (changes.settings) Object.assign(proofLook, { mask: changes.settings.newValue?.proofMask || 'dots', scope: changes.settings.newValue?.proofScope || 'others' });
+      if (changes.settings) Object.assign(proofLook, proofLookOf(changes.settings.newValue));
       paintProof();
       proofRenderMask();
     }
@@ -929,12 +933,15 @@
      lignes sont vidées, puis montrent des points, rien, ou l'image importée (Réglages › Apparence ›
      Mode proof), sur les autres trades seulement ou sur toute la liste. Il suit le trade ouvert et
      s'éteint quand on quitte les trades terminés. */
-  const proofLook = { mask: 'dots', scope: 'others', image: '' };
+  const proofLook = { mask: 'dots', scope: 'others', zone: 'trade', image: '' };
+  const proofLookOf = (st) => ({ mask: st?.proofMask || 'dots', scope: st?.proofScope || 'others', zone: st?.proofZone === 'list' ? 'list' : 'trade' });
   function proofCss() {
     const on = 'html[data-rn-proof]';
     const rows = `${on} .trade-row${proofLook.scope === 'list' ? '' : ':not(.selected)'}`;
     const mask = proofLook.mask === 'image' && !proofLook.image ? 'blank' : proofLook.mask;
-    let css = `${rows}>:not(.trade-row-divider){visibility:hidden!important}`;
+    // Le flou garde la forme des lignes ; les autres masques les vident.
+    let css = mask === 'blur' ? `${rows}>:not(.trade-row-divider){filter:blur(7px)!important;pointer-events:none}`
+      : `${rows}>:not(.trade-row-divider){visibility:hidden!important}`;
     if (mask === 'dots') css += `${rows}{position:relative}${rows}::after{content:"••••••";position:absolute;left:16px;top:50%;
       transform:translateY(-50%);font-size:18px;letter-spacing:2px;opacity:.5;pointer-events:none}`;
     if (mask === 'image') {
@@ -966,54 +973,76 @@
       proofControl.style.borderColor = on ? '#3fcf6e' : 'rgba(128,170,210,.3)';
     }
   }
-  /* Le panneau proof (13 nov., MYd : « que le bouclier ouvre un panel à droite qui cache la gauche, et qu'on
-     aille jusqu'au bout du proof là », puis « refais la partie réglages, l'acceptation n'est pas intuitive »).
-     Le bouclier met le mode proof ET ouvre ce panneau, en deux temps :
-       1. Masquage de la liste (pour tous) : ce qui remplace les autres trades, sur quoi, l'image ;
-       2. Envoyer sur Discord (Elite) : les cinq lignes de Rolimons, modifiables, et UN bouton. Tant que
-          Chrome n'a pas la permission de capturer, il dit « Autoriser puis envoyer » : une petite fenêtre
-          (options/capture.html), un clic, l'accord de Chrome, et le proof part tout seul. Ensuite, plus rien
-          à demander. Le partage d'onglet de Chrome reste en secours, en petit. */
+  /* Le panneau proof, refait le 14 nov. (MYd : « vieillot, pas très clean ni intuitif »). Le bouclier met le
+     mode proof ET ouvre ce panneau à droite. Deux cartes, une barre d'actions en bas :
+       1. Masquer la liste (pour tous) : Points, Flou, Rien ou Image, sur quoi, et le flou des séries ;
+       2. Le proof : les cinq lignes de Rolimons, modifiables, et ce que la capture prend (le trade, ou avec la liste) ;
+       3. Actions : « Envoyer dans mes MP » (Elite ; « Autoriser puis envoyer » tant que Chrome n'a pas la
+          permission : petite fenêtre options/capture.html, puis la suite part toute seule), et pour tous
+          « Télécharger l'image » et « Copier le texte ». Le partage d'onglet de Chrome reste en secours.
+     Clavier : le focus entre dans le panneau, Échap le ferme, Ctrl+Entrée envoie. Les réglages (masque,
+     portée, zone) sont ceux de Réglages › Apparence › Mode proof, retenus d'une fois sur l'autre. */
   const PROOF_FIELDS = [['items', 'Item(s)'], ['values', 'Values'], ['sender', 'Sender'], ['receiver', 'Receiver'], ['date', 'Date']];
   const PROOF_CSS = `
     :host{all:initial}
-    aside{box-sizing:border-box;position:fixed;z-index:2147483000;top:0;right:0;width:350px;height:100vh;display:flex;flex-direction:column;
-      background:#111318;color:#e8e8ea;border-left:1px solid #2a2d33;box-shadow:-18px 0 40px rgba(0,0,0,.45);
-      font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
-    header{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid #2a2d33}
-    header b{flex:1;font-size:15px}header b i{font-style:normal;color:#3fcf6e}
-    button{font:inherit;cursor:pointer}
-    .x{width:28px;height:28px;border-radius:8px;border:1px solid #2a2d33;background:none;color:#aeb2bb}
-    .x:hover{color:#fff;border-color:#3a3e46}
-    .body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
-    section{display:flex;flex-direction:column;gap:9px;padding:12px;border:1px solid #23262c;border-radius:12px;background:#15171c}
-    h3{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
-    h3 .n{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#23262c;color:#aeb2bb;font-size:11px}
-    p{margin:0;color:#aeb2bb;font-size:12px}
-    .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#7d828c}
-    .seg{display:flex;gap:6px}
-    .seg button{flex:1;padding:7px 6px;border-radius:9px;border:1px solid #2a2d33;background:#181a20;color:#cfd3da;font-size:12px}
-    .seg button[aria-pressed="true"]{border-color:#3fcf6e;background:#10331f;color:#c9f5da;font-weight:600}
+    aside{box-sizing:border-box;position:fixed;z-index:2147483000;top:0;right:0;width:360px;max-width:100vw;height:100vh;display:flex;flex-direction:column;
+      background:#0f1115;color:#e7e9ee;border-left:1px solid #22252c;box-shadow:-24px 0 48px rgba(0,0,0,.5);
+      font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;outline:none}
+    *{box-sizing:border-box}
+    button,input{font:inherit;color:inherit}
+    button{cursor:pointer}
+    :focus-visible{outline:2px solid #5aa2ff;outline-offset:2px}
+    header{display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid #1d2026}
+    .logo{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#11301e;color:#3fcf6e;flex:none}
+    .ttl{flex:1;min-width:0}.ttl b{display:block;font-size:15px;letter-spacing:.01em}
+    .ttl small{display:block;color:#8a909b;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .x{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid #262a31;background:none;color:#9aa0aa;flex:none}
+    .x:hover{color:#fff;background:#191c22}
+    .body{flex:1;overflow-y:auto;padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
+    section{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid #1f2229;border-radius:14px;background:#14161b}
+    h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa0aa}
+    p{margin:0;color:#8a909b;font-size:12px}
+    .k{font-size:12px;color:#9aa0aa}
+    .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:10px;background:#0c0d11;border:1px solid #1f2229}
+    .seg button{padding:7px 4px;border-radius:7px;border:0;background:none;color:#aeb3bc;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .seg button:hover{color:#fff}
+    .seg button[aria-pressed="true"]{background:#23272f;color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.4)}
     .img{display:flex;align-items:center;gap:8px}
-    .img i{width:44px;height:30px;border-radius:6px;background:#0b0c0f center/cover no-repeat;border:1px solid #2a2d33;flex:none}
-    .mini{padding:5px 9px;border-radius:7px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea;font-size:12px}
-    label.f{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px;font-size:12px;color:#aeb2bb}
-    input:not([type]){min-width:0;padding:7px 9px;border-radius:8px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea;font:inherit}
-    input:not([type]):focus{outline:none;border-color:#3d8eff}
-    .swap{padding:4px 7px;border-radius:7px;border:1px solid #2a2d33;background:#181a20;color:#e8e8ea}
-    .chk{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;cursor:pointer}
-    details summary{cursor:pointer;color:#aeb2bb;font-size:12px}
-    pre{margin:6px 0 0;padding:9px 10px;border-radius:9px;background:#0b0c0f;border:1px solid #23262c;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#c9d4e8}
-    .perm{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font-size:12px}
-    .perm.no{background:#13213a;border:1px solid #2f5f9e;color:#9dcbff}.perm.ok{background:#10331f;border:1px solid #1f5a37;color:#c9f5da}
-    .lock{padding:10px;border-radius:9px;background:#1b1c22;border:1px dashed #3a3e46;color:#cfd3da;font-size:12px}
-    footer{display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-top:1px solid #2a2d33}
-    .send{padding:11px;border-radius:10px;border:1px solid #1f5a37;background:#10331f;color:#c9f5da;font-weight:700}
-    .send.allow{border-color:#2f5f9e;background:#13213a;color:#9dcbff}
-    .send:hover{filter:brightness(1.15)}.send:disabled{opacity:.6;cursor:default;filter:none}
-    .share{background:none;border:0;color:#7d828c;font-size:11.5px;text-decoration:underline;padding:0}
-    .msg{min-height:1em;font-size:12px;color:#aeb2bb}.msg.err{color:#f2545b}.msg.ok{color:#3fcf6e}
+    .img i{width:48px;height:32px;border-radius:7px;background:#0b0c0f center/cover no-repeat;border:1px solid #262a31;flex:none}
+    .mini{padding:6px 10px;border-radius:8px;border:1px solid #262a31;background:#191c22;font-size:12px}
+    .mini:hover{background:#20242b}
+    .sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;cursor:pointer}
+    .sw input{appearance:none;position:relative;width:34px;height:20px;margin:0;border-radius:99px;background:#2a2e36;cursor:pointer;flex:none;transition:background .15s}
+    .sw input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#cfd3da;transition:transform .15s}
+    .sw input:checked{background:#2f9e5a}.sw input:checked::after{transform:translateX(14px);background:#fff}
+    .f{display:grid;grid-template-columns:64px 1fr;align-items:center;gap:8px;font-size:12px;color:#9aa0aa}
+    .f.r{grid-template-columns:64px 1fr auto}
+    .f input{min-width:0;width:100%;padding:7px 9px;border-radius:8px;border:1px solid #262a31;background:#0c0d11;color:#e7e9ee}
+    .f input:focus{outline:none;border-color:#5aa2ff}
+    .swap{width:30px;height:30px;border-radius:8px;border:1px solid #262a31;background:#191c22;color:#cfd3da}
+    details summary{cursor:pointer;color:#9aa0aa;font-size:12px}
+    pre{margin:8px 0 0;padding:10px;border-radius:9px;background:#0c0d11;border:1px solid #1f2229;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#c9d4e8}
+    footer{display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;border-top:1px solid #1d2026;background:#0f1115}
+    .send{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:11px;border:0;background:#2f9e5a;color:#fff;font-weight:700}
+    .send.allow{background:#2f6fd0}
+    .send:hover{filter:brightness(1.1)}
+    button:disabled{opacity:.55;cursor:default;filter:none}
+    .lock{padding:9px 11px;border-radius:10px;background:#15171c;border:1px dashed #30343c;color:#aeb3bc;font-size:12px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .row button{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:10px;border:1px solid #262a31;background:#191c22;font-size:12px}
+    .row button:hover{background:#20242b}
+    .share{align-self:center;background:none;border:0;color:#7d838e;font-size:11.5px;text-decoration:underline;padding:0}
+    .msg{min-height:1.2em;margin:0;font-size:12px;color:#aeb3bc;text-align:center}.msg.err{color:#f2545b}.msg.ok{color:#3fcf6e}
+    .keys{font-size:11px;color:#5f6570;text-align:center}
     [hidden]{display:none!important}`;
+  const PROOF_SVG = {
+    shield: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>',
+    x: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    send: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>',
+    save: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>'
+  };
   let proofPanel = null;
   function proofInfo() {
     const a = shownAnalysis, page = shownPage;
@@ -1045,22 +1074,32 @@
   function proofSay(text, tone = '') { const m = proofQ('.msg'); if (m) { m.textContent = text || ''; m.className = 'msg' + (tone ? ' ' + tone : ''); } }
   function proofFields() { return Object.fromEntries(PROOF_FIELDS.map(([k]) => [k, proofQ(`[data-f="${k}"]`)?.value.trim() || ''])); }
   // Le texte du MP (le même que Neuronal 18qbfa) : les objets, les values, puis S, R, D.
-  function proofPreview() { const p = proofQ('pre'), f = proofFields(); if (p) p.textContent = `${f.items}\n${f.values}\nS: ${f.sender}\nR: ${f.receiver}\nD: ${f.date}\n\n<screenshot>`; }
+  const proofText = (f) => `${f.items}\n${f.values}\nS: ${f.sender}\nR: ${f.receiver}\nD: ${f.date}`;
+  function proofPreview() { const p = proofQ('pre'); if (p) p.textContent = proofText(proofFields()) + '\n\n<screenshot>'; }
+  const proofSeg = (key, cur, opts, label) => `<div class="seg" role="group" aria-label="${proofEsc(label)}">${opts.map(([v, l]) =>
+    `<button type="button" data-set="${key}" data-v="${v}" aria-pressed="${v === cur}">${l}</button>`).join('')}</div>`;
 
-  /** 1. Le masquage de la liste : les réglages du mode proof, en boutons (les mêmes que Réglages › Apparence). */
+  /** 1. Masquer la liste : les réglages du mode proof (les mêmes que Réglages › Apparence), et le flou des séries. */
   function proofMaskHtml() {
-    const seg = (key, cur, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-set="${key}" data-v="${v}" aria-pressed="${v === cur}">${l}</button>`).join('')}</div>`;
-    return `<section data-mask><h3><span class="n">1</span>${TEXT.proofMaskTitle}</h3>
-      <span class="k">${TEXT.proofMaskLabel}</span>${seg('proofMask', proofLook.mask, [['dots', '••• ' + TEXT.proofMasks[0]], ['blank', TEXT.proofMasks[1]], ['image', '🖼 ' + TEXT.proofMasks[2]]])}
+    const m = TEXT.proofMasks;
+    return `<section data-mask><h3>${TEXT.proofMaskTitle}</h3>
+      <span class="k">${TEXT.proofMaskLabel}</span>${proofSeg('proofMask', proofLook.mask, [['dots', m[0]], ['blur', m[1]], ['blank', m[2]], ['image', m[3]]], TEXT.proofMaskLabel)}
       <div class="img"${proofLook.mask === 'image' ? '' : ' hidden'}><i style="background-image:${proofLook.image ? `url('${proofLook.image}')` : 'none'}"></i>
-        <label class="mini" style="cursor:pointer">${proofLook.image ? TEXT.proofChangeImage : TEXT.proofImport}<input type="file" data-img accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>
-        ${proofLook.image ? `<button class="mini" data-clear>${TEXT.proofRemoveImage}</button>` : ''}</div>
-      <span class="k">${TEXT.proofScopeLabel}</span>${seg('proofScope', proofLook.scope, [['others', TEXT.proofScopes[0]], ['list', TEXT.proofScopes[1]]])}
+        <label class="mini" tabindex="0" role="button" data-pick style="cursor:pointer">${proofLook.image ? TEXT.proofChangeImage : TEXT.proofImport}<input type="file" data-img accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>
+        ${proofLook.image ? `<button type="button" class="mini" data-clear>${TEXT.proofRemoveImage}</button>` : ''}</div>
+      <span class="k">${TEXT.proofScopeLabel}</span>${proofSeg('proofScope', proofLook.scope, [['others', TEXT.proofScopes[0]], ['list', TEXT.proofScopes[1]]], TEXT.proofScopeLabel)}
+      <label class="sw">${TEXT.proofSerials}<input type="checkbox" data-serials${serialHidden ? ' checked' : ''}></label>
     </section>`;
   }
   function proofRenderMask() {
     const old = proofQ('[data-mask]');
-    if (old) old.outerHTML = proofMaskHtml();
+    if (!old) return;
+    // Le bouton choisi au clavier garde le focus après le nouveau rendu.
+    const f = proofPanel.root.activeElement;
+    const key = f?.dataset?.set ? `[data-set="${f.dataset.set}"][data-v="${f.dataset.v}"]` : f?.matches?.('[data-serials]') ? '[data-serials]' : '';
+    old.outerHTML = proofMaskHtml();
+    proofPanel.root.querySelectorAll('[data-set="proofZone"]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === proofLook.zone)));
+    if (key) proofQ(key)?.focus();
   }
   async function proofImage(file) {
     try {
@@ -1075,49 +1114,54 @@
     } catch { proofSay(TEXT.proofBadImage, 'err'); }
   }
 
-  /** 2. Envoyer sur Discord (Elite) : la permission de capture, les cinq lignes, l'aperçu. */
-  function proofSendHtml(res) {
-    if (!res?.elite) return `<section><h3><span class="n">2</span>${TEXT.proofSendTitle}</h3><div class="lock">🔒 ${res?.signedIn ? TEXT.proofElite : TEXT.proofLogin}</div></section>`;
-    return `<section><h3><span class="n">2</span>${TEXT.proofSendTitle}</h3>
-      <div class="perm ${res.canCapture ? 'ok' : 'no'}" data-perm>${res.canCapture ? '✓ ' + TEXT.proofPermOk : 'ⓘ ' + TEXT.proofPermNo}</div>
-      ${PROOF_FIELDS.map(([k, l]) => `<label class="f"><span>${l}</span>
-        <input data-f="${k}" value="${proofEsc(res.fields[k] || '')}" maxlength="${k === 'items' ? 600 : 80}" spellcheck="false">
-        ${k === 'receiver' ? `<button class="swap" data-swap title="${TEXT.proofSwap}">⇄</button>` : ''}</label>`).join('')}
-      <label class="chk"><input type="checkbox" data-list> ${TEXT.proofList}</label>
+  /** 2. Le proof : les cinq lignes, la zone de la capture, l'aperçu du message. */
+  function proofTextHtml(res) {
+    return `<section><h3>${TEXT.proofTextTitle}</h3>
+      ${PROOF_FIELDS.map(([k, l]) => `<label class="f${k === 'receiver' ? ' r' : ''}"><span>${l}</span>
+        <input data-f="${k}" value="${proofEsc(res?.fields?.[k] || '')}" maxlength="${k === 'items' ? 600 : 80}" spellcheck="false">
+        ${k === 'receiver' ? `<button type="button" class="swap" data-swap title="${TEXT.proofSwap}" aria-label="${TEXT.proofSwap}">⇅</button>` : ''}</label>`).join('')}
+      <span class="k">${TEXT.proofZoneLabel}</span>${proofSeg('proofZone', proofLook.zone, [['trade', TEXT.proofZones[0]], ['list', TEXT.proofZones[1]]], TEXT.proofZoneLabel)}
       <details><summary>${TEXT.proofPreview}</summary><pre></pre></details>
       <p>${TEXT.proofHint}</p></section>`;
+  }
+  /** 3. La barre d'actions : envoyer (Elite) ou le cadenas, puis télécharger et copier pour tous. */
+  function proofFooterHtml(res) {
+    const main = res?.elite ? '<button type="button" class="send"></button>' : `<div class="lock">${TEXT.proofLocked(!!res?.signedIn)}</div>`;
+    return `${main}<div class="row"><button type="button" data-save>${PROOF_SVG.save}${TEXT.proofSave}</button><button type="button" data-copy>${PROOF_SVG.copy}${TEXT.proofCopy}</button></div>
+      ${res?.elite ? `<button type="button" class="share">${TEXT.proofShareBtn}</button>` : ''}
+      <p class="msg" role="status" aria-live="polite"></p>${res?.elite ? `<p class="keys">${TEXT.proofKeys}</p>` : ''}`;
   }
   function proofButton() {
     const b = proofQ('.send');
     if (!b) return;
     const allow = !proofPanel.canCapture;
     b.classList.toggle('allow', allow);
-    b.textContent = allow ? '🔓 ' + TEXT.proofAllowSend : '➤ ' + TEXT.proofSend;
+    b.innerHTML = (allow ? PROOF_SVG.lock : PROOF_SVG.send) + proofEsc(allow ? TEXT.proofAllowSend : TEXT.proofSend);
   }
   async function proofFill() {
-    const info = proofInfo(), body = proofQ('.body');
+    const info = proofInfo(), body = proofQ('.body'), foot = proofQ('footer');
     if (!body) return;
     proofPanel.sig = JSON.stringify(info);
-    proofQ('footer').hidden = true;
+    foot.hidden = true;
+    proofQ('.ttl small').textContent = info.ok && info.partner ? TEXT.proofTradeWith(info.partner) + (info.date ? ` · ${info.date}` : '') : '';
     if (!info.ok) { body.innerHTML = proofMaskHtml() + `<p>${TEXT.proofNotCompleted}</p>`; return; }
     const res = await B.runtime.sendMessage({ type: 'ronote:proof-prepare', info }).catch(() => null);
     if (!proofPanel || proofPanel.sig !== JSON.stringify(info)) return;
-    body.innerHTML = proofMaskHtml() + proofSendHtml(res);
-    if (!res?.elite) return;
-    proofPanel.canCapture = !!res.canCapture;
-    proofQ('footer').hidden = false;
+    body.innerHTML = proofMaskHtml() + proofTextHtml(res);
+    foot.innerHTML = proofFooterHtml(res);
+    foot.hidden = false;
+    Object.assign(proofPanel, { elite: !!res?.elite, canCapture: !!res?.canCapture });
     proofButton();
-    proofSay('');
     proofPreview();
   }
-  /** Chrome a donné la permission (petite fenêtre) : le bandeau passe au vert, puis on envoie. */
+  /** Chrome a donné la permission (petite fenêtre) : on reprend ce qui attendait (envoyer ou télécharger). */
   function proofAllowed() {
     if (!proofPanel) return;
     proofPanel.canCapture = true;
-    const p = proofQ('[data-perm]');
-    if (p) { p.className = 'perm ok'; p.textContent = '✓ ' + TEXT.proofPermOk; }
     proofButton();
-    if (proofPanel.waiting) { proofPanel.waiting = false; proofSend(false); }
+    const next = proofPanel.waiting;
+    proofPanel.waiting = '';
+    if (next === 'send') proofSend(false); else if (next === 'save') proofSave();
   }
   /** Le partage d'onglet de Chrome, une image : quand captureVisibleTab n'a pas la permission. */
   async function proofShareCapture() {
@@ -1134,58 +1178,95 @@
       return c.toDataURL('image/png');
     } finally { stream.getTracks().forEach(t => t.stop()); }
   }
-  async function proofSend(viaShare) {
-    const send = proofQ('.send');
-    if (!send || send.disabled) return;
-    // Pas encore la permission : la petite fenêtre « Autoriser » ; l'envoi suivra tout seul (proofAllowed).
-    if (!viaShare && !proofPanel.canCapture) {
-      proofPanel.waiting = true;
-      B.runtime.sendMessage({ type: 'ronote:proof-allow' }).catch(() => {});
-      proofSay(TEXT.proofAllowHint);
-      return;
-    }
-    const fields = proofFields(), list = !!proofQ('[data-list]')?.checked;
-    const frame = proofFrame(list);
-    if (!frame) { proofSay(TEXT.proofNotCompleted, 'err'); return; }
-    send.disabled = true; proofSay(TEXT.proofSending);
+  /** Pas encore la permission de capturer : la petite fenêtre « Autoriser », l'action reprendra toute seule. */
+  function proofNeedsAllow(action) {
+    if (proofPanel.canCapture) return false;
+    proofPanel.waiting = action;
+    B.runtime.sendMessage({ type: 'ronote:proof-allow' }).catch(() => {});
+    proofSay(TEXT.proofAllowHint);
+    return true;
+  }
+  /** La photo : le panneau et les boutons de RoNote cachés le temps de la capture, puis `type` au service worker. */
+  async function proofShoot(type, extra, viaShare) {
+    const frame = proofFrame(proofLook.zone === 'list');
+    if (!frame) return { error: 'not_completed' };
+    const busy = [...proofPanel.root.querySelectorAll('footer button')];
+    busy.forEach(b => { b.disabled = true; });
     const host = proofPanel.host;
     host.style.visibility = 'hidden';
     if (tools) tools.style.visibility = 'hidden';
-    let res;
     try {
       const image = viaShare ? await proofShareCapture() : null;
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));      // la page redessinée sans le panneau
-      res = await B.runtime.sendMessage({ type: 'ronote:proof-share', fields, frame, image });
+      return await B.runtime.sendMessage({ type, frame, image, ...extra });
     } catch (e) {
-      res = { error: viaShare ? 'share' : 'capture', detail: String(e?.message || e) };
+      return { error: viaShare ? 'share' : 'capture', detail: String(e?.message || e) };
     } finally {
       host.style.visibility = '';
       if (tools) tools.style.visibility = '';
-      send.disabled = false;
+      busy.forEach(b => { b.disabled = false; });
     }
-    if (res?.ok) { proofSay(TEXT.proofSent, 'ok'); return; }
+  }
+  function proofFail(res) {
     if (res?.error === 'capture') { proofPanel.canCapture = false; proofButton(); }       // permission retirée entre-temps
+    if (res?.error === 'not_completed') return proofSay(TEXT.proofNotCompleted, 'err');
     proofSay((TEXT.proofErrors[res?.error] || TEXT.proofFailed(res?.error || '?')) + (res?.detail ? ` (${res.detail})` : ''), 'err');
+  }
+  async function proofSend(viaShare) {
+    const send = proofQ('.send');
+    if (!send || send.disabled || (!viaShare && proofNeedsAllow('send'))) return;
+    proofSay(TEXT.proofSending);
+    const res = await proofShoot('ronote:proof-share', { fields: proofFields() }, viaShare);
+    if (!proofPanel) return;
+    if (res?.ok) proofSay(TEXT.proofSent, 'ok'); else proofFail(res);
+  }
+  async function proofSave() {
+    if (proofNeedsAllow('save')) return;
+    proofSay(TEXT.proofSaving);
+    const res = await proofShoot('ronote:proof-save', {}, false);
+    if (!proofPanel) return;
+    if (!res?.ok) return proofFail(res);
+    const f = proofFields(), a = document.createElement('a');
+    a.href = res.image;
+    a.download = `proof-${(f.receiver || f.sender || 'trade').replace(/[^\w-]+/g, '') || 'trade'}-${Date.now()}.png`;
+    a.click();
+    proofSay(TEXT.proofSaved, 'ok');
+  }
+  async function proofCopy() {
+    try { await navigator.clipboard.writeText(proofText(proofFields())); proofSay(TEXT.proofCopied, 'ok'); }
+    catch (e) { proofSay(TEXT.proofFailed(String(e?.message || e)), 'err'); }
+  }
+  function proofKey(e) {
+    if (!proofPanel) return;
+    if (e.key === 'Escape') { e.preventDefault(); setProof(false); proofControl?.focus(); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && proofPanel.elite) { e.preventDefault(); proofSend(false); }
+    else if ((e.key === 'Enter' || e.key === ' ') && e.composedPath()[0]?.matches?.('[data-pick]')) { e.preventDefault(); proofQ('[data-img]')?.click(); }
   }
   function openProofPanel() {
     if (proofPanel) return;
     const host = document.createElement('div');
     host.dataset.rn = 'proof-panel';
     const root = host.attachShadow({ mode: 'closed' });
-    root.innerHTML = `<style>${PROOF_CSS}</style><aside role="dialog" aria-label="Proof">
-      <header><b><i>✓</i> Proof</b><button class="x" title="${TEXT.proofClose}" aria-label="${TEXT.proofClose}">✕</button></header>
+    root.innerHTML = `<style>${PROOF_CSS}</style><aside role="dialog" aria-labelledby="t" tabindex="-1">
+      <header><span class="logo">${PROOF_SVG.shield}</span><div class="ttl"><b id="t">Proof</b><small></small></div>
+        <button type="button" class="x" title="${TEXT.proofClose}" aria-label="${TEXT.proofClose}">${PROOF_SVG.x}</button></header>
       <div class="body"><p>${TEXT.proofLoading}</p></div>
-      <footer hidden><button class="send"></button><button class="share">${TEXT.proofShareBtn}</button><p class="msg"></p></footer></aside>`;
+      <footer hidden></footer></aside>`;
     (document.body || document.documentElement).append(host);
-    proofPanel = { host, root, sig: '', canCapture: false, waiting: false };
+    proofPanel = { host, root, sig: '', elite: false, canCapture: false, waiting: '' };
     root.addEventListener('input', proofPreview);
-    root.addEventListener('change', e => { const f = e.target.matches('[data-img]') && e.target.files?.[0]; if (f) proofImage(f); });
+    root.addEventListener('change', e => {
+      const t = e.target;
+      if (t.matches('[data-img]') && t.files?.[0]) proofImage(t.files[0]);
+      else if (t.matches('[data-serials]')) hideSerials(t.checked);
+    });
     root.addEventListener('click', e => {
       const t = e.target;
       if (t.closest('.x')) setProof(false);
       else if (t.closest('[data-set]')) {
         const b = t.closest('[data-set]');
-        if (b.dataset.v === 'image' && !proofLook.image) { proofQ('[data-img]')?.click(); return; }      // « Mon image » sans image : on la choisit
+        if (b.dataset.v === 'image' && !proofLook.image) { proofQ('[data-img]')?.click(); return; }      // « Image » sans image : on la choisit
+        if (b.dataset.set === 'proofZone') { proofLook.zone = b.dataset.v; b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }
         B.runtime.sendMessage({ type: 'ronote:settings', patch: { [b.dataset.set]: b.dataset.v } }).catch(() => {});
       } else if (t.closest('[data-clear]')) {
         B.storage.local.set({ proofImage: '' }).catch(() => {});
@@ -1195,11 +1276,15 @@
         [s.value, r.value] = [r.value, s.value]; proofPreview();
       } else if (t.closest('.send')) proofSend(false);
       else if (t.closest('.share')) proofSend(true);
+      else if (t.closest('[data-save]')) proofSave();
+      else if (t.closest('[data-copy]')) proofCopy();
     });
+    document.addEventListener('keydown', proofKey, true);
+    root.querySelector('aside').focus();
     proofFill();
   }
-  function closeProofPanel() { proofPanel?.host.remove(); proofPanel = null; }
-  // La petite fenêtre « Autoriser » (options/capture.html) a eu la permission : on envoie tout seul.
+  function closeProofPanel() { document.removeEventListener('keydown', proofKey, true); proofPanel?.host.remove(); proofPanel = null; }
+  // La petite fenêtre « Autoriser » (options/capture.html) a eu la permission : l'action en attente repart.
   if (alive()) B.runtime?.onMessage?.addListener((msg) => { if (msg?.type === 'ronote:proof-retry') proofAllowed(); });
   // Un autre trade ouvert, panneau ouvert : ses lignes suivent.
   function proofFollow() { if (proofPanel && proofPanel.sig !== JSON.stringify(proofInfo())) proofFill(); }
@@ -1234,14 +1319,18 @@
       serialControl.type = 'button'; serialControl.dataset.rn = 'serial-toggle';
       serialControl.textContent = '#';
       serialControl.style.cssText = profileLink.style.cssText + 'font:700 18px/1 Arial;cursor:pointer;padding:0;';
-      serialControl.addEventListener('click', () => {
-        serialHidden = !serialHidden;
-        paintSerialControl();
-        for (const [el, rec] of serialNodes) el.style.filter = serialHidden ? 'blur(5px)' : rec.filter;
-      });
+      serialControl.addEventListener('click', () => hideSerials(!serialHidden));
     }
     if (profileLink.previousElementSibling !== serialControl) profileLink.before(serialControl);
     paintSerialControl();
+  }
+  /** Le bouton # et l'interrupteur du panneau proof : flouter (ou rendre) les numéros de série. */
+  function hideSerials(on) {
+    serialHidden = on;
+    paintSerialControl();
+    for (const [el, rec] of serialNodes) el.style.filter = serialHidden ? 'blur(5px)' : rec.filter;
+    const sw = proofQ('[data-serials]');
+    if (sw) sw.checked = on;
   }
   function paintSerialControl() {
     if (!serialControl) return;

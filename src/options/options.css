@@ -675,6 +675,7 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .proof-preview i:first-child { border-top: 0; }
 .proof-preview i::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #9b8cc4; flex: none; }
 .proof-preview i.sel { background: rgb(24 12 46 / .94); }
+.proof-preview i.blur { filter: blur(3px); }
 .proof-preview i.hid::before { display: none; }
 .proof-preview i.hid { color: rgba(255,255,255,.5); letter-spacing: 2px; font-size: 12px; }
 .proof-preview.img i.hid { border-color: transparent; }

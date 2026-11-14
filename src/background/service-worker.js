@@ -20,7 +20,7 @@ import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/u
 import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
-import { proofPrepare, proofShare } from './proof.js';
+import { proofPrepare, proofShare, proofSave } from './proof.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -1211,6 +1211,8 @@ async function handleMessage(msg, sender = null) {
       return proofPrepare(msg.info || {});
     case 'ronote:proof-share':
       return proofShare(msg, sender?.tab);
+    case 'ronote:proof-save':
+      return proofSave(msg, sender?.tab);
     case 'ronote:proof-allow':                    // le bouton du panneau : une petite fenêtre, un bouton, la demande de Chrome
       await B.windows.create({ url: B.runtime.getURL('options/capture.html?tab=' + (sender?.tab?.id || 0)),
         type: 'popup', width: 420, height: 300, focused: true });
