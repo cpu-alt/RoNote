@@ -1201,7 +1201,7 @@ async function handleMessage(msg, sender = null) {
 
     // L'onglet Deals du popup : le Deal Sniper de Neuronal.
     case 'ronote:neuronal-deals':
-      return neuronalDeals(await getSettings());
+      return neuronalDeals(await getSettings(), Number(msg.minutes) || 0);
 
     // RoNote premium (premium.js) : la carte Premium des réglages. Connecté ou déconnecté,
     // les réponses Neuronal gardées (refus compris) sont oubliées, et les fiches s'allument.

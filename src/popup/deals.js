@@ -33,6 +33,8 @@ const GRADES = ['S', 'A', 'B'];
 // la taille : la value de ce qu'on reçoit, comme les salons des deux snipers sur Discord
 const SIZES = [['s', '< 10k', 0, 10e3], ['m', '10k+', 10e3, 100e3], ['l', '100k+', 100e3, 500e3], ['xl', '500k+', 500e3, 1e6], ['xxl', '1M+', 1e6, Infinity]];
 const SORTS = [['best', 'Meilleurs'], ['new', 'Récents']];
+// la période demandée à Neuronal (?minutes=) ; 0 = celle d'office (15 min les deals, 10 min les Robux)
+const SINCE = [[0, 'Auto'], [5, '5 min'], [15, '15 min'], [30, '30 min'], [60, '1 h'], [180, '3 h']];
 const DEMAND = ['peu demandé', 'peu demandé', 'demande normale', 'très demandé', 'très demandé'];
 const LIVE_MS = 60e3;
 const STALE_S = 15 * 60;
@@ -58,7 +60,8 @@ function pick() {
     kind: KINDS.some(([k]) => k === p.kind) ? p.kind : 'deals',
     grades: (Array.isArray(p.grades) ? p.grades : []).filter(g => GRADES.includes(g)),
     sizes: (Array.isArray(p.sizes) ? p.sizes : []).filter(k => SIZES.some(([s]) => s === k)),
-    sort: SORTS.some(([k]) => k === p.sort) ? p.sort : 'best'
+    sort: SORTS.some(([k]) => k === p.sort) ? p.sort : 'best',
+    since: SINCE.some(([k]) => k === p.since) ? p.since : 0
   };
 }
 
@@ -85,6 +88,8 @@ function toolbarHtml(p, count, counts) {
     ${p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
+    <div class="pf-row" role="radiogroup" aria-label="${escapeHtml(t('Depuis'))}">
+      <span class="pf-lbl">${t('Depuis')}</span>${SINCE.map(([k, l]) => chip('data-dl-since', k, t(l), k === p.since, '', 'radio')).join('')}</div>
     <div class="pf-row dl-search"><input type="search" data-dl-search placeholder="${escapeHtml(t('Chercher un item (nom, initiales ou id)'))}"
       value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false"></div>
     <div class="pf-row" role="group" aria-label="${escapeHtml(t('Taille'))}">
@@ -199,7 +204,7 @@ const sig = (r) => [...list(r.data, 'deals').map(d => d.id + ':' + d.score), ...
 
 async function load(root, live = false) {
   const mine = ++token;
-  const res = await send({ type: 'ronote:neuronal-deals' }).catch(() => null) || { error: 'empty' };
+  const res = await send({ type: 'ronote:neuronal-deals', minutes: pick().since }).catch(() => null) || { error: 'empty' };
   if (mine !== token || !visible(root)) return;
   if (live && !res.data) return;                     // panne passagère : on garde ce qu'on a
   if (!live || !last?.data) { last = res; paint(root); return; }
@@ -225,10 +230,13 @@ export function renderDeals(listEl, openOptions) {
     listEl.addEventListener('click', (e) => {
       if (listEl.dataset.tab !== 'deals') return;
       if (e.target.closest('[data-dl-options]')) { openOptions(); return; }
-      const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind]');
+      const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind], [data-dl-since]');
       if (!el) return;
       const p = pick();
       const toggle = (arr, k) => (!k ? [] : arr.includes(k) ? arr.filter(x => x !== k) : [...arr, k]);
+      if (el.dataset.dlSince !== undefined) {   // une autre période : une autre liste à demander
+        p.since = Number(el.dataset.dlSince) || 0; write(p); last = null; paint(listEl); load(listEl); return;
+      }
       if (el.dataset.dlKind !== undefined) p.kind = el.dataset.dlKind;
       else if (el.dataset.dlSort !== undefined) p.sort = el.dataset.dlSort;
       else if (el.dataset.dlGrade !== undefined) { p.grades = toggle(p.grades, el.dataset.dlGrade); if (p.grades.length === GRADES.length) p.grades = []; }

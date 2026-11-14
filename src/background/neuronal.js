@@ -161,15 +161,15 @@ export async function neuronalProfiles(kind, tier, settings) {
  * tout le monde, gardée 60 s comme sur le serveur. Mêmes conditions que les fiches.
  */
 const DEALS_MS = 60e3;
-export async function neuronalDeals(settings) {
+export async function neuronalDeals(settings, minutes = 0) {
   if (!settings?.neuronalLookup) return { off: true };
   const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
   if (!granted) return { off: true, permission: false };
-  const key = 'deals';
+  const key = minutes ? 'deals' + minutes : 'deals';
   const hit = (await cache())[key];
   if (hit && hit.until > Date.now()) return hit.value;
   if (pending.has(key)) return pending.get(key);
-  const run = fetchOne('deals', 0, 'deals').then(async (value) => {
+  const run = fetchOne('deals', 0, minutes ? 'deals?minutes=' + minutes : 'deals').then(async (value) => {
     await remember(key, value, value.data ? DEALS_MS : FAIL_MS);
     return value;
   }).finally(() => pending.delete(key));
