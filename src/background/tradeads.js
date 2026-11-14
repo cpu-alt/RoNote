@@ -15,6 +15,8 @@
  * ==========================================================================
  */
 import { B, safe } from '../common/shim.js';
+import { getState } from '../common/state.js';
+import { premiumGet, premiumHeaders } from './premium.js';
 
 export const ALARM = 'ronote:tradeads';
 const KEY = 'tradeads';
@@ -139,9 +141,26 @@ const saveConfig = (c) => B.storage.local.set({ [KEY]: c });
 
 const permitted = (site) => !site.origin || safe(() => B.permissions.contains({ origins: [site.origin] }), false);
 
+/**
+ * Premium (14 nov., MYd) : l'auto-post va avec la clé. null si ouvert, sinon la raison au format de
+ * popup/lock.js. Le jeton signé par Neuronal dit les fonctions ; il est renouvelé au besoin (une
+ * session fermée sur le serveur l'efface, et l'auto-post s'arrête au tour suivant).
+ */
+export async function tradeAdsLocked(me) {
+  await safe(() => premiumHeaders());
+  const p = await premiumGet();
+  if (!p.token) return 'login';
+  if (!p.me?.features?.tradeads) return 'subscribe';
+  if (!p.me.roblox) return 'link';
+  if (me && Number(p.me.roblox.id) !== Number(me)) return 'other_account';
+  return null;
+}
+
 /** L'état de chaque site pour le popup : connecté, à connecter, permission manquante ou bloqué. */
 export async function tradeAdsStatus() {
   const cfg = await getConfig();
+  const locked = await tradeAdsLocked(Number((await safe(() => getState(), {}))?.userId) || 0);
+  if (locked) return { cfg, sites: {}, locked, subscribeUrl: (await premiumGet()).me?.subscribe_url || '' };
   const out = {};
   for (const [k, site] of Object.entries(SITES)) {
     const base = { name: site.name, login: site.login, origin: site.origin, cooldown: site.cooldown || 0, daily: site.daily || 0, on: !!cfg.sites[k] };
@@ -214,6 +233,8 @@ export async function runTradeAds({ me, offerable = null, force = false, now = D
   const cfg = await getConfig();
   if (!cfg.on && !force) return { skipped: 'off' };
   if (!me) return { skipped: 'me' };
+  const locked = await tradeAdsLocked(me);
+  if (locked) return { skipped: 'premium', locked };
   const offer = offerable ? cfg.offer.filter(id => offerable.has(id)) : cfg.offer;
   if (!offer.length || !(cfg.items.length + cfg.tags.length)) return { skipped: 'empty' };
   const ad = { offer, items: cfg.items, tags: cfg.tags, note: cfg.note };

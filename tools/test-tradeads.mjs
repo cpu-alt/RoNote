@@ -36,7 +36,8 @@ const check = (label, ok) => { if (ok) { passed++; console.log('  ✓ ' + label)
 const ROLI = 'https://api.rolimons.com/tradeads/v1/createad';
 const RU = 'https://routility.io/api/ads/';
 const ME = 'https://routility.io/api/auth/me';
-const reset = () => { store.clear(); calls = []; routes = {}; alarms.clear(); granted = new Set(['https://routility.io/*']); };
+const PREMIUM = { token: 't', exp: 4e9, me: { features: { tradeads: true }, roblox: { id: 42 } } };
+const reset = () => { store.clear(); store.set('premium', clone(PREMIUM)); calls = []; routes = {}; alarms.clear(); granted = new Set(['https://routility.io/*']); };
 const MIN = 60e3;
 
 console.log('\nRéglages nettoyés');
@@ -110,6 +111,21 @@ console.log('\nRefus et limites');
   check('éteint par l\'interrupteur → rien', (await ta.saveTradeAds({ on: false }), (await ta.runTradeAds({ me: 42 })).skipped === 'off'));
   check('sans compte suivi → rien', (await ta.runTradeAds({ me: 0, force: true })).skipped === 'me');
   check('item vendu depuis → annonce vide, rien ne part', (await ta.runTradeAds({ me: 42, force: true, offerable: new Set([7]) })).skipped === 'empty' && !calls.length);
+}
+
+console.log('\nPremium (la clé)');
+{
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['any'], sites: { rolimons: true } });
+  store.delete('premium');
+  check('sans clé → rien ne part', (await ta.runTradeAds({ me: 42, force: true })).locked === 'login' && !calls.length);
+  check('sans clé → popup verrouillé', (await ta.tradeAdsStatus()).locked === 'login');
+  store.set('premium', { ...PREMIUM, me: { ...PREMIUM.me, features: { tradeads: false } } });
+  check('abonnement sans la fonction → subscribe', (await ta.runTradeAds({ me: 42, force: true })).locked === 'subscribe');
+  store.set('premium', { ...PREMIUM, me: { features: { tradeads: true } } });
+  check('compte Roblox pas vérifié → link', (await ta.runTradeAds({ me: 42, force: true })).locked === 'link');
+  store.set('premium', PREMIUM);
+  check('clé liée à un autre compte → other_account', (await ta.runTradeAds({ me: 43, force: true })).locked === 'other_account');
 }
 
 console.log('\nÉtat des sites');

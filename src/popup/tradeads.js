@@ -15,6 +15,7 @@ import { t } from '../common/i18n.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { ic } from '../common/icons.js';
+import { lockHtml } from './lock.js';
 import { smartGap, MIN_VALUES, pickAd, onlyAd } from '../background/tradeads.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
@@ -183,6 +184,7 @@ function pickerHtml(cfg, all) {
 
 function paint(root) {
   if (!res?.cfg) { root.innerHTML = `<div class="empty"><b>${t('Chargement…')}</b></div>`; return; }
+  if (res.locked) { root.innerHTML = `<div class="pf-list ta">${lockHtml(res)}</div>`; return; }
   const { cfg, sites } = res;
   const all = inventory();
   const asked = cfg.items.length + cfg.tags.length;

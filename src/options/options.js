@@ -976,6 +976,21 @@ function wire() {
     e.target.textContent = t('Réinitialiser');
   });
 
+  // Chrome rend { status, version } ; Firefox [status, details]. Une version trouvée s'installe au rechargement.
+  $('#btn-update').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const r = await Promise.resolve(B.runtime.requestUpdateCheck?.()).catch(() => null);
+    const [status, info] = Array.isArray(r) ? r : [r?.status, r?.details || r];
+    btn.disabled = false;
+    if (status === 'update_available') {
+      btn.textContent = t('Version {v} trouvée : installation…', { v: info?.version || '' });
+      setTimeout(() => B.runtime.reload(), 1500);
+    } else {
+      btn.textContent = t(status === 'no_update' ? 'RoNote est à jour' : status === 'throttled' ? 'Trop de demandes, réessaie plus tard' : 'Vérification impossible ici');
+    }
+  });
+
   $('#btn-clear').addEventListener('click', async () => {
     if (!confirm(t('Vider le journal ?'))) return;
     await send({ type: 'ronote:history-clear' });

@@ -15,7 +15,9 @@ const SUBSCRIBE = 'https://discord.gg/neuronal';
 const FEATURES = [
   ['lookup', 'Fiches Neuronal', "Ce que le réseau sait d'un joueur ou d'un objet, dans leur fiche."],
   ['profiles', 'Profils', 'Profile discovery : les joueurs repérés, classique et Neuronal.'],
-  ['deals', 'Deals', 'Le Deal Sniper et le Robux Sniper, en direct.']
+  ['deals', 'Deals', 'Le Deal Sniper et le Robux Sniper, en direct.'],
+  ['tradeads', 'Trade ads automatiques', 'Ton annonce publiée toute seule sur Rolimon's et RoUtility.'],
+  ['proof', 'Share proof', 'La capture du trade terminé, envoyée en MP sur Discord (Elite).']
 ];
 
 const ERRORS = {
