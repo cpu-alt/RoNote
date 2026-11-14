@@ -1849,6 +1849,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-seg button[aria-checked="true"] { background: var(--surface-3); color: var(--fg); }
 .pf-row { display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
 .pf-row::-webkit-scrollbar { display: none; }
+.dl-search input { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line-soft); background: none; color: inherit; font: inherit; font-size: 12px; }
+.dl-search input:focus { outline: none; border-color: var(--accent, #3b82f6); }
 .pf-row button { flex: none; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line-soft); background: none; color: var(--dim); font: inherit; font-size: 10.5px; font-weight: 650; text-transform: capitalize; cursor: pointer; transition: border-color .15s, background .15s; }
 .pf-row button:hover { border-color: var(--line); }
 .pf-row button[aria-checked="true"] { border-color: var(--accent); color: var(--fg); background: #13213a; }

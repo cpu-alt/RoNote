@@ -41,6 +41,16 @@ let last = null;          // la dernière réponse { data }
 let seen = new Set();
 let timer = 0;
 let token = 0;
+let query = '';           // la recherche d'items : gardée le temps du popup, pas enregistrée
+
+/** Un item répond à la recherche : un bout de son nom, ses initiales (« vv » → Violet Valkyrie), ou son id. */
+const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+export function itemMatches(it, q) {
+  const n = norm(it?.name);
+  const initials = n.split(/[^a-z0-9]+/).filter(Boolean).map(w => w[0]).join('');
+  return n.includes(q) || initials === q.replace(/\s+/g, '') || String(it?.id) === q;
+}
+const hasItem = (x, q) => !q || [...(x.get || []), ...(x.give || [])].some(it => itemMatches(it, q));
 
 function pick() {
   const p = read();
@@ -75,6 +85,8 @@ function toolbarHtml(p, count, counts) {
     ${p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
+    <div class="pf-row dl-search"><input type="search" data-dl-search placeholder="${escapeHtml(t('Chercher un item (nom, initiales ou id)'))}"
+      value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false"></div>
     <div class="pf-row" role="group" aria-label="${escapeHtml(t('Taille'))}">
       <span class="pf-lbl">${t('Taille')}</span>${chip('data-dl-size', '', t('Toutes'), !p.sizes.length)}${SIZES.map(([k, l]) =>
         chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div>
@@ -83,7 +95,7 @@ function toolbarHtml(p, count, counts) {
 
 function filtered(p, data) {
   const out = list(data, p.kind).filter(x => (p.kind !== 'deals' || !p.grades.length || p.grades.includes(x.grade))
-    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind))));
+    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind))) && hasItem(x, norm(query).trim()));
   if (p.sort === 'new') return out.sort((a, b) => b.at - a.at);
   return p.kind === 'robux' ? out.sort((a, b) => (b.demand - a.demand) || (b.value - a.value)) : out;
 }
@@ -157,6 +169,14 @@ function stateHtml(res) {
 const idOf = (x, kind) => (kind === 'robux' ? 'r' : 'd') + x.id;
 
 function paint(root) {
+  // la liste est redessinée en entier (en direct aussi) : le champ de recherche garde le focus et le curseur
+  const box = root.querySelector('[data-dl-search]');
+  const typing = box && document.activeElement === box ? box.selectionStart : null;
+  draw(root);
+  if (typing !== null) { const b = root.querySelector('[data-dl-search]'); b?.focus(); b?.setSelectionRange(typing, typing); }
+}
+
+function draw(root) {
   const p = pick();
   if (!last) {
     root.innerHTML = toolbarHtml(p, null, null) + `<div class="pf-list">${'<div class="pf-skel"></div>'.repeat(3)}</div>`;
@@ -169,7 +189,7 @@ function paint(root) {
   const card = p.kind === 'robux' ? robuxHtml : dealHtml;
   root.innerHTML = toolbarHtml(p, shown.length, counts) + (shown.length
     ? `<div class="pf-list">${shown.map(x => card(x, false)).join('')}</div>`
-    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length
+    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length || query.trim()
       ? 'Rien ne correspond à ces filtres pour le moment.'
       : p.kind === 'robux' ? 'Personne ne vend contre des Robux ces 10 dernières minutes.' : 'Aucune annonce assez bonne ces 15 dernières minutes.'));
 }
@@ -216,6 +236,11 @@ export function renderDeals(listEl, openOptions) {
       write(p);
       paint(listEl);
       listEl.scrollTop = 0;
+    });
+    listEl.addEventListener('input', (e) => {
+      if (listEl.dataset.tab !== 'deals' || !e.target.matches('[data-dl-search]')) return;
+      query = e.target.value;
+      paint(listEl);
     });
     document.addEventListener('visibilitychange', () => { if (visible(listEl)) load(listEl, true); });
   }

@@ -1273,6 +1273,8 @@ const EN = {
   "Vérifie ton compte Roblox pour débloquer les fonctions.": "Verify your Roblox account to unlock the features.",
   "Vérifier mon compte Roblox": "Verify my Roblox account",
   "Mises à jour": "Updates",
+  "Chercher un item (nom, initiales ou id)": "Search an item (name, initials or id)",
+  "Chercher un item": "Search an item",
   "Demande au store s'il y a une nouvelle version de RoNote, et l'installe tout de suite.": "Asks the store for a newer RoNote version and installs it right away.",
   "Vérifier les mises à jour": "Check for updates",
   "Version {v} trouvée : installation…": "Version {v} found: installing…",
