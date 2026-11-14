@@ -1944,6 +1944,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .dl-kinds { flex: 1.2; }
 .dl-sorts { flex: 1; }
 .dl-kn { margin-left: 5px; padding: 0 5px; border-radius: 8px; background: var(--surface-3, #232a3a); color: var(--dim); font-style: normal; font-size: 10px; font-weight: 750; }
+.dl-find .ctr-search { flex: 1 0 120px; margin-right: 2px; }
+.pf-row button.dl-side-c { text-transform: none; padding: 3px 7px; }
 .pf-row button.dl-g { min-width: 28px; font-weight: 800; text-transform: none; }
 .pf-row button.g-S[aria-checked="true"] { border-color: #f1c40f; background: #f1c40f1f; color: #f5d34f; }
 .pf-row button.g-A[aria-checked="true"] { border-color: var(--win); background: #2fd0701c; color: var(--win); }

@@ -33,6 +33,8 @@ const GRADES = ['S', 'A', 'B'];
 // la taille : la value de ce qu'on reçoit, comme les salons des deux snipers sur Discord
 const SIZES = [['s', '< 10k', 0, 10e3], ['m', '10k+', 10e3, 100e3], ['l', '100k+', 100e3, 500e3], ['xl', '500k+', 500e3, 1e6], ['xxl', '1M+', 1e6, Infinity]];
 const SORTS = [['best', 'Meilleurs'], ['new', 'Récents']];
+// la recherche d'un item : dans ce que tu donnes, ce que tu reçois, ou les deux
+const SIDES = [['any', 'Les deux'], ['give', 'Tu donnes'], ['get', 'Tu reçois']];
 const DEMAND = ['peu demandé', 'peu demandé', 'demande normale', 'très demandé', 'très demandé'];
 const LIVE_MS = 60e3;
 const STALE_S = 15 * 60;
@@ -48,7 +50,9 @@ function pick() {
     kind: KINDS.some(([k]) => k === p.kind) ? p.kind : 'deals',
     grades: (Array.isArray(p.grades) ? p.grades : []).filter(g => GRADES.includes(g)),
     sizes: (Array.isArray(p.sizes) ? p.sizes : []).filter(k => SIZES.some(([s]) => s === k)),
-    sort: SORTS.some(([k]) => k === p.sort) ? p.sort : 'best'
+    sort: SORTS.some(([k]) => k === p.sort) ? p.sort : 'best',
+    q: typeof p.q === 'string' ? p.q.slice(0, 40) : '',
+    side: SIDES.some(([k]) => k === p.side) ? p.side : 'any'
   };
 }
 
@@ -61,6 +65,11 @@ const chip = (attr, value, label, on, cls = '', role = 'checkbox') =>
 
 const list = (data, kind) => (kind === 'robux' ? data?.robux : data?.deals) || [];
 const valueOf = (x, kind) => (kind === 'robux' ? x.value : x.get_value) || 0;
+const flat = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+// shortcut: les deals n'apportent pas l'acronyme Rolimon's ; les initiales du nom (« DE », « BIC ») le remplacent presque toujours
+const initials = (name) => flat(name).split(/[^a-z0-9]+/).filter(Boolean).map(w => w[0]).join('');
+export const itemMatch = (it, q) => flat(it.name).includes(q) || (q.length >= 2 && !q.includes(' ') && initials(it.name).startsWith(q));
+const sideItems = (x, side) => (side === 'give' ? x.give : side === 'get' ? x.get : [...(x.give || []), ...(x.get || [])]) || [];
 const sizeOf = (x, kind) => (SIZES.find(([, , lo, hi]) => valueOf(x, kind) >= lo && valueOf(x, kind) < hi) || SIZES[0])[0];
 
 function toolbarHtml(p, count, counts) {
@@ -78,12 +87,17 @@ function toolbarHtml(p, count, counts) {
     <div class="pf-row" role="group" aria-label="${escapeHtml(t('Taille'))}">
       <span class="pf-lbl">${t('Taille')}</span>${chip('data-dl-size', '', t('Toutes'), !p.sizes.length)}${SIZES.map(([k, l]) =>
         chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div>
+    <div class="pf-row dl-find" role="group" aria-label="${escapeHtml(t('Chercher un objet'))}">
+      <label class="ctr-search"><input type="search" data-dl-q value="${escapeHtml(p.q)}" placeholder="${escapeHtml(t('Chercher un objet'))}" aria-label="${escapeHtml(t('Chercher un objet'))}" autocomplete="off" spellcheck="false"></label>
+      ${p.kind === 'deals' ? SIDES.map(([k, l]) => chip('data-dl-side', k, t(l), k === p.side, 'dl-side-c', 'radio')).join('') : ''}</div>
   </div>`;
 }
 
 function filtered(p, data) {
+  const q = flat(p.q).trim();
   const out = list(data, p.kind).filter(x => (p.kind !== 'deals' || !p.grades.length || p.grades.includes(x.grade))
-    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind))));
+    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind)))
+    && (!q || sideItems(x, p.kind === 'robux' ? 'get' : p.side).some(it => itemMatch(it, q))));
   if (p.sort === 'new') return out.sort((a, b) => b.at - a.at);
   return p.kind === 'robux' ? out.sort((a, b) => (b.demand - a.demand) || (b.value - a.value)) : out;
 }
@@ -157,6 +171,13 @@ function stateHtml(res) {
 const idOf = (x, kind) => (kind === 'robux' ? 'r' : 'd') + x.id;
 
 function paint(root) {
+  const box = root.querySelector('[data-dl-q]');
+  const typing = box && document.activeElement === box ? [box.selectionStart, box.selectionEnd] : null;
+  draw(root);
+  if (typing) { const b = root.querySelector('[data-dl-q]'); b?.focus(); b?.setSelectionRange(...typing); }
+}
+
+function draw(root) {
   const p = pick();
   if (!last) {
     root.innerHTML = toolbarHtml(p, null, null) + `<div class="pf-list">${'<div class="pf-skel"></div>'.repeat(3)}</div>`;
@@ -169,7 +190,7 @@ function paint(root) {
   const card = p.kind === 'robux' ? robuxHtml : dealHtml;
   root.innerHTML = toolbarHtml(p, shown.length, counts) + (shown.length
     ? `<div class="pf-list">${shown.map(x => card(x, false)).join('')}</div>`
-    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length
+    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length || p.q.trim()
       ? 'Rien ne correspond à ces filtres pour le moment.'
       : p.kind === 'robux' ? 'Personne ne vend contre des Robux ces 10 dernières minutes.' : 'Aucune annonce assez bonne ces 15 dernières minutes.'));
 }
@@ -205,17 +226,23 @@ export function renderDeals(listEl, openOptions) {
     listEl.addEventListener('click', (e) => {
       if (listEl.dataset.tab !== 'deals') return;
       if (e.target.closest('[data-dl-options]')) { openOptions(); return; }
-      const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind]');
+      const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind], [data-dl-side]');
       if (!el) return;
       const p = pick();
       const toggle = (arr, k) => (!k ? [] : arr.includes(k) ? arr.filter(x => x !== k) : [...arr, k]);
       if (el.dataset.dlKind !== undefined) p.kind = el.dataset.dlKind;
       else if (el.dataset.dlSort !== undefined) p.sort = el.dataset.dlSort;
+      else if (el.dataset.dlSide !== undefined) p.side = el.dataset.dlSide;
       else if (el.dataset.dlGrade !== undefined) { p.grades = toggle(p.grades, el.dataset.dlGrade); if (p.grades.length === GRADES.length) p.grades = []; }
       else { p.sizes = toggle(p.sizes, el.dataset.dlSize); if (p.sizes.length === SIZES.length) p.sizes = []; }
       write(p);
       paint(listEl);
       listEl.scrollTop = 0;
+    });
+    listEl.addEventListener('input', (e) => {
+      if (listEl.dataset.tab !== 'deals' || !e.target.matches('[data-dl-q]')) return;
+      write({ ...pick(), q: e.target.value.slice(0, 40) });
+      paint(listEl);
     });
     document.addEventListener('visibilitychange', () => { if (visible(listEl)) load(listEl, true); });
   }

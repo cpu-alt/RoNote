@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Deals : chercher un item** : un champ dans l'onglet Deals trouve les annonces qui contiennent un objet,
+  par son nom ou son acronyme (« DE »), et trois choix disent où le chercher : **Les deux**, **Tu donnes** ou
+  **Tu reçois**. Retenu d'une ouverture à l'autre, comme les autres filtres.
 - **Trade Flex refait** (le trophée d'un trade terminé) : une fenêtre en deux colonnes, l'aperçu en grand et
   les réglages à côté. Deux formats : la carte **complète** ou une carte **compacte** (1200 × 640, une ligne
   par objet). Cinq fonds (Nuit, Violet, Émeraude, Coucher de soleil, Carbone) ou ton image, qu'on peut
