@@ -26,47 +26,51 @@ Retour au [README](../README.md).
 > **Le nom et le résumé ne se saisissent pas.** La console les affiche en
 > « Titre issu du package » / « Résumé issu du package » : ils viennent du
 > manifeste, via `_locales/`. Un navigateur en français verra
-> « RoNote : Alertes de trades Roblox », tous les autres
-> « RoNote : Roblox Trade Alerts ». Rien à faire ici.
+> « RoNote : alertes et values de trades pour Roblox », tous les autres
+> « RoNote: Trade Alerts & Values for Roblox » (depuis la 2.17.0). Rien à faire ici.
 
 **Detailed description**
 
 ```
-RoNote tells you the moment anything moves in your Roblox trades: a trade comes in, a trade completes, a counter-offer arrives, or one of your own outbound trades is accepted, declined, countered or expired.
+Know if a Roblox trade is a W or an L before you hit Accept. RoNote values every offer item by item at Rolimon's value, not RAP, flags projecteds, and alerts you the moment anything moves in your trades.
 
 NO FALSE ALERTS
-Tracking is based on the unique trade ID : never on the other player's username, never on a position in the list, never on a trade count. The classic bug ("I decline one trade and the one below it notifies again") simply does not happen here.
+Tracking is based on the unique trade ID, never on the other player's username, a position in the list or a trade count. Decline one trade and the one below it will not notify again.
 
 VALUE, NOT RAP
-Every trade is evaluated item by item: value, RAP, and Robux counted net of the 30% Roblox tax. RoNote flags the usual traps : projected items, quotes sitting far above real sales, faces and bundle items with no value. A trade can look like a win on RAP and be a loss on value: RoNote shows you both.
+Every trade is evaluated item by item: value, RAP, and Robux counted net of the 30% Roblox tax. RoNote flags the usual traps: projected items, quotes sitting far above real sales, faces and bundle items with no value. A trade can look like a W on RAP and be an L on value: RoNote shows you both.
 
 ON ROBLOX TRADE PAGES
 Open any trade on roblox.com and RoNote adds:
-• The RAP and Value gap between the two offers : green for a win, red for a loss
-• Rolimon's value under every item, and a total for each side
+• The RAP and Value gap between the two offers, green for a W, red for an L
+• Rolimon's value and demand under every item, and a total for each side
 • A warning badge on projected items
 • A shortcut to the other player's Rolimon's profile, and a button to blur serial numbers
-• Trade Flex: turn a completed trade into a shareable WIN / LOSS image, with names and serials left out
+• Trade Flex: turn a completed trade into a shareable WIN / LOSS card, with names and serials left out
 
 WHAT YOU GET
-• Desktop notifications, with a different sound per event type
-• Home tab: your portfolio's 24-hour move, today's offers and revaluations at a glance
-• Portfolio tab: your account value over time, Value, RAP and collectibles on one chart, plus every item with its value, demand and trend
-• Player cards: click an avatar to see that player's inventory value and its curve, account age, last time online, and your trades together
-• Revaluation alerts: know when Rolimon's revises the value of an item you own
+• Desktop notifications for inbound, completed, countered, accepted, declined and expired trades, with a sound per event
+• Home: your portfolio's 24-hour move, today's offers and revaluations at a glance
+• Portfolio: your account value over time, Value, RAP and collectibles on one chart, every item with its value, demand and trend
+• Player cards: click an avatar to see that player's inventory value, account age, last time online and your trades together
+• Revaluation alerts when Rolimon's revises the value of an item you own
 • Filters: value threshold, ignored players, quiet hours
 • English and French, detected automatically
-• Decline or cancel a trade in two deliberate clicks
+
+OPTIONAL EXTRAS (off by default)
+• Automatic trade ads: compose one ad (up to 4 items you own, up to 4 items or tags you want) and RoNote posts it for you on Rolimon's and RoUtility, with the session you opened on those sites yourself, within each site's limits. No password is ever asked.
+• Neuronal (neuronal.live): look up what the Neuronal trade network knows about a player or an item, and optionally contribute your own completed trades to make values more accurate.
+• Share a proof (Neuronal Elite): send a screenshot of a completed trade to yourself as a Discord DM.
 
 WHAT RONOTE WILL NOT DO
-RoNote never creates a trade and never counters one: "Counter" opens the trade on roblox.com, where Roblox's own editor composes the reply. Accepting an inbound trade is possible, but only in two deliberate clicks (the second within 5 seconds), because accepting transfers items and cannot be undone. If Roblox asks for two-step verification, RoNote opens the trade on roblox.com instead of getting around it.
+RoNote never creates a trade on its own. Accepting an inbound trade takes two deliberate clicks (the second within 5 seconds), because accepting transfers items and cannot be undone. If Roblox asks for two-step verification, RoNote opens the trade on roblox.com instead of getting around it.
 
 PRIVACY
-No data leaves your browser. No server, no account to create, no telemetry, no ads. The only requests go to Roblox's public APIs and, if you leave the option on, to Rolimon's: the public value table and item histories, the same for everyone, and public Rolimon's profiles looked up by Roblox user ID : yours for the portfolio, the other player's when you open their player card. Roblox user IDs are already public; nothing else is sent. Trade Flex images, including any background you import, are made on your computer and never uploaded.
+No telemetry, no ads, no account to create. RoNote reads Roblox's public APIs and Rolimon's public value table. Nothing about you is sent anywhere unless you turn on an optional extra above: Neuronal, automatic trade ads (your ad goes to the sites you ticked) or Share a proof. Your Roblox session cookie and passwords are never read. Full policy: https://cpu-alt.github.io/RoNote/privacy.html
 
 The code is open and verifiable: https://github.com/cpu-alt/RoNote
 
-RoNote is an independent project, not affiliated with or endorsed by Roblox Corporation.
+RoNote is an independent project, not affiliated with or endorsed by Roblox Corporation or Rolimon's.
 ```
 
 **Category** : Tools · **Language** : English
@@ -78,7 +82,7 @@ RoNote is an independent project, not affiliated with or endorsed by Roblox Corp
 Google exige une phrase décrivant *un seul* objectif.
 
 ```
-RoNote has a single purpose: to alert the user about changes in their own Roblox trades through desktop notifications, and to present the value analysis of those trades. The optional Neuronal features serve that same purpose: a lookup asks the Neuronal network what it knows about the player or the item whose sheet the user opened, and the contribution option : off until the user turns it on, sends that network the user's own completed trades, which is what makes the trade values the extension displays accurate.
+RoNote has a single purpose: to help the user trade Roblox limited items, by alerting them about changes in their own trades and showing the value analysis of those trades. The optional features serve that same purpose: automatic trade ads post the trade ad the user composed (items they own, items they want) on the trade-ad sites they ticked, Rolimon's and RoUtility, with the session they opened there; Neuronal lookups ask the Neuronal network what it knows about the player or item the user opened; the Neuronal contribution, off until the user turns it on, sends that network the user's own completed trades, which makes the displayed values more accurate.
 ```
 
 ---
@@ -138,7 +142,7 @@ de description :
 | Location | No |
 | Web history | No |
 | User activity (clicks, mouse, keystrokes) | No |
-| Website content | **Yes** : `Only when the user turns on the Neuronal contribution (off by default): each completed trade as the Roblox API returned it, item IDs, copy IDs (userAssetId), serial numbers, item names and the Robux on each side. Nothing else from the page or from the user's browsing. With the option off, trade data is read, displayed and kept locally, and never transmitted. Separately, with *Share a proof* (premium, Neuronal Elite), a screenshot of the completed trade the user is viewing and five proof lines they reviewed, only when they click Send, returned to them as a Discord DM and not kept by the server.` |
+| Website content | **Yes** : `Only when the user turns on the Neuronal contribution (off by default): each completed trade as the Roblox API returned it, item IDs, copy IDs (userAssetId), serial numbers, item names and the Robux on each side. Nothing else from the page or from the user's browsing. With the option off, trade data is read, displayed and kept locally, and never transmitted. Separately, with *Share a proof* (premium, Neuronal Elite), a screenshot of the completed trade the user is viewing and five proof lines they reviewed, only when they click Send, returned to them as a Discord DM and not kept by the server. With *Automatic trade ads* (off by default), the ad the user composed (item IDs they own, item IDs or tags they want, an optional note) is posted to the trade-ad sites they ticked (Rolimon's, RoUtility) with their own session on those sites.` |
 
 **Les trois certifications à cocher** : toutes vraies pour RoNote :
 
