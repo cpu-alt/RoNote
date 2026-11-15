@@ -1114,9 +1114,10 @@ champs en JSON base64, jeton premium. Le serveur (Neuronal 18qbfa) revérifie la
 zone choisie, panneau caché) et le garde dans `proofPanel.lot` avec ce que `proofInfo` en sait ; ouvrir un
 autre trade dans la liste ne vide pas le lot. Dès qu'il n'est pas vide, `proof-prepare` reçoit
 `{ trades: [...] }` et `mergeProof` (`common/proof-merge.js`, testé par `tools/test-proof.mjs`) réunit les
-cinq lignes. Envoyer et Télécharger n'ont alors plus besoin de capture : les images du lot sont empilées dans
-un canvas de la page (la largeur de la plus large, 16 px entre deux), puis envoyées comme `image` avec un
-cadre qui couvre toute l'image ; le worker les compresse sous 63 Ko comme une capture.
+cinq lignes. Envoyer et Télécharger n'ont alors plus besoin de capture : une requête `POST /ext/v1/proof` par trade,
+l'en-tête `X-Proof-Part: k/n` (Neuronal envoie le texte avec la 1re image, puis « (k/n) » seul, et ne compte
+que la 1re dans la limite horaire) ; Télécharger enregistre un fichier par trade. Avant chaque capture,
+`proofImagesReady` attend que chaque objet ait sa vignette chargée (6 s au plus).
 « Choisir dans la liste » : l'attribut `data-rn-proof` (le masque) est retiré, chaque `.trade-row` reçoit
 `data-rn-pick` (une case dessinée en CSS), et les clics sur les lignes sont avalés en capture (pointerdown
 compris : React ouvre un trade dès lui) pour cocher sans ouvrir. Une ligne est reconnue à son texte (React

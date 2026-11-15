@@ -49,10 +49,11 @@
     proofTextTitle: 'Le proof',
     proofSwap: 'Inverser Sender et Receiver',
     proofMultiTitle: 'Plusieurs trades',
-    proofMultiHint: 'Ajoute ce trade, ouvre le suivant dans la liste et ajoute-le aussi : le proof réunit tous les trades ajoutés (objets, values, pseudos, dates) et une capture de chacun.',
+    proofMultiHint: 'Ajoute ce trade, ouvre le suivant dans la liste et ajoute-le aussi : le proof réunit tous les trades ajoutés (objets, values, pseudos, dates), avec une image par trade.',
     proofMultiAdd: 'Ajouter ce trade', proofMultiAdded: 'Déjà ajouté', proofMultiClear: 'Tout retirer',
     proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} dans le proof`, proofMultiRemove: 'Retirer ce trade',
     proofMultiAdding: 'Capture du trade…', proofMultiOk: 'Trade ajouté. Ouvre le suivant dans la liste.',
+    proofSendingPart: (k, n) => `Envoi de l'image ${k}/${n}…`,
     proofPick: 'Choisir dans la liste', proofPickHint: 'Clique sur les trades à ajouter dans la liste de gauche, puis OK.',
     proofPickCount: (n) => n ? `${n} trade${n > 1 ? 's' : ''} choisi${n > 1 ? 's' : ''}` : 'Aucun trade choisi',
     proofPickOk: 'OK', proofPickCancel: 'Annuler', proofPickRun: (k, n) => `Trade ${k}/${n} : ouverture et capture…`,
@@ -124,10 +125,11 @@
     proofTextTitle: 'The proof',
     proofSwap: 'Swap Sender and Receiver',
     proofMultiTitle: 'Several trades',
-    proofMultiHint: 'Add this trade, open the next one in the list and add it too: the proof combines every added trade (items, values, usernames, dates) with a screenshot of each.',
+    proofMultiHint: 'Add this trade, open the next one in the list and add it too: the proof combines every added trade (items, values, usernames, dates), with one image per trade.',
     proofMultiAdd: 'Add this trade', proofMultiAdded: 'Already added', proofMultiClear: 'Remove all',
     proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} in the proof`, proofMultiRemove: 'Remove this trade',
     proofMultiAdding: 'Capturing the trade…', proofMultiOk: 'Trade added. Open the next one in the list.',
+    proofSendingPart: (k, n) => `Sending image ${k}/${n}…`,
     proofPick: 'Pick from the list', proofPickHint: 'Click the trades to add in the list on the left, then OK.',
     proofPickCount: (n) => n ? `${n} trade${n > 1 ? 's' : ''} picked` : 'No trade picked',
     proofPickOk: 'OK', proofPickCancel: 'Cancel', proofPickRun: (k, n) => `Trade ${k}/${n}: opening and capturing…`,
@@ -1270,18 +1272,19 @@
   /** Seule la section « Plusieurs trades » redessinée (le choix bouge souvent, les cinq lignes non). */
   function proofRenderLot() { const old = proofQ('[data-lot]'); if (old) old.outerHTML = proofLotHtml(); }
 
-  /** Les captures du lot empilées, à la largeur de la plus large, sur le fond de Roblox : une seule image PNG. */
-  async function proofLotImage() {
-    const imgs = await Promise.all(proofPanel.lot.map(t => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = t.image; })));
-    const w = Math.max(...imgs.map(i => i.naturalWidth)), gap = 16;
-    const hs = imgs.map(i => Math.round(i.naturalHeight * w / i.naturalWidth));
-    const c = document.createElement('canvas');
-    c.width = w; c.height = hs.reduce((s, h) => s + h, 0) + gap * (imgs.length - 1);
-    const x = c.getContext('2d');
-    x.fillStyle = '#191b1d'; x.fillRect(0, 0, c.width, c.height);
-    let y = 0;
-    imgs.forEach((i, k) => { x.drawImage(i, 0, y, w, hs[k]); y += hs[k] + gap; });
-    return { image: c.toDataURL('image/png'), frame: { x: 0, y: 0, w: c.width, h: c.height, vw: c.width } };
+  /** La taille d'une capture du lot : le cadre qui la couvre toute, pour l'envoyer telle quelle au worker. */
+  function proofImageFrame(src) {
+    return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok({ x: 0, y: 0, w: i.naturalWidth, h: i.naturalHeight, vw: i.naturalWidth }); i.onerror = ko; i.src = src; });
+  }
+  /* Les vignettes de Roblox arrivent après le trade : photographié trop tôt, il montre des cases vides
+     (MYd, 15 nov.). On attend que chaque objet ait son image chargée, 6 s au plus. */
+  async function proofImagesReady() {
+    for (let t = 0; t < 40; t++) {
+      const cards = (shownPage?.sides || []).flatMap(sd => sd.items || []).map(it => it.card).filter(c => c?.isConnected);
+      const ready = cards.length && cards.every(c => { const im = c.querySelector('img'); return im && im.complete && im.naturalWidth > 0; });
+      if (ready) { await new Promise(r => setTimeout(r, 250)); return; }
+      await new Promise(r => setTimeout(r, 150));
+    }
   }
 
   /** 2. Le proof : les cinq lignes, la zone de la capture, l'aperçu du message. */
@@ -1360,6 +1363,7 @@
   }
   /** La photo : le panneau et les boutons de RoNote cachés le temps de la capture, puis `type` au service worker. */
   async function proofShoot(type, extra, viaShare) {
+    await proofImagesReady();
     const frame = proofFrame(proofLook.zone === 'list');
     if (!frame) return { error: 'not_completed' };
     const busy = [...proofPanel.root.querySelectorAll('footer button')];
@@ -1388,22 +1392,35 @@
     const send = proofQ('.send');
     if (!send || send.disabled || (!viaShare && !proofPanel.lot.length && proofNeedsAllow('send'))) return;
     proofSay(TEXT.proofSending);
-    const res = proofPanel.lot.length
-      ? await B.runtime.sendMessage({ type: 'ronote:proof-share', fields: proofFields(), ...(await proofLotImage()) }).catch(e => ({ error: 'capture', detail: String(e?.message || e) }))
-      : await proofShoot('ronote:proof-share', { fields: proofFields() }, viaShare);
+    let res;
+    if (proofPanel.lot.length) {
+      // Une image par trade (MYd, 15 nov.) : la première porte le texte, les suivantes arrivent marquées (k/n).
+      const lot = proofPanel.lot, fields = proofFields();
+      for (const [k, t] of lot.entries()) {
+        if (lot.length > 1) proofSay(TEXT.proofSendingPart(k + 1, lot.length));
+        res = await B.runtime.sendMessage({ type: 'ronote:proof-share', fields, image: t.image, frame: await proofImageFrame(t.image),
+          part: lot.length > 1 ? `${k + 1}/${lot.length}` : '' }).catch(e => ({ error: 'capture', detail: String(e?.message || e) }));
+        if (!res?.ok || !proofPanel) break;
+      }
+    } else res = await proofShoot('ronote:proof-share', { fields: proofFields() }, viaShare);
     if (!proofPanel) return;
     if (res?.ok) proofSay(TEXT.proofSent, 'ok'); else proofFail(res);
   }
   async function proofSave() {
     if (!proofPanel.lot.length && proofNeedsAllow('save')) return;
     proofSay(TEXT.proofSaving);
-    const res = proofPanel.lot.length ? { ok: true, image: (await proofLotImage()).image } : await proofShoot('ronote:proof-save', {}, false);
+    const res = proofPanel.lot.length ? { ok: true, images: proofPanel.lot.map(t => t.image) } : await proofShoot('ronote:proof-save', {}, false);
     if (!proofPanel) return;
     if (!res?.ok) return proofFail(res);
-    const f = proofFields(), a = document.createElement('a');
-    a.href = res.image;
-    a.download = `proof-${(f.receiver || f.sender || 'trade').replace(/[^\w-]+/g, '') || 'trade'}-${Date.now()}.png`;
-    a.click();
+    const f = proofFields(), nom = (f.receiver || f.sender || 'trade').split(',')[0].replace(/[^\w-]+/g, '') || 'trade', stamp = Date.now();
+    const images = res.images || [res.image];
+    for (const [k, src] of images.entries()) {
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = `proof-${nom}-${stamp}${images.length > 1 ? '-' + (k + 1) : ''}.png`;
+      a.click();
+      if (images.length > 1) await new Promise(r => setTimeout(r, 300));       // Chrome refuse les téléchargements en rafale
+    }
     proofSay(TEXT.proofSaved, 'ok');
   }
   async function proofCopy() {

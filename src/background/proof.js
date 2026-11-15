@@ -126,7 +126,8 @@ const b64 = (text) => btoa(Array.from(new TextEncoder().encode(text), c => Strin
  * Capture (ou l'image de la page), compresse et envoie. `frame` : la zone, en pixels CSS de l'onglet ;
  * `image` : une capture déjà prise par la page (dataURL), sinon on capture l'onglet de `tab`.
  */
-export async function proofShare({ fields, frame, image }, tab) {
+export async function proofShare({ fields, frame, image, part }, tab) {
+  const partie = /^[1-8]\/[1-8]$/.test(String(part || '')) ? { 'X-Proof-Part': part } : {};   // un lot : une image par trade
   const { shot, ...failed } = await shoot(image, tab);
   if (!shot) return failed;
   let blob;
@@ -138,7 +139,7 @@ export async function proofShare({ fields, frame, image }, tab) {
     try {
       res = await fetch(NEURONAL.api + 'proof', {
         method: 'POST', credentials: 'omit', body: blob,
-        headers: { ...headers, 'Content-Type': blob.type, 'X-RoNote': B.runtime.getManifest?.().version || '1', 'X-Proof': b64(JSON.stringify(fields)) }
+        headers: { ...headers, ...partie, 'Content-Type': blob.type, 'X-RoNote': B.runtime.getManifest?.().version || '1', 'X-Proof': b64(JSON.stringify(fields)) }
       });
     } catch {
       return { error: 'network' };
