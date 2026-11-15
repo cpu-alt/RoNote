@@ -1155,7 +1155,7 @@ const EN = {
   "Tout": "Any",
   "Une annonce par site à cet intervalle, dans la limite du site.": "One ad per site at this interval, within the site's limit.",
   "Malin : Rolimon's toutes les 27 min (53 par jour, sans jamais tomber sur la limite de 55), RoUtility toutes les 15 min en remplaçant ta plus vieille annonce.": "Smart: Rolimon's every 27 min (53 a day, never hitting the 55 limit), RoUtility every 15 min, replacing your oldest ad.",
-  "Plusieurs petits items contre un plus gros": "Several small items for a bigger one",
+  "Tes meilleurs items contre un plus gros, sans les miettes": "Your best items for a bigger one, no small fry",
   "Ton plus gros item contre plusieurs, avec adds": "Your biggest item for several, with adds",
   "Tes items les moins demandés contre des items demandés": "Your least demanded items for demanded ones",
   "Tes deux plus gros items contre des Robux": "Your two biggest items for Robux",

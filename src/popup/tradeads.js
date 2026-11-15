@@ -26,7 +26,9 @@ const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `
  * Les projected ne sont jamais offerts (personne n'en veut au prix affiché). Exportés pour le test.
  */
 export const PRESETS = {
-  upgrade:   { label: 'Upgrade', hint: 'Plusieurs petits items contre un plus gros', tags: ['upgrade', 'any'], pick: (inv) => inv.slice(-4) },
+  // Smart Upgrade : tes items qui comptent (les trois plus gros, chacun au moins le quart du premier), pas tes miettes.
+  upgrade:   { label: 'Smart Upgrade', hint: 'Tes meilleurs items contre un plus gros, sans les miettes', tags: ['upgrade', 'demand'],
+    pick: (inv) => inv.filter(i => i.value >= inv[0].value / 4).slice(0, 3) },
   downgrade: { label: 'Downgrade', hint: 'Ton plus gros item contre plusieurs, avec adds', tags: ['downgrade', 'adds'], pick: (inv) => inv.slice(0, 1) },
   demand:    { label: 'Demande', hint: 'Tes items les moins demandés contre des items demandés', tags: ['demand', 'rares'],
     pick: (inv) => [...inv].sort((a, b) => (a.demand ?? 9) - (b.demand ?? 9)).slice(0, 4) },
@@ -36,7 +38,8 @@ export const PRESETS = {
 /** L'inventaire offrable, du plus cher au moins cher → { offer, tags, items } du modèle. */
 export function presetAd(key, inv, idOf = (i) => i.id, filters = {}) {
   const p = PRESETS[key];
-  const pool = offerable(inv, { ...filters, noProjected: true }, idOf).sort((a, b) => b.value - a.value);
+  const all = offerable(inv, { ...filters, noProjected: true, noEggs: true }, idOf).sort((a, b) => b.value - a.value);
+  const pool = all.filter(i => i.value >= all[0].value / 20);   // un modèle ne propose jamais un item à moins de 5 % du plus gros
   return p && pool.length ? { offer: p.pick(pool).map(idOf), tags: p.tags, items: [] } : null;
 }
 /** Les œufs (limiteds de Pâques, « Egg… ») et les petits items n'intéressent personne en trade ad : filtrés au choix. */
@@ -226,7 +229,7 @@ function paint(root) {
           : t("Malin : Rolimon's toutes les 27 min (53 par jour, sans jamais tomber sur la limite de 55), RoUtility toutes les 15 min en remplaçant ta plus vieille annonce.")}</small>
       </section>
 
-      <section class="pf-card ta-card"><h3><i>4</i>${t('Configurations')}</h3>
+      <details class="pf-card ta-card ta-hist"><summary>${ic('download')}<b>${t('Configurations')}</b><small>${(cfg.saved || []).length}</small>${ic('chevron')}</summary>
         ${(cfg.saved || []).length ? `<ul class="ta-saved">${cfg.saved.map((c, n) => `<li>
           <button class="ta-saved-n" data-ta-load="${n}" title="${escapeHtml(t('Charger cette configuration'))}"><b>${escapeHtml(c.name)}</b>
             <small>${t('{o} offerts · {d} demandés', { o: c.ad.offer.length, d: c.ad.items.length + c.ad.tags.length })}</small></button>
@@ -240,7 +243,7 @@ function paint(root) {
           <input type="file" accept=".json,application/json" data-ta-file hidden>
         </div>
         <small class="ta-why">${flash ? escapeHtml(flash) : t("Un fichier .json garde l'annonce, les filtres, les exclus et le rythme : à réimporter ou à partager.")}</small>
-      </section>
+      </details>
 
       <details class="pf-card ta-card ta-hist"><summary>${ic('journal')}<b>${t('Derniers envois')}</b><small>${cfg.log.length}</small>${ic('chevron')}</summary>
         ${cfg.log.length ? `<ul class="ta-log">${cfg.log.slice(0, 15).map(l => `<li><i class="ta-dot ${l.result === 'ok' ? 'win' : 'loss'}"></i><b>${escapeHtml(sites[l.site]?.name || l.site)}</b>
@@ -268,7 +271,7 @@ async function refreshAsk(root) {
 
 async function save(root, patch) {
   const r = await send({ type: 'ronote:tradeads-save', patch }).catch(() => null);
-  if (r?.cfg) res = { ...res, cfg: r.cfg };
+  if (r?.cfg) res = { ...res, cfg: r.cfg, sites: Object.fromEntries(Object.entries(res.sites || {}).map(([k, s]) => [k, { ...s, on: !!r.cfg.sites[k] }])) };
   paint(root);
   refreshAsk(root);
 }

@@ -209,7 +209,10 @@ console.log('\nModèles d\'annonce');
   check('œufs reconnus au nom, pas « Leggings »', isEgg(eggs[0]) && isEgg(eggs[1]) && !isEgg(eggs[2]));
   check('« Sans les œufs » les retire', offerable(eggs, { noEggs: true }).map(i => i.id).join() === '9');
   check('value minimale : les petits items partent', offerable(inv, { minValue: 1000 }).map(i => i.id).join() === '2');
-  check('Upgrade avec value min. 100 : 50 et 80 exclus', !presetAd('upgrade', inv, (i) => i.id, { minValue: 100 }).offer.some(id => id === 5 || id === 6));
+  check('Smart Upgrade : les gros items, pas les miettes', JSON.stringify(presetAd('upgrade', inv).offer) === '[2]');
+  const mid = [{ id: 1, value: 40000 }, { id: 2, value: 30000 }, { id: 3, value: 12000 }, { id: 4, value: 9000 }, { id: 5, value: 300, name: 'Egg' }];
+  check('Smart Upgrade : trois au plus, chacun ≥ un quart du premier', JSON.stringify(presetAd('upgrade', mid).offer) === '[1,2,3]');
+  check('aucun modèle ne propose un œuf ni une miette', !['any', 'demand'].some(k => presetAd(k, mid).offer.includes(5)));
   check('filtres gardés par le worker, valeur hors liste refusée',
     ta.sanitize({ noEggs: false, minValue: 5000 }).minValue === 5000 && ta.sanitize({ minValue: 1234 }).minValue === 0 && ta.sanitize({ noEggs: false }).noEggs === false);
   check('item exclu : jamais proposé ni par un modèle', !offerable(inv, { exclude: [2] }).some(i => i.id === 2) && !presetAd('downgrade', inv, (i) => i.id, { exclude: [2] }).offer.includes(2));
