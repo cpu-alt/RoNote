@@ -1,4 +1,4 @@
-# Génère les icônes PNG de l'extension (aucune dépendance externe).
+﻿# Génère les icônes PNG de l'extension (aucune dépendance externe).
 # Usage : powershell -ExecutionPolicy Bypass -File tools\make-icons.ps1
 Add-Type -AssemblyName System.Drawing
 
@@ -22,33 +22,40 @@ $path.AddArc(0, $S - $r, $r, $r, 90, 90)
 $path.CloseFigure()
 
 $rect = New-Object System.Drawing.Rectangle(0, 0, $S, $S)
+# Dégradé de la marque, bleu (je donne) vers vert (je reçois) : lisible en 16 px sur barre claire comme sombre.
 $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
     $rect,
-    [System.Drawing.Color]::FromArgb(255, 20, 28, 42),
-    [System.Drawing.Color]::FromArgb(255, 10, 15, 24),
+    [System.Drawing.Color]::FromArgb(255, 28, 110, 255),
+    [System.Drawing.Color]::FromArgb(255, 22, 190, 120),
     45.0)
 $g.FillPath($brush, $path)
 
-$penEdge = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(90, 0, 162, 255), 8)
-$g.DrawPath($penEdge, $path)
+# reflet doux en haut
+$hl = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+    (New-Object System.Drawing.Rectangle(0, 0, $S, ($S / 2))),
+    [System.Drawing.Color]::FromArgb(60, 255, 255, 255),
+    [System.Drawing.Color]::FromArgb(0, 255, 255, 255),
+    90.0)
+$g.SetClip($path)
+$g.FillRectangle($hl, 0, 0, $S, ($S / 2))
+$g.ResetClip()
 
-# --- deux flèches d'échange ----------------------------------------------
+# --- deux flèches d'échange, blanches -------------------------------------
 function New-ArrowPen([System.Drawing.Color]$color) {
-    $pen = New-Object System.Drawing.Pen($color, 46)
+    $pen = New-Object System.Drawing.Pen($color, 54)
     $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $cap = New-Object System.Drawing.Drawing2D.AdjustableArrowCap(2.2, 2.4, $true)
+    $cap = New-Object System.Drawing.Drawing2D.AdjustableArrowCap(2.0, 2.1, $true)
     $pen.CustomEndCap = $cap
     $pen
 }
 
-$green = [System.Drawing.Color]::FromArgb(255, 53, 196, 107)
-$blue  = [System.Drawing.Color]::FromArgb(255, 0, 162, 255)
-
-$penTop = New-ArrowPen $green
-$g.DrawLine($penTop, 120, 190, 372, 190)     # -> vers la droite (je reçois)
-
-$penBottom = New-ArrowPen $blue
-$g.DrawLine($penBottom, 392, 322, 140, 322)  # <- vers la gauche (je donne)
+$shadow = New-ArrowPen ([System.Drawing.Color]::FromArgb(55, 0, 20, 60))
+$g.DrawLine($shadow, 126, 198, 366, 198)
+$g.DrawLine($shadow, 386, 330, 146, 330)
+$white = New-ArrowPen ([System.Drawing.Color]::FromArgb(255, 255, 255, 255))
+$g.DrawLine($white, 120, 186, 360, 186)      # -> je reçois
+$soft = New-ArrowPen ([System.Drawing.Color]::FromArgb(225, 255, 255, 255))
+$g.DrawLine($soft, 392, 318, 152, 318)       # <- je donne
 
 # --- déclinaisons ---------------------------------------------------------
 foreach ($size in 128, 48, 32, 16) {

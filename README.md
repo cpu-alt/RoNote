@@ -1,4 +1,4 @@
-# RoNote : Roblox trade alerts & values
+# RoNote: Trade Alerts & Values for Roblox
 
 **English** · *[Français](README.fr.md)*
 

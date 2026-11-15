@@ -224,7 +224,7 @@ gh workflow run release.yml -f tag=v2.16.0 -f cws_publish_only=true
 MAIN + réécriture d'en-têtes + POST authentifié » déclenche généralement une revue
 manuelle. Les justifications du §3 sont écrites pour la désamorcer.
 
-**La marque Roblox dans le nom.** `RoNote : Roblox Trade Alerts` utilise une marque
+**La marque Roblox dans le nom.** `RoNote: Trade Alerts & Values for Roblox` cite une marque
 déposée. Usage descriptif, généralement toléré, mais c'est le motif de refus le plus
 probable. Repli : `RoNote` tout court, Roblox seulement dans la description.
 
