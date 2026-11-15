@@ -25,7 +25,13 @@ const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `
  * Les modèles d'annonce : un clic choisit les items offerts dans l'inventaire et les tags demandés.
  * Les projected ne sont jamais offerts (personne n'en veut au prix affiché). Exportés pour le test.
  */
+export const ALEA_MIN = 1000;
+const melange = (arr, rnd = Math.random) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 export const PRESETS = {
+  // Aléatoire (le réglage préféré de MYd) : quatre items tirés au hasard parmi ceux qui valent au moins
+  // ALEA_MIN (jamais d'œuf ni de projected) ; un nouveau clic retire. Pas de seuil relatif au plus gros item.
+  random:    { label: 'Aléatoire', hint: '4 items au hasard (value 1 000 et plus), contre any, demand, upgrade, downgrade',
+    tags: ['any', 'demand', 'upgrade', 'downgrade'], absolu: true, pick: (inv, rnd) => melange(inv.filter(i => i.value >= ALEA_MIN), rnd).slice(0, 4) },
   // Smart Upgrade : tes items qui comptent (les trois plus gros, chacun au moins le quart du premier), pas tes miettes.
   upgrade:   { label: 'Smart Upgrade', hint: 'Tes meilleurs items contre un plus gros, sans les miettes', tags: ['upgrade', 'demand'],
     pick: (inv) => inv.filter(i => i.value >= inv[0].value / 4).slice(0, 3) },
@@ -36,11 +42,12 @@ export const PRESETS = {
   any:       { label: 'Tout', hint: 'Tes quatre plus gros items, ouvert à toute offre', tags: ['any'], pick: (inv) => inv.slice(0, 4) }
 };
 /** L'inventaire offrable, du plus cher au moins cher → { offer, tags, items } du modèle. */
-export function presetAd(key, inv, idOf = (i) => i.id, filters = {}) {
+export function presetAd(key, inv, idOf = (i) => i.id, filters = {}, rnd = Math.random) {
   const p = PRESETS[key];
   const all = offerable(inv, { ...filters, noProjected: true, noEggs: true }, idOf).sort((a, b) => b.value - a.value);
-  const pool = all.filter(i => i.value >= all[0].value / 20);   // un modèle ne propose jamais un item à moins de 5 % du plus gros
-  return p && pool.length ? { offer: p.pick(pool).map(idOf), tags: p.tags, items: [] } : null;
+  const pool = p?.absolu ? all : all.filter(i => i.value >= all[0].value / 20);   // sinon jamais un item à moins de 5 % du plus gros
+  const offer = p && pool.length ? p.pick(pool, rnd).map(idOf) : [];
+  return offer.length ? { offer, tags: p.tags, items: [] } : null;
 }
 /** Les œufs (limiteds de Pâques, « Egg… ») et les petits items n'intéressent personne en trade ad : filtrés au choix. */
 export const isEgg = (i) => /\begg/i.test(i.name || '');

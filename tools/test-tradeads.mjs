@@ -212,6 +212,16 @@ console.log('\nModèles d\'annonce');
   check('Smart Upgrade : les gros items, pas les miettes', JSON.stringify(presetAd('upgrade', inv).offer) === '[2]');
   const mid = [{ id: 1, value: 40000 }, { id: 2, value: 30000 }, { id: 3, value: 12000 }, { id: 4, value: 9000 }, { id: 5, value: 300, name: 'Egg' }];
   check('Smart Upgrade : trois au plus, chacun ≥ un quart du premier', JSON.stringify(presetAd('upgrade', mid).offer) === '[1,2,3]');
+  {
+    const inv2 = [{ id: 1, value: 500000 }, { id: 2, value: 1200 }, { id: 3, value: 999 }, { id: 4, value: 5000, name: 'Egg Hunt Egg' },
+      { id: 5, value: 3000, projected: true }, { id: 6, value: 1000 }, { id: 7, value: 8000 }, { id: 8, value: 20000 }];
+    const tirages = Array.from({ length: 40 }, (_, k) => presetAd('random', inv2, (i) => i.id, {}, (() => { let a = (k + 1) * 104729 * 977 % 2147483647; return () => (a = (a * 16807) % 2147483647) / 2147483647; })()));
+    check('Aléatoire : 4 items, jamais sous 1 000, ni œuf ni projected', tirages.every(t => t.offer.length === 4 && t.offer.every(id => [1, 2, 6, 7, 8].includes(id))));
+    check('Aléatoire : les petits items (1 200) restent possibles malgré un gros item', tirages.some(t => t.offer.includes(2)));
+    check('Aléatoire : des tirages différents', new Set(tirages.map(t => [...t.offer].sort().join())).size > 1);
+    check('Aléatoire : demande any, demand, upgrade, downgrade', JSON.stringify(tirages[0].tags) === '["any","demand","upgrade","downgrade"]');
+    check('Aléatoire : rien à offrir sous 1 000, aucun modèle', presetAd('random', [{ id: 9, value: 500 }]) === null);
+  }
   check('aucun modèle ne propose un œuf ni une miette', !['any', 'demand'].some(k => presetAd(k, mid).offer.includes(5)));
   check('filtres gardés par le worker, valeur hors liste refusée',
     ta.sanitize({ noEggs: false, minValue: 5000 }).minValue === 5000 && ta.sanitize({ minValue: 1234 }).minValue === 0 && ta.sanitize({ noEggs: false }).noEggs === false);

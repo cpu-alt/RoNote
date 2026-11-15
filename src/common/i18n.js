@@ -1156,6 +1156,8 @@ const EN = {
   "Une annonce par site à cet intervalle, dans la limite du site.": "One ad per site at this interval, within the site's limit.",
   "Malin : Rolimon's toutes les 27 min (53 par jour, sans jamais tomber sur la limite de 55), RoUtility toutes les 15 min en remplaçant ta plus vieille annonce.": "Smart: Rolimon's every 27 min (53 a day, never hitting the 55 limit), RoUtility every 15 min, replacing your oldest ad.",
   "Tes meilleurs items contre un plus gros, sans les miettes": "Your best items for a bigger one, no small fry",
+  "Aléatoire": "Random",
+  "4 items au hasard (value 1 000 et plus), contre any, demand, upgrade, downgrade": "4 random items (value 1,000 and up), for any, demand, upgrade, downgrade",
   "En ligne": "Live",
   "annonces publiées": "ads posted",
   "Dernière": "Last one",

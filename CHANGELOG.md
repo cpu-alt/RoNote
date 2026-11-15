@@ -3,6 +3,11 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation
+
+- **Trade ads, modèle Aléatoire** : quatre items de ton inventaire tirés au hasard, seulement ceux à 1 000 de
+  value ou plus (jamais d'œuf ni de projected), contre any, demand, upgrade et downgrade. Un nouveau clic retire.
+
 ## v2.17.0 : trade ads automatiques et nouveau logo
 
 - **Nouveau logo et nouveau nom** : un grimoire aux deux flèches de RoNote, et « RoNote: Trade Alerts &
