@@ -107,7 +107,7 @@ function siteHtml(k, s) {
 
 /** Quand part la prochaine annonce sur chaque site coché (même règle que le worker). */
 function nextText(cfg, sites) {
-  if (!cfg.on) return t('Arrêté : rien ne part tant que l’interrupteur est éteint.');
+  if (!cfg.on) return t('Rien ne part tant que l’interrupteur est éteint.');
   const now = Date.now();
   const due = Object.entries(sites).filter(([k, s]) => s.on && cfg.sites[k]).map(([k, s]) => {
     const gap = cfg.interval ? Math.max(s.cooldown, cfg.interval) : smartGap(s);
@@ -196,33 +196,41 @@ function paint(root) {
   const scroller = root.closest('main, #list, body') || root, scroll = scroller.scrollTop;   // un clic redessine tout : on reste où on était
   const lastOk = cfg.log.find(l => l.result === 'ok');
   const todo = !anySite ? 'Coche au moins un site.' : !cfg.offer.length ? 'Choisis au moins un item à offrir.' : 'Choisis au moins un tag ou un item demandé.';
+  const byId = new Map(all.map(i => [tradeId(i), i]));
+  const offered = cfg.offer.reduce((sum, id) => sum + (byId.get(id)?.value || 0), 0);
+  const today = cfg.log.filter(l => l.result === 'ok' && Date.now() - l.at < 864e5).length;
+  const fact = (label, value, sub = '') => `<div class="w-fact"><span>${label}</span><b>${value}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  // Même dessin que la fiche d'un objet : l'état en grand, quatre chiffres, puis l'annonce et ses réglages.
   root.innerHTML = `<div class="pf-list ta">
-      <section class="ta-hero${cfg.on ? ' live' : ''}">
-        <div class="ta-hero-top">
-          <span class="ta-hero-ic">${ic('send')}</span>
-          <span class="ta-hero-id"><b>${t('Trade ads automatiques')}</b><small>${escapeHtml(nextText(cfg, sites))}</small></span>
+      <section class="ta-head${cfg.on ? ' live' : ''}">
+        <div class="ta-head-top">
+          <div class="ta-state"><span class="ta-pulse"></span>${t(cfg.on ? 'En ligne' : 'Arrêté')}</div>
           <label class="ta-switch big" title="${escapeHtml(t(cfg.on ? 'Arrêter' : 'Démarrer'))}"><input type="checkbox" data-ta-on${cfg.on ? ' checked' : ''}${ready || cfg.on ? '' : ' disabled'}><i></i></label>
         </div>
-        ${ready ? '' : `<small class="ta-hero-todo">${ic('alert')} ${t(todo)}</small>`}
-        <div class="ta-hero-foot">
-          <small>${lastOk ? t('Dernière annonce publiée {t}', { t: timeAgo(lastOk.at) }) : t('Rien d\'envoyé pour le moment.')}</small>
-          <button class="ta-btn" data-ta-now${ready ? '' : ' disabled'}>${ic('send')}${t('Publier maintenant')}</button>
+        <small class="ta-head-sub">${escapeHtml(nextText(cfg, sites))}</small>
+        <div class="w-facts">
+          ${fact(t('Tu offres'), offered ? fmtNum(offered) : '–', t('{n} sur {m} items', { n: cfg.offer.length, m: MAX }))}
+          ${fact(t('Tu demandes'), `${asked}/${MAX}`, cfg.tags.length ? cfg.tags.map(g => '#' + escapeHtml(g)).join(' ') : '')}
+          ${fact(t("Aujourd'hui"), String(today), t('annonces publiées'))}
+          ${fact(t('Dernière'), lastOk ? timeAgo(lastOk.at) : '–', lastOk ? escapeHtml(sites[lastOk.site]?.name || lastOk.site) : '')}
         </div>
+        ${ready ? '' : `<div class="w-warn">${ic('alert')} ${t(todo)}</div>`}
+        <button class="ta-btn wide" data-ta-now${ready ? '' : ' disabled'}>${ic('send')}${t('Publier maintenant')}</button>
       </section>
 
-      <section class="pf-card ta-card"><h3><i>1</i>${t('Où publier')}</h3>
-        ${Object.entries(sites).map(([k, s]) => siteHtml(k, s)).join('')}</section>
-
-      <section class="pf-card ta-card"><h3><i>2</i>${t('Ton annonce')}</h3>
+      <section class="pf-card ta-card"><h3>${t('Ton annonce')}</h3>
         ${all.length ? `<div class="ta-presets">${Object.entries(PRESETS).map(([k, p]) =>
-          `<button data-ta-preset="${k}"><b>${escapeHtml(t(p.label))}</b><small>${escapeHtml(t(p.hint))}</small></button>`).join('')}</div>` : ''}
+          `<button data-ta-preset="${k}" title="${escapeHtml(t(p.hint))}">${escapeHtml(t(p.label))}</button>`).join('')}</div>` : ''}
         ${adPreview(cfg, all)}
         ${pickerHtml(cfg, all)}
         <label class="ta-note"><span>${t("Message de l'annonce")} <small>(RoUtility)</small></span>
           <input class="ta-q" type="text" maxlength="200" data-ta-note value="${escapeHtml(cfg.note || '')}" placeholder="${escapeHtml(t('Ex. : ouvert aux overpays, pas de lowball'))}"></label>
       </section>
 
-      <section class="pf-card ta-card"><h3><i>3</i>${t('Rythme')}</h3>
+      <section class="pf-card ta-card"><h3>${t('Où publier')}</h3>
+        ${Object.entries(sites).map(([k, s]) => siteHtml(k, s)).join('')}</section>
+
+      <section class="pf-card ta-card"><h3>${t('Rythme')}</h3>
         <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Intervalle'))}">${INTERVALS.map(m =>
           `<button role="radio" aria-checked="${m === cfg.interval}" data-ta-int="${m}">${m ? m + ' min' : t('Malin')}</button>`).join('')}</div>
         <small class="ta-why">${cfg.interval ? t('Une annonce par site à cet intervalle, dans la limite du site.')
