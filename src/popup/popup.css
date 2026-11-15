@@ -1812,6 +1812,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .ctr-flag .ic { width: 10px; height: 10px; stroke-width: 2.4; }
 .ctr-chip:hover .ctr-flag { opacity: 0; }
 .ctr-side-h b small { margin-left: 2px; }
+.ctr-chip-n .proj-ic, .ctr-item-n .proj-ic { width: 10px; height: 10px; margin-right: 3px; filter: none; }
 .ctr-reload { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: var(--r-md); background: var(--surface-2); color: var(--dim); cursor: pointer; }
 .ctr-reload:hover { color: var(--fg); }
 .ctr-reload .ic { width: 13px; height: 13px; }

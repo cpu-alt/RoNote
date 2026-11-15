@@ -977,6 +977,7 @@ function openCounter(tradeId) {
     settings: data.settings,
     balanceHtml,
     avatarHtml,
+    projHtml: projBadge,
     onSent: (res) => {
       forgetTrade(tradeId);
       if (res?.state) data.state = res.state;

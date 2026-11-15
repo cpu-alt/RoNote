@@ -35,7 +35,7 @@ let ed = null;   // l'éditeur ouvert, ou null
 
 /**
  * @param card  la carte du trade reçu (analysis.give / analysis.get, partner)
- * @param deps  { settings, balanceHtml(a, opts), avatarHtml(card), onSent(res) }
+ * @param deps  { settings, balanceHtml(a, opts), avatarHtml(card), projHtml(), onSent(res) }
  */
 export function openCounterEditor(card, deps) {
   const a = card.analysis;
@@ -66,12 +66,13 @@ const wanted = (items) => (items || []).map(i => ({
 function load(card, fresh = false) {
   const a = card.analysis;
   ed.loading = true; ed.loadError = null;
+  const token = ed.loadToken = {};
   paint();
   send({
     type: 'ronote:counter-load', tradeId: card.tradeId, partnerId: card.partner?.id, fresh,
     give: wanted(a?.give?.items), get: wanted(a?.get?.items)
   }).then((res) => {
-    if (!ed || ed.card !== card) return;
+    if (!ed || ed.loadToken !== token) return;
     ed.loading = false;
     if (res?.error && !res.me) { ed.loadError = res.error; paint(); return; }
     ed.me = res.me; ed.them = res.them;
@@ -83,7 +84,7 @@ function load(card, fresh = false) {
     ed.give = adopt(cur.give, res.me); ed.get = adopt(cur.get, res.them);
     paint();
   }).catch((e) => {
-    if (!ed) return;
+    if (!ed || ed.loadToken !== token) return;
     ed.loading = false;
     ed.loadError = String(e?.message || e);
     paint();
@@ -91,6 +92,7 @@ function load(card, fresh = false) {
 }
 
 function close() {
+  clearTimeout(armTimer);
   ed?.wrap?.remove();
   ed = null;
   releaseFocus();
@@ -169,6 +171,11 @@ function sheetHtml() {
 const thumbHtml = (i) => (i.thumb
   ? `<img src="${escapeHtml(i.thumb)}" alt="" loading="lazy">`
   : `<span class="ph">${ic(i.isFace ? 'face' : 'box')}</span>`);
+// Série en haut à gauche, triangle projected devant le nom : rien ne recouvre la vignette.
+const serialHtml = (i) => (i.serial ? `<i class="ctr-serial">#${escapeHtml(String(i.serial))}</i>` : '');
+const nameHtml = (i, cls) => `<span class="${cls}">${i.projected ? ed.deps.projHtml?.() || '' : ''}${escapeHtml(i.acronym || i.name || '?')}</span>`;
+const tipOf = (...bits) => escapeHtml(bits.filter(Boolean).join(' · '));
+const projTip = (i) => (i.projected ? t('PROJECTED : RAP gonflé artificiellement') : '');
 const priceText = (i) => (i.unknown ? t('sans cote') : fmtNum(i.value));
 
 function chipHtml(i, sideKey) {
@@ -177,11 +184,11 @@ function chipHtml(i, sideKey) {
     : i.unsure ? t("Pas retrouvé dans l'inventaire chargé : Roblox vérifiera à l'envoi")
       : t('Retirer {name}', { name: i.name });
   return `<button class="ctr-chip${state ? ' ' + state : ''}" data-drop="${sideKey}" data-uaid="${escapeHtml(String(i.uaid))}"
-      title="${escapeHtml([tip, i.serial ? '#' + i.serial : ''].filter(Boolean).join(' · '))}">
+      title="${tipOf(tip, i.serial ? '#' + i.serial : '', projTip(i))}">
     ${thumbHtml(i)}
-    ${i.serial ? `<i class="ctr-serial">#${escapeHtml(String(i.serial))}</i>` : ''}
+    ${serialHtml(i)}
     ${state ? `<i class="ctr-flag">${ic(i.gone ? 'ban' : 'help')}</i>` : ''}
-    <span class="ctr-chip-n">${escapeHtml(i.acronym || i.name)}</span>
+    ${nameHtml(i, 'ctr-chip-n')}
     <b>${priceText(i)}</b>
     <i class="ctr-x">${ic('x')}</i>
   </button>`;
@@ -216,7 +223,8 @@ function shelfHtml() {
   const full = chosen.size >= MAX_ITEMS;
   const q = ed.query.trim().toLowerCase();
   const items = (inv?.items || [])
-    .filter(i => !q || i.name.toLowerCase().includes(q) || (i.acronym || '').toLowerCase() === q)
+    .filter(i => !q || (i.name || '').toLowerCase().includes(q) || (i.acronym || '').toLowerCase() === q
+      || (q[0] === '#' && String(i.serial || '') === q.slice(1)))
     .sort((x, y) => (y.value || 0) - (x.value || 0));
   if (!items.length) return `<div class="ctr-note">${t(q ? 'Aucun objet ne correspond.' : 'Aucun limited dans cet inventaire.')}</div>`;
   const partial = inv?.partial || inv?.complete === false
@@ -225,10 +233,11 @@ function shelfHtml() {
     const on = chosen.has(String(i.uaid));
     const off = !on && (i.onHold || full);
     const why = i.onHold ? t('En hold : pas échangeable pour le moment') : full ? t('Quatre objets maximum par côté') : '';
-    return `<button class="ctr-item${on ? ' on' : ''}" data-take="${escapeHtml(String(i.uaid))}"${off ? ' disabled' : ''} title="${escapeHtml([i.name, i.serial ? '#' + i.serial : '', why].filter(Boolean).join(' · '))}">
+    return `<button class="ctr-item${on ? ' on' : ''}" data-take="${escapeHtml(String(i.uaid))}"${off ? ' disabled' : ''} title="${tipOf(i.name, i.serial ? '#' + i.serial : '', projTip(i), why)}">
       ${thumbHtml(i)}
+      ${serialHtml(i)}
       ${on ? `<i class="ctr-on">${ic('check')}</i>` : ''}${i.onHold ? `<i class="ctr-hold">${ic('clock')}</i>` : ''}
-      <span class="ctr-item-n">${escapeHtml(i.acronym || i.name)}</span>
+      ${nameHtml(i, 'ctr-item-n')}
       <b>${priceText(i)}</b>
     </button>`;
   }).join('');
@@ -285,6 +294,8 @@ function bind(w) {
     if (!ed) return;
     const el = e.target.closest('button');
     if (!el || el.disabled) return;
+    // Pendant l'envoi, la composition ne bouge plus : ce qui part est ce qui est affiché.
+    if (ed.busy && (el.dataset.drop || el.dataset.take || 'reset' in el.dataset || 'reload' in el.dataset)) return;
     if (el.dataset.shelf) { ed.shelf = el.dataset.shelf; paint(); return; }
     if (el.dataset.goshelf) { ed.shelf = el.dataset.goshelf; paint(); w.querySelector('.ctr-search input')?.focus(); return; }
     if (el.dataset.drop) {
@@ -323,7 +334,7 @@ function bind(w) {
       return;
     }
     const key = e.target.dataset.robux;
-    if (!key) return;
+    if (!key || ed.busy) return;
     const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
     if (key === 'give') ed.giveRobux = n; else ed.getRobux = n;
     disarm();
