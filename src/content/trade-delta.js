@@ -979,6 +979,11 @@
     if (st.textContent !== css) st.textContent = css;
   }
   let proofOn = false;
+  /* Les fermetures automatiques (trade en cours de chargement, trade pas terminé, page réinitialisée)
+     attendent tant que le panneau garde un lot, un choix ou un parcours : ouvrir le trade suivant passe
+     par ces états une fraction de seconde, et le lot était perdu (MYd, 15 nov.). La croix et Échap ferment. */
+  const proofHeld = () => !!(proofPanel && (proofPanel.running || proofPanel.pick || proofPanel.lot.length));
+  function autoProofOff() { if (!proofHeld()) setProof(false); }
   function setProof(on) {
     if (on === proofOn) return;
     proofOn = on;
@@ -1674,7 +1679,7 @@
   }
   function mountProfileLink(page) {
     const heading = page?.partnerId > 0 && page.tradeHeading?.isConnected ? page.tradeHeading : null;
-    if (!heading) { flexControl?.remove(); proofControl?.remove(); setProof(false); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
+    if (!heading) { flexControl?.remove(); proofControl?.remove(); autoProofOff(); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
     if (!profileLink) {
       profileLink = document.createElement('a');
       profileLink.dataset.rn = 'rolimons-profile';
@@ -1737,13 +1742,13 @@
         if (flexOn) flexControl.after(proofControl); else tools.prepend(proofControl);
       }
     } else if (proofControl?.isConnected) {
-      proofControl.remove(); setProof(false);
+      proofControl.remove(); autoProofOff();
     }
     placeTools(heading, page.tradeHandle);
   }
   const clear = () => {
     flexControl?.remove(); globalThis.RoNoteFlex?.close();
-    proofControl?.remove(); setProof(false);
+    proofControl?.remove(); autoProofOff();
     resetSerials(); serialControl?.remove();
     clearNearbyLines();
     restore(); host?.remove(); host = null; signature = ''; generation++;
