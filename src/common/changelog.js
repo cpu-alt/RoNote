@@ -16,9 +16,15 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
-    title: item('Demande au dixième', 'Demand to one decimal'),
+    version: '2.17.0',
+    title: item('Trade ads automatiques et nouveau logo', 'Automatic trade ads and a new logo'),
     items: [
+      item("Nouveau logo (un grimoire aux flèches de RoNote) et nouveau nom : « RoNote: Trade Alerts & Values for Roblox ».",
+        "New logo (a grimoire with RoNote’s arrows) and a new name: “RoNote: Trade Alerts & Values for Roblox”."),
+      item("Trade ads automatiques : page refaite, interrupteurs qui tiennent du premier coup, modèle Smart Upgrade (tes vrais gros items, plus d'œufs).",
+        "Automatic trade ads: redesigned page, switches that stick on the first click, a Smart Upgrade preset (your real big items, no more eggs)."),
+      item("Deals : recherche d'items et période au choix, de 5 min à 3 h.",
+        "Deals: item search and a period of your choice, 5 min to 3 h."),
       item("Trade ads automatiques (menu du compte) : ton annonce publiée toute seule sur Rolimon's et RoUtility, avec la session que tu y as ouverte, toutes les 15 min au plus.",
         "Automatic trade ads (account menu): your ad posted on its own on Rolimon’s and RoUtility, with the session you opened there, at most every 15 min."),
       item("La note de demande est plus fine : « 3,7/5 » plutôt que « 4/5 », et la dernière barre se remplit en partie.",

@@ -20,6 +20,7 @@
     text-shadow:0 4px 30px #000a; }
   .tag { font-size:var(--tag); line-height:1.35; margin:0; color:#a9bbd2; max-width:var(--tagw); text-shadow:0 2px 16px #000; }
   .accent { color:#5aa9ff; }
+  .w { color:#3fd27a; font-weight:700; } .l { color:#ff5f66; font-weight:700; }
   .chips { display:none; gap:10px; margin-top:26px; flex-wrap:wrap; max-width:var(--tagw); }
   body.marquee .chips { display:flex; }
   .chip { font-size:15px; font-weight:600; color:#c9d6ea; padding:7px 13px; border-radius:999px;
@@ -45,9 +46,9 @@
     <p class="name">RoNote</p>
     <p class="tag" id="tag"></p>
     <div class="chips">
-      <span class="chip">Trade alerts</span>
+      <span class="chip">Instant trade alerts</span>
+      <span class="chip">Projecteds flagged</span>
       <span class="chip">Portfolio</span>
-      <span class="chip">Player cards</span>
       <span class="chip">Trade Flex</span>
       <span class="chip">Auto trade ads</span>
     </div>
@@ -56,9 +57,9 @@
   // Une seule maquette, deux formats. hero : [taille, gauche, haut, rotation] ; le logo sort volontairement du cadre.
   const SIZES = {
     small:   { w:440,  h:280, hero:[360,-118,-30,-14], halo:[260,-40,40], wrap:[222,74], name:'46px', tag:'15px', sp:'10px', tagw:'210px',
-               text:'Roblox trade alerts,<br>valued at <span class="accent">value</span>, not RAP.' },
+               text:'Know if it’s a <span class="w">W</span> or an <span class="l">L</span><br>before you hit Accept.' },
     marquee: { w:1400, h:560, hero:[640,-150,-60,-12], halo:[520,-40,40], wrap:[445,150], name:'96px', tag:'21px', sp:'14px', tagw:'490px',
-               text:'Desktop alerts the moment a Roblox trade moves.<br>Every offer valued item by item, at <span class="accent">value</span>, not RAP.' }
+               text:'Every trade valued at <span class="accent">Rolimon’s value</span>, not RAP.<br>Know the <span class="w">W</span> or the <span class="l">L</span> before you hit Accept.' }
   };
   const key = new URLSearchParams(location.search).get('size') || 'small';
   const s = SIZES[key] || SIZES.small;

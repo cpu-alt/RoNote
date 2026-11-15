@@ -4,7 +4,7 @@
     "description": "Extension name, shown in the Web Store and chrome://extensions."
   },
   "appDesc": {
-    "message": "Instant alerts for every Roblox trade, each offer valued item by item at Rolimon's value. Portfolio, player cards, auto trade ads.",
+    "message": "Know if a Roblox trade is a W or an L before you accept: Rolimon's values item by item, projecteds flagged, instant alerts.",
     "description": "Short description, 132 characters max."
   },
   "actionTitle": {

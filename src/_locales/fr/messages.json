@@ -4,7 +4,7 @@
     "description": "Nom de l'extension, affiché dans le magasin et dans chrome://extensions."
   },
   "appDesc": {
-    "message": "Alerte à chaque trade Roblox, chaque offre chiffrée item par item à la value Rolimon's. Portefeuille, joueurs, trade ads auto.",
+    "message": "W ou L avant d'accepter : chaque trade Roblox chiffré à la value Rolimon's, objet par objet, projecteds signalés, alertes.",
     "description": "Résumé, 132 caractères maximum."
   },
   "actionTitle": {

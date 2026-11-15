@@ -3,7 +3,19 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
-## En préparation
+## v2.17.0 : trade ads automatiques et nouveau logo
+
+- **Nouveau logo et nouveau nom** : un grimoire aux deux flèches de RoNote, et « RoNote: Trade Alerts &
+  Values for Roblox ». La barre d'outils garde les deux flèches, lisibles en petit.
+- **Trade ads automatiques, la page refaite** : l'état en grand avec son interrupteur, quatre chiffres
+  (offert, demandé, publiées aujourd'hui, dernière), l'annonce juste dessous. Les interrupteurs tiennent
+  du premier coup (un site coché revenait décoché et bloquait l'interrupteur principal).
+- **Smart Upgrade** remplace Upgrade : tes trois plus gros items, chacun au moins le quart du premier.
+  Aucun modèle ne propose plus d'œuf ni d'item à moins de 5 % de ton plus gros.
+- **Deals** : recherche d'items (nom, initiales ou id) et période au choix, de 5 min à 3 h.
+- **Contre-offre** : triangle projected et numéros de série dans les deux grilles, recherche par #série.
+- La fiche d'un objet projected n'affiche plus un triangle géant.
+- Avec aussi tout ce qui était prévu en 2.16.13 (demande bien à sa place, visages et bundles) et ce qui suit.
 
 - **Trade ads automatiques** (fondations, menu du compte) : compose une annonce (jusqu'à 4 items de ton
   inventaire, jusqu'à 4 items ou tags demandés), choisis l'intervalle et les sites, et RoNote la publie
