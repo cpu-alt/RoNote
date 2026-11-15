@@ -58,7 +58,9 @@ $soft = New-ArrowPen ([System.Drawing.Color]::FromArgb(225, 255, 255, 255))
 $g.DrawLine($soft, 392, 318, 152, 318)       # <- je donne
 
 # --- déclinaisons ---------------------------------------------------------
-foreach ($size in 128, 48, 32, 16) {
+# 48 et 128 (store, chrome://extensions, popup) : le logo grimoire, tiré de store-assets/logo-grimoire-1024.png
+# (dépôt Neuronal, logos/grimoire). Ce script ne refait que les petites icônes de la barre d'outils.
+foreach ($size in 32, 16) {
     $small = New-Object System.Drawing.Bitmap($size, $size)
     $gs = [System.Drawing.Graphics]::FromImage($small)
     $gs.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
