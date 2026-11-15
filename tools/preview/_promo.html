@@ -19,8 +19,7 @@
   .wrap { display:flex; align-items:center; gap:var(--gap); padding:0 var(--pad); }
   .icon {
     width:var(--icon); height:var(--icon); flex:none;
-    border-radius:50%;
-    box-shadow:0 12px 34px #000a, 0 0 0 1px #ffffff10;
+    filter:drop-shadow(0 14px 24px #0009);   /* logo sur fond transparent : pas de cadre */
   }
   .name {
     font-size:var(--name); font-weight:700; letter-spacing:-.025em;
@@ -90,9 +89,9 @@
   </div>
 <script>
   const SIZES = {
-    small:   { w:440,  h:280, icon:'104px',  name:'44px',  tag:'15px', gap:'20px', pad:'26px', sp:'10px', tagw:'210px',
+    small:   { w:440,  h:280, icon:'150px',  name:'44px',  tag:'15px', gap:'20px', pad:'26px', sp:'10px', tagw:'210px',
                text: 'Roblox trade alerts,<br>valued at <span class="accent">value</span>, not RAP.' },
-    marquee: { w:1400, h:560, icon:'132px', name:'92px', tag:'25px', gap:'0', pad:'0', sp:'0', tagw:'620px',
+    marquee: { w:1400, h:560, icon:'215px', name:'92px', tag:'25px', gap:'0', pad:'0', sp:'0', tagw:'620px',
                text: 'Desktop alerts the moment a Roblox trade moves.<br>Every offer valued item by item, at <span class="accent">value</span>, not RAP.' }
   };
   const key = new URLSearchParams(location.search).get('size') || 'small';
