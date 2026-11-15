@@ -6,79 +6,44 @@
 <style>
   html, body { margin:0; padding:0; overflow:hidden; }
   body {
-    background:
-      radial-gradient(70% 120% at 78% 12%, #1d2b47 0%, transparent 62%),
-      radial-gradient(60% 110% at 10% 95%, #15243c 0%, transparent 64%),
-      #05070b;
-    font-family: "Segoe UI", system-ui, sans-serif;
-    display:flex; align-items:center; justify-content:center;
+    background:#04060b; font-family:"Segoe UI", system-ui, sans-serif;
     color:#eef3fb; position:relative;
   }
-  /* Une seule maquette, deux formats : les tailles sont posees par le script
-     pour eviter deux fichiers qui divergeraient au premier changement. */
-  .wrap { display:flex; align-items:center; gap:var(--gap); padding:0 var(--pad); }
-  .icon {
-    width:var(--icon); height:var(--icon); flex:none;
-    filter:drop-shadow(0 14px 24px #0009);   /* logo sur fond transparent : pas de cadre */
-  }
-  .name {
-    font-size:var(--name); font-weight:700; letter-spacing:-.025em;
-    line-height:1; margin:0 0 var(--sp);
-  }
-  .tag {
-    font-size:var(--tag); line-height:1.35; margin:0; color:#9db0c8;
-    max-width:var(--tagw);
-  }
+  /* Le fond spatial : étoiles et nébuleuse aux couleurs de RoNote (vert, bleu), dessinés par le script. */
+  #ciel { position:absolute; inset:0; }
+  /* Le logo, géant et penché, qui déborde du cadre ; un halo derrière lui. */
+  .halo { position:absolute; border-radius:50%; filter:blur(40px); opacity:.55;
+    background:radial-gradient(circle, #1f8cff 0%, #1aa86a55 45%, transparent 70%); }
+  .hero { position:absolute; transform-origin:center; filter:drop-shadow(0 24px 40px #000c) drop-shadow(0 0 30px #2f86ff33); }
+  .wrap { position:absolute; }
+  .name { font-size:var(--name); font-weight:700; letter-spacing:-.025em; line-height:1; margin:0 0 var(--sp);
+    text-shadow:0 4px 30px #000a; }
+  .tag { font-size:var(--tag); line-height:1.35; margin:0; color:#a9bbd2; max-width:var(--tagw); text-shadow:0 2px 16px #000; }
   .accent { color:#5aa9ff; }
-  /* Petit format : icone a gauche, nom et accroche empiles a droite. */
-  body:not(.marquee) .wrap { display:grid; grid-template-columns:auto 1fr; align-items:center; }
-  body:not(.marquee) .head { display:contents; }
-  body:not(.marquee) .icon { grid-row:1 / 3; margin-right:var(--gap); }
-  body:not(.marquee) .name { align-self:end; }
-  body:not(.marquee) .body { grid-column:2; align-self:start; }
-
-  /* Marquee : texte a gauche, vraies captures a droite. Les vignettes sont
-     decoupees dans store-assets/ : regenerer les captures avant le marquee. */
-  body.marquee { justify-content:flex-start; }
-  body.marquee .wrap { flex-direction:column; align-items:flex-start; gap:0; padding:0 0 0 88px; }
-  body.marquee .head { display:flex; align-items:center; gap:26px; margin-bottom:26px; }
-  body.marquee .name { margin:0; }
-  .chips { display:none; gap:10px; margin-top:30px; flex-wrap:wrap; max-width:680px; }
+  .chips { display:none; gap:10px; margin-top:26px; flex-wrap:wrap; max-width:var(--tagw); }
   body.marquee .chips { display:flex; }
-  .chip {
-    font-size:16px; font-weight:600; color:#c9d6ea; padding:8px 14px; border-radius:999px;
-    background:#ffffff0a; border:1px solid #ffffff14;
-  }
-  .shot {
-    position:absolute; display:none; border-radius:16px; overflow:hidden;
-    background-repeat:no-repeat; box-shadow:0 30px 70px #000d, 0 0 0 1px #ffffff12;
-  }
+  .chip { font-size:15px; font-weight:600; color:#c9d6ea; padding:7px 13px; border-radius:999px;
+    background:#0b1220cc; border:1px solid #ffffff1a; }
+  .shot { position:absolute; display:none; border-radius:16px; overflow:hidden;
+    background-repeat:no-repeat; box-shadow:0 30px 70px #000d, 0 0 0 1px #ffffff12; }
   body.marquee .shot { display:block; }
-  /* Carte Trade Flex : region 80..756 × 54..746 de ronote-flex.png. */
-  .flex {
-    width:676px; height:692px; background-image:url(../../store-assets/ronote-flex.png);
-    background-position:-80px -54px; transform-origin:top left;
-    left:1000px; top:58px; transform:scale(.56) rotate(5deg);
-  }
-  /* Popup d'accueil : region 64..510 × 81..719 de ronote-home.png. */
-  .pop {
-    width:446px; height:638px; background-image:url(../../store-assets/ronote-home.png);
-    background-position:-64px -81px; transform-origin:top left;
-    left:770px; top:84px; transform:scale(.78); border-radius:14px;
-  }
+  /* Carte Trade Flex : région 80..756 × 54..746 de ronote-flex.png. */
+  .flex { width:676px; height:692px; background-image:url(../../store-assets/ronote-flex.png);
+    background-position:-80px -54px; transform-origin:top left; left:1130px; top:70px; transform:scale(.52) rotate(6deg); }
+  /* Popup d'accueil : région 64..510 × 81..719 de ronote-home.png. */
+  .pop { width:446px; height:638px; background-image:url(../../store-assets/ronote-home.png);
+    background-position:-64px -81px; transform-origin:top left; left:950px; top:96px; transform:scale(.72); border-radius:14px; }
 </style>
 </head>
 <body>
+  <canvas id="ciel"></canvas>
+  <div class="halo"></div>
+  <img class="hero" src="../../store-assets/logo-grimoire-1024.png" alt="">
   <div class="shot flex"></div>
   <div class="shot pop"></div>
   <div class="wrap">
-    <div class="head">
-      <img class="icon" src="../../store-assets/logo-grimoire-1024.png" alt="">
-      <p class="name">RoNote</p>
-    </div>
-    <div class="body">
-      <p class="tag" id="tag"></p>
-    </div>
+    <p class="name">RoNote</p>
+    <p class="tag" id="tag"></p>
     <div class="chips">
       <span class="chip">Trade alerts</span>
       <span class="chip">Portfolio</span>
@@ -88,26 +53,41 @@
     </div>
   </div>
 <script>
+  // Une seule maquette, deux formats. hero : [taille, gauche, haut, rotation] ; le logo sort volontairement du cadre.
   const SIZES = {
-    small:   { w:440,  h:280, icon:'150px',  name:'44px',  tag:'15px', gap:'20px', pad:'26px', sp:'10px', tagw:'210px',
-               text: 'Roblox trade alerts,<br>valued at <span class="accent">value</span>, not RAP.' },
-    marquee: { w:1400, h:560, icon:'215px', name:'92px', tag:'25px', gap:'0', pad:'0', sp:'0', tagw:'620px',
-               text: 'Desktop alerts the moment a Roblox trade moves.<br>Every offer valued item by item, at <span class="accent">value</span>, not RAP.' }
+    small:   { w:440,  h:280, hero:[360,-118,-30,-14], halo:[260,-40,40], wrap:[222,74], name:'46px', tag:'15px', sp:'10px', tagw:'210px',
+               text:'Roblox trade alerts,<br>valued at <span class="accent">value</span>, not RAP.' },
+    marquee: { w:1400, h:560, hero:[640,-150,-60,-12], halo:[520,-40,40], wrap:[445,150], name:'96px', tag:'21px', sp:'14px', tagw:'490px',
+               text:'Desktop alerts the moment a Roblox trade moves.<br>Every offer valued item by item, at <span class="accent">value</span>, not RAP.' }
   };
   const key = new URLSearchParams(location.search).get('size') || 'small';
   const s = SIZES[key] || SIZES.small;
   const r = document.documentElement.style;
-  r.setProperty('--icon', s.icon);
-  r.setProperty('--name', s.name);
-  r.setProperty('--tag',  s.tag);
-  r.setProperty('--gap',  s.gap);
-  r.setProperty('--pad',  s.pad);
-  r.setProperty('--sp',   s.sp);
-  r.setProperty('--tagw', s.tagw);
+  r.setProperty('--name', s.name); r.setProperty('--tag', s.tag); r.setProperty('--sp', s.sp); r.setProperty('--tagw', s.tagw);
   document.body.classList.toggle('marquee', key === 'marquee');
-  document.body.style.width  = s.w + 'px';
-  document.body.style.height = s.h + 'px';
+  document.body.style.width = s.w + 'px'; document.body.style.height = s.h + 'px';
   document.getElementById('tag').innerHTML = s.text;
+  const [hs, hx, hy, hr] = s.hero, hero = document.querySelector('.hero');
+  Object.assign(hero.style, { width: hs + 'px', height: hs + 'px', left: hx + 'px', top: hy + 'px', transform: `rotate(${hr}deg)` });
+  const [as, ax, ay] = s.halo, halo = document.querySelector('.halo');
+  Object.assign(halo.style, { width: as + 'px', height: as + 'px', left: ax + 'px', top: ay + 'px' });
+  Object.assign(document.querySelector('.wrap').style, { left: s.wrap[0] + 'px', top: s.wrap[1] + 'px' });
+
+  // Le ciel : un fond presque noir, deux nébuleuses (verte en bas à gauche, bleue en haut à droite), des étoiles.
+  const c = document.getElementById('ciel'); c.width = s.w; c.height = s.h; const x = c.getContext('2d');
+  let a = 7; const rnd = () => (a = (a * 16807) % 2147483647) / 2147483647;     // toujours le même ciel
+  const neb = (cx, cy, rr, col) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, rr); g.addColorStop(0, col); g.addColorStop(1, 'transparent'); x.fillStyle = g; x.fillRect(0, 0, s.w, s.h); };
+  neb(s.w * .78, s.h * .1, s.w * .55, '#16305c');
+  neb(s.w * .12, s.h * .95, s.w * .45, '#0e3a2c');
+  neb(s.w * .5, s.h * .55, s.w * .35, '#0c1628');
+  for (let k = 0; k < 40; k++) neb(rnd() * s.w, rnd() * s.h, 30 + rnd() * s.w * .12, rnd() < .5 ? '#1a3f8a14' : '#1f9a6a10');
+  const n = Math.round(s.w * s.h / 900);
+  for (let k = 0; k < n; k++) {
+    const px = rnd() * s.w, py = rnd() * s.h, big = rnd() < .04, rr = big ? 1.1 + rnd() * .9 : .3 + rnd() * .7;
+    x.fillStyle = `rgba(${rnd() < .2 ? '170,200,255' : '255,255,255'},${.25 + rnd() * .65})`;
+    x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill();
+    if (big) { x.strokeStyle = 'rgba(200,220,255,.25)'; x.lineWidth = .6; x.beginPath(); x.moveTo(px - 6, py); x.lineTo(px + 6, py); x.moveTo(px, py - 6); x.lineTo(px, py + 6); x.stroke(); }
+  }
 </script>
 </body>
 </html>
