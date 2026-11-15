@@ -1180,14 +1180,20 @@
     .trade-row[data-rn-pick="on"]{outline:2px solid #2f8cff;outline-offset:-2px;background:rgba(47,140,255,.14)!important}
     .trade-row[data-rn-pick="on"]::before{background:#2f8cff;border-color:#2f8cff;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E");background-size:14px;background-position:center;background-repeat:no-repeat}`;
-  /** Une ligne se reconnaît à son texte (pseudo, statut, date, gains) : React peut la recréer entre deux clics. */
-  const rowKey = (row) => (row.textContent || '').replace(/\s+/g, ' ').trim();
+  /** Une ligne se reconnaît à son texte (pseudo, statut, date, gains), React pouvant la recréer entre deux clics,
+      et à son rang parmi les lignes au même texte : deux trades avec le même joueur le même jour restent deux. */
+  const rowText = (row) => (row.textContent || '').replace(/\s+/g, ' ').trim();
   const pickRows = () => [...document.querySelectorAll('.trade-row-list .trade-row, .trade-row')].filter((r, i, all) => all.indexOf(r) === i && !r.closest('[data-rn]'));
+  function pickKeyed() {
+    const seen = new Map();
+    return pickRows().map(row => { const t = rowText(row), n = seen.get(t) || 0; seen.set(t, n + 1); return { row, key: `${t}\u0000${n}` }; });
+  }
+  const rowKey = (row) => pickKeyed().find(x => x.row === row)?.key || rowText(row);
   function pickPaint() {
     const pick = proofPanel?.pick;
     for (const r of document.querySelectorAll('.trade-row[data-rn-pick]')) if (!pick) r.removeAttribute('data-rn-pick');
     if (!pick) return;
-    for (const r of pickRows()) { const v = pick.has(rowKey(r)) ? 'on' : ''; if (r.getAttribute('data-rn-pick') !== v) r.setAttribute('data-rn-pick', v); }
+    for (const { row: r, key } of pickKeyed()) { const v = pick.has(key) ? 'on' : ''; if (r.getAttribute('data-rn-pick') !== v) r.setAttribute('data-rn-pick', v); }
   }
   function pickClick(e) {
     const row = proofPanel?.pick && !proofPanel.running && e.target.closest?.('.trade-row');
@@ -1228,14 +1234,14 @@
     return null;
   }
   async function pickRun() {
-    const keys = [...proofPanel.pick];
+    const keys = pickKeyed().map(x => x.key).filter(k => proofPanel.pick.has(k));
     if (!keys.length || proofNeedsAllow('pick')) return;
     proofPanel.running = true;
     let added = 0;
     for (const [n, key] of keys.entries()) {
       if (!proofPanel) return;
       proofSay(TEXT.proofPickRun(n + 1, keys.length));
-      const row = pickRows().find(r => rowKey(r) === key);
+      const row = pickKeyed().find(x => x.key === key)?.row;
       if (!row) continue;
       let info = proofInfo();
       if (!(row.classList.contains('selected') && info.ok)) {
