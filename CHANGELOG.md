@@ -6,7 +6,8 @@ l'utilisateur, pas la liste des commits.
 ## En préparation
 
 - **Trade ads, modèle Aléatoire** : quatre items de ton inventaire tirés au hasard, seulement ceux à 1 000 de
-  value ou plus (jamais d'œuf ni de projected), contre any, demand, upgrade et downgrade. Un nouveau clic retire.
+  value ou plus (jamais d'œuf ni de projected), contre any, demand, upgrade et downgrade. RoNote retire 4 nouveaux items à chaque annonce publiée ;
+  choisir un autre modèle ou un item à la main l'arrête.
 
 ## v2.17.0 : trade ads automatiques et nouveau logo
 

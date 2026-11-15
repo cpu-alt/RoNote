@@ -16,7 +16,7 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { ic } from '../common/icons.js';
 import { lockHtml } from './lock.js';
-import { smartGap, MIN_VALUES, pickAd, onlyAd } from '../background/tradeads.js';
+import { smartGap, MIN_VALUES, pickAd, onlyAd, tirageAlea, isEgg as eggTest } from '../background/tradeads.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
 const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `smartGap`)
@@ -25,13 +25,11 @@ const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `
  * Les modèles d'annonce : un clic choisit les items offerts dans l'inventaire et les tags demandés.
  * Les projected ne sont jamais offerts (personne n'en veut au prix affiché). Exportés pour le test.
  */
-export const ALEA_MIN = 1000;
-const melange = (arr, rnd = Math.random) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 export const PRESETS = {
-  // Aléatoire (le réglage préféré de MYd) : quatre items tirés au hasard parmi ceux qui valent au moins
-  // ALEA_MIN (jamais d'œuf ni de projected) ; un nouveau clic retire. Pas de seuil relatif au plus gros item.
-  random:    { label: 'Aléatoire', hint: '4 items au hasard (value 1 000 et plus), contre any, demand, upgrade, downgrade',
-    tags: ['any', 'demand', 'upgrade', 'downgrade'], absolu: true, pick: (inv, rnd) => melange(inv.filter(i => i.value >= ALEA_MIN), rnd).slice(0, 4) },
+  // Aléatoire (le réglage préféré de MYd) : quatre items tirés au hasard parmi ceux qui valent au moins 1 000
+  // (jamais d'œuf ni de projected), retirés à chaque envoi par le worker (`alea`). Pas de seuil relatif au plus gros item.
+  random:    { label: 'Aléatoire', hint: '4 items au hasard (value 1 000 et plus), retirés à chaque envoi, contre any, demand, upgrade, downgrade',
+    tags: ['any', 'demand', 'upgrade', 'downgrade'], absolu: true, alea: true, pick: (inv, rnd) => tirageAlea(inv, [], rnd) },
   // Smart Upgrade : tes items qui comptent (les trois plus gros, chacun au moins le quart du premier), pas tes miettes.
   upgrade:   { label: 'Smart Upgrade', hint: 'Tes meilleurs items contre un plus gros, sans les miettes', tags: ['upgrade', 'demand'],
     pick: (inv) => inv.filter(i => i.value >= inv[0].value / 4).slice(0, 3) },
@@ -47,10 +45,10 @@ export function presetAd(key, inv, idOf = (i) => i.id, filters = {}, rnd = Math.
   const all = offerable(inv, { ...filters, noProjected: true, noEggs: true }, idOf).sort((a, b) => b.value - a.value);
   const pool = p?.absolu ? all : all.filter(i => i.value >= all[0].value / 20);   // sinon jamais un item à moins de 5 % du plus gros
   const offer = p && pool.length ? p.pick(pool, rnd).map(idOf) : [];
-  return offer.length ? { offer, tags: p.tags, items: [] } : null;
+  return offer.length ? { offer, tags: p.tags, items: [], alea: !!p.alea } : null;
 }
 /** Les œufs (limiteds de Pâques, « Egg… ») et les petits items n'intéressent personne en trade ad : filtrés au choix. */
-export const isEgg = (i) => /\begg/i.test(i.name || '');
+export const isEgg = eggTest;
 export const offerable = (inv, { noEggs = false, minValue = 0, noProjected = false, exclude = [] } = {}, idOf = (i) => i.id) =>
   inv.filter(i => i.value > 0 && i.value >= minValue && !(noEggs && isEgg(i)) && !(noProjected && i.projected) && !exclude.includes(idOf(i)));
 /** Le tri de la liste « Mes items ». */
@@ -227,7 +225,8 @@ function paint(root) {
 
       <section class="pf-card ta-card"><h3>${t('Ton annonce')}</h3>
         ${all.length ? `<div class="ta-presets">${Object.entries(PRESETS).map(([k, p]) =>
-          `<button data-ta-preset="${k}" title="${escapeHtml(t(p.hint))}">${escapeHtml(t(p.label))}</button>`).join('')}</div>` : ''}
+          `<button data-ta-preset="${k}" title="${escapeHtml(t(p.hint))}"${k === 'random' && cfg.alea ? ' class="on"' : ''}>${escapeHtml(t(p.label))}</button>`).join('')}</div>` : ''}
+        ${cfg.alea ? `<small class="ta-why">${t('Aléatoire : 4 nouveaux items (value 1 000 et plus) à chaque envoi. Choisis un autre modèle ou un item pour arrêter.')}</small>` : ''}
         ${adPreview(cfg, all)}
         ${pickerHtml(cfg, all)}
         <label class="ta-note"><span>${t("Message de l'annonce")} <small>(RoUtility)</small></span>

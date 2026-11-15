@@ -2077,6 +2077,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .ta-presets button { padding: 5px 10px; font-size: 11px; font-weight: 650; border-radius: 99px; border: 1px solid var(--line-soft); background: var(--surface-2);
   color: var(--fg); font: inherit; cursor: pointer; transition: border-color var(--d-fast), transform var(--d-mod) var(--spring-pop); }
 .ta-presets button:hover { border-color: var(--accent); }
+.ta-presets button.on { border-color: var(--accent); background: #4d9fff22; color: var(--fg); }
 .ta-presets button:active { transform: scale(.97); }
 
 /* 2 · aperçu façon fenêtre de trade */

@@ -87,9 +87,20 @@ export const SITES = {
   }
 };
 
+/** Le modèle Aléatoire : quatre items tirés au hasard parmi ceux qui valent au moins ALEA_MIN, jamais un œuf,
+ *  un projected ni un item exclu. Le popup s'en sert au clic, le worker à chaque envoi quand `alea` est allumé. */
+export const ALEA_MIN = 1000;
+export const isEgg = (i) => /\begg/i.test(i.name || '');
+export function tirageAlea(inv, exclude = [], rnd = Math.random) {
+  const a = inv.filter(i => i.value >= ALEA_MIN && !i.projected && !isEgg(i) && !exclude.includes(i.id));
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, MAX_SIDE);
+}
+
 export const DEFAULTS = {
   on: false, interval: 0,             // 0 = malin : la fenêtre de chaque site remplie au mieux
   offer: [], items: [], tags: [],
+  alea: false,                        // modèle Aléatoire : 4 items retirés au hasard à chaque envoi
   noEggs: true, minValue: 0,          // filtres du choix des items (popup) : sans les œufs, sans les petits items
   noProjected: true, exclude: [],     // projected cachés ; items que l'utilisateur ne veut jamais offrir
   note: '',                           // texte de l'annonce (RoUtility ; Rolimon's n'en a pas)
@@ -100,7 +111,7 @@ export const DEFAULTS = {
 
 const NOTE_MAX = 200, SAVED_MAX = 12, EXCLUDE_MAX = 1000;
 /** Ce qu'une configuration exportée ou enregistrée contient (jamais l'interrupteur ni le journal). */
-export const AD_KEYS = ['offer', 'items', 'tags', 'interval', 'noEggs', 'minValue', 'noProjected', 'exclude', 'note', 'sites'];
+export const AD_KEYS = ['offer', 'alea', 'items', 'tags', 'interval', 'noEggs', 'minValue', 'noProjected', 'exclude', 'note', 'sites'];
 export const pickAd = (cfg) => Object.fromEntries(AD_KEYS.map(k => [k, cfg[k]]));
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(n => Number.isInteger(n) && n > 0))];
 
@@ -114,7 +125,7 @@ export function sanitize(patch, cur = DEFAULTS) {
   if ('noProjected' in patch) out.noProjected = !!patch.noProjected;
   if ('note' in patch) out.note = String(patch.note || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, NOTE_MAX);
   if ('exclude' in patch) out.exclude = ids(patch.exclude).slice(0, EXCLUDE_MAX);
-  if ('offer' in patch) out.offer = ids(patch.offer).slice(0, MAX_SIDE);
+  if ('offer' in patch) { out.offer = ids(patch.offer).slice(0, MAX_SIDE); out.alea = !!patch.alea; }   // toucher aux items à la main éteint l'aléatoire
   out.offer = out.offer.filter(id => !out.exclude.includes(id));   // un item exclu n'est jamais offert
   if ('tags' in patch) out.tags = [...new Set((patch.tags || []).filter(x => TAGS.includes(x)))].slice(0, MAX_SIDE);
   if ('items' in patch) out.items = ids(patch.items);
@@ -228,13 +239,18 @@ export async function scheduleTradeAds(cfg) {
  * Un tour d'envoi. `force` (bouton « Publier maintenant ») passe outre
  * l'intervalle choisi, jamais le délai propre au site ni sa limite du jour.
  * `offerable` : les ids encore dans l'inventaire (un item vendu n'est pas offert).
+ * `inventaire` : ces items avec leur value, leur nom et `projected` : le tirage du modèle Aléatoire.
  */
-export async function runTradeAds({ me, offerable = null, force = false, now = Date.now() } = {}) {
+export async function runTradeAds({ me, offerable = null, inventaire = null, force = false, now = Date.now(), rnd = Math.random } = {}) {
   const cfg = await getConfig();
   if (!cfg.on && !force) return { skipped: 'off' };
   if (!me) return { skipped: 'me' };
   const locked = await tradeAdsLocked(me);
   if (locked) return { skipped: 'premium', locked };
+  if (cfg.alea && inventaire?.length) {
+    const tire = tirageAlea(inventaire, cfg.exclude, rnd).map(i => i.id);
+    if (tire.length) cfg.offer = tire;           // gardé : le popup montre ce qui vient de partir
+  }
   const offer = offerable ? cfg.offer.filter(id => offerable.has(id)) : cfg.offer;
   if (!offer.length || !(cfg.items.length + cfg.tags.length)) return { skipped: 'empty' };
   const ad = { offer, items: cfg.items, tags: cfg.tags, note: cfg.note };

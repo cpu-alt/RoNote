@@ -87,6 +87,24 @@ console.log('\nEnvoi : format de chaque site');
   check('intervalle 15 min passé (20 min) → nouvel envoi', calls.length === 2);
 }
 
+console.log('\nAléatoire : retiré à chaque envoi');
+{
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1, 2], alea: true, tags: ['any', 'demand', 'upgrade', 'downgrade'], sites: { rolimons: true, routility: false } });
+  routes[ROLI] = [201, {}];
+  const inv = [10, 11, 12, 13, 14, 15, 16, 17].map(id => ({ id, value: 1000 + id * 100 })).concat([{ id: 20, value: 500 }, { id: 21, value: 5000, projected: true }]);
+  let graine = 3; const rnd = () => (graine = (graine * 16807) % 2147483647) / 2147483647;
+  const offres = [];
+  for (let k = 0; k < 4; k++) {
+    calls = [];
+    await ta.runTradeAds({ me: 42, now: 1e12 + k * 20 * MIN, inventaire: inv, offerable: new Set(inv.map(i => i.id)), rnd });
+    offres.push(calls.find(c => c.url === ROLI).body.offer_item_ids);
+  }
+  check('chaque envoi : 4 items de 1 000 et plus, ni miette ni projected', offres.every(o => o.length === 4 && o.every(id => id >= 10 && id <= 17)));
+  check('les envois ne partent pas tous avec les mêmes items', new Set(offres.map(o => [...o].sort().join())).size > 1);
+  check('le popup voit le dernier tirage', JSON.stringify((await ta.getConfig()).offer) === JSON.stringify(offres[3]));
+}
+
 console.log('\nRefus et limites');
 {
   reset();
@@ -221,6 +239,16 @@ console.log('\nModèles d\'annonce');
     check('Aléatoire : des tirages différents', new Set(tirages.map(t => [...t.offer].sort().join())).size > 1);
     check('Aléatoire : demande any, demand, upgrade, downgrade', JSON.stringify(tirages[0].tags) === '["any","demand","upgrade","downgrade"]');
     check('Aléatoire : rien à offrir sous 1 000, aucun modèle', presetAd('random', [{ id: 9, value: 500 }]) === null);
+  }
+  {
+    const { tirageAlea, sanitize: san } = await import('../src/background/tradeads.js');
+    const inv3 = [{ id: 1, value: 50000 }, { id: 2, value: 1500 }, { id: 3, value: 800 }, { id: 4, value: 9000, name: 'Egg' }, { id: 5, value: 4000, projected: true }, { id: 6, value: 2000 }, { id: 7, value: 3000 }];
+    const t = tirageAlea(inv3, [7], () => .5);
+    check('worker : tirage aléatoire sans exclu, œuf, projected ni miette', t.length === 3 && t.every(i => [1, 2, 6].includes(i.id)));
+    const c = san({ offer: [1, 2], alea: true, tags: ['any'] });
+    check('le modèle Aléatoire allume alea', c.alea === true);
+    check('choisir un item à la main éteint alea', san({ offer: [1] }, c).alea === false);
+    check('changer les tags garde alea', san({ tags: ['demand'] }, c).alea === true);
   }
   check('aucun modèle ne propose un œuf ni une miette', !['any', 'demand'].some(k => presetAd(k, mid).offer.includes(5)));
   check('filtres gardés par le worker, valeur hors liste refusée',

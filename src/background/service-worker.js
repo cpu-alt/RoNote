@@ -155,8 +155,9 @@ B.tabs?.onUpdated?.addListener((tabId, info) => { onTradeAdsTab(tabId, info).cat
 /** Un tour d'auto-post (tradeads.js) : le compte suivi, et seulement les items encore dans l'inventaire. */
 async function postTradeAds(force = false) {
   const [state, report] = await Promise.all([getState(), getPortfolioReport()]);
-  const offerable = report?.items?.length ? new Set(report.items.map(i => (i.kind === 'bundle' ? i.faceAssetId : i.id))) : null;
-  return runTradeAds({ me: Number(state.userId) || 0, offerable, force });
+  const inventaire = (report?.items || []).map(i => ({ id: i.kind === 'bundle' ? i.faceAssetId : i.id, value: i.value, name: i.name, projected: i.projected })).filter(i => i.id > 0);
+  const offerable = inventaire.length ? new Set(inventaire.map(i => i.id)) : null;
+  return runTradeAds({ me: Number(state.userId) || 0, offerable, inventaire, force });
 }
 
 async function configureAlarm(settings) {
