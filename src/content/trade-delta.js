@@ -53,6 +53,10 @@
     proofMultiAdd: 'Ajouter ce trade', proofMultiAdded: 'Déjà ajouté', proofMultiClear: 'Tout retirer',
     proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} dans le proof`, proofMultiRemove: 'Retirer ce trade',
     proofMultiAdding: 'Capture du trade…', proofMultiOk: 'Trade ajouté. Ouvre le suivant dans la liste.',
+    proofPick: 'Choisir dans la liste', proofPickHint: 'Clique sur les trades à ajouter dans la liste de gauche, puis OK.',
+    proofPickCount: (n) => n ? `${n} trade${n > 1 ? 's' : ''} choisi${n > 1 ? 's' : ''}` : 'Aucun trade choisi',
+    proofPickOk: 'OK', proofPickCancel: 'Annuler', proofPickRun: (k, n) => `Trade ${k}/${n} : ouverture et capture…`,
+    proofPickDone: (n) => `${n} trade${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} au proof.`, proofPickNone: 'Pas de liste de trades sur cette page.',
     proofZoneLabel: 'Capture', proofZones: ['Le trade', 'Trade + liste'],
     proofPreview: 'Aperçu du message',
     proofHint: 'La capture prend ce qui est à l’écran : garde le trade entier visible. Le panneau se cache le temps de la photo.',
@@ -124,6 +128,10 @@
     proofMultiAdd: 'Add this trade', proofMultiAdded: 'Already added', proofMultiClear: 'Remove all',
     proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} in the proof`, proofMultiRemove: 'Remove this trade',
     proofMultiAdding: 'Capturing the trade…', proofMultiOk: 'Trade added. Open the next one in the list.',
+    proofPick: 'Pick from the list', proofPickHint: 'Click the trades to add in the list on the left, then OK.',
+    proofPickCount: (n) => n ? `${n} trade${n > 1 ? 's' : ''} picked` : 'No trade picked',
+    proofPickOk: 'OK', proofPickCancel: 'Cancel', proofPickRun: (k, n) => `Trade ${k}/${n}: opening and capturing…`,
+    proofPickDone: (n) => `${n} trade${n > 1 ? 's' : ''} added to the proof.`, proofPickNone: 'No trade list on this page.',
     proofZoneLabel: 'Screenshot', proofZones: ['The trade', 'Trade + list'],
     proofPreview: 'Message preview',
     proofHint: 'The screenshot takes what is on screen: keep the whole trade visible. The panel hides for the shot.',
@@ -1053,6 +1061,8 @@
     .lot button:hover{color:#f2545b}
     .addrow{display:flex;gap:8px}.addrow .mini{flex:1}
     .mini.add{border-color:#2f6fd0;background:#16243b;color:#cfe0ff;font-weight:600}
+    .pick{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;border:1px dashed #2f6fd0;background:#0f1a2c}
+    .pick b{font-size:13px;color:#cfe0ff}
     [hidden]{display:none!important}`;
   const PROOF_SVG = {
     shield: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>',
@@ -1135,13 +1145,17 @@
 
   /** Plusieurs trades : ceux qu'on a mis de côté (une capture chacun), et le bouton qui ajoute le trade ouvert. */
   function proofLotHtml() {
-    const lot = proofPanel.lot, info = proofInfo(), dejà = info.ok && lot.some(t => t.sig === proofKeyOf(info));
+    const lot = proofPanel.lot, info = proofInfo(), dejà = info.ok && lot.some(t => t.sig === proofKeyOf(info)), pick = proofPanel.pick;
     return `<section data-lot><h3>${TEXT.proofMultiTitle}</h3>
       ${lot.length ? `<span class="k">${TEXT.proofMultiCount(lot.length)}</span><ul class="lot">${lot.map((t, n) => `<li><img src="${t.image}" alt="">
         <span>${proofEsc(t.info.partner || '?')} <small>${proofEsc(t.info.date || '')}</small></span>
         <button type="button" data-unlot="${n}" title="${TEXT.proofMultiRemove}" aria-label="${TEXT.proofMultiRemove}">${PROOF_SVG.x}</button></li>`).join('')}</ul>` : `<p>${TEXT.proofMultiHint}</p>`}
-      <div class="addrow"><button type="button" class="mini add" data-lot-add${!info.ok || dejà ? ' disabled' : ''}>${dejà ? TEXT.proofMultiAdded : '+ ' + TEXT.proofMultiAdd}</button>
-        ${lot.length ? `<button type="button" class="mini" data-lot-clear>${TEXT.proofMultiClear}</button>` : ''}</div></section>`;
+      ${pick ? `<div class="pick"><p>${TEXT.proofPickHint}</p><b>${TEXT.proofPickCount(pick.size)}</b>
+        <div class="addrow"><button type="button" class="mini add" data-pick-ok${pick.size ? '' : ' disabled'}>${TEXT.proofPickOk}</button>
+        <button type="button" class="mini" data-pick-cancel>${TEXT.proofPickCancel}</button></div></div>`
+      : `<div class="addrow"><button type="button" class="mini add" data-pick-start>☰ ${TEXT.proofPick}</button>
+        <button type="button" class="mini" data-lot-add${!info.ok || dejà ? ' disabled' : ''}>${dejà ? TEXT.proofMultiAdded : '+ ' + TEXT.proofMultiAdd}</button></div>
+        ${lot.length ? `<button type="button" class="mini" data-lot-clear>${TEXT.proofMultiClear}</button>` : ''}`}</section>`;
   }
   /** Un trade se reconnaît à son id, sinon au partenaire, à la date et aux objets. */
   const proofKeyOf = (info) => info.tradeId || JSON.stringify([info.partner, info.date, info.give, info.get]);
@@ -1157,6 +1171,94 @@
     await proofFill();
     proofSay(TEXT.proofMultiOk, 'ok');
   }
+  /* Choisir dans la liste : chaque trade de la liste de gauche reçoit une case ; un clic sur la ligne la coche
+     (sans ouvrir le trade). Le masque du mode proof est levé le temps du choix, pour voir les pseudos.
+     Sur OK, chaque trade coché est ouvert à son tour, photographié et ajouté, puis le masque revient. */
+  const PICK_CSS = `.trade-row[data-rn-pick]{position:relative;cursor:copy!important}
+    .trade-row[data-rn-pick]::before{content:"";position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+      border-radius:5px;border:2px solid #7d8696;background:#11141a;z-index:3;box-sizing:border-box}
+    .trade-row[data-rn-pick="on"]{outline:2px solid #2f8cff;outline-offset:-2px;background:rgba(47,140,255,.14)!important}
+    .trade-row[data-rn-pick="on"]::before{background:#2f8cff;border-color:#2f8cff;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E");background-size:14px;background-position:center;background-repeat:no-repeat}`;
+  /** Une ligne se reconnaît à son texte (pseudo, statut, date, gains) : React peut la recréer entre deux clics. */
+  const rowKey = (row) => (row.textContent || '').replace(/\s+/g, ' ').trim();
+  const pickRows = () => [...document.querySelectorAll('.trade-row-list .trade-row, .trade-row')].filter((r, i, all) => all.indexOf(r) === i && !r.closest('[data-rn]'));
+  function pickPaint() {
+    const pick = proofPanel?.pick;
+    for (const r of document.querySelectorAll('.trade-row[data-rn-pick]')) if (!pick) r.removeAttribute('data-rn-pick');
+    if (!pick) return;
+    for (const r of pickRows()) { const v = pick.has(rowKey(r)) ? 'on' : ''; if (r.getAttribute('data-rn-pick') !== v) r.setAttribute('data-rn-pick', v); }
+  }
+  function pickClick(e) {
+    const row = proofPanel?.pick && !proofPanel.running && e.target.closest?.('.trade-row');
+    if (!row || row.closest('[data-rn]')) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const k = rowKey(row), pick = proofPanel.pick;
+    if (pick.has(k)) pick.delete(k); else pick.add(k);
+    pickPaint(); proofRenderLot();
+  }
+  function pickStart() {
+    if (!pickRows().length) return proofSay(TEXT.proofPickNone, 'err');
+    proofPanel.pick = new Set();
+    document.documentElement.removeAttribute('data-rn-proof');          // le masque levé : on voit qui est qui
+    let st = document.querySelector('style[data-rn="proof-pick"]');
+    if (!st) { st = document.createElement('style'); st.dataset.rn = 'proof-pick'; st.textContent = PICK_CSS; (document.head || document.documentElement).append(st); }
+    for (const t of ['click', 'mousedown', 'pointerdown', 'mouseup', 'pointerup']) document.addEventListener(t, t === 'click' ? pickClick : pickSwallow, true);
+    proofPanel.pickTimer = setInterval(pickPaint, 400);                  // la liste se redessine : les cases suivent
+    pickPaint(); proofRenderLot(); proofSay('');
+  }
+  /** React ouvre un trade dès le pointerdown : en mode choix, seul notre clic compte. */
+  function pickSwallow(e) { if (proofPanel?.pick && !proofPanel.running && e.target.closest?.('.trade-row') && !e.target.closest('[data-rn]')) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); } }
+  function pickStop() {
+    if (!proofPanel) return;
+    clearInterval(proofPanel.pickTimer);
+    for (const t of ['click', 'mousedown', 'pointerdown', 'mouseup', 'pointerup']) document.removeEventListener(t, t === 'click' ? pickClick : pickSwallow, true);
+    proofPanel.pick = null; proofPanel.running = false;
+    pickPaint();
+    document.querySelector('style[data-rn="proof-pick"]')?.remove();
+    document.documentElement.toggleAttribute('data-rn-proof', proofOn);
+  }
+  /** Attendre que le trade ouvert soit celui de `row` et qu'il soit lu (8 s au plus). */
+  async function pickWaitOpen(prev) {
+    for (let t = 0; t < 40; t++) {
+      await new Promise(r => setTimeout(r, 200));
+      const info = proofInfo();
+      if (info.ok && JSON.stringify(info) !== prev) { await new Promise(r => setTimeout(r, 450)); return proofInfo(); }
+    }
+    return null;
+  }
+  async function pickRun() {
+    const keys = [...proofPanel.pick];
+    if (!keys.length || proofNeedsAllow('pick')) return;
+    proofPanel.running = true;
+    let added = 0;
+    for (const [n, key] of keys.entries()) {
+      if (!proofPanel) return;
+      proofSay(TEXT.proofPickRun(n + 1, keys.length));
+      const row = pickRows().find(r => rowKey(r) === key);
+      if (!row) continue;
+      let info = proofInfo();
+      if (!(row.classList.contains('selected') && info.ok)) {
+        const prev = JSON.stringify(info);
+        row.removeAttribute('data-rn-pick');
+        row.click();
+        info = await pickWaitOpen(prev);
+        if (!proofPanel) return;
+      }
+      if (!info?.ok || proofPanel.lot.some(t => t.sig === proofKeyOf(info))) continue;
+      const res = await proofShoot('ronote:proof-save', {}, false);
+      if (!proofPanel) return;
+      if (!res?.ok) { pickStop(); return proofFail(res); }
+      proofPanel.lot.push({ sig: proofKeyOf(info), info, image: res.image });
+      added++;
+    }
+    pickStop();
+    await proofFill();
+    proofSay(TEXT.proofPickDone(added), 'ok');
+  }
+  /** Seule la section « Plusieurs trades » redessinée (le choix bouge souvent, les cinq lignes non). */
+  function proofRenderLot() { const old = proofQ('[data-lot]'); if (old) old.outerHTML = proofLotHtml(); }
+
   /** Les captures du lot empilées, à la largeur de la plus large, sur le fond de Roblox : une seule image PNG. */
   async function proofLotImage() {
     const imgs = await Promise.all(proofPanel.lot.map(t => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = t.image; })));
@@ -1220,7 +1322,7 @@
     proofButton();
     const next = proofPanel.waiting;
     proofPanel.waiting = '';
-    if (next === 'send') proofSend(false); else if (next === 'save') proofSave(); else if (next === 'add') proofLotAdd();
+    if (next === 'send') proofSend(false); else if (next === 'save') proofSave(); else if (next === 'add') proofLotAdd(); else if (next === 'pick') pickRun();
   }
   /** Le partage d'onglet de Chrome, une image : quand captureVisibleTab n'a pas la permission. */
   async function proofShareCapture() {
@@ -1314,7 +1416,7 @@
       <div class="body"><p>${TEXT.proofLoading}</p></div>
       <footer hidden></footer></aside>`;
     (document.body || document.documentElement).append(host);
-    proofPanel = { host, root, sig: '', elite: false, canCapture: false, waiting: '', lot: [] };
+    proofPanel = { host, root, sig: '', elite: false, canCapture: false, waiting: '', lot: [], pick: null, running: false };
     root.addEventListener('input', proofPreview);
     root.addEventListener('change', e => {
       const t = e.target;
@@ -1340,6 +1442,9 @@
       else if (t.closest('[data-save]')) proofSave();
       else if (t.closest('[data-copy]')) proofCopy();
       else if (t.closest('[data-lot-add]')) proofLotAdd();
+      else if (t.closest('[data-pick-start]')) pickStart();
+      else if (t.closest('[data-pick-ok]')) pickRun();
+      else if (t.closest('[data-pick-cancel]')) { pickStop(); proofRenderLot(); }
       else if (t.closest('[data-lot-clear]')) { proofPanel.lot = []; proofFill(); }
       else if (t.closest('[data-unlot]')) { proofPanel.lot.splice(Number(t.closest('[data-unlot]').dataset.unlot), 1); proofFill(); }
     });
@@ -1347,11 +1452,11 @@
     root.querySelector('aside').focus();
     proofFill();
   }
-  function closeProofPanel() { document.removeEventListener('keydown', proofKey, true); proofPanel?.host.remove(); proofPanel = null; }
+  function closeProofPanel() { pickStop(); document.removeEventListener('keydown', proofKey, true); proofPanel?.host.remove(); proofPanel = null; }
   // La petite fenêtre « Autoriser » (options/capture.html) a eu la permission : l'action en attente repart.
   if (alive()) B.runtime?.onMessage?.addListener((msg) => { if (msg?.type === 'ronote:proof-retry') proofAllowed(); });
   // Un autre trade ouvert, panneau ouvert : ses lignes suivent.
-  function proofFollow() { if (proofPanel && proofPanel.sig !== JSON.stringify(proofInfo())) proofFill(); }
+  function proofFollow() { if (proofPanel && !proofPanel.running && proofPanel.sig !== JSON.stringify(proofInfo())) proofFill(); }
   const serialNodes = new Map();
   // En capture, avant le lien de la vignette et les écouteurs de React. Certains
   // badges sont dans le lien du catalogue, d'autres ont pointer-events:none.

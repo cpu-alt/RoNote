@@ -1117,6 +1117,11 @@ autre trade dans la liste ne vide pas le lot. Dès qu'il n'est pas vide, `proof-
 cinq lignes. Envoyer et Télécharger n'ont alors plus besoin de capture : les images du lot sont empilées dans
 un canvas de la page (la largeur de la plus large, 16 px entre deux), puis envoyées comme `image` avec un
 cadre qui couvre toute l'image ; le worker les compresse sous 63 Ko comme une capture.
+« Choisir dans la liste » : l'attribut `data-rn-proof` (le masque) est retiré, chaque `.trade-row` reçoit
+`data-rn-pick` (une case dessinée en CSS), et les clics sur les lignes sont avalés en capture (pointerdown
+compris : React ouvre un trade dès lui) pour cocher sans ouvrir. Une ligne est reconnue à son texte (React
+peut la recréer), les cases sont repeintes toutes les 400 ms. Sur OK, chaque ligne cochée reçoit un vrai
+`click()`, on attend que `proofInfo` change (8 s au plus), on capture, on ajoute ; puis le masque revient.
 
 ## RoNote premium : le verrou est sur le serveur (2.16.7)
 
