@@ -23,15 +23,11 @@ import { NEURONAL } from '../common/defaults.js';
 import { getState, getHistory, getSettings } from '../common/state.js';
 import { getCatalog, readEntry } from '../common/roli.js';
 import { premiumHeaders, premiumRetry, premiumStatus } from './premium.js';
+import { shortValue, gapNote, mergeProof } from '../common/proof-merge.js';
 
 const MAX_BYTES = 63 * 1024;
 
-/** 62316 → « 62.3k », comme les proofs de Rolimons. */
-export function shortValue(n) {
-  n = Number(n) || 0;
-  for (const [d, s] of [[1e6, 'M'], [1e3, 'k']]) if (n >= d) return (n / d).toFixed(1).replace(/\.0$/, '') + s;
-  return String(Math.round(n));
-}
+export { shortValue, gapNote };
 
 /** Le nom d'un objet pour #proofs : « Black Iron Commando (BIC) », le nom seul sans acronyme ; sinon le texte de la page nettoyé. */
 export function itemLabel(item, cat) {
@@ -50,11 +46,6 @@ export function proofDefaults({ labels, values, sender, receiver, date }) {
   };
 }
 
-/** « (8k op) » quand le second côté vaut plus, « (8k lb) » quand il vaut moins, rien à égalité (MYd, 13 nov.). */
-export function gapNote(a, b) {
-  const gap = Math.round((Number(b) || 0) - (Number(a) || 0));
-  return gap ? ` (${shortValue(Math.abs(gap))} ${gap > 0 ? 'op' : 'lb'})` : '';
-}
 
 /** Qui a envoyé ce trade ? Le journal le sait quand RoNote l'a vu passer (accepté par moi = c'est lui). */
 async function senderGuess(info) {
@@ -68,14 +59,19 @@ async function senderGuess(info) {
   return { sender: iSent ? me : info.partner, receiver: iSent ? info.partner : me };
 }
 
-/** Ce que la page sait du trade terminé (proofInfo de trade-delta.js) → les champs, et l'accès Elite. */
+/**
+ * Ce que la page sait du trade terminé (proofInfo de trade-delta.js) → les champs, et l'accès Elite.
+ * `info.trades` (plusieurs trades mis de côté dans le panneau) : un seul proof pour tout le lot.
+ */
 export async function proofPrepare(info) {
   const [status, cat] = await Promise.all([premiumStatus().catch(() => null), getSettings().then(getCatalog).catch(() => null)]);
   const side = (s) => [...s.items.map(i => itemLabel(i, cat)), ...(s.robux ? [`${s.robux} Robux`] : [])];
+  const one = async (t) => ({ labels: [side(t.give), side(t.get)], values: t.values, date: t.date, ...(await senderGuess(t)) });
+  const lot = Array.isArray(info.trades) && info.trades.length ? info.trades : null;
   return {
     elite: !!status?.me?.features?.proof, signedIn: !!status?.signedIn,
     canCapture: await B.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false),
-    fields: proofDefaults({ labels: [side(info.give), side(info.get)], values: info.values, date: info.date, ...(await senderGuess(info)) })
+    fields: lot ? mergeProof(await Promise.all(lot.map(one))) : proofDefaults(await one(info))
   };
 }
 

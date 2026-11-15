@@ -1110,6 +1110,14 @@ au-delà de 64 Ko** sur neuronal.live. Envoi `POST /ext/v1/proof`, corps = l'ima
 champs en JSON base64, jeton premium. Le serveur (Neuronal 18qbfa) revérifie la fonction `proof` (service
 `bundle` = Elite), relit l'image avec Pillow et la réécrit en PNG, puis RoOp Tracker l'envoie en MP.
 
+**Plusieurs trades** (après 2.17.0). « Ajouter ce trade » capture le trade ouvert (`ronote:proof-save`, la
+zone choisie, panneau caché) et le garde dans `proofPanel.lot` avec ce que `proofInfo` en sait ; ouvrir un
+autre trade dans la liste ne vide pas le lot. Dès qu'il n'est pas vide, `proof-prepare` reçoit
+`{ trades: [...] }` et `mergeProof` (`common/proof-merge.js`, testé par `tools/test-proof.mjs`) réunit les
+cinq lignes. Envoyer et Télécharger n'ont alors plus besoin de capture : les images du lot sont empilées dans
+un canvas de la page (la largeur de la plus large, 16 px entre deux), puis envoyées comme `image` avec un
+cadre qui couvre toute l'image ; le worker les compresse sous 63 Ko comme une capture.
+
 ## RoNote premium : le verrou est sur le serveur (2.16.7)
 
 Les fonctions servies par Neuronal (fiches joueur et objet, Profils, Deals) sont réservées

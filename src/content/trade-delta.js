@@ -48,6 +48,11 @@
     proofSerials: 'Flouter les numéros de série',
     proofTextTitle: 'Le proof',
     proofSwap: 'Inverser Sender et Receiver',
+    proofMultiTitle: 'Plusieurs trades',
+    proofMultiHint: 'Ajoute ce trade, ouvre le suivant dans la liste et ajoute-le aussi : le proof réunit tous les trades ajoutés (objets, values, pseudos, dates) et une capture de chacun.',
+    proofMultiAdd: 'Ajouter ce trade', proofMultiAdded: 'Déjà ajouté', proofMultiClear: 'Tout retirer',
+    proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} dans le proof`, proofMultiRemove: 'Retirer ce trade',
+    proofMultiAdding: 'Capture du trade…', proofMultiOk: 'Trade ajouté. Ouvre le suivant dans la liste.',
     proofZoneLabel: 'Capture', proofZones: ['Le trade', 'Trade + liste'],
     proofPreview: 'Aperçu du message',
     proofHint: 'La capture prend ce qui est à l’écran : garde le trade entier visible. Le panneau se cache le temps de la photo.',
@@ -114,6 +119,11 @@
     proofSerials: 'Blur serial numbers',
     proofTextTitle: 'The proof',
     proofSwap: 'Swap Sender and Receiver',
+    proofMultiTitle: 'Several trades',
+    proofMultiHint: 'Add this trade, open the next one in the list and add it too: the proof combines every added trade (items, values, usernames, dates) with a screenshot of each.',
+    proofMultiAdd: 'Add this trade', proofMultiAdded: 'Already added', proofMultiClear: 'Remove all',
+    proofMultiCount: (n) => `${n} trade${n > 1 ? 's' : ''} in the proof`, proofMultiRemove: 'Remove this trade',
+    proofMultiAdding: 'Capturing the trade…', proofMultiOk: 'Trade added. Open the next one in the list.',
     proofZoneLabel: 'Screenshot', proofZones: ['The trade', 'Trade + list'],
     proofPreview: 'Message preview',
     proofHint: 'The screenshot takes what is on screen: keep the whole trade visible. The panel hides for the shot.',
@@ -1034,6 +1044,15 @@
     .share{align-self:center;background:none;border:0;color:#7d838e;font-size:11.5px;text-decoration:underline;padding:0}
     .msg{min-height:1.2em;margin:0;font-size:12px;color:#aeb3bc;text-align:center}.msg.err{color:#f2545b}.msg.ok{color:#3fcf6e}
     .keys{font-size:11px;color:#5f6570;text-align:center}
+    .lot{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+    .lot li{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:9px;background:#0c0d11;border:1px solid #1f2229;font-size:12px}
+    .lot img{width:44px;height:30px;object-fit:cover;object-position:top;border-radius:5px;flex:none;background:#000}
+    .lot span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cfd3da}
+    .lot small{color:#8a909b}
+    .lot button{width:24px;height:24px;display:grid;place-items:center;border-radius:6px;border:1px solid #262a31;background:#191c22;color:#9aa0aa;flex:none}
+    .lot button:hover{color:#f2545b}
+    .addrow{display:flex;gap:8px}.addrow .mini{flex:1}
+    .mini.add{border-color:#2f6fd0;background:#16243b;color:#cfe0ff;font-weight:600}
     [hidden]{display:none!important}`;
   const PROOF_SVG = {
     shield: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>',
@@ -1114,6 +1133,44 @@
     } catch { proofSay(TEXT.proofBadImage, 'err'); }
   }
 
+  /** Plusieurs trades : ceux qu'on a mis de côté (une capture chacun), et le bouton qui ajoute le trade ouvert. */
+  function proofLotHtml() {
+    const lot = proofPanel.lot, info = proofInfo(), dejà = info.ok && lot.some(t => t.sig === proofKeyOf(info));
+    return `<section data-lot><h3>${TEXT.proofMultiTitle}</h3>
+      ${lot.length ? `<span class="k">${TEXT.proofMultiCount(lot.length)}</span><ul class="lot">${lot.map((t, n) => `<li><img src="${t.image}" alt="">
+        <span>${proofEsc(t.info.partner || '?')} <small>${proofEsc(t.info.date || '')}</small></span>
+        <button type="button" data-unlot="${n}" title="${TEXT.proofMultiRemove}" aria-label="${TEXT.proofMultiRemove}">${PROOF_SVG.x}</button></li>`).join('')}</ul>` : `<p>${TEXT.proofMultiHint}</p>`}
+      <div class="addrow"><button type="button" class="mini add" data-lot-add${!info.ok || dejà ? ' disabled' : ''}>${dejà ? TEXT.proofMultiAdded : '+ ' + TEXT.proofMultiAdd}</button>
+        ${lot.length ? `<button type="button" class="mini" data-lot-clear>${TEXT.proofMultiClear}</button>` : ''}</div></section>`;
+  }
+  /** Un trade se reconnaît à son id, sinon au partenaire, à la date et aux objets. */
+  const proofKeyOf = (info) => info.tradeId || JSON.stringify([info.partner, info.date, info.give, info.get]);
+  /** Ajouter le trade ouvert au lot : sa capture (la zone choisie, panneau caché) et ce que la page en sait. */
+  async function proofLotAdd() {
+    const info = proofInfo();
+    if (!info.ok || proofPanel.lot.some(t => t.sig === proofKeyOf(info)) || proofNeedsAllow('add')) return;
+    proofSay(TEXT.proofMultiAdding);
+    const res = await proofShoot('ronote:proof-save', {}, false);
+    if (!proofPanel) return;
+    if (!res?.ok) return proofFail(res);
+    proofPanel.lot.push({ sig: proofKeyOf(info), info, image: res.image });
+    await proofFill();
+    proofSay(TEXT.proofMultiOk, 'ok');
+  }
+  /** Les captures du lot empilées, à la largeur de la plus large, sur le fond de Roblox : une seule image PNG. */
+  async function proofLotImage() {
+    const imgs = await Promise.all(proofPanel.lot.map(t => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = t.image; })));
+    const w = Math.max(...imgs.map(i => i.naturalWidth)), gap = 16;
+    const hs = imgs.map(i => Math.round(i.naturalHeight * w / i.naturalWidth));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = hs.reduce((s, h) => s + h, 0) + gap * (imgs.length - 1);
+    const x = c.getContext('2d');
+    x.fillStyle = '#191b1d'; x.fillRect(0, 0, c.width, c.height);
+    let y = 0;
+    imgs.forEach((i, k) => { x.drawImage(i, 0, y, w, hs[k]); y += hs[k] + gap; });
+    return { image: c.toDataURL('image/png'), frame: { x: 0, y: 0, w: c.width, h: c.height, vw: c.width } };
+  }
+
   /** 2. Le proof : les cinq lignes, la zone de la capture, l'aperçu du message. */
   function proofTextHtml(res) {
     return `<section><h3>${TEXT.proofTextTitle}</h3>
@@ -1142,12 +1199,14 @@
     const info = proofInfo(), body = proofQ('.body'), foot = proofQ('footer');
     if (!body) return;
     proofPanel.sig = JSON.stringify(info);
-    foot.hidden = true;
+    if (!proofPanel.lot.length) foot.hidden = true;
     proofQ('.ttl small').textContent = info.ok && info.partner ? TEXT.proofTradeWith(info.partner) + (info.date ? ` · ${info.date}` : '') : '';
-    if (!info.ok) { body.innerHTML = proofMaskHtml() + `<p>${TEXT.proofNotCompleted}</p>`; return; }
-    const res = await B.runtime.sendMessage({ type: 'ronote:proof-prepare', info }).catch(() => null);
+    const lot = proofPanel.lot;
+    if (!info.ok && !lot.length) { body.innerHTML = proofMaskHtml() + proofLotHtml() + `<p>${TEXT.proofNotCompleted}</p>`; return; }
+    const ask = lot.length ? { trades: lot.map(t => t.info) } : info;
+    const res = await B.runtime.sendMessage({ type: 'ronote:proof-prepare', info: ask }).catch(() => null);
     if (!proofPanel || proofPanel.sig !== JSON.stringify(info)) return;
-    body.innerHTML = proofMaskHtml() + proofTextHtml(res);
+    body.innerHTML = proofMaskHtml() + proofLotHtml() + proofTextHtml(res);
     foot.innerHTML = proofFooterHtml(res);
     foot.hidden = false;
     Object.assign(proofPanel, { elite: !!res?.elite, canCapture: !!res?.canCapture });
@@ -1161,7 +1220,7 @@
     proofButton();
     const next = proofPanel.waiting;
     proofPanel.waiting = '';
-    if (next === 'send') proofSend(false); else if (next === 'save') proofSave();
+    if (next === 'send') proofSend(false); else if (next === 'save') proofSave(); else if (next === 'add') proofLotAdd();
   }
   /** Le partage d'onglet de Chrome, une image : quand captureVisibleTab n'a pas la permission. */
   async function proofShareCapture() {
@@ -1214,16 +1273,18 @@
   }
   async function proofSend(viaShare) {
     const send = proofQ('.send');
-    if (!send || send.disabled || (!viaShare && proofNeedsAllow('send'))) return;
+    if (!send || send.disabled || (!viaShare && !proofPanel.lot.length && proofNeedsAllow('send'))) return;
     proofSay(TEXT.proofSending);
-    const res = await proofShoot('ronote:proof-share', { fields: proofFields() }, viaShare);
+    const res = proofPanel.lot.length
+      ? await B.runtime.sendMessage({ type: 'ronote:proof-share', fields: proofFields(), ...(await proofLotImage()) }).catch(e => ({ error: 'capture', detail: String(e?.message || e) }))
+      : await proofShoot('ronote:proof-share', { fields: proofFields() }, viaShare);
     if (!proofPanel) return;
     if (res?.ok) proofSay(TEXT.proofSent, 'ok'); else proofFail(res);
   }
   async function proofSave() {
-    if (proofNeedsAllow('save')) return;
+    if (!proofPanel.lot.length && proofNeedsAllow('save')) return;
     proofSay(TEXT.proofSaving);
-    const res = await proofShoot('ronote:proof-save', {}, false);
+    const res = proofPanel.lot.length ? { ok: true, image: (await proofLotImage()).image } : await proofShoot('ronote:proof-save', {}, false);
     if (!proofPanel) return;
     if (!res?.ok) return proofFail(res);
     const f = proofFields(), a = document.createElement('a');
@@ -1253,7 +1314,7 @@
       <div class="body"><p>${TEXT.proofLoading}</p></div>
       <footer hidden></footer></aside>`;
     (document.body || document.documentElement).append(host);
-    proofPanel = { host, root, sig: '', elite: false, canCapture: false, waiting: '' };
+    proofPanel = { host, root, sig: '', elite: false, canCapture: false, waiting: '', lot: [] };
     root.addEventListener('input', proofPreview);
     root.addEventListener('change', e => {
       const t = e.target;
@@ -1278,6 +1339,9 @@
       else if (t.closest('.share')) proofSend(true);
       else if (t.closest('[data-save]')) proofSave();
       else if (t.closest('[data-copy]')) proofCopy();
+      else if (t.closest('[data-lot-add]')) proofLotAdd();
+      else if (t.closest('[data-lot-clear]')) { proofPanel.lot = []; proofFill(); }
+      else if (t.closest('[data-unlot]')) { proofPanel.lot.splice(Number(t.closest('[data-unlot]').dataset.unlot), 1); proofFill(); }
     });
     document.addEventListener('keydown', proofKey, true);
     root.querySelector('aside').focus();

@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Proof de plusieurs trades** : dans le panneau proof, « Ajouter ce trade » met le trade ouvert de côté avec
+  sa capture ; ouvre le suivant dans la liste et ajoute-le aussi. Le proof réunit alors tout le lot : les
+  objets donnés / reçus (un même objet compté, « x2 »), les values additionnées avec l'écart, les pseudos et
+  la première et la dernière date. L'image empile les captures des trades ; elle part en MP ou se télécharge.
 - **Trade ads, modèle Aléatoire** : quatre items de ton inventaire tirés au hasard, seulement ceux à 1 000 de
   value ou plus (jamais d'œuf ni de projected), contre any, demand, upgrade et downgrade. RoNote retire 4 nouveaux items à chaque annonce publiée ;
   choisir un autre modèle ou un item à la main l'arrête.
