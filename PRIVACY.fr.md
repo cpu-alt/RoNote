@@ -1,6 +1,6 @@
 # Politique de confidentialité : RoNote
 
-**Dernière mise à jour : 6 novembre 2026 · Version 2.16.8**
+**Dernière mise à jour : 15 novembre 2026 · Version 2.17.0**
 
 *[English version](PRIVACY.md)*
 
@@ -112,7 +112,7 @@ si tu l'as accordée une fois (*Autoriser les captures*) ; sans elles, tu peux l
 partage d'onglet de Chrome, qui te demande d'abord. Neuronal te les renvoie, **à toi**, en MP
 Discord par son bot RoOp Tracker, et ne garde pas l'image.
 
-**Trade ads automatiques (désactivées par défaut, en préparation).** Si tu les actives (menu
+**Trade ads automatiques (désactivées par défaut).** Si tu les actives (menu
 du compte › Trade ads automatiques), RoNote publie l'annonce que tu as composée (les items
 que tu offres, les items ou tags demandés) sur les sites cochés, à l'intervalle choisi, jamais
 plus d'une fois toutes les 15 minutes par site. Il réutilise la session que **tu** as ouverte

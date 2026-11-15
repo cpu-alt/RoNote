@@ -52,7 +52,7 @@
 <main>
 
 <h1>Privacy Policy : RoNote</h1>
-<p class="meta">Last updated: 31 October 2026 · Version 2.16.0</p>
+<p class="meta">Last updated: 15 November 2026 · Version 2.17.0</p>
 <p class="lang"><a href="privacy.fr.html">Version française</a></p>
 
 <p>RoNote is a browser extension that shows desktop notifications about your Roblox
@@ -128,6 +128,10 @@ version and whether the contribution is on (yes or no), and to open RoNote's
 Neuronal settings. Nothing else is answered: no account, no trade, no setting.
 On Chrome the page can ask this as soon as RoNote is installed; on Firefox only
 once you have granted access to <code>neuronal.live</code>.</p>
+<p><strong>RoNote premium (optional, for Neuronal Discord subscribers).</strong> Neuronal lookups, Profiles and Deals are served by <code>neuronal.live</code> to subscribers only. To unlock them (Settings › Premium), you either <strong>Connect Discord</strong> or enter the <strong>key</strong> you received from the Neuronal Discord. <em>Connect Discord</em> opens Discord's own sign-in page through the browser (<code>identity</code> permission); Discord only gives Neuronal your <strong>Discord ID and name</strong> (<code>identify</code> scope: no e-mail, no server list, no messages). With a key, RoNote sends the key and the Roblox user ID and username of the account RoNote follows. To prove that Roblox account is yours, you paste a short code in your <strong>public</strong> Roblox profile description, which <code>neuronal.live</code> reads on the public profile page; RoNote never sends your Roblox session or cookie. Instead of the code, you can <strong>Sign in with Roblox</strong>: Roblox's own authorization page (OAuth 2.0, scopes <code>openid</code> and <code>profile</code>) tells <code>neuronal.live</code> your Roblox user ID and username, nothing else. RoNote then keeps a <strong>signed token</strong> (valid 24 h, renewed automatically) in its local storage and attaches it, with the Roblox user ID it follows, to premium requests only. Neuronal stores your Discord ID, the linked Roblox user ID and username, and your sessions (dates only), to check your subscription on every request. <em>Sign out</em> closes the session on the server and deletes the token. Premium is independent from the contribution option: signing in sends nothing about your trades.</p>
+<p><strong>Share proof (RoNote premium, Neuronal Elite only).</strong> On a completed trade, the proof mode shield opens a panel on the right that prepares the five lines Rolimons asks for in its #proofs channel (items, values, sender, receiver, date), which you can edit. Only when you click <em>Send to my DMs</em>, RoNote takes a screenshot of the tab, cuts it to the trade (and, if you tick it, the trade list with the other usernames hidden by proof mode), and sends the image and the five lines to <code>neuronal.live</code> with your premium token. The screenshot uses the <code>activeTab</code> permission, given by a click on RoNote's icon in that tab, or the optional screenshot permission if you allowed it once (<em>Allow screenshots</em>); without them, you can take it with Chrome's own tab sharing, which asks you first. Neuronal posts them back to <strong>you</strong>, in a Discord DM from its bot RoOp Tracker, and does not keep the image.</p>
+<p><strong>Automatic trade ads (off by default).</strong> If you turn them on (account menu › Automatic trade ads), RoNote posts the ad you composed (the items you offer, the items or tags you want) to the sites you ticked, at the interval you chose, never more than once every 15 minutes per site. It reuses the session <strong>you</strong> opened on each site in your browser: RoNote never asks for, stores or types a password, and reads no cookie. What is sent is the ad itself and your Roblox user ID: to <code>api.rolimons.com</code> (Rolimon's), and to <code>routility.io</code> (RoUtility) only after you allow that optional permission.</p>
+
 <p><strong>Without these options, no request goes to any other domain.</strong></p>
 
 <h2>How your Roblox session is used</h2>
@@ -162,10 +166,14 @@ it only sends in reply to an inbound trade, on your click.</p>
     <tr><td><code>scripting</code></td><td>Read the trade shown on screen when the API does not return its detail</td></tr>
     <tr><td><code>offscreen</code></td><td>Play the alert sound, since a Chrome service worker cannot produce audio</td></tr>
     <tr><td><code>sidePanel</code></td><td>Open RoNote in the browser's sidebar, if you choose that mode</td></tr>
-    <tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Fix the <code>Origin</code> and <code>Referer</code> headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies <strong>only to requests issued by the extension</strong> (outside any tab), never to your browsing</td></tr>
+        <tr><td><code>identity</code></td><td>Open Discord's sign-in page for <em>Connect Discord</em> (RoNote premium), only when you click it</td></tr>
+    <tr><td><code>activeTab</code></td><td>Take the screenshot of <em>Share proof</em> (RoNote premium), only of the tab where you clicked RoNote's icon, only when you click <em>Send</em></td></tr>
+    <tr><td>All sites (optional)</td><td>Only if you click <em>Allow screenshots</em> (Settings › Appearance › Proof mode): lets <em>Share proof</em> take its screenshot without a click on RoNote's icon first. Used for nothing else; you can withdraw it in the browser's extension settings</td></tr>
+<tr><td><code>declarativeNetRequestWithHostAccess</code></td><td>Fix the <code>Origin</code> and <code>Referer</code> headers on RoNote's own requests to Roblox, which Roblox would otherwise reject. Applies <strong>only to requests issued by the extension</strong> (outside any tab), never to your browsing</td></tr>
     <tr><td><code>*.roblox.com</code></td><td>The site whose trades RoNote reads</td></tr>
     <tr><td><code>*.rolimons.com</code></td><td>The public value table, public item histories and public Rolimon's profiles (yours with portfolio tracking, another player's when you open their card)</td></tr>
-    <tr><td><code>neuronal.live</code> (optional)</td><td>Only requested if you turn on Neuronal lookups or the contribution: what the network knows about a player or an item whose sheet you open; with the contribution, your account's presence and your completed trades</td></tr>
+        <tr><td><code>routility.io</code> (optional)</td><td>Only requested if you tick RoUtility in Automatic trade ads: checks that you are signed in there and posts your ad, with the session you opened yourself</td></tr>
+<tr><td><code>neuronal.live</code> (optional)</td><td>Only requested if you turn on Neuronal lookups or the contribution: what the network knows about a player or an item whose sheet you open; with the contribution, your account's presence and your completed trades</td></tr>
   </tbody>
 </table>
 </div>

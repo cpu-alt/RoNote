@@ -1,6 +1,6 @@
 # Privacy Policy : RoNote
 
-**Last updated: 6 November 2026 · Version 2.16.8**
+**Last updated: 15 November 2026 · Version 2.17.0**
 
 *[Version française](PRIVACY.fr.md)*
 
@@ -109,7 +109,7 @@ without them, you can take it with Chrome's own tab sharing, which asks you firs
 posts them back to **you**, in a Discord DM from its bot RoOp Tracker, and does not keep
 the image.
 
-**Automatic trade ads (off by default, in preparation).** If you turn them on (account
+**Automatic trade ads (off by default).** If you turn them on (account
 menu › Automatic trade ads), RoNote posts the ad you composed (the items you offer, the
 items or tags you want) to the sites you ticked, at the interval you chose, never more
 than once every 15 minutes per site. It reuses the session **you** opened on each site in
