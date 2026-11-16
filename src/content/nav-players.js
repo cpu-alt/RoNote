@@ -35,12 +35,25 @@
     return p && p !== document.body ? p : null;
   }
 
+  const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const ICON = {
+    trade: svg('M7 7h13l-4-4M17 17H4l4 4'),
+    roblox: svg('M6.5 3.5 20.5 7 17 20.5 3.5 17zM10.5 9.5l4 1-1 4-4-1z'),
+    roli: svg('M4 20V10M10 20V4M16 20v-7M22 20H2')
+  };
   const row = (u, later) => {
     const name = u.name || '#' + u.id;
-    const url = later ? `https://www.roblox.com/users/${u.id}/trade` : `https://www.roblox.com/users/${u.id}/profile`;
-    return `<a class="u" href="${esc(url)}" title="${esc(name)}">
-      <span class="av">${u.thumb ? `<img src="${esc(u.thumb)}" alt="" loading="lazy">` : ''}<i>${esc(name.slice(0, 1).toUpperCase())}</i></span>
-      <span class="n">${esc(name)}</span>${later ? `<span class="tag">${L('Trade', 'Trade')}</span>` : ''}</a>`;
+    const base = `https://www.roblox.com/users/${u.id}`;
+    const btn = (href, icon, label, ext) =>
+      `<a class="b" href="${esc(href)}" title="${esc(label)}" aria-label="${esc(label)}"${ext ? ' target="_blank" rel="noopener"' : ''}>${ICON[icon]}</a>`;
+    return `<div class="u${later ? ' later' : ''}">
+      <a class="who" href="${esc(later ? base + '/trade' : base + '/profile')}" title="${esc(name)}">
+        <span class="av">${u.thumb ? `<img src="${esc(u.thumb)}" alt="" loading="lazy">` : ''}<i>${esc(name.slice(0, 1).toUpperCase())}</i></span>
+        <span class="n">${esc(name)}</span></a>
+      ${btn(base + '/trade', 'trade', L('Envoyer un trade', 'Send a trade'))}
+      ${btn(base + '/profile', 'roblox', L('Profil Roblox', 'Roblox profile'))}
+      ${btn(`https://www.rolimons.com/player/${u.id}`, 'roli', "Rolimon's", true)}
+    </div>`;
   };
 
   function html() {
@@ -49,13 +62,17 @@
     return `<style>
       :host { display: block; margin: 10px 0 6px; padding-top: 10px; border-top: 1px solid #ffffff1f; font-family: inherit; }
       .h { margin: 6px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #ffffff99; }
-      .u { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 10px; color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; }
+      .u { display: flex; align-items: center; gap: 2px; padding: 0 6px 0 0; border-radius: 10px; }
       .u:hover { background: #ffffff14; }
+      .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px 4px 6px 12px; color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; }
+      .b { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: #ffffff8c; }
+      .b:hover { color: #fff; background: #ffffff1f; }
+      .later .b:first-of-type { color: #ffb02e; }
+      .b svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .av { position: relative; flex: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: #ffffff1f; display: grid; place-items: center; }
       .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
       .av i { font-style: normal; font-size: 12px; color: #ffffffb3; }
       .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .tag { flex: none; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #ffb02e33; color: #ffb02e; }
       .e { margin: 0 12px; font-size: 12px; color: #ffffff80; line-height: 1.4; }
     </style>${lists.later.length || lists.favs.length
       ? part(L('À envoyer plus tard', 'Send later'), lists.later, true) + part(L('Favoris', 'Favorites'), lists.favs, false)
