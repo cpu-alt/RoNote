@@ -1124,9 +1124,9 @@ const whyText = (why, template) => (/message inconnu/.test(String(why))
 const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) === id);
 /** Favoris (`favUsers`) et joueurs à qui envoyer un trade plus tard (`laterUsers`) : des listes de réglages, comme les ignorés. */
 const inUserList = (key, id) => !!data.settings?.[key]?.some(u => Number(u.id) === Number(id));
-async function setUserListed(key, id, name, on) {
+async function setUserListed(key, id, name, on, thumb = '') {
   const cur = (data.settings?.[key] || []).filter(u => Number(u.id) !== Number(id));
-  const next = on ? [{ id: Number(id), name: String(name || '').slice(0, 40), at: Date.now() }, ...cur] : cur;
+  const next = on ? [{ id: Number(id), name: String(name || '').slice(0, 40), at: Date.now(), ...(thumb ? { thumb } : {}) }, ...cur] : cur;
   const res = await send({ type: 'ronote:settings', patch: { [key]: next } });
   if (res?.settings) data.settings = res.settings;
 }
@@ -1414,7 +1414,7 @@ function bindPlayer(root) {
     b.onclick = async () => {
       const who = player.who || {};
       b.disabled = true;
-      await setUserListed(b.dataset.plist, player.id, who.displayName || who.name || '', !inUserList(b.dataset.plist, player.id));
+      await setUserListed(b.dataset.plist, player.id, who.displayName || who.name || '', !inUserList(b.dataset.plist, player.id), player.headshot || '');
       renderPlayer();
     };
   });
@@ -1780,11 +1780,11 @@ function renderHome(entering) {
   // Joueurs gardés de côté : un clic ouvre la fenêtre de trade (plus tard) ou le profil (favori).
   const userRow = (key, u) => {
     const url = key === 'laterUsers' ? `https://www.roblox.com/users/${u.id}/trade` : `https://www.roblox.com/users/${u.id}/profile`;
+    const name = u.name || '#' + u.id;
     return `<div class="h-user">
-      <button class="h-user-go" data-uopen="${escapeHtml(url)}" data-uid="${u.id}" data-ukey="${key}">
-        <span class="jr-ic" data-tone="${key === 'favUsers' ? 'win' : 'warn'}">${ic(key === 'favUsers' ? 'star' : 'send')}</span>
-        <span class="jr-m"><span class="jr-t">${escapeHtml(u.name || '#' + u.id)}</span>
-          <span class="jr-s">${key === 'laterUsers' ? t('Envoyer un trade') : t('Favori')}${u.at ? ' · ' + agoHtml(u.at) : ''}</span></span></button>
+      <button class="h-user-go" data-uopen="${escapeHtml(url)}" data-uid="${u.id}" data-ukey="${key}" title="${escapeHtml(name)}${u.at ? ' · ' + escapeHtml(timeAgo(u.at)) : ''}">
+        <span class="h-user-av">${u.thumb ? `<img src="${escapeHtml(u.thumb)}" alt="" loading="lazy">` : ''}<i>${escapeHtml(name.slice(0, 1).toUpperCase())}</i></span>
+        <span class="h-user-n">${escapeHtml(name)}</span></button>
       <button class="h-user-x" data-udel="${key}" data-uid="${u.id}" title="${escapeHtml(t('Retirer'))}" aria-label="${escapeHtml(t('Retirer'))}">${ic('x')}</button>
     </div>`;
   };
@@ -1798,8 +1798,8 @@ function renderHome(entering) {
         <button data-uadd="laterUsers" title="${escapeHtml(t('Envoyer plus tard'))}" aria-label="${escapeHtml(t('Envoyer plus tard'))}">${ic('clock')}</button>
       </div>
       <div class="h-uerr" id="h-uerr" hidden></div>
-      ${later.length ? `<div class="h-usub">${t('À envoyer plus tard')}</div>${later.map(u => userRow('laterUsers', u)).join('')}` : ''}
-      ${favs.length ? `<div class="h-usub">${t('Favoris')}</div>${favs.map(u => userRow('favUsers', u)).join('')}` : ''}
+      ${later.length ? `<div class="h-usub">${t('À envoyer plus tard')}</div><div class="h-ugrid">${later.map(u => userRow('laterUsers', u)).join('')}</div>` : ''}
+      ${favs.length ? `<div class="h-usub">${t('Favoris')}</div><div class="h-ugrid">${favs.map(u => userRow('favUsers', u)).join('')}</div>` : ''}
       ${later.length || favs.length ? '' : `<div class="h-none">${t('Ajoute un joueur ici, ou depuis sa fiche (clic sur son nom dans un trade).')}</div>`}
     </section>`;
 
@@ -1815,8 +1815,25 @@ function renderHome(entering) {
   const typed = document.getElementById('h-uq')?.value || '';   // un redessin ne vide pas la saisie
   listEl.innerHTML = hero + join + news + tiles + todoHtml + usersHtml + recentHtml;
   if (typed) document.getElementById('h-uq').value = typed;
+  fillUserThumbs();
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
+}
+
+/** Avatars manquants des joueurs gardés (ajoutés sans image) : demandés une fois par ouverture du popup. */
+let userThumbsAsked = false;
+async function fillUserThumbs() {
+  if (userThumbsAsked) return;
+  const lists = ['favUsers', 'laterUsers'];
+  const missing = [...new Set(lists.flatMap(k => (data.settings?.[k] || []).filter(u => !u.thumb).map(u => Number(u.id))))].slice(0, 12);
+  if (!missing.length) return;
+  userThumbsAsked = true;
+  const got = {};
+  for (const id of missing) got[id] = (await send({ type: 'ronote:headshot', userId: id }))?.url || '';
+  const patch = {};
+  for (const k of lists) patch[k] = (data.settings?.[k] || []).map(u => (!u.thumb && got[u.id] ? { ...u, thumb: got[u.id] } : u));
+  const res = await send({ type: 'ronote:settings', patch });
+  if (res?.settings) { data.settings = res.settings; lastListSig = ''; renderList(); }
 }
 
 /* =============================== journal ================================ */
@@ -3062,7 +3079,7 @@ const LIST_ACTIONS = [
       return;
     }
     input.value = '';
-    await setUserListed(el.dataset.uadd, hit.id, hit.name, true);
+    await setUserListed(el.dataset.uadd, hit.id, hit.name, true, hit.thumb || '');
     lastListSig = '';
     renderList();
   }],

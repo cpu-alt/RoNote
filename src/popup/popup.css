@@ -1200,7 +1200,6 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .h-warn { display: block; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--warn, #e0a030); text-align: left; cursor: default; }
 button.h-warn { cursor: pointer; }
 button.h-warn b { text-decoration: underline; }
-.h-user { display: flex; align-items: center; }
 .h-uadd { display: flex; gap: 6px; margin: 0 6px 6px; }
 .h-uadd input { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--line, #2a2f3a); border-radius: 8px; background: #0000002a; color: inherit; font: inherit; font-size: 12px; }
 .h-uadd button { flex: none; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line, #2a2f3a); border-radius: 8px; background: none; color: var(--dim); cursor: pointer; }
@@ -1208,12 +1207,18 @@ button.h-warn b { text-decoration: underline; }
 .h-uadd .ic { width: 14px; height: 14px; }
 .h-uerr { margin: 0 6px 6px; font-size: 11px; color: var(--loss, #e05050); }
 .h-usub { margin: 8px 6px 2px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
-.h-user-go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 6px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.h-ugrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; margin: 0 2px 4px; }
+.h-user { position: relative; }
+.h-user-go { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 4px 6px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; cursor: pointer; }
 .h-user-go:hover { background: #ffffff08; }
-.h-user-go .jr-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.h-user-x { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--dim); cursor: pointer; }
-.h-user-x:hover { color: var(--text, #fff); background: #ffffff10; }
-.h-user-x .ic { width: 13px; height: 13px; }
+.h-user-av { position: relative; width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: #ffffff10; display: grid; place-items: center; }
+.h-user-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.h-user-av i { font-style: normal; font-weight: 600; color: var(--dim); }
+.h-user-n { max-width: 100%; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-user-x { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #000a; color: var(--dim); cursor: pointer; opacity: 0; transition: opacity .12s; }
+.h-user:hover .h-user-x, .h-user-x:focus-visible { opacity: 1; }
+.h-user-x:hover { color: #fff; }
+.h-user-x .ic { width: 11px; height: 11px; }
 .z-foot .p-list.on { color: var(--warn); border-color: #5a4520; background: #2a2010; }
 .h-hero .w-plot { height: 86px; margin: 6px -13px -4px; }
 .h-hero .w-ext { display: none; }   /* une semaine en 86 px : le plus haut et le plus bas n'y apprennent rien */

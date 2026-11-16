@@ -1444,8 +1444,12 @@ async function handleMessage(msg, sender = null) {
     }
     case 'ronote:find-user': {
       // Favoris / « plus tard » ajoutés depuis l'accueil : un pseudo ou un identifiant.
-      try { return (await api.findUser(msg.query)) || { error: 'unknown' }; } catch { return { error: 'unreachable' }; }
+      let hit = null;
+      try { hit = await api.findUser(msg.query); } catch { return { error: 'unreachable' }; }
+      return hit ? { ...hit, thumb: await api.getUserHeadshot(hit.id) } : { error: 'unknown' };
     }
+    case 'ronote:headshot':
+      return { url: await api.getUserHeadshot(Number(msg.userId)) };
     case 'ronote:mute': {
       let id = Number(msg.userId);
       let name = String(msg.name || '');

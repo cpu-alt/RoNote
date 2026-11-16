@@ -54,7 +54,8 @@ export function sanitizeSettings(raw) {
     if (k === 'ignoredUsers' || k === 'favUsers' || k === 'laterUsers') {
       if (Array.isArray(v)) {
         out[k] = v.filter(u => Number(u?.id) > 0)
-          .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40), ...(Number(u.at) > 0 ? { at: Number(u.at) } : {}) }));
+          .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40), ...(Number(u.at) > 0 ? { at: Number(u.at) } : {}),
+            ...(/^https:\/\/[\w.-]+\.rbxcdn\.com\//.test(u.thumb || '') ? { thumb: String(u.thumb).slice(0, 300) } : {}) }));
       }
     } else if (typeof def === 'object' && !Array.isArray(def)) {
       if (typeof v !== 'object' || Array.isArray(v)) continue;
