@@ -1200,6 +1200,14 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .h-warn { display: block; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--warn, #e0a030); text-align: left; cursor: default; }
 button.h-warn { cursor: pointer; }
 button.h-warn b { text-decoration: underline; }
+.h-user { display: flex; align-items: center; }
+.h-user-go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 6px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.h-user-go:hover { background: #ffffff08; }
+.h-user-go .jr-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-user-x { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--dim); cursor: pointer; }
+.h-user-x:hover { color: var(--text, #fff); background: #ffffff10; }
+.h-user-x .ic { width: 13px; height: 13px; }
+.z-foot .p-list.on { color: var(--warn); border-color: #5a4520; background: #2a2010; }
 .h-hero .w-plot { height: 86px; margin: 6px -13px -4px; }
 .h-hero .w-ext { display: none; }   /* une semaine en 86 px : le plus haut et le plus bas n'y apprennent rien */
 

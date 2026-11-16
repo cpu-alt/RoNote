@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Favoris et « à envoyer plus tard »** : deux boutons sur la fiche d'un joueur ; l'accueil liste ces joueurs,
+  un clic ouvre la fenêtre de trade Roblox (plus tard) ou sa fiche / son profil (favori), la croix le retire.
 - **Accueil : chiffre périmé signalé** : si « Suivre la valeur de mon compte » est coupé, l'accueil le dit (avec
   l'âge du relevé) et propose de le réactiver d'un clic ; un relevé de plus de 3 h affiche son âge.
 - **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période

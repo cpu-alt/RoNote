@@ -1122,6 +1122,14 @@ const whyText = (why, template) => (/message inconnu/.test(String(why))
   : t(template, { why }));
 
 const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) === id);
+/** Favoris (`favUsers`) et joueurs à qui envoyer un trade plus tard (`laterUsers`) : des listes de réglages, comme les ignorés. */
+const inUserList = (key, id) => !!data.settings?.[key]?.some(u => Number(u.id) === Number(id));
+async function setUserListed(key, id, name, on) {
+  const cur = (data.settings?.[key] || []).filter(u => Number(u.id) !== Number(id));
+  const next = on ? [{ id: Number(id), name: String(name || '').slice(0, 40), at: Date.now() }, ...cur] : cur;
+  const res = await send({ type: 'ronote:settings', patch: { [key]: next } });
+  if (res?.settings) data.settings = res.settings;
+}
 
 /** Les trades de ce joueur que le popup a sous la main, tous onglets confondus. */
 function liveTradesWith(id) {
@@ -1384,6 +1392,11 @@ function playerFootHtml() {
   return `<button class="z-open" data-url="https://www.roblox.com/users/${player.id}/profile">${t('Profil Roblox')} ${ic('external')}</button>
     <button class="z-open" data-url="https://www.rolimons.com/player/${player.id}">Rolimon's ${ic('external')}</button>
     ${player.nw?.data?.known ? `<button class="z-open" data-url="${NEURONAL.site}?focus=${player.id}">Neuronal ${ic('external')}</button>` : ''}
+    ${['favUsers', 'laterUsers'].map((key) => {
+      const on = inUserList(key, player.id);
+      const [icon, add, del] = key === 'favUsers' ? ['star', 'Favori', 'Retirer des favoris'] : ['clock', 'Envoyer plus tard', 'Retirer de « plus tard »'];
+      return `<button class="p-mute p-list${on ? ' on' : ''}" data-plist="${key}">${ic(icon)} ${t(on ? del : add)}</button>`;
+    }).join('')}
     <button class="p-mute${ignored ? ' on' : ''}" data-mute>${ic('user-off')} ${t(ignored ? 'Ne plus ignorer' : 'Ignorer')}</button>`;
 }
 
@@ -1397,6 +1410,14 @@ function bindPlayer(root) {
   });
   const mute = root.querySelector('[data-mute]');
   if (mute) mute.onclick = () => toggleMute(mute);
+  root.querySelectorAll('[data-plist]').forEach(b => {
+    b.onclick = async () => {
+      const who = player.who || {};
+      b.disabled = true;
+      await setUserListed(b.dataset.plist, player.id, who.displayName || who.name || '', !inUserList(b.dataset.plist, player.id));
+      renderPlayer();
+    };
+  });
   const more = root.querySelector('[data-fmore]');
   if (more) more.onclick = () => { player.facesAll = true; renderPlayer(); };
 }
@@ -1609,6 +1630,7 @@ function homeSignature() {
     data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size,
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
     data.state?.portfolioLast?.v, data.state?.portfolioLast?.at, data.settings?.trackPortfolio,
+    data.settings?.favUsers, data.settings?.laterUsers,
     data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
     wallet.hidden, hideAmounts(), newsPending(), marksSig(), !!data.settings?.neuronalAsked, !!data.settings?.neuronalShare, joinRefused]);
 }
@@ -1755,6 +1777,26 @@ function renderHome(entering) {
     ${todo || `<div class="h-none">${ic('check-circle')} ${t("Rien à traiter pour l'instant.")}</div>`}
   </section>`;
 
+  // Joueurs gardés de côté : un clic ouvre la fenêtre de trade (plus tard) ou le profil (favori).
+  const userRow = (key, u) => {
+    const url = key === 'laterUsers' ? `https://www.roblox.com/users/${u.id}/trade` : `https://www.roblox.com/users/${u.id}/profile`;
+    return `<div class="h-user">
+      <button class="h-user-go" data-uopen="${escapeHtml(url)}" data-uid="${u.id}" data-ukey="${key}">
+        <span class="jr-ic" data-tone="${key === 'favUsers' ? 'win' : 'warn'}">${ic(key === 'favUsers' ? 'star' : 'send')}</span>
+        <span class="jr-m"><span class="jr-t">${escapeHtml(u.name || '#' + u.id)}</span>
+          <span class="jr-s">${key === 'laterUsers' ? t('Envoyer un trade') : t('Favori')}${u.at ? ' · ' + agoHtml(u.at) : ''}</span></span></button>
+      <button class="h-user-x" data-udel="${key}" data-uid="${u.id}" title="${escapeHtml(t('Retirer'))}" aria-label="${escapeHtml(t('Retirer'))}">${ic('x')}</button>
+    </div>`;
+  };
+  const later = data.settings?.laterUsers || [];
+  const favs = data.settings?.favUsers || [];
+  const usersHtml = later.length || favs.length
+    ? `<section class="panel h-panel">
+        ${later.length ? `<div class="panel-h"><span>${t('À envoyer plus tard')}</span></div>${later.map(u => userRow('laterUsers', u)).join('')}` : ''}
+        ${favs.length ? `<div class="panel-h"><span>${t('Favoris')}</span></div>${favs.map(u => userRow('favUsers', u)).join('')}` : ''}
+      </section>`
+    : '';
+
   const recent = [...hist].sort((a, b) => b.at - a.at).slice(0, 4);
   const recentHtml = recent.length
     ? `<section class="panel h-panel">
@@ -1764,7 +1806,7 @@ function renderHome(entering) {
       </section>`
     : '';
 
-  listEl.innerHTML = hero + join + news + tiles + todoHtml + recentHtml;
+  listEl.innerHTML = hero + join + news + tiles + todoHtml + usersHtml + recentHtml;
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
 }
@@ -2998,6 +3040,18 @@ function watchList() {
  * L'onglet Portefeuille câble encore ses propres outils (recherche, tri).
  */
 const LIST_ACTIONS = [
+  ['[data-udel]', async (el) => {
+    el.disabled = true;
+    await setUserListed(el.dataset.udel, Number(el.dataset.uid), '', false);
+    lastListSig = '';
+    renderList();
+  }],
+  ['[data-uopen]', (el) => {
+    // Un favori croisé dans un trade ouvre sa fiche RoNote ; sinon, Roblox.
+    const id = Number(el.dataset.uid);
+    if (el.dataset.ukey === 'favUsers' && liveTradesWith(id).length) openPlayer(id);
+    else B.tabs.create({ url: el.dataset.uopen });
+  }],
   ['[data-track-portfolio]', async (el) => {
     el.disabled = true;
     const res = await send({ type: 'ronote:settings', patch: { trackPortfolio: true } });

@@ -34,7 +34,9 @@ export function withDefaults(s) {
     sounds,
     quietHours: { ...DEFAULTS.quietHours, ...(stored.quietHours || {}) },
     notifyOutbound: { ...DEFAULTS.notifyOutbound, ...(stored.notifyOutbound || {}) },
-    ignoredUsers: Array.isArray(stored.ignoredUsers) ? stored.ignoredUsers : []
+    ignoredUsers: Array.isArray(stored.ignoredUsers) ? stored.ignoredUsers : [],
+    favUsers: Array.isArray(stored.favUsers) ? stored.favUsers : [],
+    laterUsers: Array.isArray(stored.laterUsers) ? stored.laterUsers : []
   };
 }
 
@@ -49,10 +51,10 @@ export function sanitizeSettings(raw) {
   for (const [k, def] of Object.entries(DEFAULTS)) {
     const v = raw[k];
     if (v === undefined || v === null) continue;
-    if (k === 'ignoredUsers') {
+    if (k === 'ignoredUsers' || k === 'favUsers' || k === 'laterUsers') {
       if (Array.isArray(v)) {
-        out.ignoredUsers = v.filter(u => Number(u?.id) > 0)
-          .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40) }));
+        out[k] = v.filter(u => Number(u?.id) > 0)
+          .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40), ...(Number(u.at) > 0 ? { at: Number(u.at) } : {}) }));
       }
     } else if (typeof def === 'object' && !Array.isArray(def)) {
       if (typeof v !== 'object' || Array.isArray(v)) continue;

@@ -113,6 +113,8 @@ export const DEFAULTS = {
   minTheirValue: 0,           // valeur minimum de ce qu'on me propose
   ignoreProjected: false,     // ignorer les trades contenant un item "projected"
   ignoredUsers: [],           // [{id, name}]
+  favUsers: [],               // joueurs favoris [{id, name, at}]
+  laterUsers: [],             // joueurs à qui envoyer un trade plus tard [{id, name, at}]
   alwaysNotifyCounters: true, // une contre-offre passe outre les filtres
 
   // --- Heures silencieuses -----------------------------------------------
