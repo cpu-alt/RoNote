@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Accueil : chiffre périmé signalé** : si « Suivre la valeur de mon compte » est coupé, l'accueil le dit (avec
+  l'âge du relevé) et propose de le réactiver d'un clic ; un relevé de plus de 3 h affiche son âge.
 - **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période
   et survol pour lire un relevé ; lue après la carte (même historique que la fiche joueur, gardé 6 h).
 - **Derniers trades du joueur** (Insider / Elite) : ses trades prouvés vus par Neuronal (`/ext/v1/player/<id>/trades`,

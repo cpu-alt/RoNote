@@ -1197,6 +1197,9 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .h-sub { font-size: 11px; color: var(--dim); }
+.h-warn { display: block; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--warn, #e0a030); text-align: left; cursor: default; }
+button.h-warn { cursor: pointer; }
+button.h-warn b { text-decoration: underline; }
 .h-hero .w-plot { height: 86px; margin: 6px -13px -4px; }
 .h-hero .w-ext { display: none; }   /* une semaine en 86 px : le plus haut et le plus bas n'y apprennent rien */
 

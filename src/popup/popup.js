@@ -1608,7 +1608,7 @@ function homeSignature() {
   return JSON.stringify(['home', new Date().toDateString(), data.history?.length || 0, data.history?.[0]?.at || 0,
     data.state?.inboundCount, Object.keys(data.state?.tracked || {}), cards.inbound.size,
     (data.state?.snapshot?.inbound || []).map(x => x.tradeId),
-    data.state?.portfolioLast?.v, data.state?.portfolioLast?.at,
+    data.state?.portfolioLast?.v, data.state?.portfolioLast?.at, data.settings?.trackPortfolio,
     data.portfolio?.length || 0, data.portfolio?.[data.portfolio.length - 1]?.at || 0,
     wallet.hidden, hideAmounts(), newsPending(), marksSig(), !!data.settings?.neuronalAsked, !!data.settings?.neuronalShare, joinRefused]);
 }
@@ -1661,6 +1661,12 @@ function renderHome(entering) {
   const change = dayChange(series);
   const week = downsample(series.filter(p => p.at >= Date.now() - 7 * 864e5 && p.v > 0));
   const dateLabel = now.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
+  // Un chiffre figé ne doit pas passer pour celui du moment : suivi coupé, ou relevé vieux de plus de 3 h.
+  const trackOff = data.settings?.trackPortfolio === false;
+  const lastAt = st.portfolioLast?.at || 0;
+  const staleNote = trackOff
+    ? `<button class="h-warn" data-track-portfolio>${t('Suivi de la valeur coupé')}${lastAt ? ' · ' + t('relevé {ago}', { ago: agoHtml(lastAt) }) : ''} · <b>${t('Réactiver')}</b></button>`
+    : lastAt && Date.now() - lastAt > 3 * 3600e3 ? `<div class="h-warn">${t('relevé {ago}', { ago: agoHtml(lastAt) })}</div>` : '';
   const hero = value
     ? `<section class="ls h-hero">
         <div class="ls-l">${escapeHtml(dateLabel)}</div>
@@ -1668,6 +1674,7 @@ function renderHome(entering) {
           ${change ? `<span class="w-pill ${toneOf(change.delta)}">${pillText(WALLET_SERIES.v, change.delta, change.pct)}</span>` : ''}</div>
         <div class="h-sub">${[t('Ton portefeuille'), change ? t('sur 24 h') : '',
           st.portfolioRank ? t('rang #{n}', { n: fmtFull(st.portfolioRank) }) : ''].filter(Boolean).join(' · ')}</div>
+        ${staleNote}
         ${week.length >= 2 ? chartHtml({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES, animate: entering }) : ''}
       </section>`
     : `<section class="ls h-hero">
@@ -2991,6 +2998,12 @@ function watchList() {
  * L'onglet Portefeuille câble encore ses propres outils (recherche, tri).
  */
 const LIST_ACTIONS = [
+  ['[data-track-portfolio]', async (el) => {
+    el.disabled = true;
+    const res = await send({ type: 'ronote:settings', patch: { trackPortfolio: true } });
+    if (res?.settings) data.settings = res.settings;
+    await load({ refresh: true });
+  }],
   ['[data-player]', (el) => openPlayer(Number(el.dataset.player))],
   ['button[data-act]', (el) => quickAct(el, Number(el.dataset.trade), el.dataset.kind, el.dataset.act)],
   ['button[data-ctr]', (el) => openCounter(Number(el.dataset.ctr))],
