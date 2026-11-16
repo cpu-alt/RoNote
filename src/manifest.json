@@ -103,7 +103,8 @@
         "content/list-look.js",
         "content/trade-list.js",
         "content/item-page.js",
-        "content/profile-card.js"
+        "content/profile-card.js",
+        "content/nav-players.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

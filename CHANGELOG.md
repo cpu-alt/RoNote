@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Joueurs gardés dans la barre de Roblox** : sous le dernier lien de la barre de gauche, les joueurs « à envoyer
+  plus tard » (un clic ouvre la fenêtre de trade) puis les favoris, avec leur avatar.
 - **Favoris et « à envoyer plus tard »** : deux boutons sur la fiche d'un joueur ; l'accueil liste ces joueurs,
   un clic ouvre la fenêtre de trade Roblox (plus tard) ou sa fiche / son profil (favori), la croix le retire.
 - **Accueil : chiffre périmé signalé** : si « Suivre la valeur de mon compte » est coupé, l'accueil le dit (avec
