@@ -56,13 +56,14 @@
       .av i { font-style: normal; font-size: 12px; color: #ffffffb3; }
       .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .tag { flex: none; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #ffb02e33; color: #ffb02e; }
-    </style>${part(L('À envoyer plus tard', 'Send later'), lists.later, true)}${part(L('Favoris', 'Favorites'), lists.favs, false)}`;
+      .e { margin: 0 12px; font-size: 12px; color: #ffffff80; line-height: 1.4; }
+    </style>${lists.later.length || lists.favs.length
+      ? part(L('À envoyer plus tard', 'Send later'), lists.later, true) + part(L('Favoris', 'Favorites'), lists.favs, false)
+      : `<div class="h">${L('Joueurs gardés', 'Saved players')}</div><div class="e">${L('Ajoute-les depuis le popup RoNote (⭐ ou 🕒).', 'Add them from the RoNote popup (⭐ or 🕒).')}</div>`}`;
   }
 
   function place() {
     if (!alive()) { observer.disconnect(); host?.remove(); return; }
-    const empty = !lists.later.length && !lists.favs.length;
-    if (empty) { host?.remove(); return; }
     const nav = navList();
     if (!nav) return;
     if (!host) {
@@ -87,10 +88,8 @@
 
   // La barre se redessine avec l'application Roblox : on se remet en bas quand on a été délogé.
   const observer = new MutationObserver(() => {
-    if (lists.later.length || lists.favs.length) {
-      const nav = host?.parentElement;
-      if (!nav || !host.isConnected || nav.lastElementChild !== host) schedule();
-    }
+    const nav = host?.parentElement;
+    if (!nav || !host.isConnected || nav.lastElementChild !== host) schedule();
   });
   observer.observe(document.body, { childList: true, subtree: true });
 
