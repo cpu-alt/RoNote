@@ -1442,6 +1442,10 @@ async function handleMessage(msg, sender = null) {
       if (settings.profileTrades === false) return { off: true, hidden: true };
       return neuronalPlayerTrades(msg.userId);
     }
+    case 'ronote:find-user': {
+      // Favoris / « plus tard » ajoutés depuis l'accueil : un pseudo ou un identifiant.
+      try { return (await api.findUser(msg.query)) || { error: 'unknown' }; } catch { return { error: 'unreachable' }; }
+    }
     case 'ronote:mute': {
       let id = Number(msg.userId);
       let name = String(msg.name || '');

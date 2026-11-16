@@ -1790,12 +1790,18 @@ function renderHome(entering) {
   };
   const later = data.settings?.laterUsers || [];
   const favs = data.settings?.favUsers || [];
-  const usersHtml = later.length || favs.length
-    ? `<section class="panel h-panel">
-        ${later.length ? `<div class="panel-h"><span>${t('À envoyer plus tard')}</span></div>${later.map(u => userRow('laterUsers', u)).join('')}` : ''}
-        ${favs.length ? `<div class="panel-h"><span>${t('Favoris')}</span></div>${favs.map(u => userRow('favUsers', u)).join('')}` : ''}
-      </section>`
-    : '';
+  const usersHtml = `<section class="panel h-panel">
+      <div class="panel-h"><span>${t('Joueurs gardés')}</span></div>
+      <div class="h-uadd">
+        <input id="h-uq" type="text" spellcheck="false" autocomplete="off" placeholder="${escapeHtml(t('Pseudo ou ID Roblox'))}">
+        <button data-uadd="favUsers" title="${escapeHtml(t('Favori'))}" aria-label="${escapeHtml(t('Favori'))}">${ic('star')}</button>
+        <button data-uadd="laterUsers" title="${escapeHtml(t('Envoyer plus tard'))}" aria-label="${escapeHtml(t('Envoyer plus tard'))}">${ic('clock')}</button>
+      </div>
+      <div class="h-uerr" id="h-uerr" hidden></div>
+      ${later.length ? `<div class="h-usub">${t('À envoyer plus tard')}</div>${later.map(u => userRow('laterUsers', u)).join('')}` : ''}
+      ${favs.length ? `<div class="h-usub">${t('Favoris')}</div>${favs.map(u => userRow('favUsers', u)).join('')}` : ''}
+      ${later.length || favs.length ? '' : `<div class="h-none">${t('Ajoute un joueur ici, ou depuis sa fiche (clic sur son nom dans un trade).')}</div>`}
+    </section>`;
 
   const recent = [...hist].sort((a, b) => b.at - a.at).slice(0, 4);
   const recentHtml = recent.length
@@ -1806,7 +1812,9 @@ function renderHome(entering) {
       </section>`
     : '';
 
+  const typed = document.getElementById('h-uq')?.value || '';   // un redessin ne vide pas la saisie
   listEl.innerHTML = hero + join + news + tiles + todoHtml + usersHtml + recentHtml;
+  if (typed) document.getElementById('h-uq').value = typed;
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
 }
@@ -3040,6 +3048,24 @@ function watchList() {
  * L'onglet Portefeuille câble encore ses propres outils (recherche, tri).
  */
 const LIST_ACTIONS = [
+  ['[data-uadd]', async (el) => {
+    const input = document.getElementById('h-uq');
+    const err = document.getElementById('h-uerr');
+    const q = input?.value.trim();
+    if (!q) { input?.focus(); return; }
+    el.disabled = true;
+    const hit = await send({ type: 'ronote:find-user', query: q });
+    el.disabled = false;
+    if (!hit?.id) {
+      err.textContent = t(hit?.error === 'unreachable' ? 'Roblox ne répond pas, réessaie.' : 'Joueur introuvable.');
+      err.hidden = false;
+      return;
+    }
+    input.value = '';
+    await setUserListed(el.dataset.uadd, hit.id, hit.name, true);
+    lastListSig = '';
+    renderList();
+  }],
   ['[data-udel]', async (el) => {
     el.disabled = true;
     await setUserListed(el.dataset.udel, Number(el.dataset.uid), '', false);

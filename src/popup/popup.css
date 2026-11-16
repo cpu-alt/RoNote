@@ -1201,6 +1201,13 @@ button.av-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 button.h-warn { cursor: pointer; }
 button.h-warn b { text-decoration: underline; }
 .h-user { display: flex; align-items: center; }
+.h-uadd { display: flex; gap: 6px; margin: 0 6px 6px; }
+.h-uadd input { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--line, #2a2f3a); border-radius: 8px; background: #0000002a; color: inherit; font: inherit; font-size: 12px; }
+.h-uadd button { flex: none; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line, #2a2f3a); border-radius: 8px; background: none; color: var(--dim); cursor: pointer; }
+.h-uadd button:hover { color: var(--warn); }
+.h-uadd .ic { width: 14px; height: 14px; }
+.h-uerr { margin: 0 6px 6px; font-size: 11px; color: var(--loss, #e05050); }
+.h-usub { margin: 8px 6px 2px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
 .h-user-go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 6px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .h-user-go:hover { background: #ffffff08; }
 .h-user-go .jr-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
