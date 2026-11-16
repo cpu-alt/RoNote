@@ -39,8 +39,9 @@
   const ICON = {
     trade: svg('M7 7h13l-4-4M17 17H4l4 4'),
     roblox: svg('M6.5 3.5 20.5 7 17 20.5 3.5 17zM10.5 9.5l4 1-1 4-4-1z'),
-    roli: svg('M4 20V10M10 20V4M16 20v-7M22 20H2')
   };
+  const roliLogo = (() => { try { return B.runtime.getURL('assets/rolimons-logo.webp'); } catch { return ''; } })();
+  ICON.roli = roliLogo ? `<img class="logo" src="${roliLogo}" alt="">` : svg('M4 20V10M10 20V4M16 20v-7M22 20H2');
   const row = (u, later) => {
     const name = u.name || '#' + u.id;
     const base = `https://www.roblox.com/users/${u.id}`;
@@ -68,6 +69,8 @@
       .b { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: #ffffff8c; }
       .b:hover { color: #fff; background: #ffffff1f; }
       .later .b:first-of-type { color: #ffb02e; }
+      .b .logo { width: 15px; height: 15px; border-radius: 3px; opacity: .75; }
+      .b:hover .logo { opacity: 1; }
       .b svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .av { position: relative; flex: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: #ffffff1f; display: grid; place-items: center; }
       .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
