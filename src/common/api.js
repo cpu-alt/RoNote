@@ -929,6 +929,28 @@ export async function findUser(query) {
   return hit?.id ? { id: Number(hit.id), name: String(hit.name || q) } : null;
 }
 
+/**
+ * En ligne ou pas : 0 hors ligne, 1 sur le site, 2 en jeu, 3 dans Studio.
+ * Pour les joueurs gardés (favoris, « plus tard ») : un seul appel pour tous.
+ */
+export async function getPresence(userIds) {
+  const ids = [...new Set(userIds.map(Number).filter(n => n > 0))].slice(0, 50);
+  if (!ids.length) return {};
+  const url = 'https://presence.roblox.com/v1/presence/users';
+  const send = (token) => through(url, () => fetchWithTimeout(url, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { 'x-csrf-token': token } : {}) },
+    body: JSON.stringify({ userIds: ids })
+  }));
+  let r = await send(csrfToken);
+  const fresh = r.headers?.get?.('x-csrf-token');
+  if (r.status === 403 && fresh) { csrfToken = fresh; r = await send(fresh); }
+  if (!r.ok) throw new ApiError('HTTP ' + r.status, r.status, 0, gateFor(url).label);
+  const out = {};
+  for (const p of (await r.json())?.userPresences || []) out[p.userId] = Number(p.userPresenceType) || 0;
+  return out;
+}
+
 /* ============================== Rolimon's =============================== */
 
 async function rolimons(url, what, retryOn429 = true) {

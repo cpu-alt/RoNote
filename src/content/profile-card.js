@@ -64,6 +64,10 @@
     const s = changes.settings.newValue || {};
     const next = s.profileCard !== false && s.useRolimons !== false;
     if (next !== enabled) { enabled = next; data = null; dataId = 0; if (!enabled) remove(); else schedule(); return; }
+    const was = [...kept.favUsers, '|', ...kept.laterUsers].join();
+    const ids = (a) => new Set((Array.isArray(a) ? a : []).map(u => Number(u?.id)));
+    kept = { favUsers: ids(s.favUsers), laterUsers: ids(s.laterUsers) };
+    if (dataId && host && [...kept.favUsers, '|', ...kept.laterUsers].join() !== was) { host._drawn = null; place(dataId); }
     const nf = flagsOf(s);
     if (JSON.stringify(nf) !== JSON.stringify(f)) { f = nf; redraw(); }
   });
@@ -89,6 +93,8 @@
     .s .v{font-size:20px;font-weight:800;line-height:1.15}
     .s.main .v{font-size:28px;letter-spacing:-.01em}
     .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .keep{cursor:pointer}.keep .g{font-size:13px;line-height:1}
+    .keep.on{background:rgba(255,176,46,.18);box-shadow:inset 0 0 0 1.5px rgba(255,176,46,.7);color:#ffb02e}
     .b{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;
       color:inherit;font:inherit;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;
       background:color-mix(in srgb,currentColor 10%,transparent);transition:background .15s,transform .15s}
@@ -300,6 +306,26 @@
       <span class="nm">${esc(it.acro || it.name)}</span><span class="iv">${esc(compact.format(shown))}</span></a>`;
   }
 
+  /* ---- Favori / « plus tard » : les listes de RoNote (réglages), affichées aussi dans la barre de gauche ---- */
+  let kept = { favUsers: new Set(), laterUsers: new Set() };
+  async function readKept() {
+    try {
+      const { settings } = await B.storage.local.get('settings');
+      const ids = (a) => new Set((Array.isArray(a) ? a : []).map(u => Number(u?.id)));
+      kept = { favUsers: ids(settings?.favUsers), laterUsers: ids(settings?.laterUsers) };
+    } catch { /* garde l'état connu */ }
+  }
+  const KEEP = {
+    favUsers: ['★', 'Favori', 'Favorite', 'Retirer des favoris', 'Remove favorite'],
+    laterUsers: ['🕒', 'Plus tard', 'Later', 'Retirer de « plus tard »', 'Remove from later']
+  };
+  function keepBtn(id, key) {
+    const on = kept[key].has(Number(id));
+    const [glyph, fa, ea, fd, ed2] = KEEP[key];
+    return `<button class="b keep${on ? ' on' : ''}" type="button" data-keep="${key}" aria-pressed="${on}"
+      title="${esc(on ? L(fd, ed2) : L(fa, ea))}"><span class="g">${glyph}</span>${esc(L(fa, ea))}</button>`;
+  }
+
   function draw(id) {
     const logo = assetUrl('icons/icon48.png');
     const brand = `<div class="brand"><img src="${esc(logo)}" alt=""><span>RoNote</span></div>`;
@@ -316,6 +342,7 @@
     const top = `<div class="top">${brand}<div class="stats">
         ${stat('Limiteds', esc(full.format(d.count)))}${stat(L('Objets différents', 'Unique items'), esc(full.format(d.kinds)))}</div>
       <div class="acts">${tags}
+        ${keepBtn(id, 'favUsers')}${keepBtn(id, 'laterUsers')}
         <a class="b" href="https://www.roblox.com/users/${id}/trade" target="_blank" rel="noopener noreferrer">Trade</a>
         <a class="b" href="https://www.rolimons.com/player/${id}" target="_blank" rel="noopener noreferrer"
           title="${esc(L('Voir sur Rolimon’s', 'View on Rolimon’s'))}"><img src="${esc(assetUrl('assets/rolimons-logo.webp'))}" alt="">Rolimon's${ICON_EXT}</a>
@@ -479,6 +506,14 @@
   }
 
   function onClick(e) {
+    const keep = e.target.closest('[data-keep]');
+    if (keep) {
+      const key = keep.dataset.keep;
+      keep.disabled = true;
+      B.runtime.sendMessage({ type: 'ronote:keep-user', key, userId: dataId, on: !kept[key].has(Number(dataId)) })
+        .catch(() => {}).finally(async () => { await readKept(); host._drawn = null; place(dataId); });
+      return;
+    }
     const rg = e.target.closest('[data-range]');
     if (rg) { range = Number(rg.dataset.range) || 0; host._drawn = null; place(dataId); return; }
     const sec = e.target.closest('[data-sec]');
@@ -750,7 +785,7 @@
     const id = pageUser();
     if (!id) { remove(); return; }
     if (f.panel) pageMode(true);
-    if (dataId !== id) { data = null; open = false; }
+    if (dataId !== id) { data = null; open = false; await readKept(); }
     if (dataId === id) { place(id); return; }
     if (asking || Date.now() < retryAt) return;
     place(id);                                    // le squelette, le temps de la réponse

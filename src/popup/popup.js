@@ -1126,7 +1126,7 @@ const isIgnored = (id) => !!data.settings?.ignoredUsers?.some(u => Number(u.id) 
 const inUserList = (key, id) => !!data.settings?.[key]?.some(u => Number(u.id) === Number(id));
 async function setUserListed(key, id, name, on, thumb = '') {
   const cur = (data.settings?.[key] || []).filter(u => Number(u.id) !== Number(id));
-  const next = on ? [{ id: Number(id), name: String(name || '').slice(0, 40), at: Date.now(), ...(thumb ? { thumb } : {}) }, ...cur] : cur;
+  const next = on ? [{ id: Number(id), name: String(name || '').slice(0, 40), at: Date.now(), ...(thumb ? { thumb, thumbAt: Date.now() } : {}) }, ...cur] : cur;
   const res = await send({ type: 'ronote:settings', patch: { [key]: next } });
   if (res?.settings) data.settings = res.settings;
 }
@@ -1783,7 +1783,7 @@ function renderHome(entering) {
     const name = u.name || '#' + u.id;
     return `<div class="h-user">
       <button class="h-user-go" data-uopen="${escapeHtml(url)}" data-uid="${u.id}" data-ukey="${key}" title="${escapeHtml(name)}${u.at ? ' · ' + escapeHtml(timeAgo(u.at)) : ''}">
-        <span class="h-user-av">${u.thumb ? `<img src="${escapeHtml(u.thumb)}" alt="" loading="lazy">` : ''}<i>${escapeHtml(name.slice(0, 1).toUpperCase())}</i></span>
+        <span class="h-user-av${PRESENCE_CLS[userPresence[u.id]] || ''}">${u.thumb ? `<img src="${escapeHtml(u.thumb)}" alt="" loading="lazy">` : ''}<i>${escapeHtml(name.slice(0, 1).toUpperCase())}</i></span>
         <span class="h-user-n">${escapeHtml(name)}</span></button>
       <button class="h-user-x" data-udel="${key}" data-uid="${u.id}" title="${escapeHtml(t('Retirer'))}" aria-label="${escapeHtml(t('Retirer'))}">${ic('x')}</button>
     </div>`;
@@ -1816,8 +1816,21 @@ function renderHome(entering) {
   listEl.innerHTML = hero + join + news + tiles + todoHtml + usersHtml + recentHtml;
   if (typed) document.getElementById('h-uq').value = typed;
   fillUserThumbs();
+  fillUserPresence();
   if (entering) cascade(listEl.children, 8);
   if (value && week.length >= 2) mountChart({ id: 'h-plot', pts: week, keys: ['v'], defs: WALLET_SERIES });
+}
+
+/** En ligne ou pas, pour les joueurs gardés : lu une fois par ouverture du popup (le worker garde 1 min). */
+const PRESENCE_CLS = { 1: ' on', 2: ' game', 3: ' on' };
+let userPresence = {}, presenceAsked = false;
+async function fillUserPresence() {
+  if (presenceAsked) return;
+  const ids = ['favUsers', 'laterUsers'].flatMap(k => (data.settings?.[k] || []).map(u => Number(u.id)));
+  if (!ids.length) return;
+  presenceAsked = true;
+  userPresence = (await send({ type: 'ronote:presence', userIds: ids })) || {};
+  if (Object.values(userPresence).some(Boolean)) { lastListSig = ''; renderList(); }
 }
 
 /** Avatars manquants des joueurs gardés (ajoutés sans image) : demandés une fois par ouverture du popup. */
@@ -1825,13 +1838,15 @@ let userThumbsAsked = false;
 async function fillUserThumbs() {
   if (userThumbsAsked) return;
   const lists = ['favUsers', 'laterUsers'];
-  const missing = [...new Set(lists.flatMap(k => (data.settings?.[k] || []).filter(u => !u.thumb).map(u => Number(u.id))))].slice(0, 12);
+  // Les liens d'avatar du CDN Roblox expirent (~30 j) : renouvelés au-delà de 7 jours.
+  const old = (u) => !u.thumb || Date.now() - (u.thumbAt || 0) > 7 * 864e5;
+  const missing = [...new Set(lists.flatMap(k => (data.settings?.[k] || []).filter(old).map(u => Number(u.id))))].slice(0, 12);
   if (!missing.length) return;
   userThumbsAsked = true;
   const got = {};
   for (const id of missing) got[id] = (await send({ type: 'ronote:headshot', userId: id }))?.url || '';
   const patch = {};
-  for (const k of lists) patch[k] = (data.settings?.[k] || []).map(u => (!u.thumb && got[u.id] ? { ...u, thumb: got[u.id] } : u));
+  for (const k of lists) patch[k] = (data.settings?.[k] || []).map(u => (old(u) && got[u.id] ? { ...u, thumb: got[u.id], thumbAt: Date.now() } : u));
   const res = await send({ type: 'ronote:settings', patch });
   if (res?.settings) { data.settings = res.settings; lastListSig = ''; renderList(); }
 }

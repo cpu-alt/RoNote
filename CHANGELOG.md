@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Joueurs gardés, plus pratiques** : boutons Favori / Plus tard sur la carte RoNote des profils Roblox ;
+  pastille verte (en ligne) ou bleue (en jeu) dans la barre et le popup ; un joueur « plus tard » sort de la liste
+  dès qu'on lui envoie un trade ; avatars renouvelés chaque semaine ; la barre ne se redessine plus pour rien.
 - **Joueurs gardés dans la barre de Roblox** : sous le dernier lien de la barre de gauche, les joueurs « à envoyer
   plus tard » (un clic ouvre la fenêtre de trade) puis les favoris, avec leur avatar ; vide, le bloc dit comment en ajouter.
 - **Favoris et « à envoyer plus tard »** : deux boutons sur la fiche d'un joueur ; l'accueil liste ces joueurs,

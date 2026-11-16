@@ -21,7 +21,8 @@
   const MAX = 8;   // par liste : la barre n'est pas un carnet d'adresses
 
   let lists = { later: [], favs: [] };
-  let host = null, root = null, timer = null;
+  let host = null, root = null, timer = null, drawn = '', presence = {};
+  const DOT = { 1: ['on', 'En ligne', 'Online'], 2: ['game', 'En jeu', 'In game'], 3: ['on', 'En ligne', 'Online'] };
 
   const alive = () => { try { return !!B?.runtime?.id; } catch { return false; } };
 
@@ -49,7 +50,7 @@
       `<a class="b" href="${esc(href)}" title="${esc(label)}" aria-label="${esc(label)}"${ext ? ' target="_blank" rel="noopener"' : ''}>${ICON[icon]}</a>`;
     return `<div class="u${later ? ' later' : ''}">
       <a class="who" href="${esc(later ? base + '/trade' : base + '/profile')}" title="${esc(name)}">
-        <span class="av">${u.thumb ? `<img src="${esc(u.thumb)}" alt="" loading="lazy">` : ''}<i>${esc(name.slice(0, 1).toUpperCase())}</i></span>
+        <span class="av">${DOT[presence[u.id]] ? `<b class="dot ${DOT[presence[u.id]][0]}" title="${esc(L(DOT[presence[u.id]][1], DOT[presence[u.id]][2]))}"></b>` : ''}${u.thumb ? `<img src="${esc(u.thumb)}" alt="" loading="lazy">` : ''}<i>${esc(name.slice(0, 1).toUpperCase())}</i></span>
         <span class="n">${esc(name)}</span></a>
       ${btn(base + '/trade', 'trade', L('Envoyer un trade', 'Send a trade'))}
       ${btn(base + '/profile', 'roblox', L('Profil Roblox', 'Roblox profile'))}
@@ -72,8 +73,10 @@
       .b .logo { width: 15px; height: 15px; border-radius: 3px; opacity: .75; }
       .b:hover .logo { opacity: 1; }
       .b svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-      .av { position: relative; flex: none; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: #ffffff1f; display: grid; place-items: center; }
-      .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .av { position: relative; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #ffffff1f; display: grid; place-items: center; }
+      .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+      .dot { position: absolute; right: -2px; bottom: -2px; z-index: 1; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #2b0d55; background: #3ccf6e; }
+      .dot.game { background: #3b9bff; }
       .av i { font-style: normal; font-size: 12px; color: #ffffffb3; }
       .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .e { margin: 0 12px; font-size: 12px; color: #ffffff80; line-height: 1.4; }
@@ -91,7 +94,8 @@
       host.id = 'ronote-nav-players';
       root = host.attachShadow({ mode: 'closed' });
     }
-    root.innerHTML = html();
+    const next = html();
+    if (next !== drawn) { root.innerHTML = next; drawn = next; }   // replacé sans redessin
     if (host.parentElement !== nav || nav.lastElementChild !== host) nav.appendChild(host);
   }
 
@@ -104,10 +108,22 @@
       lists = { later: ok(settings?.laterUsers), favs: ok(settings?.favUsers) };
     } catch { lists = { later: [], favs: [] }; }
     place();
+    refreshPresence();
   }
+
+  /** En ligne / en jeu : une question au worker (qui garde 1 min), toutes les minutes tant que l'onglet est visible. */
+  async function refreshPresence() {
+    const ids = [...lists.later, ...lists.favs].map(u => Number(u.id));
+    if (!ids.length || document.hidden || !alive()) return;
+    try { presence = (await B.runtime.sendMessage({ type: 'ronote:presence', userIds: ids })) || {}; } catch { return; }
+    place();
+  }
+  setInterval(refreshPresence, 60e3);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { schedule(); refreshPresence(); } });
 
   // La barre se redessine avec l'application Roblox : on se remet en bas quand on a été délogé.
   const observer = new MutationObserver(() => {
+    if (document.hidden) return;   // onglet caché : on se replacera au retour
     const nav = host?.parentElement;
     if (!nav || !host.isConnected || nav.lastElementChild !== host) schedule();
   });

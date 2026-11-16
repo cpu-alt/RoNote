@@ -285,6 +285,13 @@ async function stepOutbound(ctx) {
   const openIds = new Set(r.all.map(t => Number(t.id)));
 
   // --- nouveaux trades envoyes ---
+  if (!r.seeded && r.fresh.length) {
+    // Un joueur « à envoyer plus tard » à qui on vient d'envoyer un trade sort de la liste.
+    const sentTo = new Set(r.fresh.map(t => Number(t.user?.id)).filter(Boolean));
+    const settings = await getSettings();
+    const keep = settings.laterUsers.filter(u => !sentTo.has(Number(u.id)));
+    if (keep.length !== settings.laterUsers.length) await saveSettings({ laterUsers: keep });
+  }
   if (!r.seeded) {
     for (const t of r.fresh) {
       const pid = t.user?.id;
@@ -1087,6 +1094,8 @@ async function uiData({ lite = false } = {}) {
   return out;
 }
 
+const presenceCache = { key: '', at: 0, map: {} };
+
 async function handleMessage(msg, sender = null) {
   switch (msg.type) {
     case 'ronote:page-analysis': {
@@ -1447,6 +1456,27 @@ async function handleMessage(msg, sender = null) {
       let hit = null;
       try { hit = await api.findUser(msg.query); } catch { return { error: 'unreachable' }; }
       return hit ? { ...hit, thumb: await api.getUserHeadshot(hit.id) } : { error: 'unknown' };
+    }
+    case 'ronote:presence': {
+      // Cache d'une minute : la barre de chaque onglet Roblox et le popup demandent la même chose.
+      const ids = (msg.userIds || []).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+      const key = ids.join(',');
+      if (presenceCache.key === key && Date.now() - presenceCache.at < 60e3) return presenceCache.map;
+      const map = await safe(() => api.getPresence(ids), null);
+      if (map) Object.assign(presenceCache, { key, at: Date.now(), map });
+      return map || {};
+    }
+    case 'ronote:keep-user': {
+      // Favori / « plus tard » depuis la carte d'un profil Roblox : pseudo et avatar résolus ici.
+      const key = msg.key === 'favUsers' ? 'favUsers' : 'laterUsers';
+      const id = Number(msg.userId);
+      if (!id) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      const rest = settings[key].filter(u => Number(u.id) !== id);
+      if (!msg.on) return { settings: await saveSettings({ [key]: rest }) };
+      const [prof, thumb] = await Promise.all([safe(() => api.getUserProfile(id), null), safe(() => api.getUserHeadshot(id), null)]);
+      const entry = { id, name: prof?.displayName || prof?.name || '', at: Date.now(), ...(thumb ? { thumb, thumbAt: Date.now() } : {}) };
+      return { settings: await saveSettings({ [key]: [entry, ...rest] }) };
     }
     case 'ronote:headshot':
       return { url: await api.getUserHeadshot(Number(msg.userId)) };
