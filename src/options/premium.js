@@ -112,6 +112,8 @@ function signedInHtml(me, roblox) {
       : `<div class="pm-warn">${ic('alert')}<span>${t('Aucun abonnement actif.')}</span>
           <a class="btn pm-main" href="${escapeHtml(me.subscribe_url || SUBSCRIBE)}" target="_blank" rel="noopener noreferrer">${t("S'abonner")}</a></div>`}
     ${robloxRow}
+    ${linked ? `<label class="row switch pm-show"><input type="checkbox" data-pm="showcase"${me.showcase ? ' checked' : ''}${busy ? ' disabled' : ''}>
+      <span><b>${t('Montrer mon Discord sur mon profil Roblox')}</b><small>${t('Les utilisateurs de RoNote verront ton pseudo Discord sur ta page Roblox. Désactivable à tout moment.')}</small></span></label>` : ''}
     <ul class="pm-feats">${feats}</ul>
     <div class="pm-actions"><button class="btn" data-pm="logout" type="button">${t('Se déconnecter')}</button></div>`;
 }
@@ -162,6 +164,8 @@ async function onClick(e) {
     await act('ronote:premium-verify', {}, t('Compte Roblox vérifié. Les fonctions premium sont ouvertes.'));
   } else if (what === 'cancel') {
     await act('ronote:premium-cancel');
+  } else if (what === 'showcase') {
+    await act('ronote:premium-showcase', { show: el.checked }, el.checked ? t('Ton Discord est visible sur ton profil Roblox.') : t('Ton Discord est masqué.'));
   } else if (what === 'logout') {
     keyOpen = false;
     await act('ronote:premium-logout', {}, t('Déconnecté.'));

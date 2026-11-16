@@ -5,6 +5,40 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période
+  et survol pour lire un relevé ; lue après la carte (même historique que la fiche joueur, gardé 6 h).
+- **Derniers trades du joueur** (Insider / Elite) : ses trades prouvés vus par Neuronal (`/ext/v1/player/<id>/trades`,
+  vérifié côté serveur), objets donnés → reçus et gain ; sinon une invitation à débloquer.
+- **Réglages › Profil d'un joueur** : en-tête (pastilles, dernière connexion), panneau, courbe et trades,
+  chacun désactivable, appliqué tout de suite.
+- **Sous le @pseudo** : dernière connexion avec une pastille (vert < 24 h, orange < 7 j, gris au-delà) et âge
+  du compte (alerte sous 30 jours) ; retirés de la carte, qui ne les répète plus.
+- **En-tête du profil** : badge d'abonné, value (lien Rolimon's), RAP, rang et Discord en pastilles à droite de
+  la rangée « Friends · Followers · Following » ; la carte garde le nombre de limiteds, les liens et l'inventaire.
+- **Carte du profil plus nette** : surface sombre et opaque (le dégradé pastel des abonnés rendait le texte
+  illisible) ; le rang n'est plus qu'un liseré dégradé et un badge. Value en blanc.
+- **Onglet Store complet** : la boutique du créateur lue sur catalog.roblox.com (30 par page, « Voir plus »),
+  à l'ouverture de l'onglet seulement ; la première page est gardée 30 min. Lien « Tout sur Roblox ».
+- **Ton Discord sur ton profil** : connecté à RoNote premium, ton Discord et ton rang s'affichent sur ton propre
+  profil Roblox depuis ta session locale (sans attendre Neuronal) ; une ligne rappelle s'il n'est visible que par toi.
+- **Panneau du profil refait** : en-tête avec la photo cerclée aux couleurs du rang, noms, value, RAP et Discord ;
+  onglets en barre segmentée avec le nombre d'objets ; tuiles de Roblox habillées en cartes.
+- **Profil Roblox, panneau à onglets** : Tenue, Store, Jeux et Collections sont retirés de la page (Amis, Favoris,
+  Communautés et Badges y restent) et s'ouvrent dans un panneau latéral à onglets,
+  au clic sur l'avatar ou sur les raccourcis de la carte ; ← → changent d'onglet, Échap ferme. Les blocs
+  restent ceux de Roblox (seul le CSS change), rien ne tourne panneau fermé. Logo agrandi à 60 px.
+- **Profil Roblox, la tenue** : « Currently Wearing » est retiré de la page et s'ouvre en panneau latéral (grille
+  3 colonnes) au clic sur l'avatar ou sur « Sa tenue » ; Échap, la croix ou le fond le ferment. Le bloc reste
+  celui de Roblox, seul le CSS change. Logo de la carte agrandi.
+- **Profil Roblox, suite** : badge Elite / Insider / Tracker des abonnés Neuronal et carte aux couleurs de
+  leur rang (les mêmes que la carte du site) ; âge du compte (alerte sous 30 jours), dernière connexion,
+  tes trades avec ce joueur et ton gain net (journal local, sans réseau) ; recherche dans l'inventaire déplié.
+- **Carte RoNote sur le profil Roblox d'un joueur** : en tête de /users/{id}/profile, sa value, son RAP,
+  son rang Rolimon's et son nombre de limiteds, un aperçu de ses 8 limiteds les plus chers (vignettes,
+  value, copies, projected) dépliable jusqu'à 60, et des boutons Trade et Rolimon's. Une seule question
+  au service worker par profil, gardée 30 min. Réglages › Profil d'un joueur sur Roblox.
+- **Montrer mon Discord sur mon profil Roblox** (RoNote premium, désactivé par défaut) : les autres
+  utilisateurs de RoNote voient ton Discord sur ta carte, un clic copie ton pseudo.
 - **Proof de plusieurs trades** : dans le panneau proof, « Choisir dans la liste » met une case sur chaque
   trade de la liste de gauche (le masque du mode proof se lève le temps du choix) ; coche ceux que tu veux,
   OK, et RoNote ouvre chacun à son tour, le photographie et l'ajoute. « Ajouter ce trade » ajoute aussi le

@@ -223,6 +223,17 @@ export async function premiumRobloxOAuth() {
   return { ok: true };
 }
 
+/** Montrer (ou non) son Discord sur son profil Roblox aux utilisateurs de RoNote. Opt-in, retirable. */
+export async function premiumShowcase(show) {
+  if (!await granted()) return { error: 'permission' };
+  const p = await renew();
+  if (!p.token) return { error: 'login' };
+  const r = await call('auth/showcase', { method: 'POST', token: p.token, body: { show: !!show } });
+  if (r.status !== 200) return { error: r.data.error || 'HTTP ' + r.status };
+  await premiumSet({ me: { ...r.data, exp: p.exp } });
+  return { ok: true };
+}
+
 export async function premiumCancel() {
   await premiumSet({ pending: undefined });
   return { ok: true };

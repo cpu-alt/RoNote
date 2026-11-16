@@ -43,7 +43,7 @@ Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
 | `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
-| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
+| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur ou son profil Roblox, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
 
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
 RAP fourni par Roblox et ne contacte plus que Roblox.
@@ -99,6 +99,13 @@ identifiant Discord, l'identifiant et le pseudo Roblox liés, et tes sessions (d
 dates seulement), pour vérifier ton abonnement à chaque requête. *Se déconnecter*
 ferme la session sur le serveur et efface le jeton. Le premium est indépendant de la
 contribution : se connecter n'envoie rien de tes trades.
+
+**Montrer mon Discord sur mon profil Roblox (RoNote premium, désactivé par défaut).** Si tu
+l'actives, Neuronal laisse les autres utilisateurs de RoNote voir ton nom, ton pseudo et ton
+avatar Discord sur ta page de profil Roblox. Le désactiver le retire aussitôt. Quand tu
+ouvres le profil Roblox de quelqu'un, et seulement si tu as déjà donné l'accès à
+`neuronal.live`, RoNote envoie **son** identifiant Roblox public à Neuronal pour connaître son rang d'abonné Neuronal (et, si tu es abonné Insider ou Elite, ses derniers trades prouvés) et savoir s'il a
+choisi de montrer son Discord ; la réponse est gardée 30 minutes dans ton navigateur.
 
 **Partager un proof (RoNote premium, Elite Neuronal seulement).** Sur un trade terminé,
 le bouclier du mode proof ouvre à droite un panneau qui prépare les cinq lignes que Rolimons

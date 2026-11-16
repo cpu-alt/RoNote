@@ -855,6 +855,24 @@ export function fetchBundleThumbs(bundleIds, size = '150x150') {
     `${THUMBS}/bundles/thumbnails?${new URLSearchParams({ bundleIds: part.join(','), size, format: 'Png' })}`);
 }
 
+/**
+ * La boutique d'un créateur (articles publiés par ce joueur), 30 par page, du plus
+ * récent au plus ancien. Rend { items: [{ id, bundle, name, price, offSale }], next }.
+ */
+export async function getCreatorItems(userId, cursor = '') {
+  const q = new URLSearchParams({ Category: 'All', CreatorType: 'User', CreatorTargetId: String(Number(userId)),
+    Limit: '30', SortType: '3' });
+  if (cursor) q.set('Cursor', cursor);
+  const j = await apiGet(`${CATALOG}/search/items/details?${q}`, { allowRelay: false });
+  return {
+    items: (j?.data || []).map(d => ({
+      id: Number(d.id) || 0, bundle: d.itemType === 'Bundle', name: String(d.name || ''),
+      price: Number(d.lowestPrice ?? d.price) || 0, offSale: d.priceStatus === 'Off Sale' || (!d.price && !d.lowestPrice)
+    })).filter(i => i.id),
+    next: String(j?.nextPageCursor || '')
+  };
+}
+
 const headshots = new Map();
 
 export async function getUserHeadshot(userId) {

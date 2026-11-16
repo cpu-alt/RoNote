@@ -11,15 +11,15 @@ import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, add
 import { setLang, t } from '../common/i18n.js';
 import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
-import { resolveThumbs, flushThumbs, clearThumbs } from '../common/thumbs.js';
+import { resolveThumbs, flushThumbs, clearThumbs, assetKey, bundleKey } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
 import { passesFilters } from '../common/filters.js';
-import { historyFor, thinSeries, playerFaces } from '../common/player.js';
+import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
-import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout } from './premium.js';
+import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
+import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab } from './tradeads.js';
 import {
@@ -404,6 +404,7 @@ const ITEM_HISTORY_TTL = 6 * 60 * 60 * 1000;   // historique d'un objet (page de
 const ITEM_HISTORY_CAP = 20;                   // objets dont l'historique reste en cache
 const PLAYER_TTL = 30 * 60 * 1000;             // profil d'un joueur ouvert depuis sa fiche
 const PLAYER_CAP = 30;                         // joueurs dont le profil reste en cache
+const PROFILE_ITEMS = 60;                      // objets gardés pour l'aperçu d'inventaire d'un profil
 const PLAYER_HISTORY_TTL = 6 * 60 * 60 * 1000; // courbe d'inventaire d'un joueur (page Rolimon's)
 const PLAYER_HISTORY_CAP = 10;                 // joueurs dont la courbe reste en cache
 const PLAYER_HISTORY_POINTS = 400;             // releves gardes par courbe
@@ -986,6 +987,77 @@ async function readThrough({ key, id, field, as = field, ttl, cap, keep = () => 
   }
 }
 
+/**
+ * La carte d'un profil Roblox (content/profile-card.js) : value, RAP et rang
+ * Rolimon's, ses limiteds les plus chers (vignettes comprises) et son Discord
+ * s'il a choisi de le montrer. Deux appels Rolimon's en parallèle, les
+ * vignettes en un lot, le tout gardé 30 min : revenir sur un profil ne coûte rien.
+ */
+async function profileCard(id, settings) {
+  const [info, assets, cat, neuronal, roblox] = await Promise.all([
+    api.getPlayerInfo(id),
+    api.getPlayerAssets(id).catch(() => null),
+    getCatalog(settings),
+    profileNeuronal(id),
+    api.getUserProfile(id).catch(() => null)
+  ]);
+  const items = [];
+  let count = 0;
+  for (const [assetId, n] of Object.entries(assets?.counts || {})) {
+    if (!(n > 0)) continue;
+    count += n;
+    const it = resolveItem({ assetId: Number(assetId) }, cat);
+    if (it.unknown) continue;
+    items.push({ ...it, n, worth: (it.noValue ? 0 : it.value) || it.rap || 0 });
+  }
+  items.sort((a, b) => b.worth - a.worth);
+  const top = items.slice(0, PROFILE_ITEMS);
+  const urls = await safe(() => resolveThumbs(top.map(thumbKeysFor)), []);
+  await flushThumbs();
+  return {
+    value: info.value, rap: info.rap, rank: info.rank, private: info.private || !!assets?.private,
+    terminated: info.terminated, lastOnline: info.lastOnline, scannedAt: info.scannedAt,
+    count, kinds: items.length, discord: neuronal?.discord || null, tier: neuronal?.tier || null,
+    created: roblox?.created || 0, verified: !!roblox?.verified,
+    items: top.map((it, i) => ({
+      name: it.name || '', acro: it.acronym || '', value: it.noValue ? 0 : it.value || 0, rap: it.rap || 0,
+      n: it.n, projected: !!it.projected, rare: !!it.rare, thumb: urls?.[i] || '',
+      url: it.bundleId ? api.BUNDLE_URL(it.bundleId) : api.ASSET_URL(it.legacyAssetId || it.assetId)
+    }))
+  };
+}
+
+/**
+ * Ton propre profil : ton Discord et ton rang viennent de ta session RoNote
+ * premium (déjà en local), sans attendre Neuronal ni l'option publique.
+ */
+async function selfPremium(id, card) {
+  const me = (await premiumGet())?.me;
+  if (!me?.roblox || Number(me.roblox.id) !== id) return {};
+  const keys = new Set((me.services || []).map(s => s.key));
+  const tier = keys.has('bundle') ? 'elite' : keys.has('discovery') ? 'insider' : keys.has('tracking') ? 'tracker' : null;
+  const discord = card.discord || (me.discord?.id ? { id: String(me.discord.id), name: String(me.discord.name || ''), username: '', avatar: '' } : null);
+  return { discord, tier: card.tier || tier, self: true, showcase: !!me.showcase };
+}
+
+/** Son rang d'abonné Neuronal (public, comme sur la carte du site) et son Discord, s'il l'a
+ *  rendu public. Seulement après l'accord donné à Neuronal. */
+async function profileNeuronal(id) {
+  if (!await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false)) return null;
+  try {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 3000);
+    const r = await fetch(`${NEURONAL.api}discord/${id}`, { credentials: 'omit', signal: ctl.signal }).finally(() => clearTimeout(tm));
+    if (!r.ok) return null;
+    const j = await r.json();
+    const d = j?.discord;
+    const tier = ['elite', 'insider', 'tracker'].includes(j?.tier) ? j.tier : null;
+    const discord = d?.id && /^\d{5,22}$/.test(d.id) ? { id: d.id, name: String(d.name || '').slice(0, 40),
+      username: String(d.username || '').slice(0, 40),
+      avatar: /^https:\/\/cdn\.discordapp\.com\//.test(d.avatar || '') ? d.avatar : '' } : null;
+    return { discord, tier };
+  } catch { return null; }
+}
+
 /** Les reglages, si Rolimon's est active ; la langue suit, pour le message d'erreur. */
 async function rolimonsOn() {
   const settings = await getSettings();
@@ -1243,6 +1315,8 @@ async function handleMessage(msg, sender = null) {
       return { ok: true };
     case 'ronote:premium-link':
       return premiumLink();
+    case 'ronote:premium-showcase':
+      return premiumShowcase(msg.show);
     case 'ronote:premium-cancel':
       return premiumCancel();
     case 'ronote:premium-logout': {
@@ -1330,6 +1404,43 @@ async function handleMessage(msg, sender = null) {
           await flushThumbs();
           return faces;
         });
+    }
+    case 'ronote:profile-card': {
+      const id = Number(msg.userId);
+      if (!(id > 0)) return { error: 'identifiant invalide' };
+      const settings = await getSettings();
+      if (settings.profileCard === false || settings.useRolimons === false) return { off: true };
+      setLang(settings.lang);
+      const [res, history] = await Promise.all([
+        readThrough({ key: 'profileCards2', id, field: 'card', ttl: PLAYER_TTL, cap: PLAYER_CAP }, () => profileCard(id, settings)),
+        getHistory()
+      ]);
+      // Tes trades avec lui : le journal local, sans réseau, donc jamais en cache.
+      const st = partnerStats(partnerTimeline(historyFor(history, { id })));
+      if (res.card) res.card = { ...res.card, mine: st.received + st.sent + st.done ? st : null, ...await selfPremium(id, res.card) };
+      return res;
+    }
+    // La boutique complète d'un joueur, pour l'onglet Store du panneau : à l'ouverture de
+    // l'onglet seulement, page par page ; la première page est gardée 30 min.
+    case 'ronote:profile-store': {
+      const id = Number(msg.userId);
+      if (!(id > 0)) return { error: 'identifiant invalide' };
+      const cursor = String(msg.cursor || '').slice(0, 400);
+      const load = async () => {
+        const page = await api.getCreatorItems(id, cursor);
+        const urls = await safe(() => resolveThumbs(page.items.map(i => [i.bundle ? bundleKey(i.id) : assetKey(i.id)])), []);
+        await flushThumbs();
+        return { next: page.next, items: page.items.map((i, n) => ({ ...i, thumb: urls?.[n] || '',
+          url: i.bundle ? api.BUNDLE_URL(i.id) : api.ASSET_URL(i.id) })) };
+      };
+      if (cursor) { try { return { page: await load() }; } catch (e) { return { error: String(e?.message || e) }; } }
+      return readThrough({ key: 'profileStores', id, field: 'page', ttl: PLAYER_TTL, cap: PLAYER_CAP }, load);
+    }
+    // Le cadre « derniers trades » du profil Roblox : Insider / Elite (Neuronal le vérifie).
+    case 'ronote:profile-trades': {
+      const settings = await getSettings();
+      if (settings.profileTrades === false) return { off: true, hidden: true };
+      return neuronalPlayerTrades(msg.userId);
     }
     case 'ronote:mute': {
       let id = Number(msg.userId);

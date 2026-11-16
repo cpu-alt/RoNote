@@ -16,6 +16,94 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.10',
+    title: item('Courbe, derniers trades et réglages du profil', 'Chart, latest trades and profile settings'),
+    items: [
+      item("Profil Roblox : la courbe Rolimon's de la value et du RAP (30 j, 90 j, 1 an, tout), survol pour lire un relevé.",
+        "Roblox profile: the Rolimon’s value and RAP chart (30d, 90d, 1y, all), hover to read a scan."),
+      item("Insider et Elite : les derniers trades prouvés du joueur, vus par Neuronal, sur sa carte.",
+        "Insider and Elite: the player’s latest proven trades, seen by Neuronal, on their card."),
+      item("Réglages › Profil d'un joueur : en-tête, panneau, courbe et trades s'activent un par un.",
+        "Settings › A player’s profile: header, panel, chart and trades toggle one by one.")
+    ]
+  },
+  {
+    version: '2.17.9',
+    title: item('Dernière connexion sous le pseudo', 'Last online under the username'),
+    items: [
+      item("Profil Roblox : dernière connexion (pastille verte, orange ou grise) et âge du compte sous le @pseudo.",
+        "Roblox profile: last online (green, amber or grey dot) and account age under the @username.")
+    ]
+  },
+  {
+    version: '2.17.8',
+    title: item('Value et rang dans l’en-tête du profil', 'Value and rank in the profile header'),
+    items: [
+      item("Profil Roblox : le badge d'abonné, la value, le RAP, le rang Rolimon's et le Discord s'affichent à droite de « Friends · Followers », dans l'espace libre.",
+        "Roblox profile: subscriber badge, value, RAP, Rolimon’s rank and Discord now sit to the right of “Friends · Followers”, in the free space.")
+    ]
+  },
+  {
+    version: '2.17.7',
+    title: item('Carte plus nette, boutique complète', 'Cleaner card, full store'),
+    items: [
+      item("Carte du profil sur fond sombre, lisible partout ; le rang d'abonné n'est plus qu'un liseré et un badge.",
+        "Profile card on a dark surface, readable everywhere; the subscriber rank is now just a border and a badge."),
+      item("Onglet Store : toute la boutique du joueur (et plus seulement 6 articles), page par page, avec un lien vers le catalogue Roblox.",
+        "Store tab: the player’s whole store (not just 6 items), page by page, with a link to the Roblox catalog.")
+    ]
+  },
+  {
+    version: '2.17.6',
+    title: item('Ton Discord sur ton profil, panneau refait', 'Your Discord on your profile, panel redesigned'),
+    items: [
+      item("Connecté à RoNote premium : ton Discord et ton rang apparaissent sur ton propre profil Roblox, tout de suite.",
+        "Signed in to RoNote premium: your Discord and rank show on your own Roblox profile right away."),
+      item("Panneau du profil refait : photo cerclée aux couleurs du rang, value et RAP, onglets avec le nombre d'objets, tuiles en cartes.",
+        "Profile panel redesigned: photo ringed in the rank’s colors, value and RAP, tabs with item counts, tiles as cards.")
+    ]
+  },
+  {
+    version: '2.17.5',
+    title: item('Le profil Roblox rangé dans un panneau', 'The Roblox profile tidied into a panel'),
+    items: [
+      item("Tenue, Store, Jeux et Collections passent dans un panneau à onglets, ouvert d'un clic sur l'avatar ou un raccourci de la carte ; Amis, Favoris, Communautés et Badges restent sur la page. ← → changent d'onglet, Échap ferme.",
+        "Outfit, Store, Games and Collections move into a tabbed panel, opened by clicking the avatar or a shortcut on the card; Friends, Favorites, Communities and Badges stay on the page. ← → switch tabs, Esc closes."),
+      item("Logo RoNote encore plus grand.", "An even bigger RoNote logo.")
+    ]
+  },
+  {
+    version: '2.17.3',
+    title: item('La tenue dans un panneau', 'The outfit in a side panel'),
+    items: [
+      item("Profil Roblox : « Currently Wearing » quitte la page et s'ouvre dans un panneau à droite quand tu cliques sur l'avatar (ou « Sa tenue »). Échap ferme.",
+        "Roblox profile: “Currently Wearing” leaves the page and opens in a side panel when you click the avatar (or “Outfit”). Esc closes."),
+      item("Logo RoNote plus grand sur la carte.", "Bigger RoNote logo on the card.")
+    ]
+  },
+  {
+    version: '2.17.2',
+    title: item('Le rang Neuronal et plus d’infos sur les profils', 'Neuronal rank and more on profiles'),
+    items: [
+      item("Les abonnés Neuronal ont leur badge (Elite, Insider, Tracker) et une carte aux couleurs de leur rang, comme sur le site.",
+        "Neuronal subscribers get their badge (Elite, Insider, Tracker) and a card in their rank’s colors, like on the website."),
+      item("Âge du compte (alerte si moins de 30 jours), dernière connexion et tes trades avec ce joueur, gain net compris.",
+        "Account age (warning under 30 days), last online and your trades with this player, net gain included."),
+      item("Inventaire déplié : une recherche pour retrouver un objet.",
+        "Expanded inventory: a search box to find an item.")
+    ]
+  },
+  {
+    version: '2.17.1',
+    title: item('La carte RoNote sur les profils Roblox', 'The RoNote card on Roblox profiles'),
+    items: [
+      item("Sur le profil Roblox d'un joueur : sa value, son RAP, son rang Rolimon's et un aperçu de ses limiteds les plus chers, dépliable.",
+        "On a player’s Roblox profile: their value, RAP, Rolimon’s rank and a preview of their most valuable limiteds, expandable."),
+      item("RoNote premium : montre ton Discord sur ton profil Roblox aux autres utilisateurs de RoNote (Réglages › Premium).",
+        "RoNote premium: show your Discord on your Roblox profile to other RoNote users (Settings › Premium).")
+    ]
+  },
+  {
     version: '2.17.0',
     title: item('Trade ads automatiques et nouveau logo', 'Automatic trade ads and a new logo'),
     items: [

@@ -78,6 +78,11 @@ export const DEFAULTS = {
   pageBgDim: 60,              // ton image en fond de roblox.com (cle `pageBgImage`) : force du voile, en %
   pageBgBlur: 0,              // ... et flou de l'image, en px
   itemPageValue: true,        // value et lien Rolimon's sur la page d'un limited Roblox
+  profileCard: true,          // value, RAP, aperçu d'inventaire et Discord sur le profil Roblox d'un joueur
+  profileHeader: true,        // pastilles value / RAP / rang à côté de « Friends » et dernière connexion sous le pseudo
+  profilePanel: true,         // Tenue, Store, Jeux, Collections rangés dans un panneau (clic sur l'avatar)
+  profileChart: true,         // courbe Rolimon's de la value sur la carte
+  profileTrades: true,        // derniers trades du joueur (RoNote premium Insider / Elite)
   bannerGain: '#3fbf7f',      // bandeau des ecarts sur la page Roblox : couleur d'un gain (theme Neuronal)
   bannerLoss: '#f0565e',      // ... d'une perte
   bannerStyle: 'soft',        // soft | vivid | neon | solid

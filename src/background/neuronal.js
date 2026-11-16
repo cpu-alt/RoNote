@@ -131,6 +131,29 @@ export async function neuronalLookup(kind, id, settings) {
 }
 
 /**
+ * Les derniers trades prouvés d'un joueur, pour le cadre de son profil Roblox
+ * (RoNote premium Insider / Elite, vérifié par Neuronal). Gardés 5 min.
+ * `{ data: { recent } }`, `{ locked }`, `{ off }` (pas d'accès à neuronal.live), …
+ */
+const PLAYER_TRADES_MS = 5 * 60e3;
+export async function neuronalPlayerTrades(id) {
+  id = Number(id);
+  if (!(id > 0)) return { error: 'bad request' };
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true };
+  const key = 'ptrades:' + id;
+  const hit = (await cache())[key];
+  if (hit && hit.until > Date.now()) return hit.value;
+  if (pending.has(key)) return pending.get(key);
+  const run = fetchOne('player', id, `player/${id}/trades`).then(async (value) => {
+    await remember(key, value, value.data ? PLAYER_TRADES_MS : value.locked ? LOCKED_MS : FAIL_MS);
+    return value;
+  }).finally(() => pending.delete(key));
+  pending.set(key, run);
+  return run;
+}
+
+/**
  * Les fiches Profile discovery (onglet Profils du popup) : `kind` = 'classic'
  * (annonces Rolimon's) ou 'neuronal' (joueurs vus trader, palier « ghost »
  * compris), `tier` = un palier ou rien. Mêmes conditions que les fiches ;

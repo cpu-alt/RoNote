@@ -42,7 +42,7 @@ By default, RoNote contacts exactly two domains, both declared in its manifest:
 | Domain | Why | What is sent |
 |---|---|---|
 | `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
-| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
+| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card or their Roblox profile, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
@@ -96,6 +96,13 @@ Neuronal stores your Discord ID, the linked Roblox user ID and username, and you
 sessions (dates only), to check your subscription on every request. *Sign out*
 closes the session on the server and deletes the token. Premium is independent from
 the contribution option: signing in sends nothing about your trades.
+
+**Show my Discord on my Roblox profile (RoNote premium, off by default).** If you turn it
+on, Neuronal lets other RoNote users see your Discord name, username and avatar on your
+Roblox profile page. Turning it off removes it at once. When you open someone's Roblox
+profile, and only if you already granted access to `neuronal.live`, RoNote sends **their**
+public Roblox user ID to Neuronal to ask for their Neuronal subscriber rank and whether they chose to show their Discord (and, if you are an Insider or Elite subscriber, their latest proven trades); the
+answer is kept 30 minutes in your browser.
 
 **Share proof (RoNote premium, Neuronal Elite only).** On a completed trade, the proof
 mode shield opens a panel on the right that prepares the five lines Rolimons asks for in
