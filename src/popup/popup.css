@@ -2271,3 +2271,4 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .if-sync { flex: none; padding: 0 7px; height: 20px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 10px; font-weight: 750; }
 .if-sync.on { background: #5865f222; color: #9aa4ff; }
 .if-sync.warn { background: #ffb02e1f; color: var(--warn); }
+.pf-unv { flex: none; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 8px; background: #ffb02e1f; color: var(--warn); font-size: 9.5px; font-weight: 750; }

@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.24',
+    title: item("Badge Verified de Rolimon's", "Rolimon's Verified badge"),
+    items: [
+      item("Profils : « Non vérifié » sur les joueurs qui n'ont pas le badge Verified sur leur profil Rolimon's.",
+        "Profiles: « Unverified » on players without the Verified badge on their Rolimon's profile.")
+    ]
+  },
+  {
     version: '2.17.23',
     title: item('Items surveillés : Discord + RoNote', 'Watched items: Discord + RoNote'),
     items: [

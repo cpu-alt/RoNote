@@ -133,7 +133,8 @@ function cardHtml(p, both, isNew = false) {
     <header class="pf-top">
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
       <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>${
-        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}${knownBadge(id)}</span>
+        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}${
+        p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : ''}${knownBadge(id)}</span>
         <small>${meta}</small></span>
       ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}
       <span class="pf-qa">${linkBtn(`https://www.rolimons.com/player/${id}`, 'R', "Rolimon's")}${linkBtn(`https://www.roblox.com/users/${id}/profile`, ic('user'), 'Roblox')}

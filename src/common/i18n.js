@@ -1228,6 +1228,8 @@ const EN = {
   "Les deux": "Both",
   'Items': 'Items',
   'Tradé': 'Traded',
+  'Non vérifié': 'Unverified',
+  "Pas de badge Verified sur son profil Rolimon's": "No Verified badge on their Rolimon's profile",
   'Même liste que ton filtre « RoNote » sur Discord': 'Same list as your « RoNote » filter on Discord',
   'Tu as déjà 5 filtres sur Discord : supprimes-en un pour synchroniser.': 'You already have 5 filters on Discord: delete one to sync.',
   'Discord plein': 'Discord full',

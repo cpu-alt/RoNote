@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Badge Verified de Rolimon's** (Profils) : « Non vérifié » sur un joueur sans le badge Verified de son profil
+  Rolimon's (`roli_verified` de `/ext/v1/profiles`, absent tant que Neuronal ne l'a pas lu).
 - **Items surveillés communs Discord + RoNote** (Insider / Elite) : le filtre par items de Profils est le filtre Profile
   discovery « RoNote » du membre sur Discord (`/ext/v1/watch`) ; il reçoit donc aussi les DM. Lu à l'ouverture de
   Profils (Discord a le dernier mot), écrit 600 ms après un changement ; « ⇄ Discord · DM » dans le panneau, « Discord
