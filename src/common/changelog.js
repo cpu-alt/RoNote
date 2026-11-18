@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.18',
+    title: item('Cartes plus compactes', 'Tighter cards'),
+    items: [
+      item("Cartes de trades plus compactes : l'écart en valeur et en % dans la pastille d'en-tête, une ligne d'objets, les étiquettes sur une ligne. Le détail complet reste dans le zoom.",
+        "Tighter trade cards: the gap in value and % in the header pill, one row of items, tags on one line. The full detail stays in the zoom."),
+      item("Profils et Deals : filtres repliés derrière un bouton « Filtres » (avec le nombre de filtres actifs), fiches d'une ligne d'en-tête avec les actions en petits boutons, vignettes plus petites.",
+        "Profiles and Deals: filters folded behind a « Filters » button (with the number of active filters), one-line card headers with the actions as small buttons, smaller tiles.")
+    ]
+  },
+  {
     version: '2.17.17',
     title: item('Envoi rapide', 'Quick add'),
     items: [

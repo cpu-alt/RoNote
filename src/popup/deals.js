@@ -23,6 +23,7 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTilesHtml } from './nwcard.js';
 import { lockHtml } from './lock.js';
+import { ic } from '../common/icons.js';
 
 const KEY = 'ronote.deals';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -61,7 +62,8 @@ function pick() {
     grades: (Array.isArray(p.grades) ? p.grades : []).filter(g => GRADES.includes(g)),
     sizes: (Array.isArray(p.sizes) ? p.sizes : []).filter(k => SIZES.some(([s]) => s === k)),
     sort: SORTS.some(([k]) => k === p.sort) ? p.sort : 'best',
-    since: SINCE.some(([k]) => k === p.since) ? p.since : 0
+    since: SINCE.some(([k]) => k === p.since) ? p.since : 0,
+    open: p.open === true                       // les filtres dépliés (repliés d'office)
   };
 }
 
@@ -76,6 +78,10 @@ const list = (data, kind) => (kind === 'robux' ? data?.robux : data?.deals) || [
 const valueOf = (x, kind) => (kind === 'robux' ? x.value : x.get_value) || 0;
 const sizeOf = (x, kind) => (SIZES.find(([, , lo, hi]) => valueOf(x, kind) >= lo && valueOf(x, kind) < hi) || SIZES[0])[0];
 
+// Le bouton qui déplie les filtres de Profils et de Deals, avec le nombre de filtres actifs (18 nov. : 3 à 5
+// lignes de puces passaient avant la première fiche ; repliées d'office, la liste commence tout de suite).
+export const filterToggle = (attr, open, active) => `<button class="pf-ftog${active ? ' on' : ''}" ${attr} aria-expanded="${open}">${ic('filter')}<span>${t('Filtres')}</span>${active ? `<i>${active}</i>` : ''}</button>`;
+
 function toolbarHtml(p, count, counts) {
   const n = (k) => (counts ? `<i class="dl-kn">${counts[k]}</i>` : '');
   const live = count === null ? '' : `<span class="pf-count pf-live" title="${escapeHtml(t('En direct : les nouvelles annonces arrivent toutes seules'))}">${
@@ -85,16 +91,17 @@ function toolbarHtml(p, count, counts) {
       `<button role="radio" aria-checked="${k === p.kind}" data-dl-kind="${k}">${t(l)}${n(k)}</button>`).join('')}</div>
       <div class="pf-seg dl-sorts" role="radiogroup" aria-label="${escapeHtml(t('Tri'))}">${SORTS.map(([k, l]) =>
         chip('data-dl-sort', k, t(l), k === p.sort, '', 'radio')).join('')}</div></div>
-    ${p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
+    <div class="pf-bar dl-search"><input type="search" data-dl-search placeholder="${escapeHtml(t('Chercher un item (nom, initiales ou id)'))}"
+      value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false">
+      ${filterToggle('data-dl-ftog', p.open, (p.kind === 'deals' ? p.grades.length : 0) + p.sizes.length + (p.since ? 1 : 0))}</div>
+    ${!p.open ? '' : p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
-    <div class="pf-row" role="radiogroup" aria-label="${escapeHtml(t('Depuis'))}">
+    ${p.open ? `<div class="pf-row" role="radiogroup" aria-label="${escapeHtml(t('Depuis'))}">
       <span class="pf-lbl">${t('Depuis')}</span>${SINCE.map(([k, l]) => chip('data-dl-since', k, t(l), k === p.since, '', 'radio')).join('')}</div>
-    <div class="pf-row dl-search"><input type="search" data-dl-search placeholder="${escapeHtml(t('Chercher un item (nom, initiales ou id)'))}"
-      value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false"></div>
     <div class="pf-row" role="group" aria-label="${escapeHtml(t('Taille'))}">
       <span class="pf-lbl">${t('Taille')}</span>${chip('data-dl-size', '', t('Toutes'), !p.sizes.length)}${SIZES.map(([k, l]) =>
-        chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div>
+        chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div>` : ''}
   </div>`;
 }
 
@@ -107,31 +114,32 @@ function filtered(p, data) {
 
 const ago = (at) => timeAgo(at * 1000);
 const who = (x) => escapeHtml(x.user?.name || '#' + (x.user?.id || '?'));
-const acts = (uid) => `<footer class="pf-acts">
-    <button class="pf-send" data-open="https://www.roblox.com/users/${uid}/trade">${t('Envoyer un trade')}</button>
-    <button data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's">Rolimon's</button>
-    <button data-open="https://www.roblox.com/users/${uid}/profile" title="Roblox">Roblox</button>
-  </footer>`;
+// Les actions : trois petits boutons dans l'en-tête (18 nov. : le pied de carte prenait une ligne entière).
+const acts = (uid) => `<span class="pf-qa">
+    <button class="pf-ib" data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's">R</button>
+    <button class="pf-ib" data-open="https://www.roblox.com/users/${uid}/profile" title="Roblox">${ic('user')}</button>
+    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade" title="${escapeHtml(t('Envoyer un trade'))}">${ic('send')}</button></span>`;
 const stale = (x) => (Date.now() / 1000 - x.at > STALE_S ? ' dl-old' : '');
 
 function dealHtml(d, isNew) {
   const gain = d.get_value - d.give_value;
   const pct = d.give_value ? gain / d.give_value * 100 : 0;
   const uid = Number(d.user?.id) || 0;
-  const share = d.get_value + d.give_value ? d.give_value / (d.get_value + d.give_value) * 100 : 50;
+  // 18 nov. : une ligne d'en-tête (note, gain, qui, actions), une ligne d'objets (donne → reçoit), les
+  // raisons en une ligne. Plus de barre ni de pied : ~110 px au lieu de ~180.
+  const why = (d.reasons || []).slice(0, 3);
   return `<article class="pf-card dl-card g-${escapeHtml(d.grade)}${isNew ? ' pf-new' : ''}${stale(d)}" data-dl-id="d${Number(d.id)}">
     <header class="dl-top">
       <span class="dl-grade" title="${escapeHtml(t('Note {n}/100', { n: d.score }))}"><b>${escapeHtml(d.grade)}</b><i>${Number(d.score)}</i></span>
-      <span class="dl-gain"><b>+${fmtNum(gain)}</b><small>+${pct.toFixed(pct < 10 ? 1 : 0)} % ${t('de value')}</small></span>
-      <span class="dl-who"><b>${who(d)}</b><small>${ago(d.at)}</small></span>
+      <span class="dl-gain"><b>+${fmtNum(gain)}</b><small>+${pct.toFixed(pct < 10 ? 1 : 0)} % · ${who(d)} · ${ago(d.at)}</small></span>
+      ${acts(uid)}
     </header>
-    <div class="dl-sides">
-      <div class="dl-side"><div class="dl-lbl"><span>${t('Tu donnes')}</span><b>${fmtNum(d.give_value)}</b></div>${nwTilesHtml(d.give)}</div>
-      <div class="dl-side"><div class="dl-lbl"><span>${t('Tu reçois')}</span><b class="win">${fmtNum(d.get_value)}</b></div>${nwTilesHtml(d.get)}</div>
+    <div class="ncl-sides dl-ln">
+      <div class="ncl-s"><b>${fmtNum(d.give_value)}</b>${nwTilesHtml(d.give)}</div><span class="ncl-ar">→</span>
+      <div class="ncl-s"><b class="win">${fmtNum(d.get_value)}</b>${nwTilesHtml(d.get)}</div>
     </div>
-    <div class="dl-bar" title="${escapeHtml(t('Donné face à reçu'))}"><i style="width:${share.toFixed(1)}%"></i></div>
-    ${d.reasons?.length ? `<div class="dl-why">${d.reasons.map(([good, label]) => `<span class="${good ? 'win' : 'loss'}">${escapeHtml(label)}</span>`).join('')}</div>` : ''}
-    ${acts(uid)}
+    ${why.length ? `<div class="dl-why">${why.map(([good, label]) => `<span class="${good ? 'win' : 'loss'}">${escapeHtml(label)}</span>`).join('')}${
+      d.reasons.length > why.length ? `<span class="n">+${d.reasons.length - why.length}</span>` : ''}</div>` : ''}
   </article>`;
 }
 
@@ -143,18 +151,17 @@ function robuxHtml(r, isNew) {
   return `<article class="pf-card dl-card dl-rbx${isNew ? ' pf-new' : ''}${stale(r)}" data-dl-id="r${Number(r.id)}">
     <header class="dl-top">
       <span class="dl-grade dl-r" aria-hidden="true"><b>R$</b></span>
-      <span class="dl-gain"><b>${fmtNum(r.value)}</b><small>${t('de value contre des Robux')}${r.only_robux ? '' : ' · ' + t('ou items')}</small></span>
-      <span class="dl-who"><b>${who(r)}</b><small>${ago(r.at)}</small></span>
+      <span class="dl-gain"><b>${fmtNum(r.value)}</b><small>${r.only_robux ? t('Robux seulement') : t('Robux ou items')} · ${who(r)} · ${ago(r.at)}</small></span>
+      ${acts(uid)}
     </header>
-    <div class="dl-one">${nwTilesHtml(r.get)}</div>
+    <div class="dl-rb"><div class="dl-one">${nwTilesHtml(r.get)}</div>
     <div class="dl-facts">
       <span><small>RAP</small><b>${r.rap ? fmtNum(r.rap) : 'N/A'}</b></span>
-      <span><small>${t('Moins cher sur Roblox')}</small><b>${r.market ? fmtNum(r.market) + ' R$' : t('pas en vente')}</b></span>
+      <span><small title="${escapeHtml(t('Moins cher sur Roblox'))}">${t('Catalogue')}</small><b>${r.market ? fmtNum(r.market) + ' R$' : t('pas en vente')}</b></span>
       <span><small>${t('Demande')}</small><b class="${r.demand >= 2.5 ? 'win' : r.demand < 1.5 ? 'loss' : ''}">${t(demand)}</b></span>
-    </div>
+    </div></div>
     ${vsMarket !== null && Math.abs(vsMarket) >= 5 ? `<div class="dl-why"><span class="n">${vsMarket > 0
       ? t('value {p} % au-dessus du catalogue', { p: Math.round(vsMarket) }) : t('value {p} % sous le catalogue', { p: Math.round(-vsMarket) })}</span></div>` : ''}
-    ${acts(uid)}
   </article>`;
 }
 
@@ -230,6 +237,7 @@ export function renderDeals(listEl, openOptions) {
     listEl.addEventListener('click', (e) => {
       if (listEl.dataset.tab !== 'deals') return;
       if (e.target.closest('[data-dl-options]')) { openOptions(); return; }
+      if (e.target.closest('[data-dl-ftog]')) { const q = pick(); q.open = !q.open; write(q); paint(listEl); return; }
       const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind], [data-dl-since]');
       if (!el) return;
       const p = pick();

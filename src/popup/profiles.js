@@ -27,8 +27,8 @@ import { t } from '../common/i18n.js';
 import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
-import { nwTradeCard, nwTilesHtml } from './nwcard.js';
-import { discoverSwitch } from './deals.js';
+import { nwTradeLine, nwTilesHtml } from './nwcard.js';
+import { discoverSwitch, filterToggle } from './deals.js';
 import { lockHtml } from './lock.js';
 
 const KEY = 'ronote.profiles';
@@ -62,7 +62,8 @@ function pick() {
     src: SOURCES.some(([k]) => k === p.src) ? p.src : 'both',
     // plusieurs paliers à la fois (5 novembre) ; l'ancien choix unique `tier` est repris
     tiers: (Array.isArray(p.tiers) ? p.tiers : p.tier ? [p.tier] : []).filter(k => TIERS.includes(k)),
-    min: MINS.includes(p.min) ? p.min : 0
+    min: MINS.includes(p.min) ? p.min : 0,
+    open: p.open === true                       // les filtres dépliés (repliés d'office : la liste d'abord)
   };
 }
 
@@ -93,47 +94,49 @@ const chip = (attr, value, label, on, cls = '', role = 'radio') =>
   `<button role="${role}" aria-checked="${on}" ${attr}="${escapeHtml(String(value))}"${cls ? ` class="${cls}"` : ''}>${label}</button>`;
 
 function toolbarHtml(p, count) {
-  return `<div class="pf-head">${discoverSwitch('profiles')}
+  const live = `<span class="pf-count${count === null ? '' : ' pf-live'}" title="${escapeHtml(t('En direct : les nouveaux profils arrivent tout seuls'))}">${count === null ? '' : t('{n} profils', { n: count })}</span>`;
+  return `<div class="pf-head">${discoverSwitch('profiles', live)}
     <div class="pf-bar"><div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${SOURCES.map(([k, label]) =>
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
-      <span class="pf-count${count === null ? '' : ' pf-live'}" title="${escapeHtml(t('En direct : les nouveaux profils arrivent tout seuls'))}">${count === null ? '' : t('{n} profils', { n: count })}</span></div>
-    <div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
+      ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0))}</div>
+    ${p.open ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       ${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
         chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
     <div class="pf-row pf-min" role="radiogroup" aria-label="${escapeHtml(t('Inventaire minimum'))}">
       <span class="pf-lbl">${t('Inventaire')}</span>${MINS.map(v =>
-        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div>
+        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div>` : ''}
   </div>`;
 }
 
-/** Une fiche, comme sur Discord : qui, le trade qui l'a révélé ou son annonce, et les liens. */
+/**
+ * Une fiche (refaite le 18 nov., « moins d'infos, plus propre ») : une ligne d'en-tête (avatar au
+ * liseré du palier, nom, palier, RoNote, value, et les actions en petits boutons), puis UNE ligne de
+ * contenu : le trade qui l'a révélé, ou son annonce (Propose → Cherche). ~95 px au lieu de ~190.
+ */
+const linkBtn = (url, label, title) => `<button class="pf-ib" data-open="${url}" title="${escapeHtml(title)}">${label}</button>`;
 function cardHtml(p, both, isNew = false) {
   const id = Number(p.id);
   const name = escapeHtml(p.name || '#' + id);
   const ads = !p.ads ? t('aucune annonce') : p.ads === 1 ? t('1 annonce') : t('{n} annonces', { n: fmtNum(p.ads) });
   const av = p.thumb
-    ? `<img class="pf-av" src="${escapeHtml(p.thumb)}" alt="" width="36" height="36" loading="lazy" decoding="async">`
+    ? `<img class="pf-av" src="${escapeHtml(p.thumb)}" alt="" width="28" height="28" loading="lazy" decoding="async">`
     : `<span class="pf-av" aria-hidden="true">${escapeHtml((p.name || '?').slice(0, 1).toUpperCase())}</span>`;
-  const ad = (p.offering?.length || p.wanting?.length) && !p.last ? `<div class="pf-ad">
-      <div class="pf-ad-s"><span class="pf-ad-l win">${t('Propose')}</span>${nwTilesHtml(p.offering)}</div>
-      <div class="pf-ad-s"><span class="pf-ad-l loss">${t('Cherche')}</span>${nwTilesHtml(p.wanting)}</div>
-    </div>` : '';
-  const trade = p.last ? nwTradeCard({ ...p.last, partner: p.partner }, true) : '';
+  const ad = (p.offering?.length || p.wanting?.length) && !p.last ? `<div class="ncl"><div class="ncl-sides">
+      <div class="ncl-s"><b class="win">${t('Propose')}</b>${nwTilesHtml(p.offering)}</div><span class="ncl-ar">⇄</span>
+      <div class="ncl-s"><b class="loss">${t('Cherche')}</b>${nwTilesHtml(p.wanting)}</div></div></div>` : '';
+  const trade = p.last ? nwTradeLine({ ...p.last, partner: p.partner }) : '';
+  const meta = [ads, timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
   return `<article class="pf-card${isNew ? ' pf-new' : ''}" data-pf-id="${id}">
     <header class="pf-top">
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
-      <span class="pf-id"><span class="pf-nl"><b>${name}</b>${p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}</span>
-        <small>${ads} · ${timeAgo(p.at * 1000)}</small></span>
-      <span class="pf-side"><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>
-        ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}</span>
+      <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>${
+        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}</span>
+        <small>${meta}</small></span>
+      ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}
+      <span class="pf-qa">${linkBtn(`https://www.rolimons.com/player/${id}`, 'R', "Rolimon's")}${linkBtn(`https://www.roblox.com/users/${id}/profile`, ic('user'), 'Roblox')}
+        <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${id}/trade" title="${escapeHtml(t('Envoyer un trade'))}">${ic('send')}</button></span>
     </header>
     ${trade}${ad}
-    <footer class="pf-acts">
-      <button class="pf-send" data-open="https://www.roblox.com/users/${id}/trade">${ic('send')} ${t('Envoyer un trade')}</button>
-      <button data-open="https://www.roblox.com/users/${id}/profile" title="Roblox">Roblox</button>
-      <button data-open="https://www.rolimons.com/player/${id}" title="Rolimon's">Rolimon's</button>
-      ${both ? `<span class="pf-src">${p._kind === 'neuronal' ? 'Neuronal' : t('Classique')}</span>` : ''}
-    </footer>
   </article>`;
 }
 
@@ -262,6 +265,7 @@ export function renderProfiles(listEl, openOptions) {
       if (listEl.dataset.tab !== 'profiles') return;
       if (e.target.closest('[data-pf-options]')) { openOptions(); return; }
       if (e.target.closest('.pf-pill')) { listEl.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      if (e.target.closest('[data-pf-ftog]')) { const p = pick(); p.open = !p.open; delete p.tier; write(p); load(listEl); return; }
       const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min]');
       if (!el) return;
       const p = pick();

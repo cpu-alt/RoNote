@@ -33,6 +33,23 @@ export function nwTilesHtml(items, more = 0, robux = 0) {
   return `<div class="nc-tiles">${tiles.join('') || '<span class="nc-none">N/A</span>'}</div>`;
 }
 
+/**
+ * La variante compacte (fiches Profils, 18 nov.) : une ligne d'en-tête (avec qui, quand, le gain), puis
+ * les deux côtés en petites vignettes séparés d'une flèche, leur total au-dessus. Rien d'autre.
+ */
+export function nwTradeLine(tr) {
+  if (!tr) return '';
+  const delta = (tr.got || 0) - (tr.gave || 0);
+  const side = (items, more, robux, total) => `<div class="ncl-s"><b>${total ? fmtNum(total) : 'N/A'}</b>${nwTilesHtml(items, more, robux)}</div>`;
+  return `<div class="ncl">
+    <div class="ncl-h"><span class="nc-who">${t('avec {who}', { who: `<b>${who(tr.partner)}</b>` })}</span>
+      ${tr.parts > 1 ? `<span class="nw-tag">mass ×${tr.parts}</span>` : ''}
+      <span class="nc-ago">${tr.at ? timeAgo(tr.at * 1000) : ''}</span>
+      ${tr.got || tr.gave ? `<span class="jr-pill ${toneOf(delta)}">${fmtSigned(delta)}</span>` : ''}</div>
+    <div class="ncl-sides">${side(tr.gave_items, tr.gave_more, tr.gave_robux, tr.gave)}<span class="ncl-ar">→</span>${side(tr.got_items, tr.got_more, tr.got_robux, tr.got)}</div>
+  </div>`;
+}
+
 export function nwTradeCard(tr, mine = false) {
   if (!tr) return '';
   const side = (label, items, more, robux, total) => `<div class="nc-side">

@@ -5,6 +5,13 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Cartes refaites, plus compactes** (popup) : une carte de trade passe d'environ 200 à 115 px (l'écart en valeur
+  et en % dans la pastille d'en-tête, plus d'encadré du verdict ni d'intitulés « Vous donnez / recevez », vignettes
+  de 32 px, une info sous chaque total, 3 étiquettes au plus) ; le zoom garde tout. **Profils** et **Deals** :
+  filtres repliés derrière « Filtres » (le nombre de filtres actifs en pastille, l'état retenu), fiches d'une
+  ligne d'en-tête (palier, RoNote, value, et Rolimon's / Roblox / Envoyer un trade en petits boutons), une ligne
+  de trade ou d'annonce (total au-dessus de vignettes de 24 px), plus de pied de carte ; un deal ~115 px au lieu
+  de ~180, un profil ~105 au lieu de ~190 ; la carte Robux met vignette et chiffres sur une ligne.
 - **Envoi rapide** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une ligne discrète
   sous le titre, « Recent » et les petites vignettes de **tes objets récents**, ceux que tu as mis de ton côté dans
   tes derniers envois (un par objet, le plus récent d'abord, le nombre de fois en coin, liseré violet s'il a déjà

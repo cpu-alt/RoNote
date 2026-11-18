@@ -479,7 +479,7 @@ function tilesHtml(side) {
 }
 
 /** Un côté du trade : ses objets, son total, puis le RAP, les Robux et les objets sans cote. */
-function sideHtml(title, side, a, incoming) {
+function sideHtml(title, side, a, incoming, { compact = false } = {}) {
   // Un côté dont on ne connaît aucun objet ne vaut pas zéro : il vaut
   // « on ne sait pas ». Afficher 0 serait un mensonge par arrondi.
   const blind = side.itemCount > 0 && side.unknownCount === side.itemCount && !side.robux;
@@ -492,10 +492,18 @@ function sideHtml(title, side, a, incoming) {
   if (side.unknownCount) {
     sub.push(`<span class="tc-unk" title="${escapeHtml((side.unknownItems || []).join(', '))}">${t('+{n} sans cote', { n: side.unknownCount })}</span>`);
   }
+  const amt = blind ? '<span class="tc-blind">N/A</span>' : fmtFull(mainOf(side, a));
+  if (compact) {
+    // Carte (18 nov., « moins d'infos, plus net ») : vignettes, puis le total et UNE info en petit.
+    return `<div class="tc-side ${incoming ? 'get' : 'give'}" title="${escapeHtml(title)}">
+      ${tilesHtml(side)}
+      <div class="tc-amt">${amt}${sub.length ? ` <small>${sub[0]}</small>` : ''}</div>
+    </div>`;
+  }
   return `<div class="tc-side ${incoming ? 'get' : 'give'}">
     <div class="tc-side-h">${title}</div>
     ${tilesHtml(side)}
-    <div class="tc-amt">${blind ? '<span class="tc-blind">N/A</span>' : fmtFull(mainOf(side, a))}</div>
+    <div class="tc-amt">${amt}</div>
     <div class="tc-sub">${sub.join(' · ')}</div>
   </div>`;
 }
@@ -528,7 +536,7 @@ function balanceHtml(a, { big = false } = {}) {
  * communautaire : elle bouge, elle peut s'éloigner des ventes réelles, et elle
  * peut contredire le RAP. On le dit au lieu de le masquer derrière un total.
  */
-function flagsHtml(a) {
+function flagsHtml(a, { max = 0 } = {}) {
   const chips = [];
   if (a.divergent) {
     chips.push(`<span class="chip mixed" title="${escapeHtml(t("La cote communautaire et les ventes réelles ne vont pas dans le même sens : trancher reviendrait à parier sur l'une des deux."))}">${ic('scale')} ${t('Value {a} vs RAP {b}', { a: fmtPct(a.pctValue), b: fmtPct(a.pctRap) })}</span>`);
@@ -555,7 +563,10 @@ function flagsHtml(a) {
   if (a.valueStale) {
     chips.push(`<span class="chip stale" title="${escapeHtml(t("La table Rolimon's n'a pas pu être rafraîchie : les cotes affichées peuvent avoir été révisées depuis."))}">${ic('clock')} ${t('Cotes non actualisées')}</span>`);
   }
-  return chips.length ? `<div class="flags">${chips.join('')}</div>` : '';
+  if (!chips.length) return '';
+  const cut = max && chips.length > max ? max - 1 : chips.length;
+  const more = chips.length - cut;
+  return `<div class="flags">${chips.slice(0, cut).join('')}${more ? `<span class="chip more">+${more}</span>` : ''}</div>`;
 }
 
 /* --------------------------- détail des objets -------------------------- */
@@ -612,7 +623,9 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     ? `<button class="tc-btn ctr" data-ctr="${c.tradeId}" title="${escapeHtml(t('Contre-offre'))}">${ic('counter')}</button>`
     : '';
   const verdict = a
-    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${verdictIcon(c.verdict)} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
+    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}${a.hasValues && a.basis === 'value' && !a.incomplete ? escapeHtml(` · RAP ${fmtSigned(a.deltaRap)} (${fmtPct(a.pctRap)})`) : ''}">${verdictIcon(c.verdict)} ${a.incomplete
+      ? escapeHtml(t('sans cote'))
+      : `<b>${fmtSigned(a.deltaMain)}</b><span class="tc-pill-p">${fmtPct(a.pctMain)}</span>`}</span>`
     : '';
   // Pas de numéro de trade ici : ses 16 chiffres mangeaient le statut. Il
   // reste dans le zoom.
@@ -651,12 +664,11 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
       ${head}
       ${counter}
       <div class="tc-swap">
-        ${sideHtml(t('Vous donnez'), a.give, a, false)}
-        <div class="tc-mid">${ic('swap')}</div>
-        ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true)}
+        ${sideHtml(t('Vous donnez'), a.give, a, false, { compact: true })}
+        <div class="tc-mid ${tone}">${ic('swap')}</div>
+        ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true, { compact: true })}
       </div>
-      ${balanceHtml(a)}
-      ${flagsHtml(a)}
+      ${flagsHtml(a, { max: 3 })}
     </div>
   </article>`;
 }
