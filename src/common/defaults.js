@@ -83,6 +83,7 @@ export const DEFAULTS = {
   profilePanel: true,         // Tenue, Store, Jeux, Collections rangés dans un panneau (clic sur l'avatar)
   profileChart: true,         // courbe Rolimon's de la value sur la carte
   profileTrades: true,        // derniers trades du joueur (RoNote premium Insider / Elite)
+  sentHistory: false,         // page d'envoi d'un trade : mes derniers objets envoyes (Insider / Elite, desactive par defaut)
   bannerGain: '#3fbf7f',      // bandeau des ecarts sur la page Roblox : couleur d'un gain (theme Neuronal)
   bannerLoss: '#f0565e',      // ... d'une perte
   bannerStyle: 'soft',        // soft | vivid | neon | solid

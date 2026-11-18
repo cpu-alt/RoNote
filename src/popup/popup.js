@@ -9,16 +9,12 @@ import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
-import { renderCoin, coinKey } from './coinflip.js';
 import { renderProfiles } from './profiles.js';
 import { renderDeals } from './deals.js';
-import { renderTradeAds } from './tradeads.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
-import { openShare } from './share.js';
-import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
 import { fluidHover } from '../common/fluid.js';
 import {
@@ -29,6 +25,18 @@ import {
 // Ouvert dans la barre laterale (reglage `sidePanel`) : la page prend toute
 // la place offerte au lieu des 420 x 600 du popup.
 const IN_PANEL = new URLSearchParams(location.search).has('panel');
+
+/*
+ * Chargés à la demande (18 nov.) : pile ou face, trade ads, la feuille de partage (avec son encodeur GIF
+ * et ses fonds) et l'éditeur de contre-offre font ~90 Ko qu'on n'ouvre que rarement. Ils ne sont plus
+ * lus à chaque ouverture du popup, seulement la première fois qu'on en a besoin (puis gardés).
+ * Une fois chargé, chacun reste dans sa variable : les écouteurs synchrones (clavier) s'en servent.
+ */
+const lazy = (load) => { let p = null; const get = () => (p ||= load().then(m => (get.mod = m))); return get; };
+const coinMod = lazy(() => import('./coinflip.js'));
+const tradeAdsMod = lazy(() => import('./tradeads.js'));
+const shareMod = lazy(() => import('./share.js'));
+const counterMod = lazy(() => import('./counter.js'));
 if (IN_PANEL) document.documentElement.classList.add('in-panel');
 // Fenetre courante, lue d'avance : `sidePanel.open()` exige le geste de
 // l'utilisateur, et l'attendre au moment du clic le ferait perdre.
@@ -479,7 +487,7 @@ function tilesHtml(side) {
 }
 
 /** Un côté du trade : ses objets, son total, puis le RAP, les Robux et les objets sans cote. */
-function sideHtml(title, side, a, incoming) {
+function sideHtml(title, side, a, incoming, { compact = false } = {}) {
   // Un côté dont on ne connaît aucun objet ne vaut pas zéro : il vaut
   // « on ne sait pas ». Afficher 0 serait un mensonge par arrondi.
   const blind = side.itemCount > 0 && side.unknownCount === side.itemCount && !side.robux;
@@ -492,10 +500,18 @@ function sideHtml(title, side, a, incoming) {
   if (side.unknownCount) {
     sub.push(`<span class="tc-unk" title="${escapeHtml((side.unknownItems || []).join(', '))}">${t('+{n} sans cote', { n: side.unknownCount })}</span>`);
   }
+  const amt = blind ? '<span class="tc-blind">N/A</span>' : fmtFull(mainOf(side, a));
+  if (compact) {
+    // Carte (18 nov., « moins d'infos, plus net ») : vignettes, puis le total et UNE info en petit.
+    return `<div class="tc-side ${incoming ? 'get' : 'give'}" title="${escapeHtml(title)}">
+      ${tilesHtml(side)}
+      <div class="tc-amt">${amt}${sub.length ? ` <small>${sub[0]}</small>` : ''}</div>
+    </div>`;
+  }
   return `<div class="tc-side ${incoming ? 'get' : 'give'}">
     <div class="tc-side-h">${title}</div>
     ${tilesHtml(side)}
-    <div class="tc-amt">${blind ? '<span class="tc-blind">N/A</span>' : fmtFull(mainOf(side, a))}</div>
+    <div class="tc-amt">${amt}</div>
     <div class="tc-sub">${sub.join(' · ')}</div>
   </div>`;
 }
@@ -528,7 +544,7 @@ function balanceHtml(a, { big = false } = {}) {
  * communautaire : elle bouge, elle peut s'éloigner des ventes réelles, et elle
  * peut contredire le RAP. On le dit au lieu de le masquer derrière un total.
  */
-function flagsHtml(a) {
+function flagsHtml(a, { max = 0 } = {}) {
   const chips = [];
   if (a.divergent) {
     chips.push(`<span class="chip mixed" title="${escapeHtml(t("La cote communautaire et les ventes réelles ne vont pas dans le même sens : trancher reviendrait à parier sur l'une des deux."))}">${ic('scale')} ${t('Value {a} vs RAP {b}', { a: fmtPct(a.pctValue), b: fmtPct(a.pctRap) })}</span>`);
@@ -555,7 +571,10 @@ function flagsHtml(a) {
   if (a.valueStale) {
     chips.push(`<span class="chip stale" title="${escapeHtml(t("La table Rolimon's n'a pas pu être rafraîchie : les cotes affichées peuvent avoir été révisées depuis."))}">${ic('clock')} ${t('Cotes non actualisées')}</span>`);
   }
-  return chips.length ? `<div class="flags">${chips.join('')}</div>` : '';
+  if (!chips.length) return '';
+  const cut = max && chips.length > max ? max - 1 : chips.length;
+  const more = chips.length - cut;
+  return `<div class="flags">${chips.slice(0, cut).join('')}${more ? `<span class="chip more">+${more}</span>` : ''}</div>`;
 }
 
 /* --------------------------- détail des objets -------------------------- */
@@ -612,7 +631,9 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
     ? `<button class="tc-btn ctr" data-ctr="${c.tradeId}" title="${escapeHtml(t('Contre-offre'))}">${ic('counter')}</button>`
     : '';
   const verdict = a
-    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}">${verdictIcon(c.verdict)} ${a.incomplete ? escapeHtml(t('sans cote')) : fmtPct(a.pctMain)}</span>`
+    ? `<span class="tc-pill ${tone}" title="${escapeHtml(t(c.verdict?.label || ''))}${a.hasValues && a.basis === 'value' && !a.incomplete ? escapeHtml(` · RAP ${fmtSigned(a.deltaRap)} (${fmtPct(a.pctRap)})`) : ''}">${verdictIcon(c.verdict)} ${a.incomplete
+      ? escapeHtml(t('sans cote'))
+      : `<b>${fmtSigned(a.deltaMain)}</b><span class="tc-pill-p">${fmtPct(a.pctMain)}</span>`}</span>`
     : '';
   // Pas de numéro de trade ici : ses 16 chiffres mangeaient le statut. Il
   // reste dans le zoom.
@@ -651,12 +672,11 @@ function cardHtml(c, { outbound = false, enter = false } = {}) {
       ${head}
       ${counter}
       <div class="tc-swap">
-        ${sideHtml(t('Vous donnez'), a.give, a, false)}
-        <div class="tc-mid">${ic('swap')}</div>
-        ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true)}
+        ${sideHtml(t('Vous donnez'), a.give, a, false, { compact: true })}
+        <div class="tc-mid ${tone}">${ic('swap')}</div>
+        ${sideHtml(t(outbound ? 'Vous demandez' : 'Vous recevez'), a.get, a, true, { compact: true })}
       </div>
-      ${balanceHtml(a)}
-      ${flagsHtml(a)}
+      ${flagsHtml(a, { max: 3 })}
     </div>
   </article>`;
 }
@@ -890,9 +910,9 @@ document.addEventListener('keydown', (e) => {
     if (to) { e.preventDefault(); to.click(); return; }
     if (key === 'r') { e.preventDefault(); $('#btn-refresh').click(); return; }
   }
-  if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinKey(listEl, e);
+  if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinMod.mod?.coinKey(listEl, e);
   if (e.key !== 'Escape') return;
-  if (counterOpen()) closeCounterEditor();
+  if (counterMod.mod?.counterOpen()) counterMod.mod.closeCounterEditor();
   else if (zoom) closeZoom();
   else if (side) closePlayer();
 });
@@ -973,7 +993,7 @@ function openCounter(tradeId) {
   const card = findCard(tradeId)?.card;
   if (!card?.analysis || !Number(card.partner?.id)) { B.tabs.create({ url: tradeUrl(tradeId) }); return; }
   closeZoom();   // le zoom du trade laisse la place à l'éditeur
-  openCounterEditor(card, {
+  counterMod().then(({ openCounterEditor }) => openCounterEditor(card, {
     settings: data.settings,
     balanceHtml,
     avatarHtml,
@@ -984,7 +1004,7 @@ function openCounter(tradeId) {
       renderHeader();
       renderList();
     }
-  });
+  }));
 }
 
 /** Ce qu'affiche un bouton de geste, au repos et armé. `act` : nix (refuser/annuler) ou ok (accepter). */
@@ -2114,14 +2134,14 @@ function walletFlexData(anon = false) {
 
 /** La feuille de partage (share.js), avec ce que le popup sait du compte. */
 function openSharing(mode = 'wallet') {
-  return openShare(mode, {
+  return shareMod().then(({ openShare }) => openShare(mode, {
     walletCard: walletFlexData,
     series: walletSeries(),   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
     history: data.history,
     historyLimit: data.settings?.historyLimit,
     anon: hideAmounts(),
     close: closeZoom
-  });
+  }));
 }
 
 /* ============================= portefeuille ============================= */
@@ -2763,13 +2783,13 @@ function renderList() {
   if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
   // La pièce ne se redessine qu'en arrivant sur l'onglet : un rafraîchissement
   // de fond couperait un lancer en plein vol.
-  if (tab === 'coin') { lastListSig = ''; if (entering) renderCoin(listEl); return; }
+  if (tab === 'coin') { lastListSig = ''; if (entering) coinMod().then(({ renderCoin }) => { if (tab === 'coin') renderCoin(listEl); }); return; }
   // Les profils se relisent en arrivant sur l'onglet seulement (gardés 2 min par le worker).
   if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
   // Le Deal Sniper : relu en arrivant, puis chaque minute tant que l'onglet est affiché (deals.js).
   if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
   // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
-  if (tab === 'tradeads') { lastListSig = ''; if (entering) renderTradeAds(listEl, data.report); return; }
+  if (tab === 'tradeads') { lastListSig = ''; if (entering) tradeAdsMod().then(({ renderTradeAds }) => { if (tab === 'tradeads') renderTradeAds(listEl, data.report); }); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;

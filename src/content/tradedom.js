@@ -354,7 +354,8 @@ function partnerHandle() {
 const OFFER_HEAD = /^(?:your offer|votre offre|ton offre)$/i;
 const REQUEST_HEAD = /^(?:your request|votre demande|ta demande)$/i;
 const TOTAL_LABEL = /^(?:Total Value|Valeur totale)\s*:?$/i;
-const TRADE_WITH = /^(?:trade with|échanger avec|echanger avec)\b/i;
+// « Counter … » : le titre de l'écran de counter (envoi rapide, sent-history.js), selon la version de Roblox.
+const TRADE_WITH = /^(?:trade with|counter(?:\s+(?:offer|trade))?(?:\s+(?:with|to))?|échanger avec|echanger avec|contre-offre)\b/i;
 // Les deux inventaires de la colonne de gauche : le bandeau se pose sur le
 // séparateur qui les divise.
 const MY_INVENTORY = /^(?:your inventory|ton inventaire|votre inventaire)$/i;
@@ -600,6 +601,8 @@ function signatureOf(page) {
 globalThis.RoNoteDom = {
   ITEM_LINK, USER_LINK,
   idOf, nameOf, groupLinks, partnerHandle, readTradePage, plain, signatureOf, visibleAnalysis, phaseOf,
-  inventoryItems
+  inventoryItems, composerTitle,
+  theirInventoryHeading: () => visibleText(MY_INVENTORY) && visibleText(THEIR_INVENTORY),
+  myInventoryHeading: () => visibleText(MY_INVENTORY)
 };
 })();

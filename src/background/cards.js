@@ -186,6 +186,9 @@ export const knownDetails = () => [...memDetails.entries()]
 /** Le detail brut d'un trade s'il est deja en cache, sans aucun appel. */
 export const cachedDetail = (id) => memDetails.get(Number(id))?.detail || null;
 
+/** Les fiches gardees (apres loadDetailCache), sans aucun appel : l'historique d'envoi (sent.js). */
+export const cachedCards = () => [...memDetails.values()].map(r => r.card).filter(Boolean);
+
 /* ============================== cartes ================================= */
 
 /** Ce dont depend l'analyse d'un trade : la table des cotes et deux reglages. */

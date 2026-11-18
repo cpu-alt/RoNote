@@ -104,6 +104,7 @@ try {
   await import('../src/background/premium.js');
   await import('../src/background/tradeads.js');
   await import('../src/background/proof.js');
+  await import('../src/background/sent.js');
   await import('../src/options/capture.js');
 
   group('Modules');
@@ -798,6 +799,7 @@ try {
     await import('../src/popup/deals.js');
     await import('../src/popup/tradeads.js');
     await import('../src/popup/nwcard.js');
+    await import('../src/popup/itemfilter.js');
     await import('../src/popup/lock.js');
     await import('../src/options/premium.js');
     await import('../src/popup/overlay.js');

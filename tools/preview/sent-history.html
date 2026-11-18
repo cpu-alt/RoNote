@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperçu : envoi rapide</title>
+<style>
+  body{margin:0;background:#330060;font-family:"Builder Sans",Arial,sans-serif;color:#fff}
+  .page{max-width:1000px;margin:0 auto;padding:24px 16px}
+  h1{font-size:32px;margin:0 0 30px}
+  h1 span{color:#b7a8d6;font-weight:600}
+  h2{font-size:20px;margin:30px 0 10px}
+  .row{display:flex;flex-wrap:wrap;gap:8px}
+  .card{width:90px;padding:6px;border-radius:8px;background:rgba(255,255,255,.08);cursor:pointer;font-size:11px}
+  .card .th{height:60px;border-radius:6px;background:rgba(255,255,255,.12)}
+  .offer{min-height:80px;padding:8px;border:1px dashed rgba(255,255,255,.3);border-radius:8px}
+  .tools{position:fixed;right:12px;bottom:12px;display:flex;gap:6px}
+  .tools button{padding:6px 10px;border-radius:8px;border:0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Trade with xxeeuss <span>@xxeeuss</span></h1>
+  <div class="trade-inventory-panel"><h2>Your Inventory</h2><div class="row" id="inv"></div></div>
+  <div class="trade-inventory-panel"><h2 id="theirs">xxeeuss's Inventory</h2>
+    <div class="row"><div class="card trade-inventory-card" role="button"><a href="/catalog/1001/x"><div class="th"></div></a>Valkyrie Helm</div></div></div>
+  <h2>Your Offer</h2>
+  <div class="offer row trade-request-window-offer" id="offer"></div>
+</div>
+<div class="tools"><button data-v="rows">Données</button><button data-v="locked">Verrouillé</button><button data-v="empty">Vide</button></div>
+<script>
+  // Aperçu hors extension : l'API de l'extension et RoNoteDom sont simulés, l'URL imite la page d'envoi.
+  history.replaceState(null, '', '/users/111/trade' + location.search);
+  const it = (n, v, a, extra = {}) => ({ name: n, value: v, assetId: a, thumb: null, acronym: n.split(' ').map(w => w[0]).join(''), ...extra });
+  const now = Date.now();
+  const ITEMS = [it('Valkyrie Helm', 52000, 1001, { n: 3, withThem: true }), it('Sparkle Time Fedora', 31000, 1002, { n: 2, withThem: true, projected: true }),
+    it('Clockwork Shades', 18000, 1003, { n: 1, rare: true }), it('Red Sparkle Time Fedora', 9000, 1004, { n: 4 }), it('Bombastic Hat', 4000, 1005, { n: 1 }),
+    it('Dominus Messor', 210000, 1006, { n: 1, withThem: true }), it('Ice Crown', 2500, 1007, { n: 2 })];
+  const VIEWS = {
+    rows: { partnerId: 111, items: ITEMS, rows: [
+      { id: '1', at: now - 40 * 60e3, partnerId: 111, handle: 'xxeeuss', status: 'open', give: ITEMS.slice(0, 2), value: 83000, robux: 0 },
+      { id: '3', at: now - 3 * 3600e3, partnerId: 222, handle: 'tradeking_09', status: 'accepted', give: ITEMS.slice(2, 6), value: 35600, robux: 0 }
+    ] },
+    locked: { locked: 'subscribe' },
+    empty: { partnerId: 111, items: [], rows: [] }
+  };
+  // Mon inventaire simulé, comme la vraie page : des .trade-inventory-card (role=button) dont la vignette est
+  // dans un lien ; Entrée ajoute l'objet à l'offre (.trade-request-item + .thumbnail-2d-container).
+  // Dominus Messor n'y est pas (« plus dans ton inventaire »).
+  const inv = document.getElementById('inv'), offer = document.getElementById('offer');
+  // Deux copies de Valkyrie Helm ; une copie ajoutée devient « is-unavailable », comme sur Roblox.
+  for (const i of [ITEMS[0], ...ITEMS.filter(i => i.assetId !== 1006)]) {
+    const c = document.createElement('div');
+    c.className = 'card trade-inventory-card'; c.setAttribute('role', 'button');
+    c.innerHTML = `<a href="/catalog/${i.assetId}/x"><div class="th"></div></a>${i.name}`;
+    c.addEventListener('keydown', (e) => { if (e.key !== 'Enter' || c.classList.contains('is-unavailable')) return;
+      c.classList.add('is-unavailable'); c.style.opacity = .4;
+      const r = document.createElement('div'); r.className = 'card trade-request-item';
+      r.innerHTML = `<span class="thumbnail-2d-container"></span>${i.name} <button aria-label="Remove ${i.name}">×</button>`;
+      r.querySelector('button').onclick = () => { r.remove(); c.classList.remove('is-unavailable'); c.style.opacity = ''; };
+      offer.append(r); });
+    inv.append(c);
+  }
+  const cards = (root) => [...root.querySelectorAll('.card')].map(card => ({ assetId: Number(card.dataset.a), bundleId: 0, name: card.textContent, card }));
+  let view = new URLSearchParams(location.search).get('v') || 'rows';
+  const listeners = [];
+  globalThis.chrome = {
+    runtime: { id: 'preview', sendMessage: async (m) => m.type === 'ronote:sent-history' ? VIEWS[view] : { ok: true } },
+    storage: { local: { get: async () => ({ settings: { sentHistory: true } }), set: async () => {} },
+      onChanged: { addListener: (f) => listeners.push(f) } }
+  };
+  globalThis.RoNoteDom = {
+    composerTitle: () => document.querySelector('h1'),
+    theirInventoryHeading: () => document.getElementById('theirs'),
+    readTradePage: () => ({ composer: true, sides: [{ role: 'give', root: offer, items: cards(offer) }, { role: 'get', root: document.body, items: [] }] }),
+    inventoryItems: () => cards(document.querySelector('.page')).filter(c => !offer.contains(c.card))
+  };
+  document.querySelectorAll('.tools button').forEach(b => b.onclick = () => {
+    view = b.dataset.v;
+    listeners.forEach(f => f({ settings: { newValue: { sentHistory: false } } }, 'local'));
+    listeners.forEach(f => f({ settings: { newValue: { sentHistory: true } } }, 'local'));
+  });
+</script>
+<script src="/src/content/sent-history.js"></script>
+</body>
+</html>

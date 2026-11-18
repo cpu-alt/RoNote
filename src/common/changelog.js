@@ -16,6 +16,90 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.24',
+    title: item("Badge Verified de Rolimon's", "Rolimon's Verified badge"),
+    items: [
+      item("Profils : « Non vérifié » sur les joueurs qui n'ont pas le badge Verified sur leur profil Rolimon's.",
+        "Profiles: « Unverified » on players without the Verified badge on their Rolimon's profile.")
+    ]
+  },
+  {
+    version: '2.17.23',
+    title: item('Items surveillés : Discord + RoNote', 'Watched items: Discord + RoNote'),
+    items: [
+      item("Le filtre par items de Profils est ton filtre « RoNote » de Profile discovery sur Discord : la même liste ici et là-bas, et tu reçois les DM quand un joueur correspond.",
+        "The Profiles item filter is your « RoNote » Profile discovery filter on Discord: the same list here and there, and you get DMs when a player matches.")
+    ]
+  },
+  {
+    version: '2.17.22',
+    title: item('Popup plus léger', 'Lighter popup'),
+    items: [
+      item("Le popup s'ouvre plus vite : pile ou face, trade ads, le partage d'image et la contre-offre ne se chargent qu'au moment où tu les ouvres.",
+        "The popup opens faster: coin flip, trade ads, image sharing and the counter offer only load when you open them.")
+    ]
+  },
+  {
+    version: '2.17.21',
+    title: item('Déjà tradé avec lui', 'Already traded with them'),
+    items: [
+      item("Profils et Deals : une pastille « Tradé ×n » (ou « Contacté ×n ») sur les joueurs que tu connais déjà, avec ton bilan au survol.",
+        "Profiles and Deals: a « Traded ×n » (or « Contacted ×n ») badge on players you already know, with your net on hover.")
+    ]
+  },
+  {
+    version: '2.17.20',
+    title: item('Préparer le trade', 'Prepare the trade'),
+    items: [
+      item("Deals et Profils : le bouton d'envoi ouvre la page d'échange avec les items déjà ajoutés des deux côtés (ce que tu donnes, ce que tu reçois).",
+        "Deals and Profiles: the send button opens the trade page with the items already added on both sides (what you give, what you get)."),
+      item("L'envoi rapide apparaît aussi sur l'écran de counter d'un trade reçu (/trades/…/counter).",
+        "Quick add also shows on the counter screen of a received trade (/trades/…/counter).")
+    ]
+  },
+  {
+    version: '2.17.19',
+    title: item('Filtrer par items', 'Filter by items'),
+    items: [
+      item("Profils, Deals et Robux : choisis un ou plusieurs items (suggestions du catalogue avec vignette et value) et le côté où ils doivent être (tu reçois / tu donnes, possède / cherche).",
+        "Profiles, Deals and Robux: pick one or more items (catalog suggestions with thumbnail and value) and the side they must be on (you get / you give, owns / looks for)."),
+      item("Les items choisis restent visibles en puces sous la barre, même filtres repliés ; un clic les retire.",
+        "Picked items stay visible as chips under the bar, even with filters folded; one click removes them.")
+    ]
+  },
+  {
+    version: '2.17.18',
+    title: item('Cartes plus compactes', 'Tighter cards'),
+    items: [
+      item("Cartes de trades plus compactes : l'écart en valeur et en % dans la pastille d'en-tête, une ligne d'objets, les étiquettes sur une ligne. Le détail complet reste dans le zoom.",
+        "Tighter trade cards: the gap in value and % in the header pill, one row of items, tags on one line. The full detail stays in the zoom."),
+      item("Profils et Deals : filtres repliés derrière un bouton « Filtres » (avec le nombre de filtres actifs), fiches d'une ligne d'en-tête avec les actions en petits boutons, vignettes plus petites.",
+        "Profiles and Deals: filters folded behind a « Filters » button (with the number of active filters), one-line card headers with the actions as small buttons, smaller tiles.")
+    ]
+  },
+  {
+    version: '2.17.17',
+    title: item('Envoi rapide', 'Quick add'),
+    items: [
+      item("Plusieurs copies : chaque clic en ajoute une de plus, un clic droit en retire une ; un compteur vert dit combien sont dans ton offre.",
+        "Several copies: each click adds one more, a right-click removes one; a green counter shows how many are in your offer."),
+      item("Plus rapide : des clics rapides s'enchaînent sans relancer la recherche.",
+        "Faster: quick clicks chain without searching again."),
+      item("Aussi quand tu contres un trade : la ligne de tes objets récents apparaît sur l'écran de counter, et le counter envoyé rejoint la liste.",
+        "Also when you counter a trade: your recent items row shows on the counter screen, and the sent counter joins the list."),
+      item("Les vignettes portent un mini badge Projected (à la couleur de tes réglages) et une marque pour un objet rare ; nom, value et nombre de fois s'affichent dans la ligne au survol.",
+        "Tiles carry a mini Projected badge (in your settings' colour) and a mark for a rare item; name, value and count show in the row on hover."),
+      item("Un objet déjà dans ton offre est coché et atténué ; un second clic le retire.",
+        "An item already in your offer is ticked and dimmed; a second click removes it."),
+      item("La liste reprend aussi tes trades déjà envoyés (en cours, refusés, expirés), pas seulement ceux envoyés depuis l'activation.",
+        "The list now also picks up the trades you already sent (open, declined, expired), not just those sent since you turned it on."),
+      item("Un clic ajoute l'objet même s'il n'est pas sur la page affichée de ton inventaire : RoNote le cherche pour toi.",
+        "One click adds the item even when it isn't on the shown page of your inventory: RoNote searches for it."),
+      item("Insider et Elite : sous « Trade with … », une ligne discrète avec tes objets récents (ceux que tu as mis de ton côté dans tes derniers envois) ; un clic les remet dans ton offre. Désactivé par défaut (Réglages › Page d'un trade).",
+        "Insider and Elite: under « Trade with … », a discreet row with your recent items (the ones you put on your side in your latest sends); one click puts them back in your offer. Off by default (Settings › Trade page).")
+    ]
+  },
+  {
     version: '2.17.10',
     title: item('Courbe, derniers trades et réglages du profil', 'Chart, latest trades and profile settings'),
     items: [

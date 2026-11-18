@@ -1165,3 +1165,58 @@ de la table, ignoré) ; `rankScore` interpole en ligne droite la part du classem
 la note arrondie. La demande Rolimon's, entière, est décalée de (note Neuronal − 3) / 4, soit ±0,5 au
 plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
 la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).
+
+## L'envoi rapide (page « Trade with … », 2.17.15)
+
+Sous le titre de la page d'envoi, `content/sent-history.js` montre les objets donnés dans les derniers trades
+envoyés (Insider / Elite : fonction `profiles` du jeton Neuronal ; réglage `sentHistory`, coupé par défaut).
+Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne relit rien.
+
+- **À l'envoi** : un clic sur un bouton de la page fige le panier « Your Offer » (`RoNoteDom.readTradePage`,
+  vignettes du CDN comprises) ; `hook.js` voit la réponse de `…/trades/send` et ne transmet que le numéro du
+  trade ; `relay.js` appelle `RoNoteSent.sent(id)` (même monde isolé) ; le worker garde l'envoi
+  (`storage.local.sentLog`, 150 au plus, par compte Roblox) — seulement si l'option est active.
+- **À l'affichage** : `background/sent.js` fusionne ce journal avec les fiches de trades envoyés déjà en cache
+  (`cachedCards`, 7 jours), l'issue vient du snapshot Outbound et du journal des alertes, les values de la table
+  Rolimon's chargée. Réponse gardée 30 s par joueur ; une seule question par joueur et par visite.
+- Couper l'option (ou vider le journal) efface `sentLog`. Rien ne part vers Neuronal.
+- **Les trades déjà envoyés** (2.17.14) : une fois par 10 min au plus, les listes Outbound, Inactive et
+  Completed (3 requêtes) ; le détail des 15 plus récents encore absents de `sentLog` est lu (cache des fiches
+  d'abord, deux à la fois) puis gardé. Envoyé par moi = pas vu sur le flux Inbound de RoNote **et** ma propre
+  offre en premier (vérifié le 18 nov. sur un trade en cours lu en v1 et 35 trades lus en v2,
+  `participantAOffer` ; aucun trade reçu disponible pour un contre-exemple).
+- **L'ajout rapide**, relevé sur la vraie page le 18 nov. : un objet de « Your Inventory » est un
+  `.trade-inventory-card` (role=button, dans le premier `.trade-inventory-panel`), sa vignette est **dans un lien**
+  vers l'objet. React l'ajoute sur `onKeyDown` (Entrée) ou sur un vrai clic souris, **pas** sur un `click()`
+  simulé. On envoie donc Entrée à la carte. Absent de la page affichée (inventaire paginé) : le bouton « Search »
+  ouvre un `input[type=search]` filtré côté serveur (~1 s), on y tape le nom, on ajoute, on remet la valeur
+  d'avant. Arrivée vérifiée en comptant les `.trade-request-item` qui ont un `.thumbnail-2d-container` (les
+  cases vides ont la même classe). Mesuré : 0,2 s sur la page, ~1 s par la recherche.
+- **Déjà dans l'offre** (2.17.15) : les boutons « Remove <nom> » de l'offre Roblox disent ce qui y est ; un
+  `MutationObserver` sur la seule `.trade-request-window-offer` (pas sur la page) remet les coches à jour, 80 ms
+  après le dernier changement ; un second clic clique ce bouton. Le rattrapage n'est attendu que si la liste
+  est vide ; sinon la réponse porte `refreshing` et la page redemande une seule fois 6 s plus tard. Un
+  effacement (`clearSent`) incrémente `gen` : un rattrapage en cours n'écrit plus rien.
+- **Counter** (2.17.16) : `hook.js` traite `…/trades/{id}/counter` comme `…/trades/send` (testé avant `TRADE_RE`,
+  qui accepte « /trades/123/… ») ; `TRADE_WITH` reconnaît aussi « Counter (offer|trade) (with|to) … » ; sur
+  `/trades`, le partenaire est lu sur la page (un tour sur trois tant que l'écran n'est pas ouvert, gardé par
+  adresse). **Non vu sur la vraie page** : aucun trade reçu disponible le 18 nov. pour ouvrir un counter.
+- **Copies multiples** (2.17.17, relevé sur la vraie page) : une copie mise dans l'offre devient
+  `.trade-inventory-card.is-unavailable`, comme une copie en hold (qui porte en plus le texte « Holding ») ;
+  la carte suivante encore libre est donc la copie suivante. L'offre a un bouton « Remove <nom> » par copie :
+  on les compte (pastille) et on clique le dernier pour en retirer une. Les clics passent par une file
+  (deux clics = deux copies) ; la recherche reste ouverte 1,5 s après un ajout et un 2e clic la reprend ;
+  l'attente des résultats s'arrête dès qu'une carte de l'objet est affichée. Mesuré sur la vraie page :
+  1,0 s (recherche), 0,16 s (copie suivante), décision immédiate quand plus aucune n'est libre.
+- Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.
+
+
+## Le filtre par items (Profils, Deals, Robux, 2.17.19)
+
+`src/popup/itemfilter.js`, partagé par les trois vues (une clé localStorage par vue : `ronote.itemfilter.<vue>`).
+Les suggestions viennent de `ronote:catalog-search` (la table Rolimon's déjà chargée par le worker), 180 ms après
+la dernière frappe, une seule recherche à la fois (une réponse dépassée est jetée) ; elles se redessinent seules,
+sans toucher à la liste. Une carte passe si elle contient au moins un des items choisis du bon côté : un `Set` des
+ids (asset et bundle), avec un secours par nom exact (une face peut porter l'ancien id d'asset chez Neuronal et
+l'id de son bundle dans le catalogue). Profils : « possède » = `offering` + `last.got_items`, « cherche » = `wanting`.
+Les puces des items choisis restent visibles filtres repliés ; le champ et le côté sont dans le panneau.

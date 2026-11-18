@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.17.10",
+  "version": "2.17.24",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "permissions": [
@@ -104,7 +104,8 @@
         "content/trade-list.js",
         "content/item-page.js",
         "content/profile-card.js",
-        "content/nav-players.js"
+        "content/nav-players.js",
+        "content/sent-history.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

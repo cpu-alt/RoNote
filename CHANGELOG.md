@@ -5,6 +5,56 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Badge Verified de Rolimon's** (Profils) : « Non vérifié » sur un joueur sans le badge Verified de son profil
+  Rolimon's (`roli_verified` de `/ext/v1/profiles`, absent tant que Neuronal ne l'a pas lu).
+- **Items surveillés communs Discord + RoNote** (Insider / Elite) : le filtre par items de Profils est le filtre Profile
+  discovery « RoNote » du membre sur Discord (`/ext/v1/watch`) ; il reçoit donc aussi les DM. Lu à l'ouverture de
+  Profils (Discord a le dernier mot), écrit 600 ms après un changement ; « ⇄ Discord · DM » dans le panneau, « Discord
+  plein » s'il a déjà 5 filtres ; 5 items au plus (la limite de Discord) une fois synchronisé.
+- **Popup plus léger** : pile ou face, trade ads, la feuille de partage (encodeur GIF et fonds compris) et l'éditeur de
+  contre-offre (~90 Ko) sont chargés à la demande (`import()` à la première ouverture, puis gardés) au lieu d'être lus
+  à chaque ouverture du popup.
+- **Déjà tradé avec lui** (Profils, Deals, Robux) : « Tradé ×n » quand au moins un trade a été conclu avec ce joueur,
+  sinon « Contacté ×n » (offres envoyées ou reçues) ; au survol, conclus / envoyés / reçus, le bilan et le dernier
+  contact. Tiré du journal local et des envois notés (`ronote:partners`, une fois par ouverture, aucune requête).
+- **Préparer le trade** (Deals, Robux, Profils) : le bouton d'envoi range ce qu'il faut mettre de chaque côté puis
+  ouvre la page d'échange ; RoNote y ajoute les items (les miens depuis mon inventaire, les siens depuis le sien,
+  par Entrée sur la carte ou la recherche de Roblox) et le dit (« Trade préparé : 3 items ajoutés »). Deal : je
+  donne ce qu'il demande, il donne ce qu'il propose ; Profil : ce qu'il cherche de mon côté, ce qu'il propose
+  (ou vient de recevoir) du sien. Une seule fois, dans les 3 minutes, même envoi rapide coupé.
+- **Envoi rapide sur l'écran de counter** `/trades/{id}/counter` : le partenaire vient du détail du trade que la page
+  charge (intercepté, aucune requête) ; la ligne se pose sous le titre ou, à défaut, au-dessus de « Your Inventory ».
+  Corrigé : « Your Offer » et « Your Request » ont la même classe, le compteur ne regarde plus que l'offre.
+- **Filtrer par items** (Profils, Deals, Robux) : dans « Filtres », un champ « Ajouter un item… » propose les items
+  du catalogue Rolimon's (nom, acronyme, vignette, value ; ↑ ↓ Entrée Échap) ; jusqu'à 8 items, et le côté où ils
+  doivent être (Deals : tu reçois / tu donnes ; Profils : possède — son annonce ou son dernier trade — / cherche).
+  Les items choisis restent en puces sous la barre même filtres repliés (× pour retirer, « Effacer »), le badge
+  « Filtres » les compte. Aucune requête : le catalogue est déjà chargé, le filtrage se fait sur les cartes.
+- **Cartes refaites, plus compactes** (popup) : une carte de trade passe d'environ 200 à 115 px (l'écart en valeur
+  et en % dans la pastille d'en-tête, plus d'encadré du verdict ni d'intitulés « Vous donnez / recevez », vignettes
+  de 32 px, une info sous chaque total, 3 étiquettes au plus) ; le zoom garde tout. **Profils** et **Deals** :
+  filtres repliés derrière « Filtres » (le nombre de filtres actifs en pastille, l'état retenu), fiches d'une
+  ligne d'en-tête (palier, RoNote, value, et Rolimon's / Roblox / Envoyer un trade en petits boutons), une ligne
+  de trade ou d'annonce (total au-dessus de vignettes de 24 px), plus de pied de carte ; un deal ~115 px au lieu
+  de ~180, un profil ~105 au lieu de ~190 ; la carte Robux met vignette et chiffres sur une ligne.
+- **Envoi rapide** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une ligne discrète
+  sous le titre, « Recent » et les petites vignettes de **tes objets récents**, ceux que tu as mis de ton côté dans
+  tes derniers envois (un par objet, le plus récent d'abord, le nombre de fois en coin, liseré violet s'il a déjà
+  été proposé à ce joueur ; nom et value au survol). La liste reprend aussi **tes trades déjà envoyés** (en cours,
+  refusés, expirés, contrés : les 15 plus récents encore inconnus, relus une fois puis gardés). **Un clic remet
+  l'objet dans ton offre, où qu'il soit dans ton inventaire** : sur la page affichée, RoNote l'ajoute comme le
+  ferait la touche Entrée ; sinon il passe par la recherche de Roblox, l'ajoute et remet la liste comme avant
+  (« Added », ou « On hold » / « Not in your inventory »). Mini badge **Projected** (couleur des réglages) et 💎
+  rare sur les vignettes ; au survol, nom, value, Projected et nombre de fois **dans la ligne** (plus d'infobulle
+  du navigateur) ; un objet **déjà dans ton offre** est coché et atténué, un second clic le retire. La ligne
+  s'affiche tout de suite avec ce qui est gardé, le rattrapage finit en arrière-plan. **Aussi en counter** : la
+  ligne apparaît sur l'écran de counter (adresse `/users/{id}/trade` ou `/trades`, titre « Counter … ») et un
+  counter envoyé (`…/trades/{id}/counter`) est noté comme un envoi. **Plusieurs copies** : chaque clic ajoute
+  une copie de plus (la suivante encore libre), un clic droit ou Maj+clic en retire une ; une pastille verte dit
+  combien sont dans l'offre ; « Toutes tes copies sont déjà dans l'offre » quand il n'en reste plus. Les clics
+  s'enchaînent dans l'ordre, et un 2e clic reprend la recherche encore ouverte (0,16 s au lieu de 1 s). Aucune requête Roblox : l'envoi est
+  noté au moment du « Make Offer » (panier lu sur la page, vignettes comprises), complété par les trades envoyés
+  déjà en cache. Gardé seulement sur l'ordinateur (150 envois) ; couper l'option l'efface.
 - **Joueurs gardés, plus pratiques** : boutons Favori / Plus tard sur la carte RoNote des profils Roblox ;
   pastille verte (en ligne) ou bleue (en jeu) dans la barre et le popup ; un joueur « plus tard » sort de la liste
   dès qu'on lui envoie un trade ; avatars renouvelés chaque semaine ; la barre ne se redessine plus pour rien.
