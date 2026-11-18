@@ -2353,3 +2353,27 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-af small { color: var(--faint); font-size: 10px; }
 .dl-ln .ncl-s > b { display: flex; align-items: baseline; gap: 5px; }
 .dl-ln .ncl-s > b small { color: var(--faint); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+
+/* ===== Le panneau Filtres déplié (18 nov., v2) : une carte, une section par ligne, titre au-dessus,
+   puces qui passent à la ligne (plus de défilement horizontal ni de bouts coupés). ===== */
+.pf-fp { display: grid; gap: 12px; padding: 10px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-soft); }
+.pf-fp .pf-row { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; gap: 5px; }
+.pf-fp .pf-lbl { flex: 0 0 100%; margin: 0 0 1px; color: var(--faint); font-size: 9.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .4px; }
+.pf-fp .pf-row button { padding: 4px 10px; font-size: 11px; }
+.pf-fp .pf-af { padding: 0 0 11px; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; background: none; }
+.pf-fp .if-row { row-gap: 6px; }
+.pf-fp .if-add { flex: 1 1 100%; }
+.pf-fp .if-add input { height: 30px; border-radius: var(--r-md); background: var(--surface-2); }
+.pf-fp .if-sides { flex: 1; }
+.pf-fp .if-sides button { flex: 1; padding: 4px 8px; font-size: 11px; }
+.pf-fp .if-sync { height: 24px; border-radius: 12px; }
+.pf-fp .if-sides { background: var(--surface-2); }
+
+/* L'accès à Profils et Deals (18 nov.) : un onglet nommé « Deals », teinté de l'accent, au lieu d'une
+   petite icône seule au bout de la barre. */
+.tabs .tab.disc-tab { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin: 4px 0 4px 4px; padding: 0 10px;
+  border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: #8fc2ff; font-weight: 700; }
+.tabs .tab.disc-tab:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); color: #b7d8ff; }
+.tabs .tab.disc-tab.active { background: var(--accent); color: #fff; }
+.tab.disc-tab .ic { width: 13px; height: 13px; }
+.pf-fp .pf-row button:not([class*="t-"]), .pf-fp .if-sides button { text-transform: none; }

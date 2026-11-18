@@ -121,7 +121,7 @@ function toolbarHtml(p, count, counts) {
       value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false">
       ${filterToggle('data-dl-ftog', p.open, (p.kind === 'deals' ? p.grades.length : 0) + p.sizes.length + (p.since ? 1 : 0) + itemFilterCount(p.kind))}</div>
     ${itemChipsHtml(p.kind)}
-    ${p.open ? autoFillRow() + itemFilterHtml(p.kind) : ''}
+    ${p.open ? '<div class="pf-fp">' + autoFillRow() + itemFilterHtml(p.kind) : ''}
     ${!p.open ? '' : p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
@@ -129,7 +129,7 @@ function toolbarHtml(p, count, counts) {
       <span class="pf-lbl">${t('Depuis')}</span>${SINCE.map(([k, l]) => chip('data-dl-since', k, t(l), k === p.since, '', 'radio')).join('')}</div>
     <div class="pf-row" role="group" aria-label="${escapeHtml(t('Taille'))}">
       <span class="pf-lbl">${t('Taille')}</span>${chip('data-dl-size', '', t('Toutes'), !p.sizes.length)}${SIZES.map(([k, l]) =>
-        chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div>` : ''}
+        chip('data-dl-size', k, l, p.sizes.includes(k))).join('')}</div></div>` : ''}
   </div>`;
 }
 

@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Onglet « Deals »** (2.17.26) : l'accès à Profils et Deals est un onglet nommé, teinté de l'accent, au bout de la
+  barre (il tient en français et en anglais), au lieu d'une petite icône radar.
+- **Filtres dépliés rangés** : un seul panneau ; Remplissage auto en tête, puis Items, Paliers, Inventaire minimum (ou
+  Palier, Depuis, Taille), chacun avec son titre au-dessus ; les puces passent à la ligne au lieu de défiler à moitié cachées.
 - **Profils et Deals refaits** (2.17.25) : le nom n'est plus coupé (la value de l'inventaire passe sous les boutons),
   badges sur la ligne d'infos, contenu en bande plate sous l'en-tête ; une annonce sans « Cherche » dit « rien de précis »
   au lieu de N/A ; les deals disent « Tu donnes / Tu reçois » ; le bouton « R » devient le logo Rolimon's, l'envoi un

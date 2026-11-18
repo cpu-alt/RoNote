@@ -101,13 +101,13 @@ function toolbarHtml(p, count) {
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
       ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0) + itemFilterCount('profiles'))}</div>
     ${itemChipsHtml('profiles')}
-    ${p.open ? autoFillRow() + itemFilterHtml('profiles') : ''}
+    ${p.open ? '<div class="pf-fp">' + autoFillRow() + itemFilterHtml('profiles') : ''}
     ${p.open ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
-      ${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
+      <span class="pf-lbl">${t('Paliers')}</span>${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
         chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
     <div class="pf-row pf-min" role="radiogroup" aria-label="${escapeHtml(t('Inventaire minimum'))}">
-      <span class="pf-lbl">${t('Inventaire')}</span>${MINS.map(v =>
-        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div>` : ''}
+      <span class="pf-lbl">${t('Inventaire minimum')}</span>${MINS.map(v =>
+        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div></div>` : ''}
   </div>`;
 }
 

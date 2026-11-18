@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.26',
+    title: item('Deals plus faciles à trouver', 'Deals easier to find'),
+    items: [
+      item("Un onglet « Deals » bien visible dans la barre, à la place de la petite icône.",
+        "A clearly visible « Deals » tab in the bar, instead of the small icon."),
+      item("Filtres dépliés rangés : un panneau, une section par ligne avec son titre, plus rien de coupé.",
+        "Expanded filters tidied: one panel, one titled section per line, nothing cut off.")
+    ]
+  },
+  {
     version: '2.17.25',
     title: item('Profils et Deals plus clairs', 'Clearer Profiles and Deals'),
     items: [
