@@ -2383,3 +2383,54 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-val { gap: 4px; padding: 3px 8px; border-radius: 999px; background: var(--surface-3); }
 .pf-val small { font-size: 9.5px; font-weight: 650; text-transform: none; letter-spacing: 0; }
 .pf-val b { font-size: 12px; }
+
+/* ==================== Finitions du popup (18 nov., icônes Lucide) ====================
+   Une seule couche par-dessus le reste : relief des surfaces, pressions, focus clavier,
+   icônes qui réagissent, entrée en cascade du contenu à chaque changement d'onglet. */
+
+/* surfaces : un filet de lumière en haut des cartes, une ombre douce au survol */
+.tc, .pf-card, .h-card, .card, .nc { box-shadow: inset 0 1px 0 #ffffff07; }
+.tc { transition: border-color var(--d-fast), transform var(--d-mod) var(--spring), box-shadow var(--d-mod); }
+.tc:hover, .pf-card:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 #ffffff0a, 0 8px 22px #0006; }
+
+/* pressions : tout ce qui se clique s'enfonce un peu, puis revient avec un léger rebond */
+.pf-ib, .pf-seg button, .pf-row button, .if-sides button, .pf-ftog, .dc-switch button, .nc-it, .if-chip, .pf-opt, .pm-btn {
+  transition: transform var(--d-mod) var(--spring-pop), background var(--d-fast), color var(--d-fast), border-color var(--d-fast);
+}
+.pf-ib:active, .pf-seg button:active, .pf-row button:active, .if-sides button:active, .pf-ftog:active,
+.dc-switch button:active, .nc-it:active, .if-chip:active, .pf-opt:active, .pm-btn:active { transform: scale(.93); transition-duration: 70ms; transition-timing-function: var(--exit); }
+
+/* focus clavier : le même anneau partout */
+.pf-ib:focus-visible, .pf-seg button:focus-visible, .pf-row button:focus-visible, .pf-ftog:focus-visible,
+.dc-switch button:focus-visible, .nc-it:focus-visible, .tc-btn:focus-visible, .pm-btn:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+/* les icônes réagissent : chacune à sa façon */
+.ic { transition: transform var(--d-mod) var(--spring-pop); }
+#btn-refresh:hover .ic { transform: rotate(120deg); transition-duration: .45s; }
+#btn-options:hover .ic { transform: rotate(60deg); transition-duration: .45s; }
+.tab:hover .ic { transform: scale(1.12); }
+.pf-send:hover .ic, .tc-btn:hover [class*="send"] { transform: translate(2px, -2px); }
+.pf-ib:hover .ic, .pf-ib.pf-roli:hover img { transform: scale(1.12); }
+.pf-ib.pf-roli img { transition: transform var(--d-mod) var(--spring-pop); }
+.pf-ftog:hover .ic { transform: translateY(1px) scaleY(.9); }
+.tc-btn:hover .ic { transform: scale(1.12); }
+.nc-it img { transition: transform var(--d-mod) var(--spring-pop); }
+.nc-it:hover img { transform: translateY(-1px) scale(1.08); }
+.pf-af input:checked { animation: rn-pop .3s var(--spring-pop); }
+@keyframes rn-pop { 50% { transform: scale(1.2); } }
+
+/* entrée en cascade à chaque changement d'onglet (popup.js ajoute .tab-in un instant) */
+@keyframes rn-in { from { opacity: 0; transform: translateY(8px); } }
+/* (les listes de trades ont déjà leur entrée, .w-in : on ne s'occupe que du reste) */
+#list.tab-in .pf-list > *, #list.tab-in > .empty, #list.tab-in > .pm-lock { animation: rn-in .34s var(--ease) both; }
+#list.tab-in .pf-list > *:nth-child(2) { animation-delay: 40ms; }
+#list.tab-in .pf-list > *:nth-child(3) { animation-delay: 80ms; }
+#list.tab-in .pf-list > *:nth-child(4) { animation-delay: 120ms; }
+#list.tab-in .pf-list > *:nth-child(n+5) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ic, .tc, .pf-card, .nc-it img { transition: none !important; transform: none !important; }
+  #list.tab-in .pf-list > *, #list.tab-in > .empty, #list.tab-in > .pm-lock, .pf-af input:checked { animation: none !important; }
+}

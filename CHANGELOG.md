@@ -5,6 +5,11 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Finitions du popup** (2.17.29) : une couche en fin de `popup.css` — filet de lumière et ombre au survol des cartes,
+  pression à rebond sur tous les boutons, même anneau de focus clavier, icônes Lucide animées (actualiser et réglages
+  tournent, l'avion d'envoi décolle, les vignettes montent), entrée en cascade de Profils et Deals à l'arrivée sur
+  l'onglet (`.tab-in`, posée 900 ms par `renderList`) ; les listes de trades gardent leur entrée `.w-in`.
+  Tout est coupé sous `prefers-reduced-motion`.
 - **Icônes Lucide** (2.17.28) : `src/common/icons.js` reprend les 65 icônes de l'extension depuis lucide-static 0.469.0
   (ISC, licence dans `src/assets/LICENSE-lucide.txt`), mêmes noms côté code ; le logo Discord et le point plein restent les nôtres.
 - **Filtres réparés** (2.17.27) : la liste de suggestions d'items, vide et cachée, restait dessinée (`display: grid`

@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.29',
+    title: item('Popup plus vivant', 'Livelier popup'),
+    items: [
+      item("Micro-animations : icônes qui réagissent au survol, boutons qui s'enfoncent, cartes qui se soulèvent, Profils et Deals qui entrent en cascade.",
+        "Micro-animations: icons react on hover, buttons press in, cards lift, Profiles and Deals cascade in."),
+      item("Focus clavier visible partout ; tout se coupe si le système demande moins d'animations.",
+        "Visible keyboard focus everywhere; all of it turns off when the system asks for reduced motion.")
+    ]
+  },
+  {
     version: '2.17.28',
     title: item('Nouvelles icônes', 'New icons'),
     items: [

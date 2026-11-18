@@ -2777,9 +2777,15 @@ function rowHtml(kind, item, { entering = false } = {}) {
   return skeletonHtml(item.tradeId);
 }
 
+let tabInTimer = 0;
 function renderList() {
   const entering = listEl.dataset.tab !== tab;
   listEl.dataset.tab = tab;
+  // En changeant d'onglet, le contenu entre en cascade (popup.css « .tab-in ») ; pas aux rafraîchissements.
+  if (entering) {
+    listEl.classList.remove('tab-in'); void listEl.offsetWidth; listEl.classList.add('tab-in');
+    clearTimeout(tabInTimer); tabInTimer = setTimeout(() => listEl.classList.remove('tab-in'), 900);
+  }
   if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
   // La pièce ne se redessine qu'en arrivant sur l'onglet : un rafraîchissement
   // de fond couperait un lancer en plein vol.
