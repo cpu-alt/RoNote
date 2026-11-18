@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Déjà tradé avec lui** (Profils, Deals, Robux) : « Tradé ×n » quand au moins un trade a été conclu avec ce joueur,
+  sinon « Contacté ×n » (offres envoyées ou reçues) ; au survol, conclus / envoyés / reçus, le bilan et le dernier
+  contact. Tiré du journal local et des envois notés (`ronote:partners`, une fois par ouverture, aucune requête).
 - **Préparer le trade** (Deals, Robux, Profils) : le bouton d'envoi range ce qu'il faut mettre de chaque côté puis
   ouvre la page d'échange ; RoNote y ajoute les items (les miens depuis mon inventaire, les siens depuis le sien,
   par Entrée sur la carte ou la recherche de Roblox) et le dit (« Trade préparé : 3 items ajoutés »). Deal : je

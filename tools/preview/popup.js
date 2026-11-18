@@ -329,6 +329,9 @@ const mockRuntime = {
       case 'ronote:tradeads-post':
         return { results: {} };
       // Le Deal Sniper : trois deals de paliers et tailles différents.
+      case 'ronote:partners':
+        // « Déjà tradé avec lui » : deux partenaires connus du journal (un trade conclu, un simple contact)
+        return { partners: { 31: { done: 2, sent: 3, received: 1, net: 4200, last: Date.now() - 3 * 86400e3 }, 23: { done: 0, sent: 2, received: 0, net: null, last: Date.now() - 86400e3 } } };
       case 'ronote:neuronal-deals': {
         await new Promise(r => setTimeout(r, 250));
         const now = Math.floor(Date.now() / 1000);

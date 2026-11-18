@@ -69,6 +69,30 @@ function pick() {
   };
 }
 
+/*
+ * « Déjà tradé avec lui » (18 nov.) : le résumé du journal local par partenaire, demandé une fois par
+ * ouverture du popup (`ronote:partners`, aucune requête réseau), puis une pastille sur chaque fiche :
+ * « Tradé ×n » (au moins un trade conclu), sinon « Contacté ×n » (des offres envoyées ou reçues).
+ */
+let partners = null, partnersAsk = null;
+export function loadPartners() {
+  if (partners) return Promise.resolve(partners);
+  return partnersAsk || (partnersAsk = send({ type: 'ronote:partners' }).catch(() => null)
+    .then(r => { partners = r?.partners || {}; return partners; }));
+}
+export function knownBadge(uid) {
+  const k = partners?.[Number(uid)];
+  if (!k) return '';
+  const contact = (k.sent || 0) + (k.received || 0);
+  if (!k.done && !contact) return '';
+  const when = k.last ? timeAgo(k.last) : '';
+  const net = k.net != null ? ` · ${t('bilan')} ${k.net >= 0 ? '+' : '−'}${fmtNum(Math.abs(k.net))}` : '';
+  const title = `${t('{d} conclu(s), {s} envoyé(s), {r} reçu(s)', { d: k.done || 0, s: k.sent || 0, r: k.received || 0 })}${net}${when ? ' · ' + when : ''}`;
+  return k.done
+    ? `<span class="pf-known done" title="${escapeHtml(title)}">${t('Tradé')} ×${k.done}</span>`
+    : `<span class="pf-known" title="${escapeHtml(title)}">${t('Contacté')} ×${contact}</span>`;
+}
+
 /** Le sélecteur en tête des vues Profils et Deals (une seule icône dans la barre d'onglets). */
 export const discoverSwitch = (active, extra = '') => `<div class="dc-switch" role="tablist" aria-label="Neuronal">${[['profiles', t('Profils')], ['deals', t('Deals')]]
   .map(([k, l]) => `<button role="tab" data-go-tab="${k}" aria-selected="${k === active}">${l}</button>`).join('')}${extra}</div>`;
@@ -153,7 +177,7 @@ function dealHtml(d, isNew) {
   return `<article class="pf-card dl-card g-${escapeHtml(d.grade)}${isNew ? ' pf-new' : ''}${stale(d)}" data-dl-id="d${Number(d.id)}">
     <header class="dl-top">
       <span class="dl-grade" title="${escapeHtml(t('Note {n}/100', { n: d.score }))}"><b>${escapeHtml(d.grade)}</b><i>${Number(d.score)}</i></span>
-      <span class="dl-gain"><b>+${fmtNum(gain)}</b><small>+${pct.toFixed(pct < 10 ? 1 : 0)} % · ${who(d)} · ${ago(d.at)}</small></span>
+      <span class="dl-gain"><b>+${fmtNum(gain)}${knownBadge(uid)}</b><small>+${pct.toFixed(pct < 10 ? 1 : 0)} % · ${who(d)} · ${ago(d.at)}</small></span>
       ${acts(uid, 'd' + Number(d.id))}
     </header>
     <div class="ncl-sides dl-ln">
@@ -173,7 +197,7 @@ function robuxHtml(r, isNew) {
   return `<article class="pf-card dl-card dl-rbx${isNew ? ' pf-new' : ''}${stale(r)}" data-dl-id="r${Number(r.id)}">
     <header class="dl-top">
       <span class="dl-grade dl-r" aria-hidden="true"><b>R$</b></span>
-      <span class="dl-gain"><b>${fmtNum(r.value)}</b><small>${r.only_robux ? t('Robux seulement') : t('Robux ou items')} · ${who(r)} · ${ago(r.at)}</small></span>
+      <span class="dl-gain"><b>${fmtNum(r.value)}${knownBadge(uid)}</b><small>${r.only_robux ? t('Robux seulement') : t('Robux ou items')} · ${who(r)} · ${ago(r.at)}</small></span>
       ${acts(uid, 'r' + Number(r.id))}
     </header>
     <div class="dl-rb"><div class="dl-one">${nwTilesHtml(r.get)}</div>
@@ -233,6 +257,7 @@ const sig = (r) => [...list(r.data, 'deals').map(d => d.id + ':' + d.score), ...
 
 async function load(root, live = false) {
   const mine = ++token;
+  await loadPartners();
   const res = await send({ type: 'ronote:neuronal-deals', minutes: pick().since }).catch(() => null) || { error: 'empty' };
   if (mine !== token || !visible(root)) return;
   if (live && !res.data) return;                     // panne passagère : on garde ce qu'on a

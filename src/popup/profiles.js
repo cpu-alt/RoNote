@@ -28,7 +28,7 @@ import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTradeLine, nwTilesHtml } from './nwcard.js';
-import { discoverSwitch, filterToggle, prepTrade } from './deals.js';
+import { discoverSwitch, filterToggle, prepTrade, loadPartners, knownBadge } from './deals.js';
 import { lockHtml } from './lock.js';
 import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
 
@@ -133,7 +133,7 @@ function cardHtml(p, both, isNew = false) {
     <header class="pf-top">
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
       <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>${
-        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}</span>
+        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}${knownBadge(id)}</span>
         <small>${meta}</small></span>
       ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}
       <span class="pf-qa">${linkBtn(`https://www.rolimons.com/player/${id}`, 'R', "Rolimon's")}${linkBtn(`https://www.roblox.com/users/${id}/profile`, ic('user'), 'Roblox')}
@@ -256,6 +256,7 @@ function paint(root, p, results) {
 async function load(root) {
   const p = pick();
   const mine = ++token;
+  await loadPartners();
   const kinds = p.src === 'both' ? ['classic', 'neuronal'] : [p.src];
   const ready = kinds.every(k => lists[k] && Date.now() - lists[k].at < KEEP_MS);
   if (!ready) paint(root, p, null);

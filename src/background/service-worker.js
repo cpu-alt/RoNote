@@ -1438,6 +1438,38 @@ async function handleMessage(msg, sender = null) {
       return readThrough({ key: 'profileStores', id, field: 'page', ttl: PLAYER_TTL, cap: PLAYER_CAP }, load);
     }
     // Le cadre « derniers trades » du profil Roblox : Insider / Elite (Neuronal le vérifie).
+    // « Deja trade avec lui » (Profils, Deals, 18 nov.) : pour chaque partenaire connu du journal local
+    // (et des envois notes par l'envoi rapide), trades conclus, envoyes, recus, gain net, dernier contact.
+    // Aucune requete : tout est deja en local. Le popup le demande une fois par ouverture.
+    case 'ronote:partners': {
+      const by = new Map();
+      for (const h of await getHistory()) {
+        const pid = Number(h.partnerId);
+        if (!pid || !h.tradeId) continue;
+        if (!by.has(pid)) by.set(pid, []);
+        by.get(pid).push(h);
+      }
+      const out = {};
+      for (const [pid, ev] of by) {
+        const s = partnerStats(partnerTimeline(ev));
+        out[pid] = { done: s.done, sent: s.sent, received: s.received, net: s.net, last: s.last };
+      }
+      const { sentLog } = await B.storage.local.get('sentLog');
+      const me = Number((await getState()).userId) || 0;
+      const sentBy = new Map();
+      for (const e of Array.isArray(sentLog) ? sentLog : []) {
+        const pid = Number(e.partnerId);
+        if (!pid || (e.uid && me && e.uid !== me)) continue;
+        const cur = sentBy.get(pid) || { n: 0, last: 0 };
+        sentBy.set(pid, { n: cur.n + 1, last: Math.max(cur.last, Number(e.at) || 0) });
+      }
+      for (const [pid, s] of sentBy) {
+        const o = out[pid] || (out[pid] = { done: 0, sent: 0, received: 0, net: null, last: 0 });
+        o.sent = Math.max(o.sent, s.n);
+        o.last = Math.max(o.last, s.last);
+      }
+      return { partners: out };
+    }
     // L'ecran de counter (/trades/{id}/counter) : le partenaire du trade, lu dans ce que RoNote
     // a deja (le detail que la page vient de charger, intercepte par hook.js, ou le cache des fiches).
     // Aucune requete : sans detail connu, la page redemandera au tour suivant.

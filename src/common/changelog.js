@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.21',
+    title: item('Déjà tradé avec lui', 'Already traded with them'),
+    items: [
+      item("Profils et Deals : une pastille « Tradé ×n » (ou « Contacté ×n ») sur les joueurs que tu connais déjà, avec ton bilan au survol.",
+        "Profiles and Deals: a « Traded ×n » (or « Contacted ×n ») badge on players you already know, with your net on hover.")
+    ]
+  },
+  {
     version: '2.17.20',
     title: item('Préparer le trade', 'Prepare the trade'),
     items: [
