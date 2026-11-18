@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.19',
+    title: item('Filtrer par items', 'Filter by items'),
+    items: [
+      item("Profils, Deals et Robux : choisis un ou plusieurs items (suggestions du catalogue avec vignette et value) et le côté où ils doivent être (tu reçois / tu donnes, possède / cherche).",
+        "Profiles, Deals and Robux: pick one or more items (catalog suggestions with thumbnail and value) and the side they must be on (you get / you give, owns / looks for)."),
+      item("Les items choisis restent visibles en puces sous la barre, même filtres repliés ; un clic les retire.",
+        "Picked items stay visible as chips under the bar, even with filters folded; one click removes them.")
+    ]
+  },
+  {
     version: '2.17.18',
     title: item('Cartes plus compactes', 'Tighter cards'),
     items: [

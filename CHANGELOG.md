@@ -5,6 +5,11 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Filtrer par items** (Profils, Deals, Robux) : dans « Filtres », un champ « Ajouter un item… » propose les items
+  du catalogue Rolimon's (nom, acronyme, vignette, value ; ↑ ↓ Entrée Échap) ; jusqu'à 8 items, et le côté où ils
+  doivent être (Deals : tu reçois / tu donnes ; Profils : possède — son annonce ou son dernier trade — / cherche).
+  Les items choisis restent en puces sous la barre même filtres repliés (× pour retirer, « Effacer »), le badge
+  « Filtres » les compte. Aucune requête : le catalogue est déjà chargé, le filtrage se fait sur les cartes.
 - **Cartes refaites, plus compactes** (popup) : une carte de trade passe d'environ 200 à 115 px (l'écart en valeur
   et en % dans la pastille d'en-tête, plus d'encadré du verdict ni d'intitulés « Vous donnez / recevez », vignettes
   de 32 px, une info sous chaque total, 3 étiquettes au plus) ; le zoom garde tout. **Profils** et **Deals** :

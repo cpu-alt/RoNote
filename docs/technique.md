@@ -1209,3 +1209,14 @@ Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne 
   l'attente des résultats s'arrête dès qu'une carte de l'objet est affichée. Mesuré sur la vraie page :
   1,0 s (recherche), 0,16 s (copie suivante), décision immédiate quand plus aucune n'est libre.
 - Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.
+
+
+## Le filtre par items (Profils, Deals, Robux, 2.17.19)
+
+`src/popup/itemfilter.js`, partagé par les trois vues (une clé localStorage par vue : `ronote.itemfilter.<vue>`).
+Les suggestions viennent de `ronote:catalog-search` (la table Rolimon's déjà chargée par le worker), 180 ms après
+la dernière frappe, une seule recherche à la fois (une réponse dépassée est jetée) ; elles se redessinent seules,
+sans toucher à la liste. Une carte passe si elle contient au moins un des items choisis du bon côté : un `Set` des
+ids (asset et bundle), avec un secours par nom exact (une face peut porter l'ancien id d'asset chez Neuronal et
+l'id de son bundle dans le catalogue). Profils : « possède » = `offering` + `last.got_items`, « cherche » = `wanting`.
+Les puces des items choisis restent visibles filtres repliés ; le champ et le côté sont dans le panneau.

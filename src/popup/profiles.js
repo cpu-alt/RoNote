@@ -30,6 +30,7 @@ import { send } from '../common/ui.js';
 import { nwTradeLine, nwTilesHtml } from './nwcard.js';
 import { discoverSwitch, filterToggle } from './deals.js';
 import { lockHtml } from './lock.js';
+import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
 
 const KEY = 'ronote.profiles';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -98,7 +99,9 @@ function toolbarHtml(p, count) {
   return `<div class="pf-head">${discoverSwitch('profiles', live)}
     <div class="pf-bar"><div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${SOURCES.map(([k, label]) =>
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
-      ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0))}</div>
+      ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0) + itemFilterCount('profiles'))}</div>
+    ${itemChipsHtml('profiles')}
+    ${p.open ? itemFilterHtml('profiles') : ''}
     ${p.open ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       ${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
         chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
@@ -160,8 +163,11 @@ function merge(p, ok) {
       if (!had || x.at > had.at) byId.set(x.id, { ...x, _kind: kind });
     }
   }
+  // Objets : « possède » = ce que son annonce propose ou ce qu'il vient de recevoir ; « cherche » = son annonce.
+  const byItem = itemMatcher('profiles');
   return [...byId.values()]
-    .filter(x => (!p.tiers.length || p.tiers.includes(x.tier)) && (!p.min || (x.value || 0) >= p.min))
+    .filter(x => (!p.tiers.length || p.tiers.includes(x.tier)) && (!p.min || (x.value || 0) >= p.min)
+      && (!byItem || byItem({ get: [...(x.offering || []), ...(x.last?.got_items || [])], give: x.wanting })))
     .sort((a, b) => b.at - a.at);
 }
 
@@ -292,6 +298,7 @@ export function renderProfiles(listEl, openOptions) {
     }, { passive: true });
     // Popup de nouveau visible : on rattrape tout de suite au lieu d'attendre la minute.
     document.addEventListener('visibilitychange', () => { if (visible(listEl)) poll(listEl); });
+    bindItemFilter(listEl, 'profiles', () => listEl.dataset.tab === 'profiles', () => load(listEl));
   }
   live(listEl);
   load(listEl);

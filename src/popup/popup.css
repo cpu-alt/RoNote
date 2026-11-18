@@ -2229,3 +2229,36 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .dl-rb .dl-one { padding: 0; }
 .dl-rb .dl-facts { margin: 0; padding: 0 0 0 10px; border-top: 0; border-left: 1px solid var(--line-soft); }
 .dl-rbx .dl-why { padding-top: 0; }
+
+/* ======================= Le filtre par objets (18 nov.) ======================= */
+.if-chips { display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+.if-chips::-webkit-scrollbar { display: none; }
+.if-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 6px 0 2px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--fg); font: inherit; font-size: 10.5px; font-weight: 650; cursor: pointer; }
+.if-chip img, .if-chip .if-ph { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: var(--surface-3); }
+.if-chip span { max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.if-chip b { opacity: .55; font-size: 12px; line-height: 1; }
+.if-chip:hover b { opacity: 1; color: var(--loss); }
+.if-ph { display: inline-grid; place-items: center; font-size: 8.5px; font-weight: 800; color: var(--dim); }
+.if-side-tag { flex: none; padding: 0 7px; height: 20px; display: inline-flex; align-items: center; border-radius: 10px; background: var(--surface-3); color: var(--dim); font-size: 10px; font-weight: 700; }
+.if-clear { flex: none; margin-left: 2px; padding: 0 4px; border: 0; background: none; color: var(--faint); font: inherit; font-size: 10.5px; cursor: pointer; }
+.if-clear:hover { color: var(--fg); text-decoration: underline; }
+
+.if-row { overflow: visible; flex-wrap: wrap; row-gap: 5px; }
+.if-add { position: relative; flex: 1 1 140px; min-width: 120px; }
+.if-add input { width: 100%; height: 26px; padding: 0 9px; border-radius: 13px; border: 1px solid var(--line-soft); background: var(--surface); color: var(--fg); font: inherit; font-size: 11px; }
+.if-add input:focus { outline: none; border-color: var(--accent); }
+.if-sug { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); display: grid; padding: 4px; border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px solid var(--line); box-shadow: 0 12px 28px #000a; max-height: 240px; overflow-y: auto; }
+.if-opt { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 7px; padding: 4px 6px; border: 0; border-radius: 7px; background: none; color: var(--fg); font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
+.if-opt img, .if-opt .if-ph { width: 24px; height: 24px; border-radius: 6px; object-fit: contain; background: var(--surface-3); }
+.if-opt.on, .if-opt:hover { background: var(--surface-3); }
+.if-opt.had { opacity: .45; }
+.if-on { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.if-on small { color: var(--faint); font-size: 9.5px; font-weight: 700; }
+.if-opt b { color: var(--dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.if-none { padding: 6px 8px; color: var(--faint); font-size: 11px; }
+.if-sides { flex: none; display: inline-flex; gap: 2px; padding: 2px; border-radius: 13px; background: var(--surface); border: 1px solid var(--line-soft); }
+.if-sides button { padding: 2px 8px; border: 0; border-radius: 11px; background: none; color: var(--dim); font: inherit; font-size: 10.5px; font-weight: 650; cursor: pointer; }
+.if-sides button[aria-checked="true"] { background: var(--surface-3); color: var(--fg); }

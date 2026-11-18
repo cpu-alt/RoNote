@@ -24,6 +24,7 @@ import { send } from '../common/ui.js';
 import { nwTilesHtml } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { ic } from '../common/icons.js';
+import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
 
 const KEY = 'ronote.deals';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -93,7 +94,9 @@ function toolbarHtml(p, count, counts) {
         chip('data-dl-sort', k, t(l), k === p.sort, '', 'radio')).join('')}</div></div>
     <div class="pf-bar dl-search"><input type="search" data-dl-search placeholder="${escapeHtml(t('Chercher un item (nom, initiales ou id)'))}"
       value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false">
-      ${filterToggle('data-dl-ftog', p.open, (p.kind === 'deals' ? p.grades.length : 0) + p.sizes.length + (p.since ? 1 : 0))}</div>
+      ${filterToggle('data-dl-ftog', p.open, (p.kind === 'deals' ? p.grades.length : 0) + p.sizes.length + (p.since ? 1 : 0) + itemFilterCount(p.kind))}</div>
+    ${itemChipsHtml(p.kind)}
+    ${p.open ? itemFilterHtml(p.kind) : ''}
     ${!p.open ? '' : p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
@@ -106,8 +109,10 @@ function toolbarHtml(p, count, counts) {
 }
 
 function filtered(p, data) {
+  const byItem = itemMatcher(p.kind);            // null sans objet choisi : rien à tester
   const out = list(data, p.kind).filter(x => (p.kind !== 'deals' || !p.grades.length || p.grades.includes(x.grade))
-    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind))) && hasItem(x, norm(query).trim()));
+    && (!p.sizes.length || p.sizes.includes(sizeOf(x, p.kind))) && hasItem(x, norm(query).trim())
+    && (!byItem || byItem({ get: x.get, give: p.kind === 'robux' ? [] : x.give })));
   if (p.sort === 'new') return out.sort((a, b) => b.at - a.at);
   return p.kind === 'robux' ? out.sort((a, b) => (b.demand - a.demand) || (b.value - a.value)) : out;
 }
@@ -201,7 +206,7 @@ function draw(root) {
   const card = p.kind === 'robux' ? robuxHtml : dealHtml;
   root.innerHTML = toolbarHtml(p, shown.length, counts) + (shown.length
     ? `<div class="pf-list">${shown.map(x => card(x, false)).join('')}</div>`
-    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length || query.trim()
+    : empty(p.kind === 'robux' ? 'Aucune vente contre des Robux' : 'Aucun deal', p.grades.length || p.sizes.length || query.trim() || itemFilterCount(p.kind)
       ? 'Rien ne correspond à ces filtres pour le moment.'
       : p.kind === 'robux' ? 'Personne ne vend contre des Robux ces 10 dernières minutes.' : 'Aucune annonce assez bonne ces 15 dernières minutes.'));
 }
@@ -259,6 +264,9 @@ export function renderDeals(listEl, openOptions) {
       paint(listEl);
     });
     document.addEventListener('visibilitychange', () => { if (visible(listEl)) load(listEl, true); });
+    for (const view of ['deals', 'robux']) {
+      bindItemFilter(listEl, view, () => listEl.dataset.tab === 'deals' && pick().kind === view, () => paint(listEl));
+    }
   }
   clearInterval(timer);
   timer = setInterval(() => { if (visible(listEl)) load(listEl, true); }, LIVE_MS);
