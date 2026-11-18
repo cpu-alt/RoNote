@@ -16,6 +16,18 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.25',
+    title: item('Profils et Deals plus clairs', 'Clearer Profiles and Deals'),
+    items: [
+      item("Cartes Profils et Deals refaites : nom lisible, value de l'inventaire, « Tu donnes / Tu reçois », logo Rolimon's.",
+        "Profiles and Deals cards redone: readable name, inventory value, « You give / You get », Rolimon's logo."),
+      item("Remplissage auto : une case dans les filtres décide si le bouton Trade remplit le trade.",
+        "Auto fill: a box in the filters decides whether the Trade button fills the trade."),
+      item("Les objets récents ne s'affichent plus que quand on compose un trade ou un counter.",
+        "Recent items now only show while composing a trade or a counter.")
+    ]
+  },
+  {
     version: '2.17.24',
     title: item("Badge Verified de Rolimon's", "Rolimon's Verified badge"),
     items: [

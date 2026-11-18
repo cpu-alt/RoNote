@@ -121,7 +121,7 @@ function toolbarHtml(p, count, counts) {
       value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Chercher un item'))}" autocomplete="off" spellcheck="false">
       ${filterToggle('data-dl-ftog', p.open, (p.kind === 'deals' ? p.grades.length : 0) + p.sizes.length + (p.since ? 1 : 0) + itemFilterCount(p.kind))}</div>
     ${itemChipsHtml(p.kind)}
-    ${p.open ? itemFilterHtml(p.kind) : ''}
+    ${p.open ? autoFillRow() + itemFilterHtml(p.kind) : ''}
     ${!p.open ? '' : p.kind === 'deals' ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       <span class="pf-lbl">${t('Palier')}</span>${chip('data-dl-grade', '', t('Tous'), !p.grades.length)}${GRADES.map(g =>
         chip('data-dl-grade', g, g, p.grades.includes(g), 'dl-g g-' + g)).join('')}</div>` : ''}
@@ -144,13 +144,26 @@ function filtered(p, data) {
 
 const ago = (at) => timeAgo(at * 1000);
 const who = (x) => escapeHtml(x.user?.name || '#' + (x.user?.id || '?'));
-// Les actions : trois petits boutons dans l'en-tête (18 nov. : le pied de carte prenait une ligne entière).
-// Le bouton d'envoi PRÉPARE le trade : `data-prep` dit quoi mettre de chaque côté (voir prepTrade).
-const acts = (uid, prepKey = '') => `<span class="pf-qa">
-    <button class="pf-ib" data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's">R</button>
-    <button class="pf-ib" data-open="https://www.roblox.com/users/${uid}/profile" title="Roblox">${ic('user')}</button>
-    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade"${prepKey ? ` data-prep="${escapeHtml(prepKey)}"` : ''}
-      title="${escapeHtml(t(prepKey ? 'Préparer le trade (items déjà ajoutés)' : 'Envoyer un trade'))}">${ic('send')}</button></span>`;
+/*
+ * « Auto fill » (18 nov.) : le bouton d'envoi remplit le trade (voir prepTrade) seulement si la case est
+ * cochée dans les filtres de Profils ou de Deals (un seul réglage pour les deux, dans ce navigateur) ;
+ * sinon il ouvre simplement la page d'échange vide.
+ */
+const AUTOFILL = 'ronote.autofill';
+export const autoFill = () => { try { return localStorage.getItem(AUTOFILL) === '1'; } catch { return false; } };
+export const toggleAutoFill = () => { try { localStorage.setItem(AUTOFILL, autoFill() ? '0' : '1'); } catch { /* navigation privée */ } };
+export const autoFillRow = () => `<label class="pf-af" data-autofill><input type="checkbox"${autoFill() ? ' checked' : ''}><span>
+  <b>${t('Remplissage auto')}</b><small>${t("L'envoi remplit le trade avec les items de l'annonce")}</small></span></label>`;
+
+// Les actions : Rolimon's (son logo), Roblox, et l'envoi, en tête de carte.
+export const acts = (uid, prepKey = '') => {
+  const prep = prepKey && autoFill();
+  return `<span class="pf-qa">
+    <button class="pf-ib pf-roli" data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's"><img src="../assets/rolimons-logo.webp" alt="Rolimon's"></button>
+    <button class="pf-ib" data-open="https://www.roblox.com/users/${uid}/profile" title="${escapeHtml(t('Profil Roblox'))}">${ic('user')}</button>
+    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade"${prep ? ` data-prep="${escapeHtml(String(prepKey))}"` : ''}
+      title="${escapeHtml(t(prep ? 'Préparer le trade (items déjà ajoutés)' : 'Envoyer un trade'))}">${ic('send')}<span>${t('Trade')}</span></button></span>`;
+};
 
 /**
  * « Préparer le trade » (18 nov.) : ce qu'il faut mettre de chaque côté est rangé pour la page d'échange
@@ -181,8 +194,8 @@ function dealHtml(d, isNew) {
       ${acts(uid, 'd' + Number(d.id))}
     </header>
     <div class="ncl-sides dl-ln">
-      <div class="ncl-s"><b>${fmtNum(d.give_value)}</b>${nwTilesHtml(d.give)}</div><span class="ncl-ar">→</span>
-      <div class="ncl-s"><b class="win">${fmtNum(d.get_value)}</b>${nwTilesHtml(d.get)}</div>
+      <div class="ncl-s"><b><small>${t('Tu donnes')}</small>${fmtNum(d.give_value)}</b>${nwTilesHtml(d.give)}</div><span class="ncl-ar">→</span>
+      <div class="ncl-s"><b class="win"><small>${t('Tu reçois')}</small>${fmtNum(d.get_value)}</b>${nwTilesHtml(d.get)}</div>
     </div>
     ${why.length ? `<div class="dl-why">${why.map(([good, label]) => `<span class="${good ? 'win' : 'loss'}">${escapeHtml(label)}</span>`).join('')}${
       d.reasons.length > why.length ? `<span class="n">+${d.reasons.length - why.length}</span>` : ''}</div>` : ''}
@@ -284,6 +297,7 @@ export function renderDeals(listEl, openOptions) {
     listEl.addEventListener('click', (e) => {
       if (listEl.dataset.tab !== 'deals') return;
       if (e.target.closest('[data-dl-options]')) { openOptions(); return; }
+      if (e.target.closest('[data-autofill]')) { e.preventDefault(); toggleAutoFill(); paint(listEl); return; }
       if (e.target.closest('[data-dl-ftog]')) { const q = pick(); q.open = !q.open; write(q); paint(listEl); return; }
       const prep = e.target.closest('[data-prep]');
       if (prep && last?.data) {                    // le lien s'ouvre ensuite par l'écouteur commun (data-open)

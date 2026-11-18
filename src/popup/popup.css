@@ -2299,3 +2299,57 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .if-sync.on { background: #5865f222; color: #9aa4ff; }
 .if-sync.warn { background: #ffb02e1f; color: var(--warn); }
 .pf-unv { flex: none; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 8px; background: #ffb02e1f; color: var(--warn); font-size: 9.5px; font-weight: 750; }
+
+/* ================= Profils et Deals : cartes refaites (18 nov., v2) =================
+   Une carte = un en-tête lisible (qui, quand, combien, actions) et UNE ligne d'objets. */
+.pf-list { gap: 10px; }
+.pf-card { transition: border-color var(--d-fast), transform var(--d-fast), box-shadow var(--d-fast); }
+.pf-card:hover { border-color: var(--line); box-shadow: 0 6px 18px #0005; }
+.pf-top { align-items: flex-start; gap: 10px; padding: 10px 10px 9px 10px; }
+.pf-top .pf-avw, .pf-top .pf-id { margin-top: 1px; }
+.pf-av { width: 32px; height: 32px; font-size: 13px; }
+.pf-id { display: grid; gap: 2px; }
+.pf-nl b { font-size: 13px; font-weight: 750; }
+.pf-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
+.pf-meta small { flex: 0 1 auto; min-width: 0; color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-meta .pf-rn, .pf-meta .pf-unv, .pf-meta .pf-known { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; vertical-align: 0; }
+.pf-meta .pf-rn { line-height: 13px; }
+.pf-nl { overflow: hidden; }
+.pf-right { flex: none; display: grid; justify-items: end; gap: 4px; }
+.pf-val { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
+.pf-val b { font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pf-val small { color: var(--faint); font-size: 9px; font-weight: 650; text-transform: uppercase; letter-spacing: .3px; }
+
+/* les actions : Rolimon's (logo), Roblox, puis « Trade » en bouton plein */
+.pf-qa { gap: 4px; align-items: center; }
+.pf-ib { width: 26px; height: 26px; border-radius: 8px; background: var(--surface-2); }
+.pf-ib.pf-roli img { width: 14px; height: 14px; object-fit: contain; filter: saturate(.9); }
+.pf-ib.pf-roli:hover img { filter: none; }
+.pf-ib.pf-send { width: auto; display: inline-flex; gap: 5px; padding: 0 10px 0 8px; font-size: 11px; font-weight: 750; }
+.pf-ib.pf-send .ic { width: 11px; height: 11px; }
+
+/* le contenu : une bande plate sous l'en-tête, sans cadre dans le cadre */
+.pf-card .ncl, .dl-card .dl-ln { margin: 0; padding: 8px 10px 10px; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+.ncl-s > b { font-size: 11px; }
+.pf-adl { text-transform: uppercase; letter-spacing: .3px; font-size: 9.5px !important; }
+.pf-adl.win { color: var(--win) !important; } .pf-adl.loss { color: var(--loss) !important; }
+.pf-any { display: flex; align-items: center; height: 36px; color: var(--faint); font-size: 10.5px; font-style: italic; }
+.ncl-ar { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--dim); font-size: 10px; }
+.ncl .nc-it, .dl-card .nc-it { width: 38px; }
+.ncl .nc-it img, .ncl .nc-ph, .dl-card .nc-it img, .dl-card .nc-ph { width: 26px; height: 26px; }
+
+/* Deals : même en-tête, la bande d'objets et les raisons à la suite */
+.dl-top { padding: 10px 10px 9px 14px; }
+.dl-card .dl-ln { padding-left: 14px; }
+.dl-why { padding: 0 10px 9px 14px; background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+.dl-rb { padding: 8px 10px 10px 14px; border-top: 1px solid var(--line-soft); }
+
+/* la case « Remplissage auto », en tête des filtres */
+.pf-af { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-md); border: 1px solid var(--line-soft); background: var(--surface); cursor: pointer; }
+.pf-af:hover { border-color: var(--line); }
+.pf-af input { flex: none; width: 15px; height: 15px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.pf-af span { display: grid; gap: 1px; min-width: 0; }
+.pf-af b { font-size: 11.5px; font-weight: 700; }
+.pf-af small { color: var(--faint); font-size: 10px; }
+.dl-ln .ncl-s > b { display: flex; align-items: baseline; gap: 5px; }
+.dl-ln .ncl-s > b small { color: var(--faint); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }

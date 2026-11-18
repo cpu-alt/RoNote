@@ -28,7 +28,7 @@ import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTradeLine, nwTilesHtml } from './nwcard.js';
-import { discoverSwitch, filterToggle, prepTrade, loadPartners, knownBadge } from './deals.js';
+import { discoverSwitch, filterToggle, prepTrade, loadPartners, knownBadge, acts, autoFillRow, toggleAutoFill } from './deals.js';
 import { lockHtml } from './lock.js';
 import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter, pullWatch } from './itemfilter.js';
 
@@ -101,7 +101,7 @@ function toolbarHtml(p, count) {
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
       ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0) + itemFilterCount('profiles'))}</div>
     ${itemChipsHtml('profiles')}
-    ${p.open ? itemFilterHtml('profiles') : ''}
+    ${p.open ? autoFillRow() + itemFilterHtml('profiles') : ''}
     ${p.open ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
       ${chip('data-pf-tier', '', t('Tous'), !p.tiers.length, '', 'checkbox')}${TIERS.filter(k => k !== 'ghost' || p.src !== 'classic').map(k =>
         chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
@@ -112,35 +112,36 @@ function toolbarHtml(p, count) {
 }
 
 /**
- * Une fiche (refaite le 18 nov., « moins d'infos, plus propre ») : une ligne d'en-tête (avatar au
- * liseré du palier, nom, palier, RoNote, value, et les actions en petits boutons), puis UNE ligne de
- * contenu : le trade qui l'a révélé, ou son annonce (Propose → Cherche). ~95 px au lieu de ~190.
+ * Une fiche (refaite le 18 nov.) : en-tête (avatar au liseré du palier, nom et palier, puis une ligne
+ * discrète : annonces, quand, badges ; à droite la value de l'inventaire et les actions), puis UNE ligne
+ * de contenu : le trade qui l'a révélé, ou son annonce (Propose → Cherche, un côté vide dit « rien de précis »).
  */
-const linkBtn = (url, label, title) => `<button class="pf-ib" data-open="${url}" title="${escapeHtml(title)}">${label}</button>`;
+function adHtml(p) {
+  const side = (label, cls, items) => `<div class="ncl-s"><b class="pf-adl ${cls}">${t(label)}</b>${items?.length
+    ? nwTilesHtml(items) : `<span class="pf-any">${t('Rien de précis')}</span>`}</div>`;
+  return `<div class="ncl pf-ad"><div class="ncl-sides">${side('Propose', 'win', p.offering)}<span class="ncl-ar">⇄</span>${side('Cherche', 'loss', p.wanting)}</div></div>`;
+}
 function cardHtml(p, both, isNew = false) {
   const id = Number(p.id);
   const name = escapeHtml(p.name || '#' + id);
   const ads = !p.ads ? t('aucune annonce') : p.ads === 1 ? t('1 annonce') : t('{n} annonces', { n: fmtNum(p.ads) });
   const av = p.thumb
-    ? `<img class="pf-av" src="${escapeHtml(p.thumb)}" alt="" width="28" height="28" loading="lazy" decoding="async">`
+    ? `<img class="pf-av" src="${escapeHtml(p.thumb)}" alt="" width="32" height="32" loading="lazy" decoding="async">`
     : `<span class="pf-av" aria-hidden="true">${escapeHtml((p.name || '?').slice(0, 1).toUpperCase())}</span>`;
-  const ad = (p.offering?.length || p.wanting?.length) && !p.last ? `<div class="ncl"><div class="ncl-sides">
-      <div class="ncl-s"><b class="win">${t('Propose')}</b>${nwTilesHtml(p.offering)}</div><span class="ncl-ar">⇄</span>
-      <div class="ncl-s"><b class="loss">${t('Cherche')}</b>${nwTilesHtml(p.wanting)}</div></div></div>` : '';
-  const trade = p.last ? nwTradeLine({ ...p.last, partner: p.partner }) : '';
+  const body = p.last ? nwTradeLine({ ...p.last, partner: p.partner })
+    : p.offering?.length || p.wanting?.length ? adHtml(p) : '';
   const meta = [ads, timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
+  const badges = (p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : '')
+    + (p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : '')
+    + knownBadge(id);
   return `<article class="pf-card${isNew ? ' pf-new' : ''}" data-pf-id="${id}">
     <header class="pf-top">
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
-      <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>${
-        p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : ''}${
-        p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : ''}${knownBadge(id)}</span>
-        <small>${meta}</small></span>
-      ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}
-      <span class="pf-qa">${linkBtn(`https://www.rolimons.com/player/${id}`, 'R', "Rolimon's")}${linkBtn(`https://www.roblox.com/users/${id}/profile`, ic('user'), 'Roblox')}
-        <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${id}/trade" data-prep="${id}" title="${escapeHtml(t('Préparer le trade (items déjà ajoutés)'))}">${ic('send')}</button></span>
+      <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span></span>
+        <span class="pf-meta">${badges}<small>${meta}</small></span></span>
+      <span class="pf-right">${acts(id, id)}${p.value ? `<span class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}"><small>${t('Inventaire')}</small><b>${fmtNum(p.value)}</b></span>` : ''}</span>
     </header>
-    ${trade}${ad}
+    ${body}
   </article>`;
 }
 
@@ -281,6 +282,7 @@ export function renderProfiles(listEl, openOptions) {
         if (x) prepTrade(e, x.id, x.wanting, x.offering?.length ? x.offering : x.last?.got_items);
         return;
       }
+      if (e.target.closest('[data-autofill]')) { e.preventDefault(); toggleAutoFill(); load(listEl); return; }
       if (e.target.closest('[data-pf-ftog]')) { const p = pick(); p.open = !p.open; delete p.tier; write(p); load(listEl); return; }
       const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min]');
       if (!el) return;

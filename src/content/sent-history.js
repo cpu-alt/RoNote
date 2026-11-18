@@ -46,6 +46,9 @@
   // ouvre aussi l'écran de counter, lu sur la page. Là, on ne regarde qu'un tour sur trois tant que
   // l'écran n'est pas ouvert, et la réponse est gardée pour l'adresse en cours.
   let trPid = { url: '', pid: 0, at: 0 }, trTick = 0;
+  // On compose un trade (envoi ou counter) quand l'inventaire à piocher est affiché : pas sur le simple
+  // détail d'un trade reçu, envoyé ou terminé.
+  const composing = () => [...document.querySelectorAll('.trade-inventory-panel')].some(e => e.offsetParent !== null) || !!globalThis.RoNoteDom?.myInventoryHeading?.();
   function partnerOf(fresh = false) {
     const m = PATH.exec(location.pathname);
     if (m) return Number(m[1]) || 0;
@@ -68,7 +71,8 @@
     if (!fresh && trPid.url === location.href && (trPid.pid || ++trTick % 3)) return trPid.pid;
     let pid = 0;
     try {
-      if (globalThis.RoNoteDom?.composerTitle?.()) pid = Number(globalThis.RoNoteDom.readTradePage()?.partnerId) || 0;
+      // Le détail d'un trade reçu porte aussi « Trade with … » : seulement l'écran où l'on compose.
+      if (composing() && globalThis.RoNoteDom?.composerTitle?.()) pid = Number(globalThis.RoNoteDom.readTradePage()?.partnerId) || 0;
     } catch { /* page en chargement */ }
     // Le pseudo seul ne donne pas d'id : sans lui, pas de ligne (on ne devine pas).
     trPid = { url: location.href, pid, at: Date.now() };
@@ -444,7 +448,7 @@
     if (!prepping && PATH.test(location.pathname)) prep(partnerOf());
     if (!enabled) return;
     const pid = partnerOf();
-    if (!pid) { if (host?.isConnected) host.remove(); lastUrl = location.href; return; }
+    if (!pid || !composing()) { if (host?.isConnected) host.remove(); lastUrl = location.href; return; }
     if (location.href !== lastUrl) { lastUrl = location.href; misses = 0; if (dataFor !== pid) { data = null; dataFor = 0; } }
     ask(pid);
     if (!host?.isConnected) place();

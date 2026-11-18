@@ -5,6 +5,14 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Profils et Deals refaits** (2.17.25) : le nom n'est plus coupé (la value de l'inventaire passe sous les boutons),
+  badges sur la ligne d'infos, contenu en bande plate sous l'en-tête ; une annonce sans « Cherche » dit « rien de précis »
+  au lieu de N/A ; les deals disent « Tu donnes / Tu reçois » ; le bouton « R » devient le logo Rolimon's, l'envoi un
+  bouton « Trade ».
+- **Remplissage auto** : une case en tête des filtres (Profils et Deals, un seul réglage, décochée d'office) ; cochée,
+  le bouton Trade prépare le trade avec les items de l'annonce, sinon il ouvre la page d'échange vide.
+- **« Récents » seulement en composant** : la ligne des objets récents n'apparaît plus sur le détail d'un trade
+  reçu (« Trade with … » sur /trades), seulement quand l'inventaire à piocher est affiché (envoi ou counter).
 - **Badge Verified de Rolimon's** (Profils) : « Non vérifié » sur un joueur sans le badge Verified de son profil
   Rolimon's (`roli_verified` de `/ext/v1/profiles`, absent tant que Neuronal ne l'a pas lu).
 - **Items surveillés communs Discord + RoNote** (Insider / Elite) : le filtre par items de Profils est le filtre Profile
