@@ -9,16 +9,12 @@ import { ic, fillIcons } from '../common/icons.js';
 import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '../common/player.js';
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
-import { renderCoin, coinKey } from './coinflip.js';
 import { renderProfiles } from './profiles.js';
 import { renderDeals } from './deals.js';
-import { renderTradeAds } from './tradeads.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
-import { openShare } from './share.js';
-import { openCounterEditor, counterOpen, closeCounterEditor } from './counter.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
 import { fluidHover } from '../common/fluid.js';
 import {
@@ -29,6 +25,18 @@ import {
 // Ouvert dans la barre laterale (reglage `sidePanel`) : la page prend toute
 // la place offerte au lieu des 420 x 600 du popup.
 const IN_PANEL = new URLSearchParams(location.search).has('panel');
+
+/*
+ * Chargés à la demande (18 nov.) : pile ou face, trade ads, la feuille de partage (avec son encodeur GIF
+ * et ses fonds) et l'éditeur de contre-offre font ~90 Ko qu'on n'ouvre que rarement. Ils ne sont plus
+ * lus à chaque ouverture du popup, seulement la première fois qu'on en a besoin (puis gardés).
+ * Une fois chargé, chacun reste dans sa variable : les écouteurs synchrones (clavier) s'en servent.
+ */
+const lazy = (load) => { let p = null; const get = () => (p ||= load().then(m => (get.mod = m))); return get; };
+const coinMod = lazy(() => import('./coinflip.js'));
+const tradeAdsMod = lazy(() => import('./tradeads.js'));
+const shareMod = lazy(() => import('./share.js'));
+const counterMod = lazy(() => import('./counter.js'));
 if (IN_PANEL) document.documentElement.classList.add('in-panel');
 // Fenetre courante, lue d'avance : `sidePanel.open()` exige le geste de
 // l'utilisateur, et l'attendre au moment du clic le ferait perdre.
@@ -902,9 +910,9 @@ document.addEventListener('keydown', (e) => {
     if (to) { e.preventDefault(); to.click(); return; }
     if (key === 'r') { e.preventDefault(); $('#btn-refresh').click(); return; }
   }
-  if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinKey(listEl, e);
+  if (tab === 'coin' && !zoom && !side && !e.target.closest?.('.tabs')) coinMod.mod?.coinKey(listEl, e);
   if (e.key !== 'Escape') return;
-  if (counterOpen()) closeCounterEditor();
+  if (counterMod.mod?.counterOpen()) counterMod.mod.closeCounterEditor();
   else if (zoom) closeZoom();
   else if (side) closePlayer();
 });
@@ -985,7 +993,7 @@ function openCounter(tradeId) {
   const card = findCard(tradeId)?.card;
   if (!card?.analysis || !Number(card.partner?.id)) { B.tabs.create({ url: tradeUrl(tradeId) }); return; }
   closeZoom();   // le zoom du trade laisse la place à l'éditeur
-  openCounterEditor(card, {
+  counterMod().then(({ openCounterEditor }) => openCounterEditor(card, {
     settings: data.settings,
     balanceHtml,
     avatarHtml,
@@ -996,7 +1004,7 @@ function openCounter(tradeId) {
       renderHeader();
       renderList();
     }
-  });
+  }));
 }
 
 /** Ce qu'affiche un bouton de geste, au repos et armé. `act` : nix (refuser/annuler) ou ok (accepter). */
@@ -2037,14 +2045,14 @@ function walletFlexData(anon = false) {
 
 /** La feuille de partage (share.js), avec ce que le popup sait du compte. */
 function openSharing(mode = 'wallet') {
-  return openShare(mode, {
+  return shareMod().then(({ openShare }) => openShare(mode, {
     walletCard: walletFlexData,
     series: walletSeries(),   // la courbe du compte (pas `wallet`, les préférences du Portefeuille)
     history: data.history,
     historyLimit: data.settings?.historyLimit,
     anon: hideAmounts(),
     close: closeZoom
-  });
+  }));
 }
 
 /* ============================= portefeuille ============================= */
@@ -2686,13 +2694,13 @@ function renderList() {
   if (tab === 'stats') { lastListSig = ''; keepScroll(renderStats); return; }
   // La pièce ne se redessine qu'en arrivant sur l'onglet : un rafraîchissement
   // de fond couperait un lancer en plein vol.
-  if (tab === 'coin') { lastListSig = ''; if (entering) renderCoin(listEl); return; }
+  if (tab === 'coin') { lastListSig = ''; if (entering) coinMod().then(({ renderCoin }) => { if (tab === 'coin') renderCoin(listEl); }); return; }
   // Les profils se relisent en arrivant sur l'onglet seulement (gardés 2 min par le worker).
   if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
   // Le Deal Sniper : relu en arrivant, puis chaque minute tant que l'onglet est affiché (deals.js).
   if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
   // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
-  if (tab === 'tradeads') { lastListSig = ''; if (entering) renderTradeAds(listEl, data.report); return; }
+  if (tab === 'tradeads') { lastListSig = ''; if (entering) tradeAdsMod().then(({ renderTradeAds }) => { if (tab === 'tradeads') renderTradeAds(listEl, data.report); }); return; }
   if (tab === 'home') {
     const sig = homeSignature();
     if (!entering && sig === lastListSig) return;

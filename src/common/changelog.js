@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.22',
+    title: item('Popup plus léger', 'Lighter popup'),
+    items: [
+      item("Le popup s'ouvre plus vite : pile ou face, trade ads, le partage d'image et la contre-offre ne se chargent qu'au moment où tu les ouvres.",
+        "The popup opens faster: coin flip, trade ads, image sharing and the counter offer only load when you open them.")
+    ]
+  },
+  {
     version: '2.17.21',
     title: item('Déjà tradé avec lui', 'Already traded with them'),
     items: [

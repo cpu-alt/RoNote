@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Popup plus léger** : pile ou face, trade ads, la feuille de partage (encodeur GIF et fonds compris) et l'éditeur de
+  contre-offre (~90 Ko) sont chargés à la demande (`import()` à la première ouverture, puis gardés) au lieu d'être lus
+  à chaque ouverture du popup.
 - **Déjà tradé avec lui** (Profils, Deals, Robux) : « Tradé ×n » quand au moins un trade a été conclu avec ce joueur,
   sinon « Contacté ×n » (offres envoyées ou reçues) ; au survol, conclus / envoyés / reçus, le bilan et le dernier
   contact. Tiré du journal local et des envois notés (`ronote:partners`, une fois par ouverture, aucune requête).
