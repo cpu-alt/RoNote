@@ -1166,7 +1166,7 @@ la note arrondie. La demande Rolimon's, entière, est décalée de (note Neurona
 plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
 la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).
 
-## L'envoi rapide (page « Trade with … », 2.17.14)
+## L'envoi rapide (page « Trade with … », 2.17.15)
 
 Sous le titre de la page d'envoi, `content/sent-history.js` montre les objets donnés dans les derniers trades
 envoyés (Insider / Elite : fonction `profiles` du jeton Neuronal ; réglage `sentHistory`, coupé par défaut).
@@ -1192,4 +1192,9 @@ Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne 
   ouvre un `input[type=search]` filtré côté serveur (~1 s), on y tape le nom, on ajoute, on remet la valeur
   d'avant. Arrivée vérifiée en comptant les `.trade-request-item` qui ont un `.thumbnail-2d-container` (les
   cases vides ont la même classe). Mesuré : 0,2 s sur la page, ~1 s par la recherche.
+- **Déjà dans l'offre** (2.17.15) : les boutons « Remove <nom> » de l'offre Roblox disent ce qui y est ; un
+  `MutationObserver` sur la seule `.trade-request-window-offer` (pas sur la page) remet les coches à jour, 80 ms
+  après le dernier changement ; un second clic clique ce bouton. Le rattrapage n'est attendu que si la liste
+  est vide ; sinon la réponse porte `refreshing` et la page redemande une seule fois 6 s plus tard. Un
+  effacement (`clearSent`) incrémente `gen` : un rattrapage en cours n'écrit plus rien.
 - Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.

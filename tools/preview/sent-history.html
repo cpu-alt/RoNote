@@ -33,8 +33,8 @@
   history.replaceState(null, '', '/users/111/trade' + location.search);
   const it = (n, v, a, extra = {}) => ({ name: n, value: v, assetId: a, thumb: null, acronym: n.split(' ').map(w => w[0]).join(''), ...extra });
   const now = Date.now();
-  const ITEMS = [it('Valkyrie Helm', 52000, 1001, { n: 3, withThem: true }), it('Sparkle Time Fedora', 31000, 1002, { n: 2, withThem: true }),
-    it('Clockwork Shades', 18000, 1003, { n: 1 }), it('Red Sparkle Time Fedora', 9000, 1004, { n: 4 }), it('Bombastic Hat', 4000, 1005, { n: 1 }),
+  const ITEMS = [it('Valkyrie Helm', 52000, 1001, { n: 3, withThem: true }), it('Sparkle Time Fedora', 31000, 1002, { n: 2, withThem: true, projected: true }),
+    it('Clockwork Shades', 18000, 1003, { n: 1, rare: true }), it('Red Sparkle Time Fedora', 9000, 1004, { n: 4 }), it('Bombastic Hat', 4000, 1005, { n: 1 }),
     it('Dominus Messor', 210000, 1006, { n: 1, withThem: true }), it('Ice Crown', 2500, 1007, { n: 2 })];
   const VIEWS = {
     rows: { partnerId: 111, items: ITEMS, rows: [
@@ -54,7 +54,8 @@
     c.innerHTML = `<a href="/catalog/${i.assetId}/x"><div class="th"></div></a>${i.name}`;
     c.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return;
       const r = document.createElement('div'); r.className = 'card trade-request-item';
-      r.innerHTML = `<span class="thumbnail-2d-container"></span>${i.name}`; offer.append(r); });
+      r.innerHTML = `<span class="thumbnail-2d-container"></span>${i.name} <button aria-label="Remove ${i.name}">×</button>`;
+      r.querySelector('button').onclick = () => r.remove(); offer.append(r); });
     inv.append(c);
   }
   const cards = (root) => [...root.querySelectorAll('.card')].map(card => ({ assetId: Number(card.dataset.a), bundleId: 0, name: card.textContent, card }));

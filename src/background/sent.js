@@ -66,6 +66,8 @@ export function recordSent(msg, me) {
 export async function clearSent() {
   memo = null;
   lastBackfill = 0;
+  gen++;
+  backfilling = null;
   await B.storage.local.remove(KEY);
 }
 
@@ -81,11 +83,13 @@ export async function clearSent() {
  */
 const BACKFILL_MS = 10 * 60e3;
 const BACKFILL_MAX = 15;
-let lastBackfill = 0, backfilling = null;
+let lastBackfill = 0, backfilling = null, gen = 0;      // gen : un effacement annule le rattrapage en cours
 
 async function backfill(me) {
   if (!me || Date.now() - lastBackfill < BACKFILL_MS) return backfilling;
+  if (backfilling) return backfilling;
   lastBackfill = Date.now();
+  const mine = gen;
   backfilling = (async () => {
     const got = await B.storage.local.get(KEY);
     const known = new Set((Array.isArray(got?.[KEY]) ? got[KEY] : []).map(e => String(e.id)));
@@ -108,8 +112,9 @@ async function backfill(me) {
       found.push({ id: String(t.id), at: Date.parse(t.created) || Date.now(), uid: me, partnerId: Number(partner.id) || 0,
         handle: String(partner.name || '').slice(0, 32), give, get: [], robux: Number(mine.robux) || 0 });
     });
-    if (!found.length) return;
+    if (!found.length || mine !== gen) return;
     await writes(async () => {
+      if (mine !== gen) return;                     // l'historique a été effacé entre-temps
       const cur = await B.storage.local.get(KEY);
       const log = Array.isArray(cur?.[KEY]) ? cur[KEY] : [];
       const ids = new Set(log.map(e => String(e.id)));
@@ -130,8 +135,13 @@ export async function sentHistory(partnerId, settings) {
   if (memo && memo.pid === pid && Date.now() - memo.at < MEMO_MS) return memo.value;
   const st = await getState();
   const me = Number(st.userId) || 0;
-  await backfill(me);
-  const got = await B.storage.local.get(KEY);
+  const first = await B.storage.local.get(KEY);
+  // Le rattrapage n'est attendu que la première fois (liste vide) : ensuite, la ligne s'affiche tout
+  // de suite avec ce qui est gardé, et la page redemande une fois quand il a fini (`refreshing`).
+  const run = backfill(me);
+  const refreshing = !!run && Array.isArray(first?.[KEY]) && first[KEY].length > 0;
+  if (run && !refreshing) await run;
+  const got = refreshing ? first : await B.storage.local.get(KEY);
   const rows = new Map();
 
   for (const e of Array.isArray(got?.[KEY]) ? got[KEY] : []) {
@@ -174,6 +184,8 @@ export async function sentHistory(partnerId, settings) {
     if (!(it.value > 0)) it.value = res.value || it.rap || 0;
     it.name = it.name || res.name;
     it.acronym = res.acronym || '';
+    it.projected = !!res.projected;
+    it.rare = !!res.rare;
     if (!it.thumb) missing.push([it, thumbKeysFor({ ...res, legacyAssetId: it.legacyAssetId || res.legacyAssetId })]);
   }
   if (missing.length) {
@@ -181,6 +193,6 @@ export async function sentHistory(partnerId, settings) {
     missing.forEach(([it], i) => { it.thumb = urls?.[i] || null; });
   }
   const value = { items, partnerId: pid };
-  memo = { pid, at: Date.now(), value };
-  return value;
+  if (!refreshing) memo = { pid, at: Date.now(), value };
+  return refreshing ? { ...value, refreshing: true } : value;
 }

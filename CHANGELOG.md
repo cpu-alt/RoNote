@@ -12,7 +12,10 @@ l'utilisateur, pas la liste des commits.
   refusés, expirés, contrés : les 15 plus récents encore inconnus, relus une fois puis gardés). **Un clic remet
   l'objet dans ton offre, où qu'il soit dans ton inventaire** : sur la page affichée, RoNote l'ajoute comme le
   ferait la touche Entrée ; sinon il passe par la recherche de Roblox, l'ajoute et remet la liste comme avant
-  (« Added », ou « On hold » / « Not in your inventory »). Aucune requête Roblox : l'envoi est
+  (« Added », ou « On hold » / « Not in your inventory »). Mini badge **Projected** (couleur des réglages) et 💎
+  rare sur les vignettes ; au survol, nom, value, Projected et nombre de fois **dans la ligne** (plus d'infobulle
+  du navigateur) ; un objet **déjà dans ton offre** est coché et atténué, un second clic le retire. La ligne
+  s'affiche tout de suite avec ce qui est gardé, le rattrapage finit en arrière-plan. Aucune requête Roblox : l'envoi est
   noté au moment du « Make Offer » (panier lu sur la page, vignettes comprises), complété par les trades envoyés
   déjà en cache. Gardé seulement sur l'ordinateur (150 envois) ; couper l'option l'efface.
 - **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période

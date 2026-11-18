@@ -16,9 +16,13 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: '2.17.14',
+    version: '2.17.15',
     title: item('Envoi rapide', 'Quick add'),
     items: [
+      item("Les vignettes portent un mini badge Projected (à la couleur de tes réglages) et une marque pour un objet rare ; nom, value et nombre de fois s'affichent dans la ligne au survol.",
+        "Tiles carry a mini Projected badge (in your settings' colour) and a mark for a rare item; name, value and count show in the row on hover."),
+      item("Un objet déjà dans ton offre est coché et atténué ; un second clic le retire.",
+        "An item already in your offer is ticked and dimmed; a second click removes it."),
       item("La liste reprend aussi tes trades déjà envoyés (en cours, refusés, expirés), pas seulement ceux envoyés depuis l'activation.",
         "The list now also picks up the trades you already sent (open, declined, expired), not just those sent since you turned it on."),
       item("Un clic ajoute l'objet même s'il n'est pas sur la page affichée de ton inventaire : RoNote le cherche pour toi.",
