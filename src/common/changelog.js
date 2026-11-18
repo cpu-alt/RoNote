@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.28',
+    title: item('Nouvelles icônes', 'New icons'),
+    items: [
+      item("Toutes les icônes de l'extension viennent maintenant de Lucide : plus fines et plus cohérentes.",
+        "Every icon in the extension now comes from Lucide: cleaner and more consistent.")
+    ]
+  },
+  {
     version: '2.17.27',
     title: item('Filtres réparés', 'Filters fixed'),
     items: [

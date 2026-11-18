@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Icônes Lucide** (2.17.28) : `src/common/icons.js` reprend les 65 icônes de l'extension depuis lucide-static 0.469.0
+  (ISC, licence dans `src/assets/LICENSE-lucide.txt`), mêmes noms côté code ; le logo Discord et le point plein restent les nôtres.
 - **Filtres réparés** (2.17.27) : la liste de suggestions d'items, vide et cachée, restait dessinée (`display: grid`
   passait outre `[hidden]`) et recouvrait « Les deux / Possède / Cherche ». L'onglet Deals reprend le style des autres
   onglets ; la value d'inventaire des Profils est une pastille « Inv. 26k ».
