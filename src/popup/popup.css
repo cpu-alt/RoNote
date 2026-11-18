@@ -2268,3 +2268,6 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   background: var(--surface-3); color: var(--dim); font-size: 9.5px; font-weight: 750; letter-spacing: 0; vertical-align: 2px; }
 .pf-known.done { background: #2fd07022; color: var(--win); }
 .pf-nl .pf-known { margin-left: 0; vertical-align: 0; }
+.if-sync { flex: none; padding: 0 7px; height: 20px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 10px; font-weight: 750; }
+.if-sync.on { background: #5865f222; color: #9aa4ff; }
+.if-sync.warn { background: #ffb02e1f; color: var(--warn); }

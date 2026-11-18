@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.23',
+    title: item('Items surveillés : Discord + RoNote', 'Watched items: Discord + RoNote'),
+    items: [
+      item("Le filtre par items de Profils est ton filtre « RoNote » de Profile discovery sur Discord : la même liste ici et là-bas, et tu reçois les DM quand un joueur correspond.",
+        "The Profiles item filter is your « RoNote » Profile discovery filter on Discord: the same list here and there, and you get DMs when a player matches.")
+    ]
+  },
+  {
     version: '2.17.22',
     title: item('Popup plus léger', 'Lighter popup'),
     items: [

@@ -98,6 +98,34 @@ async function fetchOne(kind, id, path = `${kind}/${id}`, retried = false) {
   }
 }
 
+/**
+ * Les items surveillés (18 nov.) : le filtre Profile discovery « RoNote » du membre sur Discord, lu ou
+ * écrit tel quel (jamais gardé : c'est un réglage, il doit être juste). `set` : { items: [ids], side }.
+ */
+export async function neuronalWatch(set = null, retried = false) {
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true };
+  if (!set) return fetchOne('watch', 0, 'watch');
+  try {
+    const res = await fetch(NEURONAL.api + 'watch', {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json', 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(await premiumHeaders()) },
+      body: JSON.stringify({ items: (set.items || []).slice(0, 20).map(Number).filter(Boolean), side: set.side || 'any' })
+    });
+    if (res.status === 401 && !retried) {
+      const body = await res.json().catch(() => ({}));
+      if (await premiumRetry(body.error)) return neuronalWatch(set, true);
+      return { locked: body.error || 'login' };
+    }
+    if (res.status === 403) return { locked: (await res.json().catch(() => ({}))).error || 'subscribe' };
+    if (res.status === 409) return { full: true };
+    if (!res.ok) return { error: 'HTTP ' + res.status };
+    return { data: await res.json() };
+  } catch (e) {
+    return { error: String(e?.message || e) };
+  }
+}
+
 /** Connexion, déconnexion premium : les réponses gardées (refus compris) ne valent plus. */
 export async function neuronalForget() {
   memo = {};

@@ -30,7 +30,7 @@ import { send } from '../common/ui.js';
 import { nwTradeLine, nwTilesHtml } from './nwcard.js';
 import { discoverSwitch, filterToggle, prepTrade, loadPartners, knownBadge } from './deals.js';
 import { lockHtml } from './lock.js';
-import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
+import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter, pullWatch } from './itemfilter.js';
 
 const KEY = 'ronote.profiles';
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -311,4 +311,5 @@ export function renderProfiles(listEl, openOptions) {
   }
   live(listEl);
   load(listEl);
+  pullWatch(() => load(listEl));                 // la liste d'items surveillés de Discord, une fois par ouverture
 }

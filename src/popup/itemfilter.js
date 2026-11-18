@@ -26,6 +26,8 @@ import { fmtNum, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 
 const MAX = 8;
+// Profils synchronisé avec Discord : la limite de Discord (5 items par liste d'un filtre) s'applique.
+const maxFor = (view) => (view === 'profiles' && sync.state === 'synced' && sync.max ? Math.min(MAX, sync.max) : MAX);
 // Les côtés proposés par vue : [clé, libellé]. Robux n'en a qu'un (ce qui est vendu).
 const SIDES = {
   deals: [['any', 'Les deux'], ['get', 'Tu reçois'], ['give', 'Tu donnes']],
@@ -41,7 +43,54 @@ export function itemFilter(view) {
   const sides = SIDES[view];
   return { items, side: sides && sides.some(([k]) => k === v.side) ? v.side : 'any' };
 }
-function save(view, f) { try { localStorage.setItem(key(view), JSON.stringify(f)); } catch { /* navigation privée */ } }
+function save(view, f, push = true) {
+  try { localStorage.setItem(key(view), JSON.stringify(f)); } catch { /* navigation privée */ }
+  if (push && view === 'profiles') pushWatch(f);
+}
+
+/*
+ * Profils ⇄ Discord (18 nov.) : le filtre par items de Profils est le filtre Profile discovery « RoNote »
+ * du membre sur Discord (/ext/v1/watch) : un seul réglage, qui reçoit aussi les DM. Lu une fois à
+ * l'ouverture de l'onglet (Discord a le dernier mot : on a pu le changer dans #filters), écrit 600 ms
+ * après le dernier changement ici. Sans RoNote premium Insider / Elite, rien ne part : le filtre reste local.
+ */
+let sync = { state: 'local', dm: false, max: 0 };   // local | synced | full | off
+let pushTimer = 0, pulled = false;
+function pushWatch(f) {
+  if (sync.state === 'off') return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    const ids = f.items.map(i => Number(i.assetId) || Number(i.bundleId)).filter(Boolean);
+    const r = await send({ type: 'ronote:watch', set: { items: ids, side: f.side } }).catch(() => null);
+    if (r?.data) sync = { state: 'synced', dm: !!r.data.dm, max: r.data.max || 0 };
+    else if (r?.full) sync = { ...sync, state: 'full' };
+    else if (r?.locked || r?.off || r?.unavailable) sync = { ...sync, state: 'off' };
+    document.querySelectorAll('[data-if-sync]').forEach(el => { el.outerHTML = syncHtml(); });
+  }, 600);
+}
+export async function pullWatch(repaint) {
+  if (pulled) return;
+  pulled = true;
+  const r = await send({ type: 'ronote:watch' }).catch(() => null);
+  if (!r?.data) { sync = { ...sync, state: r?.locked || r?.off || r?.unavailable ? 'off' : 'local' }; return; }
+  sync = { state: 'synced', dm: !!r.data.dm, max: r.data.max || 0 };
+  const mine = itemFilter('profiles');
+  const theirs = (r.data.items || []).map(i => ({ assetId: Number(i.id) || 0, bundleId: 0, name: i.name || '', acronym: '', thumb: null }));
+  const same = theirs.map(i => i.assetId).join() === mine.items.map(i => i.assetId || i.bundleId).join();
+  const side = r.data.side === 'give' ? 'give' : mine.side === 'any' ? 'any' : 'get';
+  if (same && (side === mine.side || (r.data.side === 'get' && mine.side === 'any'))) return;
+  if (!theirs.length && mine.items.length) { pushWatch(mine); return; }   // rien sur Discord : on y envoie le local
+  // Discord a changé : on reprend sa liste, avec les vignettes et acronymes du catalogue (aucune requête réseau).
+  const cat = await send({ type: 'ronote:catalog-search', ids: theirs.map(i => ({ assetId: i.assetId })) }).catch(() => null);
+  const byId = new Map((cat?.items || []).map(i => [Number(i.assetId) || Number(i.bundleId), i]));
+  save('profiles', { items: theirs.map(i => ({ ...i, ...(byId.get(i.assetId) ? { name: byId.get(i.assetId).name, acronym: byId.get(i.assetId).acronym || '', thumb: byId.get(i.assetId).thumb || null } : {}) })), side }, false);
+  repaint();
+}
+const syncHtml = () => {
+  if (sync.state === 'synced') return `<span class="if-sync on" data-if-sync title="${escapeHtml(t('Même liste que ton filtre « RoNote » sur Discord'))}">⇄ Discord${sync.dm ? ' · DM' : ''}</span>`;
+  if (sync.state === 'full') return `<span class="if-sync warn" data-if-sync title="${escapeHtml(t('Tu as déjà 5 filtres sur Discord : supprimes-en un pour synchroniser.'))}">${t('Discord plein')}</span>`;
+  return '<span data-if-sync hidden></span>';
+};
 
 /** Le nombre de filtres « objet » actifs (pour la pastille du bouton Filtres). */
 export const itemFilterCount = (view) => (itemFilter(view).items.length ? 1 : 0);
@@ -83,11 +132,12 @@ export function itemFilterHtml(view) {
   const sides = SIDES[view];
   return `<div class="pf-row if-row" data-if-view="${view}">
     <span class="pf-lbl">${t('Items')}</span>
-    <span class="if-add"><input type="search" data-if-q placeholder="${escapeHtml(f.items.length >= MAX ? t('8 items au plus') : t('Ajouter un item…'))}"
-      ${f.items.length >= MAX ? 'disabled' : ''} autocomplete="off" spellcheck="false" aria-label="${escapeHtml(t('Ajouter un item au filtre'))}"
+    <span class="if-add"><input type="search" data-if-q placeholder="${escapeHtml(f.items.length >= maxFor(view) ? t('{n} items au plus', { n: maxFor(view) }) : t('Ajouter un item…'))}"
+      ${f.items.length >= maxFor(view) ? 'disabled' : ''} autocomplete="off" spellcheck="false" aria-label="${escapeHtml(t('Ajouter un item au filtre'))}"
       aria-autocomplete="list" aria-expanded="false"><div class="if-sug" role="listbox" hidden></div></span>
     ${sides ? `<span class="if-sides" role="radiogroup" aria-label="${escapeHtml(t('Où'))}">${sides.map(([k, l]) =>
       `<button role="radio" aria-checked="${k === f.side}" data-if-side="${k}">${t(l)}</button>`).join('')}</span>` : ''}
+    ${view === 'profiles' ? syncHtml() : ''}
   </div>`;
 }
 
@@ -111,7 +161,7 @@ export function bindItemFilter(root, view, isActive, repaint) {
   };
   const add = (i) => {
     const f = itemFilter(view);
-    if (!i || f.items.length >= MAX || f.items.some(x => x.assetId === i.assetId && x.bundleId === i.bundleId)) { close(); return; }
+    if (!i || f.items.length >= maxFor(view) || f.items.some(x => x.assetId === i.assetId && x.bundleId === i.bundleId)) { close(); return; }
     f.items.push({ assetId: i.assetId || 0, bundleId: i.bundleId || 0, name: i.name, acronym: i.acronym || '', thumb: i.thumb || null });
     save(view, f);
     close();

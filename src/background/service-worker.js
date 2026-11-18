@@ -18,7 +18,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
+import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
@@ -1438,6 +1438,9 @@ async function handleMessage(msg, sender = null) {
       return readThrough({ key: 'profileStores', id, field: 'page', ttl: PLAYER_TTL, cap: PLAYER_CAP }, load);
     }
     // Le cadre « derniers trades » du profil Roblox : Insider / Elite (Neuronal le vérifie).
+    // Les items surveilles, communs a Discord (filtre « RoNote ») et a l'onglet Profils.
+    case 'ronote:watch':
+      return neuronalWatch(msg.set || null);
     // « Deja trade avec lui » (Profils, Deals, 18 nov.) : pour chaque partenaire connu du journal local
     // (et des envois notes par l'envoi rapide), trades conclus, envoyes, recus, gain net, dernier contact.
     // Aucune requete : tout est deja en local. Le popup le demande une fois par ouverture.

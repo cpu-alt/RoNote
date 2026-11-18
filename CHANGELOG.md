@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Items surveillés communs Discord + RoNote** (Insider / Elite) : le filtre par items de Profils est le filtre Profile
+  discovery « RoNote » du membre sur Discord (`/ext/v1/watch`) ; il reçoit donc aussi les DM. Lu à l'ouverture de
+  Profils (Discord a le dernier mot), écrit 600 ms après un changement ; « ⇄ Discord · DM » dans le panneau, « Discord
+  plein » s'il a déjà 5 filtres ; 5 items au plus (la limite de Discord) une fois synchronisé.
 - **Popup plus léger** : pile ou face, trade ads, la feuille de partage (encodeur GIF et fonds compris) et l'éditeur de
   contre-offre (~90 Ko) sont chargés à la demande (`import()` à la première ouverture, puis gardés) au lieu d'être lus
   à chaque ouverture du popup.
