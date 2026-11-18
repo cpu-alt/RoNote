@@ -5,9 +5,12 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
-- **Historique d'envoi** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une bande repliable
-  sous le titre montre les objets donnés dans tes 12 derniers trades envoyés, ceux faits avec ce joueur en tête,
-  avec leur issue (en cours, accepté, refusé, contré, expiré) et leur value. Aucune requête Roblox : l'envoi est
+- **Envoi rapide** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une bande repliable
+  sous le titre montre **tes objets récents**, ceux que tu as mis de ton côté dans tes derniers envois (un par objet,
+  le plus récent d'abord, ×N fois, point violet s'il a déjà été proposé à ce joueur) ; **un clic le remet dans ton
+  offre** (RoNote clique sur ta copie dans « Your Inventory » et vérifie qu'elle est arrivée ; sinon il dit qu'elle
+  n'est pas sur cette page de l'inventaire). Un second onglet garde les 12 derniers trades envoyés, ceux avec ce
+  joueur en tête, avec leur issue et leur value. Aucune requête Roblox : l'envoi est
   noté au moment du « Make Offer » (panier lu sur la page, vignettes comprises), complété par les trades envoyés
   déjà en cache. Gardé seulement sur l'ordinateur (150 envois) ; couper l'option l'efface.
 - **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période

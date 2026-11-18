@@ -38,6 +38,8 @@ check('le @ du pseudo est retiré', h.rows.find(r => r.id === '1').handle === 'b
 check('encore dans Outbound : en cours', h.rows[0].status === 'open');
 check('le total des objets donnés', h.rows.find(r => r.id === '1').value === 300);
 check('les Robux sont gardés', h.rows[0].robux === 50);
+check('mes objets récents : un par objet, le plus récent d’abord', h.items.map(i => i.name).join() === 'Item 3,Item 4,Item 1,Item 2');
+check('… avec le nombre de fois et « avec ce joueur »', h.items[0].n === 1 && !h.items[0].withThem && h.items[1].withThem);
 check('aucune requête réseau', fetches === 0);
 
 for (let i = 0; i < SENT_CAP + 10; i++) await recordSent({ tradeId: 100 + i, partnerId: 1, give: [item(1)] }, 42);

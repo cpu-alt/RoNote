@@ -16,11 +16,13 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: '2.17.11',
-    title: item("Historique d'envoi", 'Send history'),
+    version: '2.17.12',
+    title: item('Envoi rapide', 'Quick add'),
     items: [
-      item("Insider et Elite : sous « Trade with … », les objets donnés dans tes derniers trades envoyés, ceux avec ce joueur d'abord, avec leur issue. Désactivé par défaut (Réglages › Page d'un trade).",
-        "Insider and Elite: under « Trade with … », the items you gave in your latest sent trades, the ones with this player first, with their outcome. Off by default (Settings › Trade page).")
+      item("Insider et Elite : sous « Trade with … », tes objets récents (ceux que tu as mis de ton côté dans tes derniers envois) ; un clic les remet dans ton offre. Désactivé par défaut (Réglages › Page d'un trade).",
+        "Insider and Elite: under « Trade with … », your recent items (the ones you put on your side in your latest sends); one click puts them back in your offer. Off by default (Settings › Trade page)."),
+      item("Un second onglet garde tes derniers trades envoyés, ceux avec ce joueur d'abord, avec leur issue.",
+        "A second tab keeps your latest sent trades, the ones with this player first, with their outcome.")
     ]
   },
   {

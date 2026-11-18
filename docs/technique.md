@@ -1166,7 +1166,7 @@ la note arrondie. La demande Rolimon's, entière, est décalée de (note Neurona
 plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
 la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).
 
-## L'historique d'envoi (page « Trade with … », 2.17.11)
+## L'envoi rapide (page « Trade with … », 2.17.12)
 
 Sous le titre de la page d'envoi, `content/sent-history.js` montre les objets donnés dans les derniers trades
 envoyés (Insider / Elite : fonction `profiles` du jeton Neuronal ; réglage `sentHistory`, coupé par défaut).
@@ -1180,4 +1180,9 @@ Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne 
   (`cachedCards`, 7 jours), l'issue vient du snapshot Outbound et du journal des alertes, les values de la table
   Rolimon's chargée. Réponse gardée 30 s par joueur ; une seule question par joueur et par visite.
 - Couper l'option (ou vider le journal) efface `sentLog`. Rien ne part vers Neuronal.
-- Aperçu hors extension : `tools/preview/sent-history.html`.
+- **L'ajout rapide** : les objets récents (un par objet, `items` dans la réponse) sont des tuiles ; un clic
+  cherche ma copie dans « Your Inventory » (`RoNoteDom.inventoryItems`, seulement avant
+  `theirInventoryHeading`, hors paniers), clique sa vignette hors lien (un lien ouvrirait la fiche de l'objet),
+  puis vérifie dans « Your Offer » qu'elle est arrivée (6 × 120 ms, jusqu'à 3 copies). Roblox pagine
+  l'inventaire : un objet hors de la page affichée ne s'ajoute pas, la bande le dit.
+- Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.

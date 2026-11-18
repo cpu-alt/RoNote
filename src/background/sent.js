@@ -29,6 +29,7 @@ import { serialQueue } from '../common/utils.js';
 const KEY = 'sentLog';
 export const SENT_CAP = 150;
 const SHOWN = 12;
+const ITEMS_SHOWN = 24;                           // la rangée « mes objets récents » (envoi rapide)
 const MEMO_MS = 30e3;
 const writes = serialQueue();
 let memo = null;                                  // { pid, at, value }
@@ -99,7 +100,19 @@ export async function sentHistory(partnerId, settings) {
     });
   }
 
-  // Les plus récents, ceux faits avec ce joueur d'abord.
+  // Mes objets récents, un par objet, du dernier mis de mon côté au plus ancien (avec le nombre de fois).
+  const agg = new Map();
+  for (const r of [...rows.values()].sort((a, b) => b.at - a.at)) {
+    for (const it of r.give) {
+      const k = it.bundleId ? 'b' + it.bundleId : it.assetId ? 'a' + it.assetId : 'n' + it.name;
+      const e = agg.get(k);
+      if (e) { e.n++; e.withThem ||= r.partnerId === pid; continue; }
+      agg.set(k, { ...it, n: 1, at: r.at, withThem: r.partnerId === pid });
+    }
+  }
+  const items = [...agg.values()].slice(0, ITEMS_SHOWN);
+
+  // Les trades : les plus récents, ceux faits avec ce joueur d'abord.
   const list = [...rows.values()].sort((a, b) =>
     ((b.partnerId === pid) - (a.partnerId === pid)) || (b.at - a.at)).slice(0, SHOWN);
 
@@ -112,7 +125,7 @@ export async function sentHistory(partnerId, settings) {
   // Values (table déjà chargée) et vignettes (cache) pour ce qui n'en a pas encore.
   const cat = await getCatalog(settings).catch(() => null);
   const missing = [];
-  for (const r of list) {
+  for (const r of [...list, { give: items }]) {
     for (const it of r.give) {
       const res = resolveItem({ assetId: it.assetId, bundleId: it.bundleId, name: it.name }, cat);
       if (!(it.value > 0)) it.value = res.value || it.rap || 0;
@@ -126,7 +139,7 @@ export async function sentHistory(partnerId, settings) {
     const urls = await resolveThumbs(missing.map(m => m[1])).catch(() => []);
     missing.forEach(([it], i) => { it.thumb = urls?.[i] || null; });
   }
-  const value = { rows: list, partnerId: pid };
+  const value = { items, rows: list, partnerId: pid };
   memo = { pid, at: Date.now(), value };
   return value;
 }

@@ -40,7 +40,7 @@
   const PATH = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/users\/(\d+)\/trade\/?$/i;
   const partnerOf = () => Number(PATH.exec(location.pathname)?.[1]) || 0;
 
-  let enabled = false, open = true, timer = null;
+  let enabled = false, open = true, tab = 'items', timer = null;
   let host = null, shadow = null, data = null, dataFor = 0, asking = false, pending = null;
 
   /* ------------------------------ réglages ------------------------------ */
@@ -51,8 +51,9 @@
     if (enabled && !was) { data = null; dataFor = 0; tick(); }
   };
   try {
-    B.storage?.local?.get(['settings', 'sentHistoryOpen']).then(got => {
+    B.storage?.local?.get(['settings', 'sentHistoryOpen', 'sentHistoryTab']).then(got => {
       open = got?.sentHistoryOpen !== false;
+      tab = got?.sentHistoryTab === 'trades' ? 'trades' : 'items';
       apply(got?.settings);
     }).catch(() => {});
     B.storage?.onChanged?.addListener((ch, area) => {
@@ -127,8 +128,30 @@
     .lock{display:flex;align-items:center;gap:10px;padding:2px 12px 12px;font-size:12.5px;opacity:.9}
     .lock a{margin-left:auto;color:#fff;text-decoration:none;font-weight:700;padding:5px 10px;border-radius:8px;background:linear-gradient(90deg,#7c3aed,#c026d3)}
     .sk{height:72px;margin:2px 12px 12px;border-radius:11px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:sh 1.2s linear infinite}
+    .tabs{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:rgba(255,255,255,.06);margin-left:4px}
+    .tab{border:0;background:none;color:inherit;font:600 11.5px/1 inherit;font-family:inherit;padding:5px 9px;border-radius:7px;cursor:pointer;opacity:.65}
+    .tab[aria-selected="true"]{background:rgba(167,139,250,.28);opacity:1}
+    .grid{display:flex;gap:8px;overflow-x:auto;padding:2px 12px 12px;scrollbar-width:thin}
+    .tile{position:relative;flex:none;width:68px;padding:5px 5px 6px;border-radius:11px;border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);color:inherit;font:inherit;cursor:pointer;text-align:center;transition:border-color .15s,background .15s,transform .15s}
+    .tile:hover,.tile:focus-visible{border-color:rgba(167,139,250,.7);background:rgba(124,58,237,.16);outline:none;transform:translateY(-1px)}
+    .tile .pic{position:relative;display:block;width:56px;height:56px;margin:0 auto;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.06)}
+    .tile img{width:100%;height:100%;object-fit:cover;display:block}
+    .tile .ph{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;opacity:.75}
+    .tile .plus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;
+      background:rgba(76,29,149,.55);opacity:0;transition:opacity .15s}
+    .tile:hover .plus,.tile:focus-visible .plus{opacity:1}
+    .tile .v{display:block;margin-top:4px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+    .tile .nm{display:block;font-size:10px;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tile .n{position:absolute;top:3px;right:3px;z-index:1;font-size:9.5px;font-weight:700;padding:1px 4px;border-radius:6px;background:rgba(0,0,0,.6)}
+    .tile .dot{position:absolute;top:4px;left:4px;z-index:1;width:7px;height:7px;border-radius:50%;background:#c4b5fd;box-shadow:0 0 0 2px rgba(0,0,0,.4)}
+    .tile.ok{border-color:#3fbf7f;background:rgba(63,191,127,.16)}
+    .tile.miss{border-color:#f5a524;background:rgba(245,165,36,.12)}
+    .tile.busy{opacity:.6;pointer-events:none}
+    .hint{padding:0 12px 10px;font-size:11.5px;opacity:.75}
+    .hint:empty{display:none}
     @keyframes sh{to{background-position:-200% 0}}
-    @media(prefers-reduced-motion:reduce){.sk{animation:none}.chev{transition:none}}`;
+    @media(prefers-reduced-motion:reduce){.sk{animation:none}.chev,.tile,.tile .plus{transition:none}}`;
 
   const STATUS = { open: L('En cours', 'Open'), accepted: L('Accepté', 'Accepted'), declined: L('Refusé', 'Declined'),
     countered: L('Contré', 'Countered'), expired: L('Expiré', 'Expired') };
@@ -149,6 +172,15 @@
         <a href="https://discord.gg/neuronal" target="_blank" rel="noopener noreferrer">${L('Débloquer', 'Unlock')}</a></div>`;
     }
     const rows = data.rows || [];
+    if (tab === 'items' && data.items?.length) {
+      return `<div class="grid">${data.items.map((i, k) => `<button class="tile" type="button" data-k="${k}"
+          title="${esc(i.name)} · ${esc(compact.format(i.value || 0))} · ${esc(L(`mis ${i.n} fois`, `offered ${i.n}×`))}${i.withThem ? ' · ' + esc(L('déjà proposé à ce joueur', 'already offered to this player')) : ''}">
+        ${i.withThem ? '<span class="dot"></span>' : ''}${i.n > 1 ? `<span class="n">×${i.n}</span>` : ''}
+        <span class="pic">${i.thumb && /^https:\/\//.test(i.thumb) ? `<img src="${esc(i.thumb)}" alt="" loading="lazy" decoding="async">`
+          : `<span class="ph">${esc((i.acronym || i.name || '?').slice(0, 4))}</span>`}<span class="plus">+</span></span>
+        <span class="v">${esc(compact.format(i.value || 0))}</span><span class="nm">${esc(i.acronym || i.name)}</span></button>`).join('')}</div>
+        <div class="hint"></div>`;
+    }
     if (!rows.length) {
       return `<div class="note">${data.error ? L('Historique indisponible pour l’instant.', 'History unavailable right now.')
         : L('Rien encore : chaque trade envoyé depuis cette page s’ajoutera ici.', 'Nothing yet: every trade you send from this page will show up here.')}</div>`;
@@ -171,18 +203,72 @@
     if (!shadow) return;
     const n = data?.rows?.length || 0;
     const mine = (data?.rows || []).filter(r => r.partnerId === pid).length;
-    const sig = JSON.stringify([open, asking, data && (data.locked || data.error || data.rows?.map(r => r.id + r.status + (r.give[0]?.thumb || '')))]);
+    const sig = JSON.stringify([open, tab, asking, data && (data.locked || data.error || data.rows?.map(r => r.id + r.status + (r.give[0]?.thumb || '')))]);
     if (shadow._sig === sig) return;
     shadow._sig = sig;
     shadow.innerHTML = `<style>${CSS}</style><div class="box${open ? '' : ' closed'}">
-      <button class="hd" type="button" aria-expanded="${open}"><span class="ttl">↗ ${L('Derniers envois', 'Recently sent')}</span>
-        <span class="sub">${n ? `${n}${mine ? ' · ' + L(`${mine} avec lui`, `${mine} with them`) : ''}` : ''}</span>
-        <span class="badge">RoNote</span><span class="chev"></span></button>${body(pid)}</div>`;
-    shadow.querySelector('.hd').addEventListener('click', () => {
+      <div class="hd" role="button" tabindex="0" aria-expanded="${open}"><span class="ttl">↗ ${L('Envoi rapide', 'Quick add')}</span>
+        ${data && !data.locked && n ? `<span class="tabs" role="tablist">
+          <button class="tab" role="tab" data-tab="items" aria-selected="${tab === 'items'}">${L('Mes objets récents', 'My recent items')}</button>
+          <button class="tab" role="tab" data-tab="trades" aria-selected="${tab === 'trades'}">${L('Trades', 'Trades')} · ${n}${mine ? ` (${mine} ${L('avec lui', 'w/ them')})` : ''}</button></span>` : ''}
+        <span class="badge">RoNote</span><span class="chev"></span></div>${body(pid)}</div>`;
+    const hd = shadow.querySelector('.hd');
+    const toggle = () => {
       open = !open;
       try { B.storage.local.set({ sentHistoryOpen: open }); } catch { /* ignore */ }
       draw(pid);
+    };
+    hd.addEventListener('click', (e) => {
+      const t = e.target.closest?.('[data-tab]');
+      if (!t) return toggle();
+      e.stopPropagation();
+      tab = t.dataset.tab; open = true;
+      try { B.storage.local.set({ sentHistoryTab: tab, sentHistoryOpen: true }); } catch { /* ignore */ }
+      draw(pid);
     });
+    hd.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === hd) { e.preventDefault(); toggle(); } });
+    shadow.querySelectorAll('.tile').forEach(b => b.addEventListener('click', () => quickAdd(b, data.items[Number(b.dataset.k)])));
+  }
+
+  /* ---------------------------- l'ajout rapide --------------------------- */
+  // Un clic sur une tuile remet l'objet dans « Your Offer » : on clique pour l'utilisateur sur sa
+  // carte dans « Your Inventory » (la page de Roblox fait le reste), puis on vérifie qu'il est arrivé.
+  const sameItem = (it) => (x) => it.bundleId ? x.bundleId === it.bundleId : (!!x.assetId && x.assetId === it.assetId);
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  function offerCount(it) {
+    try { return (globalThis.RoNoteDom.readTradePage()?.sides?.find(s => s.role === 'give')?.items || []).filter(sameItem(it)).length; }
+    catch { return 0; }
+  }
+  function myCards(it) {
+    const dom = globalThis.RoNoteDom;
+    let page = null;
+    try { page = dom.readTradePage(); } catch { /* page en chargement */ }
+    const baskets = (page?.sides || []).map(s => s.root);
+    const all = dom.inventoryItems?.(baskets) || [];
+    const theirs = dom.theirInventoryHeading?.();
+    return all.filter(x => sameItem(it)(x) && (!theirs || (x.card.compareDocumentPosition(theirs) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  }
+  // Ce qu'on clique dans la carte : sa vignette hors lien (un lien ouvrirait la fiche de l'objet).
+  const clickTarget = (card) => [...card.querySelectorAll('img')].find(img => !img.closest('a'))?.parentElement || card;
+  async function quickAdd(tile, it) {
+    if (!it || tile.classList.contains('busy')) return;
+    const hint = shadow.querySelector('.hint');
+    tile.classList.remove('ok', 'miss'); tile.classList.add('busy');
+    let ok = false;
+    try {
+      const avant = offerCount(it);
+      for (const x of myCards(it).slice(0, 3)) {         // une copie déjà dans l'offre : la suivante
+        clickTarget(x.card).click();
+        for (let k = 0; k < 6 && !ok; k++) { await wait(120); ok = offerCount(it) > avant; }
+        if (ok) break;
+      }
+    } catch { /* page en plein changement : on le dit comme un échec */ }
+    tile.classList.remove('busy');
+    tile.classList.add(ok ? 'ok' : 'miss');
+    if (hint) hint.textContent = ok ? L(`${it.name} ajouté à ton offre.`, `${it.name} added to your offer.`)
+      : L(`${it.name} n’est pas sur cette page de ton inventaire (ou n’y est plus) : change de page ou cherche-le.`,
+        `${it.name} isn’t on this page of your inventory (or not anymore): turn the page or search for it.`);
+    setTimeout(() => tile.classList.remove('ok', 'miss'), 1600);
   }
 
   function ask(pid) {
