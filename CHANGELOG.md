@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Filtres réparés** (2.17.27) : la liste de suggestions d'items, vide et cachée, restait dessinée (`display: grid`
+  passait outre `[hidden]`) et recouvrait « Les deux / Possède / Cherche ». L'onglet Deals reprend le style des autres
+  onglets ; la value d'inventaire des Profils est une pastille « Inv. 26k ».
 - **Onglet « Deals »** (2.17.26) : l'accès à Profils et Deals est un onglet nommé, teinté de l'accent, au bout de la
   barre (il tient en français et en anglais), au lieu d'une petite icône radar.
 - **Filtres dépliés rangés** : un seul panneau ; Remplissage auto en tête, puis Items, Paliers, Inventaire minimum (ou

@@ -2369,11 +2369,17 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-fp .if-sync { height: 24px; border-radius: 12px; }
 .pf-fp .if-sides { background: var(--surface-2); }
 
-/* L'accès à Profils et Deals (18 nov.) : un onglet nommé « Deals », teinté de l'accent, au lieu d'une
+/* L'accès à Profils et Deals (18 nov.) : un onglet nommé « Deals », comme les autres, au lieu d'une
    petite icône seule au bout de la barre. */
-.tabs .tab.disc-tab { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin: 4px 0 4px 4px; padding: 0 10px;
-  border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: #8fc2ff; font-weight: 700; }
-.tabs .tab.disc-tab:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); color: #b7d8ff; }
-.tabs .tab.disc-tab.active { background: var(--accent); color: #fff; }
+.tabs .tab.disc-tab { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 4px 7px 6px; }
 .tab.disc-tab .ic { width: 13px; height: 13px; }
 .pf-fp .pf-row button:not([class*="t-"]), .pf-fp .if-sides button { text-transform: none; }
+
+/* La liste de suggestions vide restait affichée (display: grid passait outre [hidden]) : une case de 10 px
+   par-dessus « Les deux / Possède / Cherche ». */
+.if-sug[hidden] { display: none; }
+
+/* La value de l'inventaire : une pastille sous les boutons (18 nov., v3). */
+.pf-val { gap: 4px; padding: 3px 8px; border-radius: 999px; background: var(--surface-3); }
+.pf-val small { font-size: 9.5px; font-weight: 650; text-transform: none; letter-spacing: 0; }
+.pf-val b { font-size: 12px; }

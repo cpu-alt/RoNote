@@ -139,7 +139,7 @@ function cardHtml(p, both, isNew = false) {
       <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
       <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span></span>
         <span class="pf-meta">${badges}<small>${meta}</small></span></span>
-      <span class="pf-right">${acts(id, id)}${p.value ? `<span class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}"><small>${t('Inventaire')}</small><b>${fmtNum(p.value)}</b></span>` : ''}</span>
+      <span class="pf-right">${acts(id, id)}${p.value ? `<span class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}"><small>${t('Inv.')}</small><b>${fmtNum(p.value)}</b></span>` : ''}</span>
     </header>
     ${body}
   </article>`;

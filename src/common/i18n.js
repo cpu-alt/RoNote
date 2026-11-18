@@ -1253,6 +1253,7 @@ const EN = {
   '{d} conclu(s), {s} envoyé(s), {r} reçu(s)': '{d} done, {s} sent, {r} received',
   'Préparer le trade (items déjà ajoutés)': 'Prepare the trade (items already added)',
   'Remplissage auto': 'Auto fill',
+  'Inv.': 'Inv.',
   'Profils et deals de Neuronal': 'Neuronal profiles and deals',
   'Paliers': 'Tiers',
   'Palier': 'Grade',

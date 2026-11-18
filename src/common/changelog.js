@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.27',
+    title: item('Filtres réparés', 'Filters fixed'),
+    items: [
+      item("Filtres : une case vide ne recouvre plus « Les deux / Possède / Cherche ».",
+        "Filters: an empty box no longer covers « Both / Owns / Looking for »."),
+      item("L'onglet Deals a le style des autres onglets ; la value d'inventaire est une pastille « Inv. ».",
+        "The Deals tab looks like the other tabs; the inventory value is an « Inv. » pill.")
+    ]
+  },
+  {
     version: '2.17.26',
     title: item('Deals plus faciles à trouver', 'Deals easier to find'),
     items: [
