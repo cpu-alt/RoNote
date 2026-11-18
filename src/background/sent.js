@@ -19,7 +19,7 @@
  * ==========================================================================
  */
 import { B } from '../common/shim.js';
-import { getState, getHistory } from '../common/state.js';
+import { getState } from '../common/state.js';
 import { getCatalog } from '../common/roli.js';
 import { resolveItem, thumbKeysFor } from '../common/analysis.js';
 import { resolveThumbs } from '../common/thumbs.js';
@@ -28,8 +28,7 @@ import { serialQueue } from '../common/utils.js';
 
 const KEY = 'sentLog';
 export const SENT_CAP = 150;
-const SHOWN = 12;
-const ITEMS_SHOWN = 24;                           // la rangée « mes objets récents » (envoi rapide)
+const ITEMS_SHOWN = 16;                           // la ligne « Recent » (envoi rapide)
 const MEMO_MS = 30e3;
 const writes = serialQueue();
 let memo = null;                                  // { pid, at, value }
@@ -67,11 +66,10 @@ export async function clearSent() {
   await B.storage.local.remove(KEY);
 }
 
-// L'issue d'un trade envoyé, d'après le journal des alertes.
-const OUTCOME = { outbound_accepted: 'accepted', outbound_declined: 'declined',
-  outbound_countered: 'countered', outbound_expired: 'expired' };
+// Une fiche de trade envoyé (suivi jusqu'à son issue) : elle compte aussi.
+const OUTCOME = { outbound_accepted: 1, outbound_declined: 1, outbound_countered: 1, outbound_expired: 1 };
 
-/** Les lignes à afficher pour la page d'envoi vers `partnerId`. */
+/** Mes objets récents pour la page d'envoi vers `partnerId` : { items: [...] }. */
 export async function sentHistory(partnerId, settings) {
   const pid = Number(partnerId) || 0;
   if (memo && memo.pid === pid && Date.now() - memo.at < MEMO_MS) return memo.value;
@@ -94,7 +92,7 @@ export async function sentHistory(partnerId, settings) {
     rows.set(String(card.tradeId), {
       id: String(card.tradeId), at: Date.parse(card.created) || 0,
       partnerId: Number(card.partner?.id) || 0, handle: card.partner?.name || card.partner?.displayName || '',
-      robux: give.robux || 0, status: OUTCOME[card.kind],
+      robux: give.robux || 0,
       give: give.items.slice(0, 8).map(i => ({ assetId: i.assetId, bundleId: i.bundleId, legacyAssetId: i.legacyAssetId,
         name: i.name, rap: i.rap, value: i.value, thumb: i.thumb || null }))
     });
@@ -112,34 +110,21 @@ export async function sentHistory(partnerId, settings) {
   }
   const items = [...agg.values()].slice(0, ITEMS_SHOWN);
 
-  // Les trades : les plus récents, ceux faits avec ce joueur d'abord.
-  const list = [...rows.values()].sort((a, b) =>
-    ((b.partnerId === pid) - (a.partnerId === pid)) || (b.at - a.at)).slice(0, SHOWN);
-
-  // L'issue : ouvert (encore dans Outbound) ou ce que le journal en a dit.
-  const open = new Set((st.snapshot?.outbound || []).map(t => String(t.tradeId)));
-  const outcome = new Map();
-  for (const h of await getHistory()) if (OUTCOME[h.kind] && h.tradeId) outcome.set(String(h.tradeId), OUTCOME[h.kind]);
-  for (const r of list) r.status = open.has(String(r.id)) ? 'open' : (outcome.get(String(r.id)) || r.status || null);
-
-  // Values (table déjà chargée) et vignettes (cache) pour ce qui n'en a pas encore.
+  // Values (table déjà chargée) et vignettes (cache) des seuls objets affichés.
   const cat = await getCatalog(settings).catch(() => null);
   const missing = [];
-  for (const r of [...list, { give: items }]) {
-    for (const it of r.give) {
-      const res = resolveItem({ assetId: it.assetId, bundleId: it.bundleId, name: it.name }, cat);
-      if (!(it.value > 0)) it.value = res.value || it.rap || 0;
-      it.name = it.name || res.name;
-      it.acronym = res.acronym || '';
-      if (!it.thumb) missing.push([it, thumbKeysFor({ ...res, legacyAssetId: it.legacyAssetId || res.legacyAssetId })]);
-    }
-    r.value = r.give.reduce((s, i) => s + (i.value || 0), 0);
+  for (const it of items) {
+    const res = resolveItem({ assetId: it.assetId, bundleId: it.bundleId, name: it.name }, cat);
+    if (!(it.value > 0)) it.value = res.value || it.rap || 0;
+    it.name = it.name || res.name;
+    it.acronym = res.acronym || '';
+    if (!it.thumb) missing.push([it, thumbKeysFor({ ...res, legacyAssetId: it.legacyAssetId || res.legacyAssetId })]);
   }
   if (missing.length) {
     const urls = await resolveThumbs(missing.map(m => m[1])).catch(() => []);
     missing.forEach(([it], i) => { it.thumb = urls?.[i] || null; });
   }
-  const value = { items, rows: list, partnerId: pid };
+  const value = { items, partnerId: pid };
   memo = { pid, at: Date.now(), value };
   return value;
 }

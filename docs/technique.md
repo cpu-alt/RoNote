@@ -1166,7 +1166,7 @@ la note arrondie. La demande Rolimon's, entière, est décalée de (note Neurona
 plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
 la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).
 
-## L'envoi rapide (page « Trade with … », 2.17.12)
+## L'envoi rapide (page « Trade with … », 2.17.13)
 
 Sous le titre de la page d'envoi, `content/sent-history.js` montre les objets donnés dans les derniers trades
 envoyés (Insider / Elite : fonction `profiles` du jeton Neuronal ; réglage `sentHistory`, coupé par défaut).

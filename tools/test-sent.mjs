@@ -32,12 +32,10 @@ await recordSent({ tradeId: 4, at: Date.now(), partnerId: 7, give: [item(5)] }, 
 await recordSent({ tradeId: 2, at: Date.now() - 1e6, partnerId: 8, give: [item(3)] }, 42); // le même trade : pas en double
 
 const h = await sentHistory(7, settings);
-check('le compte suivi seulement, sans doublon', h.rows.map(r => r.id).join() === '3,1,2');
-check('avec ce joueur d’abord, du plus récent au plus ancien', h.rows[0].partnerId === 7 && h.rows[1].partnerId === 7);
-check('le @ du pseudo est retiré', h.rows.find(r => r.id === '1').handle === 'bob');
-check('encore dans Outbound : en cours', h.rows[0].status === 'open');
-check('le total des objets donnés', h.rows.find(r => r.id === '1').value === 300);
-check('les Robux sont gardés', h.rows[0].robux === 50);
+check('le compte suivi seulement, sans doublon', h.items.length === 4 && !h.items.some(i => i.name === 'Item 5'));
+check('le @ du pseudo est retiré', store.get('sentLog').find(e => e.id === '1').handle === 'bob');
+check('les Robux sont gardés', store.get('sentLog').find(e => e.id === '3').robux === 50);
+check('la value de chaque objet', h.items.find(i => i.name === 'Item 1').value === 100);
 check('mes objets récents : un par objet, le plus récent d’abord', h.items.map(i => i.name).join() === 'Item 3,Item 4,Item 1,Item 2');
 check('… avec le nombre de fois et « avec ce joueur »', h.items[0].n === 1 && !h.items[0].withThem && h.items[1].withThem);
 check('aucune requête réseau', fetches === 0);
@@ -45,7 +43,7 @@ check('aucune requête réseau', fetches === 0);
 for (let i = 0; i < SENT_CAP + 10; i++) await recordSent({ tradeId: 100 + i, partnerId: 1, give: [item(1)] }, 42);
 check(`${SENT_CAP} envois au plus`, store.get('sentLog').length === SENT_CAP);
 await clearSent();
-check('couper l’option efface l’historique', !store.has('sentLog') && (await sentHistory(7, settings)).rows.length === 0);
+check('couper l’option efface l’historique', !store.has('sentLog') && (await sentHistory(7, settings)).items.length === 0);
 
 console.log(`\n${passed} réussis, ${failed} échoués`);
 if (failed) process.exit(1);
