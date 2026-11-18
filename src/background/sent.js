@@ -19,12 +19,14 @@
  * ==========================================================================
  */
 import { B } from '../common/shim.js';
-import { getState } from '../common/state.js';
+import { getState, getStreams } from '../common/state.js';
 import { getCatalog } from '../common/roli.js';
 import { resolveItem, thumbKeysFor } from '../common/analysis.js';
 import { resolveThumbs } from '../common/thumbs.js';
-import { loadDetailCache, cachedCards } from './cards.js';
-import { serialQueue } from '../common/utils.js';
+import { loadDetailCache, cachedCards, cachedDetail } from './cards.js';
+import { serialQueue, eachLimit } from '../common/utils.js';
+import * as api from '../common/api.js';
+import { directionOf } from './streams.js';
 
 const KEY = 'sentLog';
 export const SENT_CAP = 150;
@@ -63,7 +65,60 @@ export function recordSent(msg, me) {
 
 export async function clearSent() {
   memo = null;
+  lastBackfill = 0;
   await B.storage.local.remove(KEY);
+}
+
+/*
+ * LE RATTRAPAGE (18 nov., MYd : « les derniers items que j'ai envoyés dans mes trades précédents ») :
+ * sans lui, la liste ne connaissait que les envois faits depuis l'activation. Une fois par
+ * 10 min au plus, les listes Outbound et Inactive de Roblox (2 requêtes) donnent mes trades
+ * récents ; le détail des 15 plus récents encore inconnus est lu (cache des fiches d'abord),
+ * deux à la fois, puis gardé dans `sentLog` : il n'est plus jamais redemandé.
+ * Qui a envoyé ? Un id vu sur le flux Inbound de RoNote est écarté ; sinon, l'offre que
+ * Roblox met en premier doit être la mienne (18 nov. : c'est le cas pour un trade en cours lu en v1
+ * et pour 35 trades terminés lus en v2, `participantAOffer` ; aucun trade reçu n'a pu servir de contre-exemple).
+ */
+const BACKFILL_MS = 10 * 60e3;
+const BACKFILL_MAX = 15;
+let lastBackfill = 0, backfilling = null;
+
+async function backfill(me) {
+  if (!me || Date.now() - lastBackfill < BACKFILL_MS) return backfilling;
+  lastBackfill = Date.now();
+  backfilling = (async () => {
+    const got = await B.storage.local.get(KEY);
+    const known = new Set((Array.isArray(got?.[KEY]) ? got[KEY] : []).map(e => String(e.id)));
+    const streams = await getStreams().catch(() => ({}));
+    const lists = await Promise.all(['outbound', 'inactive', 'completed'].map(t => api.listTrades(t, 25).catch(() => null)));
+    const cand = lists.flatMap(l => l?.data || [])
+      .filter(t => t?.id && !known.has(String(t.id)) && directionOf(streams, t.id) !== 'inbound')
+      .sort((a, b) => (Date.parse(b.created) || 0) - (Date.parse(a.created) || 0))
+      .slice(0, BACKFILL_MAX);
+    const found = [];
+    await eachLimit(cand, 2, async (t) => {
+      const hint = { tradeId: Number(t.id), created: t.created, expiration: t.expiration, status: t.status, partner: t.user };
+      const d = cachedDetail(t.id) || await api.getTrade(t.id, hint).catch(() => null);
+      const offers = d?.offers || [];
+      const mine = offers[0];
+      if (offers.length !== 2 || Number(mine?.user?.id) !== me) return;          // pas un trade que j'ai envoyé
+      const give = cleanItems((mine.userAssets || []).map(a => ({ assetId: a.assetId, bundleId: a.bundleId, name: a.name, rap: a.recentAveragePrice })));
+      if (!give.length && !mine.robux) return;
+      const partner = offers[1]?.user || t.user || {};
+      found.push({ id: String(t.id), at: Date.parse(t.created) || Date.now(), uid: me, partnerId: Number(partner.id) || 0,
+        handle: String(partner.name || '').slice(0, 32), give, get: [], robux: Number(mine.robux) || 0 });
+    });
+    if (!found.length) return;
+    await writes(async () => {
+      const cur = await B.storage.local.get(KEY);
+      const log = Array.isArray(cur?.[KEY]) ? cur[KEY] : [];
+      const ids = new Set(log.map(e => String(e.id)));
+      const merged = [...log, ...found.filter(e => !ids.has(e.id))].sort((a, b) => b.at - a.at).slice(0, SENT_CAP);
+      await B.storage.local.set({ [KEY]: merged });
+      memo = null;
+    });
+  })().catch(() => {}).finally(() => { backfilling = null; });
+  return backfilling;
 }
 
 // Une fiche de trade envoyé (suivi jusqu'à son issue) : elle compte aussi.
@@ -75,6 +130,7 @@ export async function sentHistory(partnerId, settings) {
   if (memo && memo.pid === pid && Date.now() - memo.at < MEMO_MS) return memo.value;
   const st = await getState();
   const me = Number(st.userId) || 0;
+  await backfill(me);
   const got = await B.storage.local.get(KEY);
   const rows = new Map();
 

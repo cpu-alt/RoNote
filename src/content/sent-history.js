@@ -146,25 +146,74 @@
   }
 
   /* ---------------------------- l'ajout rapide --------------------------- */
-  // Un clic sur une vignette remet l'objet dans « Your Offer » : on clique pour l'utilisateur sur sa
-  // carte dans « Your Inventory » (la page de Roblox fait le reste), puis on vérifie qu'il est arrivé.
-  const sameItem = (it) => (x) => it.bundleId ? x.bundleId === it.bundleId : (!!x.assetId && x.assetId === it.assetId);
+  // Vu sur la vraie page le 18 nov. : chaque objet de « Your Inventory » est un
+  // `.trade-inventory-card` (role=button) dont la vignette est DANS un lien vers l'objet ; Roblox
+  // l'ajoute à l'offre sur Entrée (onKeyDown) ou sur un vrai clic souris, pas sur un `click()`
+  // simulé. L'inventaire est paginé, mais une recherche (bouton « Search », champ type=search)
+  // filtre côté serveur en ~1 s : un objet absent de la page affichée passe par elle.
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
-  function offerCount(it) {
-    try { return (globalThis.RoNoteDom.readTradePage()?.sides?.find(s => s.role === 'give')?.items || []).filter(sameItem(it)).length; }
-    catch { return 0; }
+  const myPanel = () => document.querySelector('.trade-inventory-panel');      // le premier : le mien
+  // Les cases vides de l'offre portent la même classe : on compte celles qui ont une vignette (son conteneur :
+  // l'image elle-même arrive après).
+  const offerCount = () => document.querySelectorAll('.trade-request-window-offer .trade-request-item .thumbnail-2d-container').length;
+  function cardFor(panel, it) {
+    const re = it.bundleId ? new RegExp(`/bundles/${it.bundleId}(?:/|$)`) : it.assetId ? new RegExp(`/catalog/${it.assetId}(?:/|$)`) : null;
+    const cards = [...panel.querySelectorAll('.trade-inventory-card')].filter(c => !c.classList.contains('is-unavailable'));
+    return cards.find(c => re && [...c.querySelectorAll('a[href]')].some(a => re.test(a.getAttribute('href'))))
+      || cards.find(c => it.name && (c.textContent || '').includes(it.name)) || null;
   }
-  function myCards(it) {
-    const dom = globalThis.RoNoteDom;
-    let page = null;
-    try { page = dom.readTradePage(); } catch { /* page en chargement */ }
-    const baskets = (page?.sides || []).map(s => s.root);
-    const all = dom.inventoryItems?.(baskets) || [];
-    const theirs = dom.theirInventoryHeading?.();
-    return all.filter(x => sameItem(it)(x) && (!theirs || (x.card.compareDocumentPosition(theirs) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  const press = (card) => {
+    const o = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+    card.dispatchEvent(new KeyboardEvent('keydown', o));
+    card.dispatchEvent(new KeyboardEvent('keyup', o));
+  };
+  const setValue = (input, v) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, v);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  async function addCard(card) {
+    const avant = offerCount();
+    press(card);
+    for (let k = 0; k < 8; k++) { await wait(100); if (offerCount() > avant) return true; }
+    return false;
   }
-  // Ce qu'on clique dans la carte : sa vignette hors lien (un lien ouvrirait la fiche de l'objet).
-  const clickTarget = (card) => [...card.querySelectorAll('img')].find(img => !img.closest('a'))?.parentElement || card;
+  async function search(panel, name) {
+    let input = panel.querySelector('input[type="search"]');
+    if (!input) {
+      panel.querySelector('button[aria-label="Search" i], button[aria-label*="search" i], button[aria-label*="recherch" i]')?.click();
+      for (let k = 0; k < 10 && !input; k++) { await wait(80); input = panel.querySelector('input[type="search"]'); }
+    }
+    if (!input) return null;
+    const before = input.value;
+    setValue(input, name);
+    return { input, before };
+  }
+
+  async function quickAdd(tile, it) {
+    if (!it || tile.classList.contains('busy')) return;
+    tile.classList.remove('ok', 'miss'); tile.classList.add('busy');
+    let ok = false, why = 'missing';
+    try {
+      const panel = myPanel();
+      let card = panel && cardFor(panel, it);
+      if (card) ok = await addCard(card);
+      else if (panel && it.name) {
+        // Pas sur la page affichée : la recherche de Roblox le trouve, on l'ajoute, puis on remet la liste.
+        const s = await search(panel, it.name);
+        if (s) {
+          for (let k = 0; k < 30 && !card; k++) { await wait(100); card = cardFor(panel, it); }
+          if (card) ok = await addCard(card);
+          else if ([...panel.querySelectorAll('.trade-inventory-card.is-unavailable')].some(c => (c.textContent || '').includes(it.name))) why = 'hold';
+          setValue(s.input, s.before);
+        }
+      }
+    } catch { /* page en plein changement : on le dit comme un échec */ }
+    tile.classList.remove('busy');
+    tile.classList.add(ok ? 'ok' : 'miss');
+    say(ok ? 'ok' : 'miss', ok ? L('Ajouté', 'Added')
+      : why === 'hold' ? L('En attente (hold)', 'On hold') : L('Plus dans ton inventaire', 'Not in your inventory'));
+    setTimeout(() => tile.classList.remove('ok', 'miss'), 1600);
+  }
   let labelTimer = null;
   function say(cls, text) {
     const lbl = shadow?.querySelector('.lbl');
@@ -172,23 +221,6 @@
     clearTimeout(labelTimer);
     lbl.className = 'lbl ' + cls; lbl.textContent = text;
     labelTimer = setTimeout(() => { lbl.className = 'lbl'; lbl.textContent = LABEL; }, 1800);
-  }
-  async function quickAdd(tile, it) {
-    if (!it || tile.classList.contains('busy')) return;
-    tile.classList.remove('ok', 'miss'); tile.classList.add('busy');
-    let ok = false;
-    try {
-      const avant = offerCount(it);
-      for (const x of myCards(it).slice(0, 3)) {         // une copie déjà dans l'offre : la suivante
-        clickTarget(x.card).click();
-        for (let k = 0; k < 6 && !ok; k++) { await wait(120); ok = offerCount(it) > avant; }
-        if (ok) break;
-      }
-    } catch { /* page en plein changement : on le dit comme un échec */ }
-    tile.classList.remove('busy');
-    tile.classList.add(ok ? 'ok' : 'miss');
-    say(ok ? 'ok' : 'miss', ok ? L('Ajouté', 'Added') : L('Pas sur cette page', 'Not on this page'));
-    setTimeout(() => tile.classList.remove('ok', 'miss'), 1600);
   }
 
   function ask(pid) {

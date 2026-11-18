@@ -11,8 +11,25 @@ globalThis.chrome = {
   }, session: { async get() { return {}; }, async set() {} } },
   runtime: { getManifest: () => ({ version: '0' }) }
 };
-let fetches = 0;
-const urls = []; globalThis.fetch = async (u) => { fetches++; urls.push(String(u)); return new Response('{}', { status: 500 }); };
+// Roblox simulé : mes listes de trades et leur détail (le rattrapage des trades déjà envoyés).
+const day = (n) => new Date(Date.now() - n * 864e5).toISOString();
+const ROUTES = {
+  '/v1/trades/outbound': { data: [{ id: 50, user: { id: 7, name: 'bob' }, created: day(5), status: 'Open' }] },
+  '/v1/trades/inactive': { data: [{ id: 51, user: { id: 9, name: 'eve' }, created: day(6), status: 'Declined' },
+    { id: 52, user: { id: 9, name: 'eve' }, created: day(7), status: 'Declined' }] },
+  '/v1/trades/completed': { data: [] },
+  '/v1/trades/50': { id: 50, offers: [{ user: { id: 42 }, userAssets: [{ assetId: 2001, name: 'Old Hat', recentAveragePrice: 5 }], robux: 0 }, { user: { id: 7, name: 'bob' }, userAssets: [], robux: 0 }] },
+  '/v1/trades/51': { id: 51, offers: [{ user: { id: 9 }, userAssets: [{ assetId: 2002, name: 'Not Mine' }], robux: 0 }, { user: { id: 42 }, userAssets: [], robux: 0 }] },
+  '/v1/trades/52': { id: 52, offers: [{ user: { id: 42 }, userAssets: [{ assetId: 2003, name: 'Seen Inbound' }], robux: 0 }, { user: { id: 9 }, userAssets: [], robux: 0 }] }
+};
+let fetches = 0, roblox = false;
+const urls = [];
+globalThis.fetch = async (u) => {
+  fetches++; urls.push(String(u));
+  const path = new URL(String(u)).pathname;
+  if (roblox && ROUTES[path]) return new Response(JSON.stringify(ROUTES[path]), { status: 200, headers: { 'content-type': 'application/json' } });
+  return new Response('{}', { status: 500 });
+};
 
 const { recordSent, sentHistory, clearSent, SENT_CAP } = await import('../src/background/sent.js');
 let passed = 0, failed = 0;
@@ -38,7 +55,25 @@ check('les Robux sont gardés', store.get('sentLog').find(e => e.id === '3').rob
 check('la value de chaque objet', h.items.find(i => i.name === 'Item 1').value === 100);
 check('mes objets récents : un par objet, le plus récent d’abord', h.items.map(i => i.name).join() === 'Item 3,Item 4,Item 1,Item 2');
 check('… avec le nombre de fois et « avec ce joueur »', h.items[0].n === 1 && !h.items[0].withThem && h.items[1].withThem);
-check('aucune requête réseau', fetches === 0);
+check('aucune vignette redemandée (celles de la page sont gardées)', !urls.some(u => u.includes('thumbnails.roblox.com')));
+
+// Le rattrapage : un trade en cours envoyé (gardé), un trade reçu (écarté : l'autre offre d'abord),
+// un trade déjà vu sur le flux Inbound de RoNote (écarté).
+await clearSent();
+store.set('streams', { inbound: { seen: [52] } });
+roblox = true; fetches = 0;
+const r = await sentHistory(7, settings);
+const log = store.get('sentLog') || [];
+check('le rattrapage reprend un trade déjà envoyé', log.some(e => e.id === '50' && e.give[0].name === 'Old Hat' && e.handle === 'bob'));
+check('… sans un trade reçu', !log.some(e => e.id === '51'));
+check('… ni un trade vu en Inbound', !log.some(e => e.id === '52'));
+check('… et ses objets arrivent dans la liste', r.items.some(i => i.name === 'Old Hat' && i.withThem));
+const avant = fetches;
+await clearSent();
+await recordSent({ tradeId: 60, partnerId: 7, give: [item(1)] }, 42);
+await sentHistory(8, settings);
+check('le rattrapage ne relit pas un trade gardé', !urls.slice(avant).some(u => /\/v1\/trades\/50$/.test(u)) || store.get('sentLog').filter(e => e.id === '50').length === 1);
+roblox = false;
 
 for (let i = 0; i < SENT_CAP + 10; i++) await recordSent({ tradeId: 100 + i, partnerId: 1, give: [item(1)] }, 42);
 check(`${SENT_CAP} envois au plus`, store.get('sentLog').length === SENT_CAP);

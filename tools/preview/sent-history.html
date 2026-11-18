@@ -21,12 +21,11 @@
 <body>
 <div class="page">
   <h1>Trade with xxeeuss <span>@xxeeuss</span></h1>
-  <h2>Your Inventory</h2>
-  <div class="row" id="inv"></div>
-  <h2 id="theirs">xxeeuss's Inventory</h2>
-  <div class="row"><div class="card" data-a="1001"><div class="th"></div>Valkyrie Helm</div></div>
+  <div class="trade-inventory-panel"><h2>Your Inventory</h2><div class="row" id="inv"></div></div>
+  <div class="trade-inventory-panel"><h2 id="theirs">xxeeuss's Inventory</h2>
+    <div class="row"><div class="card trade-inventory-card" role="button"><a href="/catalog/1001/x"><div class="th"></div></a>Valkyrie Helm</div></div></div>
   <h2>Your Offer</h2>
-  <div class="offer row" id="offer"></div>
+  <div class="offer row trade-request-window-offer" id="offer"></div>
 </div>
 <div class="tools"><button data-v="rows">Données</button><button data-v="locked">Verrouillé</button><button data-v="empty">Vide</button></div>
 <script>
@@ -45,12 +44,17 @@
     locked: { locked: 'subscribe' },
     empty: { partnerId: 111, items: [], rows: [] }
   };
-  // Mon inventaire simulé : tout sauf Dominus Messor (« plus là ») ; un clic sur une carte la met dans l'offre.
+  // Mon inventaire simulé, comme la vraie page : des .trade-inventory-card (role=button) dont la vignette est
+  // dans un lien ; Entrée ajoute l'objet à l'offre (.trade-request-item + .thumbnail-2d-container).
+  // Dominus Messor n'y est pas (« plus dans ton inventaire »).
   const inv = document.getElementById('inv'), offer = document.getElementById('offer');
   for (const i of ITEMS.filter(i => i.assetId !== 1006)) {
     const c = document.createElement('div');
-    c.className = 'card'; c.dataset.a = i.assetId; c.innerHTML = `<div class="th"><img alt="" style="width:1px;height:1px"></div>${i.name}`;
-    c.onclick = () => offer.append(c);
+    c.className = 'card trade-inventory-card'; c.setAttribute('role', 'button');
+    c.innerHTML = `<a href="/catalog/${i.assetId}/x"><div class="th"></div></a>${i.name}`;
+    c.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return;
+      const r = document.createElement('div'); r.className = 'card trade-request-item';
+      r.innerHTML = `<span class="thumbnail-2d-container"></span>${i.name}`; offer.append(r); });
     inv.append(c);
   }
   const cards = (root) => [...root.querySelectorAll('.card')].map(card => ({ assetId: Number(card.dataset.a), bundleId: 0, name: card.textContent, card }));

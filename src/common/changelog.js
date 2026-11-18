@@ -16,9 +16,13 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: '2.17.13',
+    version: '2.17.14',
     title: item('Envoi rapide', 'Quick add'),
     items: [
+      item("La liste reprend aussi tes trades déjà envoyés (en cours, refusés, expirés), pas seulement ceux envoyés depuis l'activation.",
+        "The list now also picks up the trades you already sent (open, declined, expired), not just those sent since you turned it on."),
+      item("Un clic ajoute l'objet même s'il n'est pas sur la page affichée de ton inventaire : RoNote le cherche pour toi.",
+        "One click adds the item even when it isn't on the shown page of your inventory: RoNote searches for it."),
       item("Insider et Elite : sous « Trade with … », une ligne discrète avec tes objets récents (ceux que tu as mis de ton côté dans tes derniers envois) ; un clic les remet dans ton offre. Désactivé par défaut (Réglages › Page d'un trade).",
         "Insider and Elite: under « Trade with … », a discreet row with your recent items (the ones you put on your side in your latest sends); one click puts them back in your offer. Off by default (Settings › Trade page).")
     ]
