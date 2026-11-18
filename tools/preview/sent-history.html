@@ -48,14 +48,17 @@
   // dans un lien ; Entrée ajoute l'objet à l'offre (.trade-request-item + .thumbnail-2d-container).
   // Dominus Messor n'y est pas (« plus dans ton inventaire »).
   const inv = document.getElementById('inv'), offer = document.getElementById('offer');
-  for (const i of ITEMS.filter(i => i.assetId !== 1006)) {
+  // Deux copies de Valkyrie Helm ; une copie ajoutée devient « is-unavailable », comme sur Roblox.
+  for (const i of [ITEMS[0], ...ITEMS.filter(i => i.assetId !== 1006)]) {
     const c = document.createElement('div');
     c.className = 'card trade-inventory-card'; c.setAttribute('role', 'button');
     c.innerHTML = `<a href="/catalog/${i.assetId}/x"><div class="th"></div></a>${i.name}`;
-    c.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return;
+    c.addEventListener('keydown', (e) => { if (e.key !== 'Enter' || c.classList.contains('is-unavailable')) return;
+      c.classList.add('is-unavailable'); c.style.opacity = .4;
       const r = document.createElement('div'); r.className = 'card trade-request-item';
       r.innerHTML = `<span class="thumbnail-2d-container"></span>${i.name} <button aria-label="Remove ${i.name}">×</button>`;
-      r.querySelector('button').onclick = () => r.remove(); offer.append(r); });
+      r.querySelector('button').onclick = () => { r.remove(); c.classList.remove('is-unavailable'); c.style.opacity = ''; };
+      offer.append(r); });
     inv.append(c);
   }
   const cards = (root) => [...root.querySelectorAll('.card')].map(card => ({ assetId: Number(card.dataset.a), bundleId: 0, name: card.textContent, card }));

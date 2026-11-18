@@ -16,9 +16,13 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: '2.17.16',
+    version: '2.17.17',
     title: item('Envoi rapide', 'Quick add'),
     items: [
+      item("Plusieurs copies : chaque clic en ajoute une de plus, un clic droit en retire une ; un compteur vert dit combien sont dans ton offre.",
+        "Several copies: each click adds one more, a right-click removes one; a green counter shows how many are in your offer."),
+      item("Plus rapide : des clics rapides s'enchaînent sans relancer la recherche.",
+        "Faster: quick clicks chain without searching again."),
       item("Aussi quand tu contres un trade : la ligne de tes objets récents apparaît sur l'écran de counter, et le counter envoyé rejoint la liste.",
         "Also when you counter a trade: your recent items row shows on the counter screen, and the sent counter joins the list."),
       item("Les vignettes portent un mini badge Projected (à la couleur de tes réglages) et une marque pour un objet rare ; nom, value et nombre de fois s'affichent dans la ligne au survol.",

@@ -129,12 +129,11 @@
       color:#fff;background:rgba(46,16,101,.55);opacity:0;transition:opacity .15s}
     .t:hover::after,.t:focus-visible::after{opacity:1}
     .t.ok{box-shadow:inset 0 0 0 2px #3fbf7f;opacity:1}.t.miss{box-shadow:inset 0 0 0 2px #f5a524;opacity:1}
-    .t.busy{pointer-events:none;opacity:.5}
-    .t.in{opacity:.38}.t.in::after{content:"−";opacity:0}.t.in:hover{opacity:1}.t.in:hover::after{opacity:1}
-    .t .tick{position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#3fbf7f;display:none;
-      align-items:center;justify-content:center}
-    .t .tick svg{width:7px;height:7px}
-    .t.in .tick{display:flex}
+    .t.busy::after{opacity:1;content:"";background:rgba(46,16,101,.35)}
+    .t.in{opacity:1;box-shadow:inset 0 0 0 1.5px #3fbf7f}
+    .t .q{position:absolute;right:1px;top:1px;z-index:1;min-width:12px;height:12px;padding:0 3px;border-radius:6px;display:none;
+      align-items:center;justify-content:center;font:700 8.5px/1 Arial,sans-serif;color:#fff;background:#2f9e6a;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+    .t.in .q{display:flex}
     .t .pj{position:absolute;left:2px;top:2px;z-index:1;width:12px;height:12px;border-radius:3px;display:flex;align-items:center;justify-content:center;
       background:var(--pj);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
     .t .pj svg{width:9px;height:9px}
@@ -143,11 +142,11 @@
     .tip b{font-weight:700}.tip .p{color:var(--pj)}
     .muted{opacity:.5;font-size:11.5px}
     .muted a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+    .keys{opacity:.45;font-size:10.5px;white-space:nowrap}
     @media(prefers-reduced-motion:reduce){.t,.t::after,.lbl{transition:none}}`;
   const LABEL = L('Récents', 'Recent');
-  // Le triangle du badge Projected (projected-badge.js), en miniature, et la coche « déjà dans l'offre ».
+  // Le triangle du badge Projected (projected-badge.js), en miniature.
   const TRI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 1.6 21h20.8L12 2.8z" fill="none" stroke="#1a1200" stroke-width="3" stroke-linejoin="round"/><path d="M12 9.6v5" stroke="#1a1200" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="18" r="1.6" fill="#1a1200"/></svg>';
-  const CHECK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.6l4.6-5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function content() {
     if (!data || data.error) return '';
@@ -163,7 +162,7 @@
       aria-label="${esc(i.name)} · ${esc(compact.format(i.value || 0))}${i.projected ? ' · Projected' : ''}">${i.thumb && /^https:\/\//.test(i.thumb)
         ? `<img src="${esc(i.thumb)}" alt="" loading="lazy" decoding="async">`
         : `<span class="ph">${esc((i.acronym || i.name || '?').slice(0, 4))}</span>`}${i.projected ? `<span class="pj">${TRI}</span>` : ''}${
-        i.rare ? '<span class="rr">💎</span>' : ''}${i.n > 1 ? `<span class="n">${i.n}</span>` : ''}<span class="tick">${CHECK}</span></button>`).join('')}</div>
+        i.rare ? '<span class="rr">💎</span>' : ''}${i.n > 1 ? `<span class="n">${i.n}</span>` : ''}<span class="q"></span></button>`).join('')}</div>
       <span class="tip" hidden></span>`;
   }
 
@@ -178,10 +177,15 @@
     const tip = shadow.querySelector('.tip');
     shadow.querySelectorAll('.t').forEach(b => {
       const it = data.items[Number(b.dataset.k)];
-      b.addEventListener('click', () => (b.classList.contains('in') ? removeFromOffer(b, it) : quickAdd(b, it)));
-      // Une infobulle sobre dans la ligne elle-même : nom, value, Projected, nombre de fois.
-      const show = () => { if (!tip) return; tip.hidden = false; tip.innerHTML = `<b>${esc(it.name)}</b> · ${esc(compact.format(it.value || 0))}${
-        it.projected ? ' · <span class="p">Projected</span>' : ''}${it.n > 1 ? ` · ×${it.n}` : ''}${b.classList.contains('in') ? ' · ' + esc(L('dans ton offre', 'in your offer')) : ''}`; };
+      // Clic : une copie de plus (les clics rapides s'enchaînent). Clic droit ou Maj+clic : une de moins.
+      b.addEventListener('click', (e) => enqueue(b, it, e.shiftKey ? 'remove' : 'add'));
+      b.addEventListener('contextmenu', (e) => { e.preventDefault(); enqueue(b, it, 'remove'); });
+      // Une infobulle sobre dans la ligne elle-même : nom, value, Projected, copies dans l'offre.
+      const show = () => { if (!tip) return; tip.hidden = false; const q = inOffer.get(it.name) || 0;
+        tip.innerHTML = `<b>${esc(it.name)}</b> · ${esc(compact.format(it.value || 0))}${
+        it.projected ? ' · <span class="p">Projected</span>' : ''}${q ? ` · ${q} ${esc(L('dans ton offre', 'in your offer'))}` : ''}
+        <span class="keys">· ${esc(L('clic +1 · clic droit −1', 'click +1 · right-click −1'))}</span>`; };
+      b._show = show;
       const hide = () => { if (tip) tip.hidden = true; };
       b.addEventListener('mouseenter', show); b.addEventListener('focus', show);
       b.addEventListener('mouseleave', hide); b.addEventListener('blur', hide);
@@ -218,30 +222,52 @@
   async function addCard(card) {
     const avant = offerCount();
     press(card);
-    for (let k = 0; k < 8; k++) { await wait(100); if (offerCount() > avant) return true; }
+    for (let k = 0; k < 10; k++) { await wait(60); if (offerCount() > avant) return true; }
     return false;
   }
+  // La recherche reste ouverte un court instant après un ajout : un 2e clic sur le même objet reprend
+  // ses résultats au lieu de relancer une recherche (~1 s), puis la liste revient comme avant.
+  let searchState = null, restoreTimer = null;
   async function search(panel, name) {
+    clearTimeout(restoreTimer);
     let input = panel.querySelector('input[type="search"]');
     if (!input) {
       panel.querySelector('button[aria-label="Search" i], button[aria-label*="search" i], button[aria-label*="recherch" i]')?.click();
-      for (let k = 0; k < 10 && !input; k++) { await wait(80); input = panel.querySelector('input[type="search"]'); }
+      for (let k = 0; k < 10 && !input; k++) { await wait(60); input = panel.querySelector('input[type="search"]'); }
     }
     if (!input) return null;
-    const before = input.value;
-    setValue(input, name);
-    return { input, before };
+    if (!searchState || searchState.input !== input) searchState = { input, before: input.value };
+    searchState.changed = input.value !== name;
+    if (searchState.changed) setValue(input, name);
+    return searchState;
   }
+  function restoreSearchSoon() {
+    clearTimeout(restoreTimer);
+    restoreTimer = setTimeout(() => {
+      if (searchState?.input?.isConnected && searchState.input.value !== searchState.before) setValue(searchState.input, searchState.before);
+      searchState = null;
+    }, 1500);
+  }
+  // Une copie en hold porte la même classe qu'une copie déjà mise dans l'offre ; seul le texte « Holding » les distingue.
+  const onHold = (panel, it) => [...panel.querySelectorAll('.trade-inventory-card.is-unavailable')]
+    .some(c => (c.textContent || '').includes(it.name) && /holding|en attente/i.test(c.textContent || ''));
 
-  // Ce qui est déjà dans « Your Offer » : les boutons « Remove <nom> » de Roblox le disent. Un
-  // observateur sur la seule offre (pas sur la page) remet les coches à jour quand elle change.
+  // Ce qui est déjà dans « Your Offer » : les boutons « Remove <nom> » de Roblox le disent, un par copie.
+  // Un observateur sur la seule offre (pas sur la page) remet les compteurs à jour quand elle change.
   const removeButtons = () => [...document.querySelectorAll('.trade-request-window-offer button[aria-label]')]
     .filter(b => /^(remove|retirer|supprimer)\b/i.test(b.getAttribute('aria-label') || ''));
   const nameOfRemove = (b) => (b.getAttribute('aria-label') || '').replace(/^(remove|retirer|supprimer)\s+/i, '').trim();
+  let inOffer = new Map();
   function markOffer() {
     if (!shadow || !data?.items) return;
-    const inOffer = new Set(removeButtons().map(nameOfRemove));
-    shadow.querySelectorAll('.t').forEach(b => b.classList.toggle('in', inOffer.has(data.items[Number(b.dataset.k)]?.name)));
+    inOffer = new Map();
+    for (const b of removeButtons()) { const n = nameOfRemove(b); inOffer.set(n, (inOffer.get(n) || 0) + 1); }
+    shadow.querySelectorAll('.t').forEach(b => {
+      const q = inOffer.get(data.items[Number(b.dataset.k)]?.name) || 0;
+      b.classList.toggle('in', q > 0);
+      const el = b.querySelector('.q');
+      if (el && el.textContent !== String(q || '')) el.textContent = q ? String(q) : '';
+    });
   }
   let offerObs = null, offerEl = null, markTimer = null;
   function watchOffer() {
@@ -249,42 +275,58 @@
     if (el && el !== offerEl) {
       offerObs?.disconnect();
       offerEl = el;
-      offerObs = new MutationObserver(() => { clearTimeout(markTimer); markTimer = setTimeout(markOffer, 80); });
+      offerObs = new MutationObserver(() => { clearTimeout(markTimer); markTimer = setTimeout(markOffer, 60); });
       offerObs.observe(el, { childList: true, subtree: true });
     }
     markOffer();
   }
-  async function removeFromOffer(tile, it) {
-    const b = removeButtons().find(x => nameOfRemove(x) === it.name);
-    if (!b) return quickAdd(tile, it);
+
+  // Les clics s'enchaînent dans l'ordre : deux clics rapides = deux copies, sans se marcher dessus.
+  let queue = Promise.resolve();
+  function enqueue(tile, it, op) {
+    if (!it) return;
+    tile.classList.add('busy');
+    tile._pending = (tile._pending || 0) + 1;
+    queue = queue.then(() => (op === 'remove' ? removeOne(tile, it) : addOne(tile, it))).catch(() => {})
+      .finally(() => { if (--tile._pending <= 0) { tile._pending = 0; tile.classList.remove('busy'); } markOffer(); tile._show?.(); });
+  }
+  function removeOne(tile, it) {
+    const b = removeButtons().filter(x => nameOfRemove(x) === it.name).pop();
+    if (!b) { flash(tile, 'miss'); say('miss', L('Pas dans ton offre', 'Not in your offer')); return; }
     b.click();
+    flash(tile, 'ok');
     say('ok', L('Retiré', 'Removed'));
   }
-
-  async function quickAdd(tile, it) {
-    if (!it || tile.classList.contains('busy')) return;
-    tile.classList.remove('ok', 'miss'); tile.classList.add('busy');
+  async function addOne(tile, it) {
     let ok = false, why = 'missing';
-    try {
-      const panel = myPanel();
-      let card = panel && cardFor(panel, it);
+    const panel = myPanel();
+    if (panel) {
+      let card = cardFor(panel, it);
       if (card) ok = await addCard(card);
-      else if (panel && it.name) {
-        // Pas sur la page affichée : la recherche de Roblox le trouve, on l'ajoute, puis on remet la liste.
-        const s = await search(panel, it.name);
-        if (s) {
-          for (let k = 0; k < 30 && !card; k++) { await wait(100); card = cardFor(panel, it); }
+      else if (it.name) {
+        // Pas sur la page affichée (ou plus de copie libre ici) : la recherche de Roblox les montre toutes.
+        const st = await search(panel, it.name);
+        if (st) {
+          // On attend les résultats, pas plus : dès qu'une carte de cet objet est là (libre ou non), on tranche.
+          const shown = () => [...panel.querySelectorAll('.trade-inventory-card')].some(c => (c.textContent || '').includes(it.name));
+          // (une recherche neuve met ~0,8 s : avant, la liste affichée est encore l'ancienne)
+          const settle = st.changed ? 13 : 1;
+          for (let k = 0; k < 40 && !card; k++) { await wait(60); card = cardFor(panel, it); if (!card && k >= settle && shown()) break; }
           if (card) ok = await addCard(card);
-          else if ([...panel.querySelectorAll('.trade-inventory-card.is-unavailable')].some(c => (c.textContent || '').includes(it.name))) why = 'hold';
-          setValue(s.input, s.before);
+          else why = (inOffer.get(it.name) || 0) > 0 ? 'all' : onHold(panel, it) ? 'hold' : 'missing';
+          restoreSearchSoon();
         }
       }
-    } catch { /* page en plein changement : on le dit comme un échec */ }
-    tile.classList.remove('busy');
-    tile.classList.add(ok ? 'ok' : 'miss');
-    say(ok ? 'ok' : 'miss', ok ? L('Ajouté', 'Added')
-      : why === 'hold' ? L('En attente (hold)', 'On hold') : L('Plus dans ton inventaire', 'Not in your inventory'));
-    setTimeout(() => tile.classList.remove('ok', 'miss'), 1600);
+    }
+    flash(tile, ok ? 'ok' : 'miss');
+    const q = removeButtons().filter(x => nameOfRemove(x) === it.name).length;
+    say(ok ? 'ok' : 'miss', ok ? (q > 1 ? L(`Ajouté · ${q} dans l'offre`, `Added · ${q} in offer`) : L('Ajouté', 'Added'))
+      : why === 'all' ? L('Toutes tes copies sont déjà dans l’offre', 'All your copies are already in the offer')
+        : why === 'hold' ? L('En attente (hold)', 'On hold') : L('Plus dans ton inventaire', 'Not in your inventory'));
+  }
+  function flash(tile, cls) {
+    tile.classList.remove('ok', 'miss'); void tile.offsetWidth; tile.classList.add(cls);
+    clearTimeout(tile._flash); tile._flash = setTimeout(() => tile.classList.remove('ok', 'miss'), 1200);
   }
   let labelTimer = null;
   function say(cls, text) {

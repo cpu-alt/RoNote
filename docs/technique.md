@@ -1201,4 +1201,11 @@ Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne 
   qui accepte « /trades/123/… ») ; `TRADE_WITH` reconnaît aussi « Counter (offer|trade) (with|to) … » ; sur
   `/trades`, le partenaire est lu sur la page (un tour sur trois tant que l'écran n'est pas ouvert, gardé par
   adresse). **Non vu sur la vraie page** : aucun trade reçu disponible le 18 nov. pour ouvrir un counter.
+- **Copies multiples** (2.17.17, relevé sur la vraie page) : une copie mise dans l'offre devient
+  `.trade-inventory-card.is-unavailable`, comme une copie en hold (qui porte en plus le texte « Holding ») ;
+  la carte suivante encore libre est donc la copie suivante. L'offre a un bouton « Remove <nom> » par copie :
+  on les compte (pastille) et on clique le dernier pour en retirer une. Les clics passent par une file
+  (deux clics = deux copies) ; la recherche reste ouverte 1,5 s après un ajout et un 2e clic la reprend ;
+  l'attente des résultats s'arrête dès qu'une carte de l'objet est affichée. Mesuré sur la vraie page :
+  1,0 s (recherche), 0,16 s (copie suivante), décision immédiate quand plus aucune n'est libre.
 - Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.
