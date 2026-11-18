@@ -1438,6 +1438,19 @@ async function handleMessage(msg, sender = null) {
       return readThrough({ key: 'profileStores', id, field: 'page', ttl: PLAYER_TTL, cap: PLAYER_CAP }, load);
     }
     // Le cadre « derniers trades » du profil Roblox : Insider / Elite (Neuronal le vérifie).
+    // L'ecran de counter (/trades/{id}/counter) : le partenaire du trade, lu dans ce que RoNote
+    // a deja (le detail que la page vient de charger, intercepte par hook.js, ou le cache des fiches).
+    // Aucune requete : sans detail connu, la page redemandera au tour suivant.
+    case 'ronote:trade-partner': {
+      const id = String(msg.tradeId || '').replace(/[^0-9]/g, '');
+      if (!id) return { partnerId: 0 };
+      const st = await getState();
+      const me = Number(st.userId) || 0;
+      const raw = (await getCapturedTrade(id)) || cachedDetail(id);
+      const d = raw ? api.normalizeTradeDetail(raw) : null;
+      const other = (d?.offers || []).map(o => o.user).find(u => Number(u?.id) && Number(u.id) !== me);
+      return { partnerId: Number(other?.id) || 0, name: other?.name || '' };
+    }
     // L'historique d'envoi (sent.js) : desactive par defaut, RoNote premium Insider / Elite.
     case 'ronote:sent-history': {
       const settings = await getSettings();

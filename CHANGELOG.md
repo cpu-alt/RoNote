@@ -5,6 +5,14 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Préparer le trade** (Deals, Robux, Profils) : le bouton d'envoi range ce qu'il faut mettre de chaque côté puis
+  ouvre la page d'échange ; RoNote y ajoute les items (les miens depuis mon inventaire, les siens depuis le sien,
+  par Entrée sur la carte ou la recherche de Roblox) et le dit (« Trade préparé : 3 items ajoutés »). Deal : je
+  donne ce qu'il demande, il donne ce qu'il propose ; Profil : ce qu'il cherche de mon côté, ce qu'il propose
+  (ou vient de recevoir) du sien. Une seule fois, dans les 3 minutes, même envoi rapide coupé.
+- **Envoi rapide sur l'écran de counter** `/trades/{id}/counter` : le partenaire vient du détail du trade que la page
+  charge (intercepté, aucune requête) ; la ligne se pose sous le titre ou, à défaut, au-dessus de « Your Inventory ».
+  Corrigé : « Your Offer » et « Your Request » ont la même classe, le compteur ne regarde plus que l'offre.
 - **Filtrer par items** (Profils, Deals, Robux) : dans « Filtres », un champ « Ajouter un item… » propose les items
   du catalogue Rolimon's (nom, acronyme, vignette, value ; ↑ ↓ Entrée Échap) ; jusqu'à 8 items, et le côté où ils
   doivent être (Deals : tu reçois / tu donnes ; Profils : possède — son annonce ou son dernier trade — / cherche).

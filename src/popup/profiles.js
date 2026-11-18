@@ -28,7 +28,7 @@ import { ic } from '../common/icons.js';
 import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { nwTradeLine, nwTilesHtml } from './nwcard.js';
-import { discoverSwitch, filterToggle } from './deals.js';
+import { discoverSwitch, filterToggle, prepTrade } from './deals.js';
 import { lockHtml } from './lock.js';
 import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
 
@@ -137,7 +137,7 @@ function cardHtml(p, both, isNew = false) {
         <small>${meta}</small></span>
       ${p.value ? `<b class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}">${fmtNum(p.value)}</b>` : ''}
       <span class="pf-qa">${linkBtn(`https://www.rolimons.com/player/${id}`, 'R', "Rolimon's")}${linkBtn(`https://www.roblox.com/users/${id}/profile`, ic('user'), 'Roblox')}
-        <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${id}/trade" title="${escapeHtml(t('Envoyer un trade'))}">${ic('send')}</button></span>
+        <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${id}/trade" data-prep="${id}" title="${escapeHtml(t('Préparer le trade (items déjà ajoutés)'))}">${ic('send')}</button></span>
     </header>
     ${trade}${ad}
   </article>`;
@@ -271,6 +271,14 @@ export function renderProfiles(listEl, openOptions) {
       if (listEl.dataset.tab !== 'profiles') return;
       if (e.target.closest('[data-pf-options]')) { openOptions(); return; }
       if (e.target.closest('.pf-pill')) { listEl.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      const prep = e.target.closest('[data-prep]');
+      if (prep) {                                  // le lien s'ouvre ensuite par l'écouteur commun (data-open)
+        const x = shown.find(y => Number(y.id) === Number(prep.dataset.prep));
+        // ce qu'il cherche va de mon côté (s'il est dans mon inventaire) ; de son côté, ce qu'il propose,
+        // sinon ce qu'il vient de recevoir dans le trade qui l'a révélé
+        if (x) prepTrade(e, x.id, x.wanting, x.offering?.length ? x.offering : x.last?.got_items);
+        return;
+      }
       if (e.target.closest('[data-pf-ftog]')) { const p = pick(); p.open = !p.open; delete p.tier; write(p); load(listEl); return; }
       const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min]');
       if (!el) return;

@@ -39,6 +39,9 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const PATH = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/users\/(\d+)\/trade\/?$/i;
   const TRADES = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/trades\/?$/i;
+  // L'écran de counter d'un trade reçu (18 nov. : « https://www.roblox.com/trades/{id}/counter »).
+  const COUNTER = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/trades\/(\d+)\/counter\/?$/i;
+  const ctrPid = new Map();                    // id du trade -> partenaire (0 : demandé, pas encore connu)
   // Le partenaire : dans l'adresse (« /users/{id}/trade », envoi ou counter), sinon, sur /trades où Roblox
   // ouvre aussi l'écran de counter, lu sur la page. Là, on ne regarde qu'un tour sur trois tant que
   // l'écran n'est pas ouvert, et la réponse est gardée pour l'adresse en cours.
@@ -46,6 +49,21 @@
   function partnerOf(fresh = false) {
     const m = PATH.exec(location.pathname);
     if (m) return Number(m[1]) || 0;
+    const c = COUNTER.exec(location.pathname);
+    if (c) {
+      // Le partenaire vient du détail du trade que la page charge (le worker l'a déjà) : une question
+      // par tour au plus tant qu'il n'est pas connu, puis la réponse est gardée.
+      const tid = c[1];
+      if (ctrPid.get(tid)) return ctrPid.get(tid);
+      if (!ctrPid.has(tid) || fresh || ++trTick % 2 === 0) {
+        ctrPid.set(tid, 0);
+        Promise.resolve(B.runtime.sendMessage({ type: 'ronote:trade-partner', tradeId: tid }))
+          .then(r => { if (Number(r?.partnerId)) { ctrPid.set(tid, Number(r.partnerId)); tick(); } }).catch(() => {});
+      }
+      // Pendant ce temps, la page elle-même (le @pseudo et son lien) peut suffire.
+      try { const p = Number(globalThis.RoNoteDom?.readTradePage?.()?.partnerId) || 0; if (p) { ctrPid.set(tid, p); return p; } } catch { /* chargement */ }
+      return 0;
+    }
     if (!TRADES.test(location.pathname)) return 0;
     if (!fresh && trPid.url === location.href && (trPid.pid || ++trTick % 3)) return trPid.pid;
     let pid = 0;
@@ -203,7 +221,9 @@
   const myPanel = () => document.querySelector('.trade-inventory-panel');      // le premier : le mien
   // Les cases vides de l'offre portent la même classe : on compte celles qui ont une vignette (son conteneur :
   // l'image elle-même arrive après).
-  const offerCount = () => document.querySelectorAll('.trade-request-window-offer .trade-request-item .thumbnail-2d-container').length;
+  // « Your Offer » et « Your Request » portent la même classe (relevé le 18 nov.) : la première est mon offre.
+  const myOffer = () => document.querySelector('.trade-request-window-offer');
+  const offerCount = () => myOffer()?.querySelectorAll('.trade-request-item .thumbnail-2d-container').length || 0;
   function cardFor(panel, it) {
     const re = it.bundleId ? new RegExp(`/bundles/${it.bundleId}(?:/|$)`) : it.assetId ? new RegExp(`/catalog/${it.assetId}(?:/|$)`) : null;
     const cards = [...panel.querySelectorAll('.trade-inventory-card')].filter(c => !c.classList.contains('is-unavailable'));
@@ -219,11 +239,30 @@
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, v);
     input.dispatchEvent(new Event('input', { bubbles: true }));
   };
+  // Tout ce qui est posé dans la fenêtre de trade (mon offre ET ma demande) : un ajout d'un côté ou de l'autre le fait monter.
+  const windowCount = () => document.querySelectorAll('.trade-request-item .thumbnail-2d-container').length;
   async function addCard(card) {
-    const avant = offerCount();
+    const avant = windowCount();
     press(card);
-    for (let k = 0; k < 10; k++) { await wait(60); if (offerCount() > avant) return true; }
+    for (let k = 0; k < 10; k++) { await wait(60); if (windowCount() > avant) return true; }
     return false;
+  }
+  /**
+   * Ajoute UNE copie de `it` depuis `panel` (mon inventaire ou celui du partenaire) : la carte libre
+   * affichée, sinon par la recherche de Roblox. Rend 'ok' | 'all' | 'hold' | 'missing'.
+   */
+  async function addFrom(panel, it, inMine = 0) {
+    let card = cardFor(panel, it);
+    if (card) return (await addCard(card)) ? 'ok' : 'missing';
+    if (!it.name) return 'missing';
+    const st = await search(panel, it.name);
+    if (!st) return 'missing';
+    const shown = () => [...panel.querySelectorAll('.trade-inventory-card')].some(c => (c.textContent || '').includes(it.name));
+    const settle = st.changed ? 13 : 1;
+    for (let k = 0; k < 40 && !card; k++) { await wait(60); card = cardFor(panel, it); if (!card && k >= settle && shown()) break; }
+    const res = card ? ((await addCard(card)) ? 'ok' : 'missing') : inMine > 0 ? 'all' : onHold(panel, it) ? 'hold' : 'missing';
+    restoreSearchSoon();
+    return res;
   }
   // La recherche reste ouverte un court instant après un ajout : un 2e clic sur le même objet reprend
   // ses résultats au lieu de relancer une recherche (~1 s), puis la liste revient comme avant.
@@ -236,7 +275,11 @@
       for (let k = 0; k < 10 && !input; k++) { await wait(60); input = panel.querySelector('input[type="search"]'); }
     }
     if (!input) return null;
-    if (!searchState || searchState.input !== input) searchState = { input, before: input.value };
+    if (searchState && searchState.input !== input) {     // une autre recherche (l'autre inventaire) : l'ancienne revient tout de suite
+      if (searchState.input.isConnected && searchState.input.value !== searchState.before) setValue(searchState.input, searchState.before);
+      searchState = null;
+    }
+    if (!searchState) searchState = { input, before: input.value };
     searchState.changed = input.value !== name;
     if (searchState.changed) setValue(input, name);
     return searchState;
@@ -254,7 +297,7 @@
 
   // Ce qui est déjà dans « Your Offer » : les boutons « Remove <nom> » de Roblox le disent, un par copie.
   // Un observateur sur la seule offre (pas sur la page) remet les compteurs à jour quand elle change.
-  const removeButtons = () => [...document.querySelectorAll('.trade-request-window-offer button[aria-label]')]
+  const removeButtons = () => [...(myOffer()?.querySelectorAll('button[aria-label]') || [])]
     .filter(b => /^(remove|retirer|supprimer)\b/i.test(b.getAttribute('aria-label') || ''));
   const nameOfRemove = (b) => (b.getAttribute('aria-label') || '').replace(/^(remove|retirer|supprimer)\s+/i, '').trim();
   let inOffer = new Map();
@@ -298,26 +341,9 @@
     say('ok', L('Retiré', 'Removed'));
   }
   async function addOne(tile, it) {
-    let ok = false, why = 'missing';
     const panel = myPanel();
-    if (panel) {
-      let card = cardFor(panel, it);
-      if (card) ok = await addCard(card);
-      else if (it.name) {
-        // Pas sur la page affichée (ou plus de copie libre ici) : la recherche de Roblox les montre toutes.
-        const st = await search(panel, it.name);
-        if (st) {
-          // On attend les résultats, pas plus : dès qu'une carte de cet objet est là (libre ou non), on tranche.
-          const shown = () => [...panel.querySelectorAll('.trade-inventory-card')].some(c => (c.textContent || '').includes(it.name));
-          // (une recherche neuve met ~0,8 s : avant, la liste affichée est encore l'ancienne)
-          const settle = st.changed ? 13 : 1;
-          for (let k = 0; k < 40 && !card; k++) { await wait(60); card = cardFor(panel, it); if (!card && k >= settle && shown()) break; }
-          if (card) ok = await addCard(card);
-          else why = (inOffer.get(it.name) || 0) > 0 ? 'all' : onHold(panel, it) ? 'hold' : 'missing';
-          restoreSearchSoon();
-        }
-      }
-    }
+    const why = panel ? await addFrom(panel, it, inOffer.get(it.name) || 0) : 'missing';
+    const ok = why === 'ok';
     flash(tile, ok ? 'ok' : 'miss');
     const q = removeButtons().filter(x => nameOfRemove(x) === it.name).length;
     say(ok ? 'ok' : 'miss', ok ? (q > 1 ? L(`Ajouté · ${q} dans l'offre`, `Added · ${q} in offer`) : L('Ajouté', 'Added'))
@@ -356,21 +382,67 @@
   let misses = 0, ticks = 0;
   function place() {
     if (misses > 8 && ++ticks % 5) return;
+    // Le titre (« Trade with … », « Counter … ») ; sinon, sur un écran dont le titre change (counter),
+    // juste au-dessus de « Your Inventory ».
     const title = globalThis.RoNoteDom?.composerTitle?.();
-    if (!title) { misses++; return; }
+    const inv = title ? null : globalThis.RoNoteDom?.myInventoryHeading?.();
+    if (!title && !inv) { misses++; return; }
     misses = 0;
     if (!host) {
       host = document.createElement('div');
       host.setAttribute('data-ronote', 'sent-history');
       shadow = host.attachShadow({ mode: 'closed' });
     }
-    if (!host.isConnected || host.previousElementSibling !== title) title.insertAdjacentElement('afterend', host);
+    if (title) { if (!host.isConnected || host.previousElementSibling !== title) title.insertAdjacentElement('afterend', host); }
+    else if (!host.isConnected || host.nextElementSibling !== inv) inv.insertAdjacentElement('beforebegin', host);
     draw();
+  }
+
+  /* ------------------------- le trade préparé (popup) ------------------------
+   * 18 nov. : « Préparer le trade » sur une fiche Deals ou Profils range ce qu'il faut mettre de chaque
+   * côté dans `storage.local.prepTrade` puis ouvre /users/{id}/trade. Ici, sur la page de CE joueur et
+   * dans les 3 minutes, on l'ajoute : mes objets depuis mon inventaire, les siens depuis le sien. Une
+   * seule fois (la demande est effacée avant de commencer). Indépendant de l'option « Envoi rapide ».
+   */
+  let prepping = false;
+  async function prep(pid) {
+    if (prepping || !pid) return;
+    let got = null;
+    try { got = await B.storage.local.get('prepTrade'); } catch { return; }
+    const want = got?.prepTrade;
+    if (!want || Number(want.uid) !== pid || Date.now() - (want.at || 0) > 180e3) return;
+    const panels = document.querySelectorAll('.trade-inventory-panel');
+    if (panels.length < 2) return;                       // la page n'est pas encore prête : au tour suivant
+    prepping = true;
+    try { await B.storage.local.remove('prepTrade'); } catch { /* ignore */ }
+    const conv = (i) => ({ assetId: Number(i.assetId ?? i.id) || 0, bundleId: Number(i.bundleId) || 0, name: i.name || '' });
+    let done = 0, total = 0;
+    for (const [panel, list] of [[panels[0], want.mine || []], [panels[1], want.theirs || []]]) {
+      for (const raw of list.slice(0, 8)) {
+        total++;
+        if ((await addFrom(panel, conv(raw))) === 'ok') done++;
+      }
+    }
+    toast(done === total ? L(`Trade préparé : ${done} item${done > 1 ? 's' : ''} ajouté${done > 1 ? 's' : ''}`, `Trade ready: ${done} item${done > 1 ? 's' : ''} added`)
+      : L(`Trade préparé : ${done}/${total} items (les autres ne sont pas dans l'inventaire)`, `Trade ready: ${done}/${total} items (the others aren't in the inventory)`), done === total);
+    prepping = false;
+  }
+  function toast(text, ok) {
+    const el = document.createElement('div');
+    el.setAttribute('data-ronote', 'prep-toast');
+    const sh = el.attachShadow({ mode: 'closed' });
+    sh.innerHTML = `<style>:host{all:initial;position:fixed;z-index:2147483000;left:50%;bottom:24px;transform:translateX(-50%)}
+      div{font:600 13px/1.3 "Builder Sans",Arial,sans-serif;color:#fff;padding:9px 14px;border-radius:10px;background:${ok ? '#1f6f4a' : '#7a5a12'};
+      box-shadow:0 8px 24px #0008;animation:in .25s ease}@keyframes in{from{opacity:0;transform:translateY(8px)}}</style><div>${esc(text)}</div>`;
+    document.body.append(el);
+    setTimeout(() => el.remove(), 4000);
   }
 
   let lastUrl = '';
   function tick() {
-    if (!enabled || !alive()) return;
+    if (!alive()) return;
+    if (!prepping && PATH.test(location.pathname)) prep(partnerOf());
+    if (!enabled) return;
     const pid = partnerOf();
     if (!pid) { if (host?.isConnected) host.remove(); lastUrl = location.href; return; }
     if (location.href !== lastUrl) { lastUrl = location.href; misses = 0; if (dataFor !== pid) { data = null; dataFor = 0; } }

@@ -602,6 +602,7 @@ globalThis.RoNoteDom = {
   ITEM_LINK, USER_LINK,
   idOf, nameOf, groupLinks, partnerHandle, readTradePage, plain, signatureOf, visibleAnalysis, phaseOf,
   inventoryItems, composerTitle,
-  theirInventoryHeading: () => visibleText(MY_INVENTORY) && visibleText(THEIR_INVENTORY)
+  theirInventoryHeading: () => visibleText(MY_INVENTORY) && visibleText(THEIR_INVENTORY),
+  myInventoryHeading: () => visibleText(MY_INVENTORY)
 };
 })();

@@ -24,6 +24,7 @@ import { send } from '../common/ui.js';
 import { nwTilesHtml } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { ic } from '../common/icons.js';
+import { B } from '../common/shim.js';
 import { itemFilterHtml, itemChipsHtml, itemFilterCount, itemMatcher, bindItemFilter } from './itemfilter.js';
 
 const KEY = 'ronote.deals';
@@ -120,10 +121,26 @@ function filtered(p, data) {
 const ago = (at) => timeAgo(at * 1000);
 const who = (x) => escapeHtml(x.user?.name || '#' + (x.user?.id || '?'));
 // Les actions : trois petits boutons dans l'en-tête (18 nov. : le pied de carte prenait une ligne entière).
-const acts = (uid) => `<span class="pf-qa">
+// Le bouton d'envoi PRÉPARE le trade : `data-prep` dit quoi mettre de chaque côté (voir prepTrade).
+const acts = (uid, prepKey = '') => `<span class="pf-qa">
     <button class="pf-ib" data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's">R</button>
     <button class="pf-ib" data-open="https://www.roblox.com/users/${uid}/profile" title="Roblox">${ic('user')}</button>
-    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade" title="${escapeHtml(t('Envoyer un trade'))}">${ic('send')}</button></span>`;
+    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade"${prepKey ? ` data-prep="${escapeHtml(prepKey)}"` : ''}
+      title="${escapeHtml(t(prepKey ? 'Préparer le trade (items déjà ajoutés)' : 'Envoyer un trade'))}">${ic('send')}</button></span>`;
+
+/**
+ * « Préparer le trade » (18 nov.) : ce qu'il faut mettre de chaque côté est rangé pour la page d'échange
+ * qui s'ouvre (content/sent-history.js l'ajoute : mes objets depuis mon inventaire, les siens depuis le
+ * sien, dans les 3 minutes, une seule fois). `mine` / `theirs` : des objets Neuronal ({ id, name }).
+ */
+export async function prepTrade(e, uid, mine, theirs) {
+  // Le popup se ferme dès que l'onglet s'ouvre : on enregistre D'ABORD, puis on ouvre nous-mêmes.
+  e.preventDefault();
+  e.stopPropagation();
+  const slim = (l) => (l || []).slice(0, 8).map(i => ({ id: Number(i.id) || 0, name: String(i.name || '') })).filter(i => i.id || i.name);
+  try { await B.storage.local.set({ prepTrade: { uid: Number(uid), mine: slim(mine), theirs: slim(theirs), at: Date.now() } }); } catch { /* aperçu */ }
+  try { B.tabs.create({ url: `https://www.roblox.com/users/${Number(uid)}/trade` }); } catch { /* aperçu */ }
+}
 const stale = (x) => (Date.now() / 1000 - x.at > STALE_S ? ' dl-old' : '');
 
 function dealHtml(d, isNew) {
@@ -137,7 +154,7 @@ function dealHtml(d, isNew) {
     <header class="dl-top">
       <span class="dl-grade" title="${escapeHtml(t('Note {n}/100', { n: d.score }))}"><b>${escapeHtml(d.grade)}</b><i>${Number(d.score)}</i></span>
       <span class="dl-gain"><b>+${fmtNum(gain)}</b><small>+${pct.toFixed(pct < 10 ? 1 : 0)} % · ${who(d)} · ${ago(d.at)}</small></span>
-      ${acts(uid)}
+      ${acts(uid, 'd' + Number(d.id))}
     </header>
     <div class="ncl-sides dl-ln">
       <div class="ncl-s"><b>${fmtNum(d.give_value)}</b>${nwTilesHtml(d.give)}</div><span class="ncl-ar">→</span>
@@ -157,7 +174,7 @@ function robuxHtml(r, isNew) {
     <header class="dl-top">
       <span class="dl-grade dl-r" aria-hidden="true"><b>R$</b></span>
       <span class="dl-gain"><b>${fmtNum(r.value)}</b><small>${r.only_robux ? t('Robux seulement') : t('Robux ou items')} · ${who(r)} · ${ago(r.at)}</small></span>
-      ${acts(uid)}
+      ${acts(uid, 'r' + Number(r.id))}
     </header>
     <div class="dl-rb"><div class="dl-one">${nwTilesHtml(r.get)}</div>
     <div class="dl-facts">
@@ -243,6 +260,14 @@ export function renderDeals(listEl, openOptions) {
       if (listEl.dataset.tab !== 'deals') return;
       if (e.target.closest('[data-dl-options]')) { openOptions(); return; }
       if (e.target.closest('[data-dl-ftog]')) { const q = pick(); q.open = !q.open; write(q); paint(listEl); return; }
+      const prep = e.target.closest('[data-prep]');
+      if (prep && last?.data) {                    // le lien s'ouvre ensuite par l'écouteur commun (data-open)
+        const k = prep.dataset.prep, id = Number(k.slice(1));
+        const x = (k[0] === 'r' ? last.data.robux : last.data.deals)?.find(y => Number(y.id) === id);
+        // un deal : je donne ce qu'il demande, il me donne ce qu'il propose ; Robux : ses items seulement
+        if (x) prepTrade(e, x.user?.id, k[0] === 'r' ? [] : x.give, x.get);
+        return;
+      }
       const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind], [data-dl-since]');
       if (!el) return;
       const p = pick();

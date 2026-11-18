@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.20',
+    title: item('Préparer le trade', 'Prepare the trade'),
+    items: [
+      item("Deals et Profils : le bouton d'envoi ouvre la page d'échange avec les items déjà ajoutés des deux côtés (ce que tu donnes, ce que tu reçois).",
+        "Deals and Profiles: the send button opens the trade page with the items already added on both sides (what you give, what you get)."),
+      item("L'envoi rapide apparaît aussi sur l'écran de counter d'un trade reçu (/trades/…/counter).",
+        "Quick add also shows on the counter screen of a received trade (/trades/…/counter).")
+    ]
+  },
+  {
     version: '2.17.19',
     title: item('Filtrer par items', 'Filter by items'),
     items: [
