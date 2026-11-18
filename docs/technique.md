@@ -1197,4 +1197,8 @@ Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne 
   après le dernier changement ; un second clic clique ce bouton. Le rattrapage n'est attendu que si la liste
   est vide ; sinon la réponse porte `refreshing` et la page redemande une seule fois 6 s plus tard. Un
   effacement (`clearSent`) incrémente `gen` : un rattrapage en cours n'écrit plus rien.
+- **Counter** (2.17.16) : `hook.js` traite `…/trades/{id}/counter` comme `…/trades/send` (testé avant `TRADE_RE`,
+  qui accepte « /trades/123/… ») ; `TRADE_WITH` reconnaît aussi « Counter (offer|trade) (with|to) … » ; sur
+  `/trades`, le partenaire est lu sur la page (un tour sur trois tant que l'écran n'est pas ouvert, gardé par
+  adresse). **Non vu sur la vraie page** : aucun trade reçu disponible le 18 nov. pour ouvrir un counter.
 - Aperçu hors extension, inventaire et offre simulés : `tools/preview/sent-history.html`.

@@ -38,7 +38,24 @@
   const compact = new Intl.NumberFormat(fr ? 'fr-FR' : 'en-US', { notation: 'compact', maximumFractionDigits: 1 });
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const PATH = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/users\/(\d+)\/trade\/?$/i;
-  const partnerOf = () => Number(PATH.exec(location.pathname)?.[1]) || 0;
+  const TRADES = /^(?:\/[a-z]{2}(?:[-_][a-z]{2})?)?\/trades\/?$/i;
+  // Le partenaire : dans l'adresse (« /users/{id}/trade », envoi ou counter), sinon, sur /trades où Roblox
+  // ouvre aussi l'écran de counter, lu sur la page. Là, on ne regarde qu'un tour sur trois tant que
+  // l'écran n'est pas ouvert, et la réponse est gardée pour l'adresse en cours.
+  let trPid = { url: '', pid: 0, at: 0 }, trTick = 0;
+  function partnerOf(fresh = false) {
+    const m = PATH.exec(location.pathname);
+    if (m) return Number(m[1]) || 0;
+    if (!TRADES.test(location.pathname)) return 0;
+    if (!fresh && trPid.url === location.href && (trPid.pid || ++trTick % 3)) return trPid.pid;
+    let pid = 0;
+    try {
+      if (globalThis.RoNoteDom?.composerTitle?.()) pid = Number(globalThis.RoNoteDom.readTradePage()?.partnerId) || 0;
+    } catch { /* page en chargement */ }
+    // Le pseudo seul ne donne pas d'id : sans lui, pas de ligne (on ne devine pas).
+    trPid = { url: location.href, pid, at: Date.now() };
+    return pid;
+  }
 
   let enabled = false, timer = null, projColor = '#e3b04b';
   let host = null, shadow = null, data = null, dataFor = 0, asking = false, pending = null;
@@ -73,7 +90,7 @@
   }
   // Le panier tel qu'il est au clic : après la réponse de Roblox, la page peut déjà l'avoir vidé.
   document.addEventListener('click', (e) => {
-    if (!enabled || !partnerOf() || !e.target?.closest?.('button')) return;
+    if (!enabled || !e.target?.closest?.("button") || !partnerOf(true)) return;
     pending = snap() || pending;
   }, true);
 

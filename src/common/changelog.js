@@ -16,9 +16,11 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: '2.17.15',
+    version: '2.17.16',
     title: item('Envoi rapide', 'Quick add'),
     items: [
+      item("Aussi quand tu contres un trade : la ligne de tes objets récents apparaît sur l'écran de counter, et le counter envoyé rejoint la liste.",
+        "Also when you counter a trade: your recent items row shows on the counter screen, and the sent counter joins the list."),
       item("Les vignettes portent un mini badge Projected (à la couleur de tes réglages) et une marque pour un objet rare ; nom, value et nombre de fois s'affichent dans la ligne au survol.",
         "Tiles carry a mini Projected badge (in your settings' colour) and a mark for a rare item; name, value and count show in the row on hover."),
       item("Un objet déjà dans ton offre est coché et atténué ; un second clic le retire.",

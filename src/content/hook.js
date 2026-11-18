@@ -19,7 +19,8 @@
 
   // L'envoi d'un trade (« Make Offer ») : sa reponse porte le numero du trade cree. Seul ce
   // numero part vers l'extension (historique d'envoi, content/sent-history.js).
-  const SEND_RE = /\/\/[^/]*roblox\.com\/(?:[^?#]*\/)?trades\/send(?:$|[?#])/i;
+  // Le counter (« …/trades/{id}/counter ») crée lui aussi un trade envoyé : même traitement.
+  const SEND_RE = /\/\/[^/]*roblox\.com\/(?:[^?#]*\/)?trades\/(?:send|\d+\/counter)(?:$|[?#])/i;
   const sent = (j) => {
     const id = j && typeof j === 'object' ? (j.id ?? j.tradeId) : null;
     if (!/^\d+$/.test(String(id ?? ''))) return;
@@ -53,7 +54,7 @@
       const res = origFetch.apply(this, args);
       try {
         const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
-        const m = TRADE_RE.exec(url);
+        const m = SEND_RE.test(url) ? null : TRADE_RE.exec(url);
         if (m) {
           res.then(r => {
             if (!r?.ok) return;
@@ -90,8 +91,9 @@
   XMLHttpRequest.prototype.send = (function (origSend) {
     return function (...args) {
       try {
-        const m = TRADE_RE.exec(this.__ronoteUrl || '');
-        if (!m && SEND_RE.test(this.__ronoteUrl || '')) {
+        const isSend = SEND_RE.test(this.__ronoteUrl || '');
+        const m = isSend ? null : TRADE_RE.exec(this.__ronoteUrl || '');
+        if (isSend) {
           this.addEventListener('load', () => {
             try {
               if (this.status < 200 || this.status >= 300) return;
