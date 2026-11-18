@@ -1165,3 +1165,19 @@ de la table, ignoré) ; `rankScore` interpole en ligne droite la part du classem
 la note arrondie. La demande Rolimon's, entière, est décalée de (note Neuronal − 3) / 4, soit ±0,5 au
 plus, quand l'objet est classé par Neuronal : elle ne change jamais de libellé. Les barres remplissent
 la dernière en partie (opacité) ; le chiffre suit la langue (« 3,7 » / « 3.7 »).
+
+## L'historique d'envoi (page « Trade with … », 2.17.11)
+
+Sous le titre de la page d'envoi, `content/sent-history.js` montre les objets donnés dans les derniers trades
+envoyés (Insider / Elite : fonction `profiles` du jeton Neuronal ; réglage `sentHistory`, coupé par défaut).
+Roblox n'a pas d'API « ce que j'ai envoyé » sans relire chaque trade : on ne relit rien.
+
+- **À l'envoi** : un clic sur un bouton de la page fige le panier « Your Offer » (`RoNoteDom.readTradePage`,
+  vignettes du CDN comprises) ; `hook.js` voit la réponse de `…/trades/send` et ne transmet que le numéro du
+  trade ; `relay.js` appelle `RoNoteSent.sent(id)` (même monde isolé) ; le worker garde l'envoi
+  (`storage.local.sentLog`, 150 au plus, par compte Roblox) — seulement si l'option est active.
+- **À l'affichage** : `background/sent.js` fusionne ce journal avec les fiches de trades envoyés déjà en cache
+  (`cachedCards`, 7 jours), l'issue vient du snapshot Outbound et du journal des alertes, les values de la table
+  Rolimon's chargée. Réponse gardée 30 s par joueur ; une seule question par joueur et par visite.
+- Couper l'option (ou vider le journal) efface `sentLog`. Rien ne part vers Neuronal.
+- Aperçu hors extension : `tools/preview/sent-history.html`.

@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.11',
+    title: item("Historique d'envoi", 'Send history'),
+    items: [
+      item("Insider et Elite : sous « Trade with … », les objets donnés dans tes derniers trades envoyés, ceux avec ce joueur d'abord, avec leur issue. Désactivé par défaut (Réglages › Page d'un trade).",
+        "Insider and Elite: under « Trade with … », the items you gave in your latest sent trades, the ones with this player first, with their outcome. Off by default (Settings › Trade page).")
+    ]
+  },
+  {
     version: '2.17.10',
     title: item('Courbe, derniers trades et réglages du profil', 'Chart, latest trades and profile settings'),
     items: [

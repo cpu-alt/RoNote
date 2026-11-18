@@ -19,8 +19,9 @@ import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } fr
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget } from './neuronal.js';
-import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet } from './premium.js';
+import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
+import { recordSent, sentHistory, clearSent } from './sent.js';
 import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -1437,6 +1438,22 @@ async function handleMessage(msg, sender = null) {
       return readThrough({ key: 'profileStores', id, field: 'page', ttl: PLAYER_TTL, cap: PLAYER_CAP }, load);
     }
     // Le cadre « derniers trades » du profil Roblox : Insider / Elite (Neuronal le vérifie).
+    // L'historique d'envoi (sent.js) : desactive par defaut, RoNote premium Insider / Elite.
+    case 'ronote:sent-history': {
+      const settings = await getSettings();
+      if (!settings.sentHistory) return { off: true };
+      await safe(() => premiumHeaders());
+      const p = await premiumGet();
+      if (!p.token) return { locked: 'login' };
+      if (!p.me?.features?.profiles) return { locked: 'subscribe' };
+      return sentHistory(msg.partnerId, settings);
+    }
+    case 'ronote:sent-record': {
+      const settings = await getSettings();
+      if (!settings.sentHistory) return { ok: false };
+      const st = await getState();
+      return { ok: await recordSent(msg, st.userId) };
+    }
     case 'ronote:profile-trades': {
       const settings = await getSettings();
       if (settings.profileTrades === false) return { off: true, hidden: true };
@@ -1628,6 +1645,8 @@ async function handleMessage(msg, sender = null) {
       setLang(settings.lang);
       // Un journal raccourci l'est tout de suite, pas au prochain evenement.
       if (msg.patch?.historyLimit) await pushHistory([], settings.historyLimit, true);
+      // L'historique d'envoi coupe : ce qui avait ete garde s'efface avec lui.
+      if (msg.patch?.sentHistory === false) await clearSent();
       await configureAlarm(settings);
       await applySidePanel(settings);
       await setBadge((await getState()).inboundCount, settings, false);
@@ -1735,6 +1754,7 @@ async function handleMessage(msg, sender = null) {
       return { history: await getHistory() };
     case 'ronote:history-clear':
       await clearHistory();
+      await clearSent();
       return { ok: true };
     default:
       return { error: 'message inconnu: ' + msg.type };

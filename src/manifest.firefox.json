@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.17.10",
+  "version": "2.17.11",
   "default_locale": "en",
   "description": "__MSG_appDesc__",
   "browser_specific_settings": {
@@ -114,7 +114,8 @@
         "content/list-look.js",
         "content/trade-list.js",
         "content/item-page.js",
-        "content/profile-card.js"
+        "content/profile-card.js",
+        "content/sent-history.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

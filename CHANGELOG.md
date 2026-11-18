@@ -5,6 +5,11 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Historique d'envoi** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une bande repliable
+  sous le titre montre les objets donnés dans tes 12 derniers trades envoyés, ceux faits avec ce joueur en tête,
+  avec leur issue (en cours, accepté, refusé, contré, expiré) et leur value. Aucune requête Roblox : l'envoi est
+  noté au moment du « Make Offer » (panier lu sur la page, vignettes comprises), complété par les trades envoyés
+  déjà en cache. Gardé seulement sur l'ordinateur (150 envois) ; couper l'option l'efface.
 - **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période
   et survol pour lire un relevé ; lue après la carte (même historique que la fiche joueur, gardé 6 h).
 - **Derniers trades du joueur** (Insider / Elite) : ses trades prouvés vus par Neuronal (`/ext/v1/player/<id>/trades`,

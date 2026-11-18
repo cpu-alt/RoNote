@@ -17,6 +17,15 @@
   // autre point d'entree finirait pris pour un detail de trade.
   const TRADE_RE = /\/\/[^/]*roblox\.com\/(?:[^?#]*\/)?trades\/(\d+)(?:$|[?#/])/i;
 
+  // L'envoi d'un trade (« Make Offer ») : sa reponse porte le numero du trade cree. Seul ce
+  // numero part vers l'extension (historique d'envoi, content/sent-history.js).
+  const SEND_RE = /\/\/[^/]*roblox\.com\/(?:[^?#]*\/)?trades\/send(?:$|[?#])/i;
+  const sent = (j) => {
+    const id = j && typeof j === 'object' ? (j.id ?? j.tradeId) : null;
+    if (!/^\d+$/.test(String(id ?? ''))) return;
+    try { window.postMessage({ __ronote: 'trade-sent', tradeId: String(id) }, location.origin); } catch { /* ignore */ }
+  };
+
   const looksLikeTrade = (j) => !!j && typeof j === 'object'
     && (Array.isArray(j.offers) || j.participantAOffer || j.participantBOffer
       || Array.isArray(j.participants) || j.tradeStatus || j.status);
@@ -50,6 +59,8 @@
             if (!r?.ok) return;
             r.clone().json().then(j => send(m[1], j)).catch(() => {});
           }).catch(() => {});
+        } else if (SEND_RE.test(url)) {
+          res.then(r => { if (r?.ok) r.clone().json().then(sent).catch(() => {}); }).catch(() => {});
         }
         // La page ajoute le jeton CSRF a ses requetes : on le recupere au vol.
         const h = args[1]?.headers;
@@ -80,6 +91,14 @@
     return function (...args) {
       try {
         const m = TRADE_RE.exec(this.__ronoteUrl || '');
+        if (!m && SEND_RE.test(this.__ronoteUrl || '')) {
+          this.addEventListener('load', () => {
+            try {
+              if (this.status < 200 || this.status >= 300) return;
+              sent(this.responseType === '' || this.responseType === 'text' ? JSON.parse(this.responseText) : this.response);
+            } catch { /* reponse non JSON */ }
+          });
+        }
         if (m) {
           this.addEventListener('load', () => {
             try {

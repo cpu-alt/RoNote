@@ -600,6 +600,6 @@ function signatureOf(page) {
 globalThis.RoNoteDom = {
   ITEM_LINK, USER_LINK,
   idOf, nameOf, groupLinks, partnerHandle, readTradePage, plain, signatureOf, visibleAnalysis, phaseOf,
-  inventoryItems
+  inventoryItems, composerTitle
 };
 })();

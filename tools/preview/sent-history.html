@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperçu : historique d'envoi</title>
+<style>
+  body{margin:0;background:#330060;font-family:"Builder Sans",Arial,sans-serif;color:#fff}
+  .page{max-width:1000px;margin:0 auto;padding:24px 16px}
+  h1{font-size:32px;margin:0 0 30px}
+  h1 span{color:#b7a8d6;font-weight:600}
+  h2{font-size:20px;margin:40px 0 0}
+  .tools{position:fixed;right:12px;bottom:12px;display:flex;gap:6px}
+  .tools button{padding:6px 10px;border-radius:8px;border:0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Trade with xxeeuss <span>@xxeeuss</span></h1>
+  <h2>Your Inventory</h2>
+</div>
+<div class="tools"><button data-v="rows">Données</button><button data-v="locked">Verrouillé</button><button data-v="empty">Vide</button></div>
+<script>
+  // Aperçu hors extension : l'API de l'extension et RoNoteDom sont simulés, l'URL imite la page d'envoi.
+  history.replaceState(null, '', '/users/111/trade');
+  const t = (id) => `https://tr.rbxcdn.com/${id}/150/150/Image/Png`;
+  const it = (n, v) => ({ name: n, value: v, thumb: null, acronym: n.split(' ').map(w => w[0]).join('') });
+  const now = Date.now();
+  const VIEWS = {
+    rows: { partnerId: 111, rows: [
+      { id: '1', at: now - 40 * 60e3, partnerId: 111, handle: 'xxeeuss', status: 'open', give: [it('Valkyrie Helm', 52000), it('Sparkle Time Fedora', 31000)], value: 83000, robux: 0 },
+      { id: '2', at: now - 26 * 3600e3, partnerId: 111, handle: 'xxeeuss', status: 'declined', give: [it('Dominus Messor', 210000)], value: 210000, robux: 5000 },
+      { id: '3', at: now - 3 * 3600e3, partnerId: 222, handle: 'tradeking_09', status: 'accepted', give: [it('Clockwork Shades', 18000), it('Red Sparkle Time Fedora', 9000), it('Bombastic Hat', 4000), it('Ice Crown', 2500), it('Dark Ice Crown', 1200), it('Eerie Pumpkin Head', 900)], value: 35600, robux: 0 },
+      { id: '4', at: now - 50 * 3600e3, partnerId: 333, handle: 'neverfuzzy', status: 'countered', give: [it('Super Super Happy Face', 155000)], value: 155000, robux: 0 },
+      { id: '5', at: now - 4 * 86400e3, partnerId: 444, handle: 'bloxxer', status: 'expired', give: [it('Rainbow Shaggy', 7000)], value: 7000, robux: 0 }
+    ] },
+    locked: { locked: 'subscribe' },
+    empty: { partnerId: 111, rows: [] }
+  };
+  let view = new URLSearchParams(location.search).get('v') || 'rows';
+  const listeners = [];
+  globalThis.chrome = {
+    runtime: { id: 'preview', sendMessage: async (m) => m.type === 'ronote:sent-history' ? VIEWS[view] : { ok: true } },
+    storage: { local: { get: async () => ({ settings: { sentHistory: true } }), set: async () => {} },
+      onChanged: { addListener: (f) => listeners.push(f) } }
+  };
+  globalThis.RoNoteDom = { composerTitle: () => document.querySelector('h1'), readTradePage: () => null };
+  document.querySelectorAll('.tools button').forEach(b => b.onclick = () => {
+    view = b.dataset.v;
+    listeners.forEach(f => f({ settings: { newValue: { sentHistory: false } } }, 'local'));
+    listeners.forEach(f => f({ settings: { newValue: { sentHistory: true } } }, 'local'));
+  });
+</script>
+<script src="/src/content/sent-history.js"></script>
+</body>
+</html>

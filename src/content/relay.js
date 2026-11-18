@@ -22,6 +22,8 @@ window.addEventListener('message', (e) => {
       Promise.resolve(B.runtime.sendMessage({ type: 'ronote:captured-trade', tradeId: d.tradeId, detail: d.detail }))
         .then(() => { if (typeof globalThis.dispatchEvent === 'function') globalThis.dispatchEvent(new Event('ronote:detail-ready')); })
         .catch(() => {});
+    } else if (d.__ronote === 'trade-sent' && /^\d+$/.test(String(d.tradeId || ''))) {
+      globalThis.RoNoteSent?.sent(String(d.tradeId));   // content/sent-history.js (meme monde isole)
     } else if (d.__ronote === 'csrf' && d.token) {
       Promise.resolve(B.runtime.sendMessage({ type: 'ronote:csrf', token: d.token })).catch(() => {});
     }
