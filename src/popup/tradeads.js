@@ -16,7 +16,7 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { ic } from '../common/icons.js';
 import { lockHtml } from './lock.js';
-import { smartGap, MIN_VALUES, pickAd, onlyAd, tirageAlea, isEgg as eggTest } from '../background/tradeads.js';
+import { smartGap, MIN_VALUES, OP_VALUES, pickAd, onlyAd, tirageAlea, isEgg as eggTest } from '../background/tradeads.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
 const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `smartGap`)
@@ -82,6 +82,8 @@ let pickTab = 'mine';      // le sélecteur d'items : « Mes items » ou « Ce q
 let invQuery = '';
 let invSort = 'value';
 let showExcluded = false;
+const LIST_STEP = 60;         // « Mes items » : 60 lignes dessinées, le reste à la demande (gros inventaires)
+let listCap = LIST_STEP;
 const askInfo = new Map();   // assetId → { name, acronym, value, thumb } des items demandés (catalogue du worker)
 let flash = '';              // message bref (import réussi, copié…)
 
@@ -165,6 +167,13 @@ function pickerHtml(cfg, all) {
       <button role="tab" aria-selected="${pickTab === 'mine'}" data-ta-pick="mine">${t('Mes items')} <small>${cfg.offer.length}/${MAX}</small></button>
       <button role="tab" aria-selected="${pickTab === 'ask'}" data-ta-pick="ask">${t('Ce que je demande')} <small>${cfg.items.length + cfg.tags.length}/${MAX}</small></button></div>`;
   if (pickTab === 'ask') return `${tabs}
+      <div class="ta-filters ta-req">
+        <label class="ta-chk"><input type="checkbox" data-ta-reqalea${cfg.reqAlea ? ' checked' : ''}>${t('Demande aléatoire')}</label>
+        <label class="ta-sel">${t('Overpay')}<select data-ta-op>${OP_VALUES.map(v =>
+          `<option value="${v}"${v === cfg.op ? ' selected' : ''}>+${v} %</option>`).join('')}</select></label>
+        ${cfg.reqAlea ? `<button class="ta-btn" data-ta-draw>${ic('swap')}${t('Tirer')}</button>` : ''}
+      </div>
+      ${cfg.reqAlea ? `<small class="ta-why">${t('Des items au hasard qui valent ce que tu offres, plus {p} % : nouveaux à chaque envoi. Choisis un item à la main pour arrêter.', { p: cfg.op })}</small>` : ''}
       <div class="ta-tags">${TAGS.map(g => `<button role="checkbox" aria-checked="${cfg.tags.includes(g)}" data-ta-tag="${g}">#${g}</button>`).join('')}</div>
       <input class="ta-q" type="search" data-ta-q placeholder="${escapeHtml(t('Ajouter un item demandé…'))}" value="${escapeHtml(query)}">
       <div class="ta-items">${found.filter(i => !cfg.items.includes(i.assetId)).map(i =>
@@ -181,12 +190,13 @@ function pickerHtml(cfg, all) {
           `<option value="${k}"${k === invSort ? ' selected' : ''}>${t(l)}</option>`).join('')}</select></label>
       </div>
       ${excl.length ? `<button class="ta-link" data-ta-showx>${showExcluded ? t('← Retour à mes items') : t('{n} items exclus : les voir', { n: excl.length })}</button>` : ''}
-      <div class="ta-items">${list.map(i => {
+      <div class="ta-items">${list.slice(0, listCap).map(i => {
         const id = tradeId(i), on = cfg.offer.includes(id), x = excl.includes(id);
         return `<div class="ta-row"><button class="ta-item${on ? ' on' : ''}" role="checkbox" aria-checked="${on}" ${x ? 'disabled' : `data-ta-offer="${id}"`}>${thumb(i)}
           <span class="ta-item-n">${escapeHtml(i.name)}${i.projected ? ' <em>P</em>' : ''}${dots(i.demand)}</span><b>${fmtNum(i.value)}</b></button>
           <button class="ta-x" data-ta-excl="${id}" title="${escapeHtml(t(x ? 'Remettre dans la liste' : 'Exclure : ne jamais offrir cet item'))}">${ic(x ? 'undo' : 'ban')}</button></div>`;
       }).join('') || `<p class="ta-why">${t('Aucun item ne passe les filtres.')}</p>`}</div>
+      ${list.length > listCap ? `<button class="ta-link" data-ta-more>${t('Voir {n} de plus', { n: Math.min(LIST_STEP, list.length - listCap) })}</button>` : ''}
       ${hidden && !showExcluded ? `<small class="ta-why">${t('{n} items cachés par les filtres', { n: hidden })}</small>` : ''}`;
 }
 
@@ -297,7 +307,13 @@ function say(root, msg) {
 const exportText = (cfg) => JSON.stringify({ ronote: 'tradeads', v: 1, ad: pickAd(cfg) }, null, 2);
 
 const toggle = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
-let searchTimer = 0;
+let searchTimer = 0, invTimer = 0;
+
+/** « Tirer » : le worker refait les tirages (offre et demande aléatoires) sans rien publier. */
+async function drawNow(listEl) {
+  await send({ type: 'ronote:tradeads-draw' }).catch(() => null);
+  await load(listEl);
+}
 
 /** Dessine l'onglet dans `listEl` ; les clics sont câblés une seule fois sur lui. */
 export function renderTradeAds(listEl, portfolioReport) {
@@ -306,11 +322,13 @@ export function renderTradeAds(listEl, portfolioReport) {
     listEl.dataset.taBound = '1';
     listEl.addEventListener('click', async (e) => {
       if (listEl.dataset.tab !== 'tradeads' || !res?.cfg) return;
-      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick], [data-ta-excl], [data-ta-showx], [data-ta-load], [data-ta-del], [data-ta-savecfg], [data-ta-export], [data-ta-copy], [data-ta-import]');
+      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick], [data-ta-excl], [data-ta-showx], [data-ta-load], [data-ta-del], [data-ta-savecfg], [data-ta-export], [data-ta-copy], [data-ta-import], [data-ta-more], [data-ta-draw]');
       if (!el) return;
       const { cfg } = res;
       const d = el.dataset;
-      if (d.taPick) { pickTab = d.taPick; paint(listEl); }
+      if ('taMore' in d) { listCap += LIST_STEP; paint(listEl); }
+      else if ('taDraw' in d) { el.disabled = true; await drawNow(listEl); }
+      else if (d.taPick) { pickTab = d.taPick; paint(listEl); }
       else if (d.taExcl) save(listEl, { exclude: toggle(cfg.exclude || [], Number(d.taExcl)) });
       else if ('taShowx' in d) { showExcluded = !showExcluded; paint(listEl); }
       else if (d.taLoad) { const c = cfg.saved[Number(d.taLoad)]; if (c) { await save(listEl, c.ad); say(listEl, t('« {n} » chargée', { n: c.name })); } }
@@ -362,6 +380,8 @@ export function renderTradeAds(listEl, portfolioReport) {
       else if ('taNoproj' in el.dataset) save(listEl, { noProjected: el.checked });
       else if ('taSort' in el.dataset) { invSort = SORTS[el.value] ? el.value : 'value'; paint(listEl); }
       else if ('taNote' in el.dataset) save(listEl, { note: el.value });
+      else if ('taReqalea' in el.dataset) save(listEl, { reqAlea: el.checked }).then(() => el.checked && drawNow(listEl));
+      else if ('taOp' in el.dataset) save(listEl, { op: Number(el.value) }).then(() => res?.cfg?.reqAlea && drawNow(listEl));
       else if ('taFile' in el.dataset && el.files?.[0]) {
         el.files[0].text().then(async (txt) => {
           const ad = parseConfigFile(txt);
@@ -375,10 +395,14 @@ export function renderTradeAds(listEl, portfolioReport) {
       if (listEl.dataset.tab !== 'tradeads') return;
       if ('taInvq' in (e.target.dataset || {})) {   // recherche locale dans l'inventaire : redessine sans perdre le curseur
         invQuery = e.target.value;
-        paint(listEl);
-        const q = listEl.querySelector('[data-ta-invq]');
-        q?.focus();
-        q?.setSelectionRange(q.value.length, q.value.length);
+        listCap = LIST_STEP;
+        clearTimeout(invTimer);   // un seul dessin par pause de frappe, pas un par lettre
+        invTimer = setTimeout(() => {
+          paint(listEl);
+          const q = listEl.querySelector('[data-ta-invq]');
+          q?.focus();
+          q?.setSelectionRange(q.value.length, q.value.length);
+        }, 120);
         return;
       }
       if (!('taQ' in (e.target.dataset || {}))) return;

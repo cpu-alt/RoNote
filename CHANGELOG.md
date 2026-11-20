@@ -5,6 +5,15 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Trade ads : demande aléatoire, RoUtility réparé** (2.17.30) :
+  - *Demande aléatoire* (onglet « Ce que je demande ») : `tirageDemande` tire 1 à 4 items du catalogue Rolimon's en
+    cache (sans projected, œuf ni item sans value) dont le total vaut l'offre + l'overpay choisi (0–50 %, ±8 %),
+    retirés à chaque envoi ; bouton « Tirer » pour voir tout de suite. Choisir un item à la main l'éteint.
+  - *RoUtility* (mise à jour du site, 20 nov.) : `show_as: 'roblox'` envoyé, `Origin`/`Referer` du site posés par une
+    règle de session (comme pour Roblox), « Wait Xm Ys » lu comme le délai, `posted_24h`/`daily_limit` respectés.
+  - *Mise à jour de l'extension* : l'alarme d'auto-post est reposée à l'installation ; les onglets roblox.com en
+    arrière-plan sont rechargés, l'onglet actif reçoit un bandeau « Recharger la page ».
+  - *Popup* : « Mes items » dessine 60 lignes puis « Voir plus », la recherche attend une pause de frappe.
 - **Finitions du popup** (2.17.29) : une couche en fin de `popup.css` — filet de lumière et ombre au survol des cartes,
   pression à rebond sur tous les boutons, même anneau de focus clavier, icônes Lucide animées (actualiser et réglages
   tournent, l'avion d'envoi décolle, les vignettes montent), entrée en cascade de Profils et Deals à l'arrivée sur

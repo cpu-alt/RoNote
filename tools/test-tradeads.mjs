@@ -69,12 +69,12 @@ console.log('\nEnvoi : format de chaque site');
   routes[RU] = [201, { id: 'a1' }];
   const r = await ta.runTradeAds({ me: 42, now: 1e12 });
   const roli = calls.find(c => c.url === ROLI);
-  const ru = calls.find(c => c.url === RU);
+  const ru = calls.find(c => c.url === RU && c.method === 'POST');
   check('deux sites publiés', r.results.rolimons === 'ok' && r.results.routility === 'ok');
   check('Rolimon\'s : player_id, offer_item_ids, request_item_ids, request_tags',
     JSON.stringify(roli.body) === '{"player_id":42,"offer_item_ids":[111,222],"request_item_ids":[333],"request_tags":["any"]}');
   check('RoUtility : offering / looking_for (items puis tags)',
-    JSON.stringify(ru.body) === '{"offering":[{"asset_id":"111"},{"asset_id":"222"}],"looking_for":[{"asset_id":"333"},{"type":"tag","tag":"any"}],"note":""}');
+    JSON.stringify(ru.body) === '{"offering":[{"asset_id":"111"},{"asset_id":"222"}],"looking_for":[{"asset_id":"333"},{"type":"tag","tag":"any"}],"note":"","show_as":"roblox"}');
   check('session du navigateur réutilisée (credentials include)', calls.every(c => c.credentials === 'include'));
   check('aucun appel à roblox.com', calls.every(c => !/roblox\.com/.test(c.url)));
   const cfg = await ta.getConfig();
@@ -84,7 +84,7 @@ console.log('\nEnvoi : format de chaque site');
   const again = await ta.runTradeAds({ me: 42, now: 1e12 + 10 * MIN, force: true });
   check('« Publier maintenant » respecte les 15 min du site', calls.length === 0 && !Object.keys(again.results).length);
   await ta.runTradeAds({ me: 42, now: 1e12 + 20 * MIN });
-  check('intervalle 15 min passé (20 min) → nouvel envoi', calls.length === 2);
+  check('intervalle 15 min passé (20 min) → nouvel envoi', calls.filter(c => c.method === 'POST').length === 2);
 }
 
 console.log('\nAléatoire : retiré à chaque envoi');
@@ -258,6 +258,45 @@ console.log('\nModèles d\'annonce');
   const ex = ta.sanitize({ offer: [1, 2, 3], exclude: [2] });
   check('worker : un item exclu sort de l\'annonce', JSON.stringify(ex.offer) === '[1,3]');
   check('message borné à 200 caractères, sans retour à la ligne', ta.sanitize({ note: 'a\nb' + 'x'.repeat(300) }).note.length === 200 && !ta.sanitize({ note: 'a\nb' }).note.includes('\n'));
+
+  console.log('\nDemande aléatoire (value équivalente + op %)');
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const pool = Array.from({ length: 400 }, (_, n) => ({ id: 1000 + n, value: 500 + n * 137 }));
+  let near = 0;
+  for (let k = 0; k < 50; k++) {
+    const d = ta.tirageDemande(pool, 20000, 10, 4, rnd);
+    const tot = d.reduce((x, i) => x + i.value, 0);
+    if (d.length >= 1 && d.length <= 4 && new Set(d.map(i => i.id)).size === d.length && Math.abs(tot - 22000) / 22000 <= 0.08) near++;
+  }
+  check('tirage : 1 à 4 items distincts, total à ±8 % de offre + 10 %', near === 50);
+  check('tirage : respecte les cases libres', ta.tirageDemande(pool, 20000, 0, 1, rnd).length === 1);
+  check('tirage : rien sans offre ni pool', !ta.tirageDemande(pool, 0).length && !ta.tirageDemande([], 1000).length);
+  check('op hors liste ramené à 10', ta.sanitize({ op: 13 }).op === 10 && ta.sanitize({ op: 20 }).op === 20);
+  check('choisir un item à la main éteint la demande aléatoire', ta.sanitize({ items: [5] }, { ...ta.DEFAULTS, reqAlea: true }).reqAlea === false);
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], reqAlea: true, op: 10, tags: ['any'], sites: { rolimons: true, routility: false } });
+  routes[ROLI] = [201, {}];
+  await ta.runTradeAds({ me: 42, inventaire: [{ id: 1, value: 10000 }], demandables: pool, rnd, now: 1e12 });
+  const sentReq = calls.find(c => c.url === ROLI)?.body?.request_item_ids || [];
+  const totReq = sentReq.reduce((x, id) => x + pool.find(i => i.id === id).value, 0);
+  check('worker : la demande tirée part avec l\'annonce', sentReq.length >= 1 && sentReq.length <= 3 && Math.abs(totReq - 11000) / 11000 <= 0.08);
+
+  console.log('\nRoUtility après sa mise à jour');
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['any'], sites: { rolimons: false, routility: true } });
+  routes[RU] = [201, {}];
+  await ta.runTradeAds({ me: 42, now: 1e12 });
+  check('show_as envoyé', calls.find(c => c.url === RU && c.method === 'POST')?.body?.show_as === 'roblox');
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['any'], sites: { rolimons: false, routility: true } });
+  routes[RU] = [400, { error: 'Wait 12m 3s before posting again' }];
+  const w = await ta.runTradeAds({ me: 42, now: 1e12 });
+  check('« Wait 12m 3s » lu comme le délai du site', w.results.routility === 'cooldown');
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 15, offer: [1], tags: ['any'], sites: { rolimons: false, routility: true } });
+  routes['https://routility.io/api/ads/mine'] = [200, { ads: [], posted_24h: 10, daily_limit: 10 }];
+  const dl = await ta.runTradeAds({ me: 42, now: 1e12 });
+  check('limite du jour du site respectée sans envoyer', dl.results.routility === 'daily' && !calls.some(c => c.url === RU && c.method === 'POST'));
 
   console.log('\nImport / export');
   const { parseConfigFile } = await import('../src/popup/tradeads.js');

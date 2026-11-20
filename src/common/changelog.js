@@ -16,6 +16,19 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.30',
+    title: item('Trade ads : demande aléatoire, RoUtility réparé', 'Trade ads: random request, RoUtility fixed'),
+    items: [
+      item("Demande aléatoire : des items tirés au hasard qui valent ce que tu offres, plus l'overpay choisi (0 à 50 %), nouveaux à chaque envoi.",
+        "Random request: random items worth what you offer, plus the overpay you pick (0 to 50%), new ones on every post."),
+      item("RoUtility publie de nouveau après la mise à jour du site, et sa limite du jour est respectée.",
+        "RoUtility posts again after the site's update, and its daily limit is respected."),
+      item("Après une mise à jour de RoNote : l'auto-post repart tout seul, les onglets Roblox en arrière-plan se rechargent, l'onglet ouvert propose « Recharger ».",
+        "After a RoNote update: auto-post restarts on its own, background Roblox tabs reload, the open tab offers “Reload”."),
+      item("Liste « Mes items » plus rapide sur les gros inventaires.", "Faster “My items” list on big inventories.")
+    ]
+  },
+  {
     version: '2.17.29',
     title: item('Popup plus vivant', 'Livelier popup'),
     items: [

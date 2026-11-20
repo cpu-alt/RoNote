@@ -22,7 +22,7 @@ import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, 
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
-import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab } from './tradeads.js';
+import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, getConfig as getTradeAdsConfig } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -51,6 +51,7 @@ let softTimer = null;     // cadence < 30 s (best effort tant que le worker vit)
 /* ===================== en-tetes des requetes ========================== */
 
 const HEADER_RULE_ID = 1;
+const ROUTILITY_RULE_ID = 2;
 let headerRulesActive = null;   // null = pas encore tente
 
 /**
@@ -68,8 +69,21 @@ async function installHeaderRules() {
   if (!dnr?.updateSessionRules) { headerRulesActive = false; return false; }
   try {
     await dnr.updateSessionRules({
-      removeRuleIds: [HEADER_RULE_ID],
+      removeRuleIds: [HEADER_RULE_ID, ROUTILITY_RULE_ID],
       addRules: [{
+        // RoUtility (mise à jour du 20 nov.) : ses écritures refusent une `Origin` qui n'est pas la sienne.
+        // Seulement nos requêtes hors onglet : la page du site, elle, n'est jamais touchée.
+        id: ROUTILITY_RULE_ID,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          requestHeaders: [
+            { header: 'origin', operation: 'set', value: 'https://routility.io' },
+            { header: 'referer', operation: 'set', value: 'https://routility.io/trade-ads/create' }
+          ]
+        },
+        condition: { requestDomains: ['routility.io'], tabIds: [-1], resourceTypes: ['xmlhttprequest'] }
+      }, {
         id: HEADER_RULE_ID,
         priority: 1,
         action: {
@@ -104,6 +118,9 @@ B.runtime.onInstalled.addListener(async (details) => {
   setLang(settings.lang);
   await configureAlarm(settings);
   await applySidePanel(settings);
+  // Les alarmes ne survivent pas toujours à une mise à jour de l'extension : sans ça, l'auto-post s'arrêtait en silence.
+  await safe(() => scheduleTradeAds());
+  if (details.reason === 'update') await safe(refreshRobloxTabs);
   if (details.reason === 'install') {
     await notifySystem(t('RoNote est installé'),
       t('Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule. Les trades déjà présents ne déclencheront aucune alerte.'));
@@ -123,6 +140,40 @@ B.runtime.onStartup?.addListener(async () => {
   await safe(() => scheduleTradeAds());
   tick('startup');
 });
+
+/**
+ * Après une mise à jour, les onglets roblox.com gardent l'ancien script, coupé de l'extension : plus de
+ * values ni de boutons jusqu'au F5. Les onglets en arrière-plan sont rechargés tout de suite ; l'onglet
+ * qu'on regarde (un trade peut être en cours) reçoit seulement un bandeau « Recharger ».
+ */
+async function refreshRobloxTabs() {
+  const tabs = await B.tabs.query({ url: 'https://www.roblox.com/*' });
+  const msg = t('RoNote vient de se mettre à jour.'), btn = t('Recharger la page');
+  for (const tab of tabs) {
+    if (!tab.active && !tab.audible) { await safe(() => B.tabs.reload(tab.id)); continue; }
+    await safe(() => B.scripting.executeScript({
+      target: { tabId: tab.id },
+      args: [msg, btn],
+      func: (msg, btn) => {
+        if (document.getElementById('ronote-updated')) return;
+        const d = document.createElement('div');
+        d.id = 'ronote-updated';
+        d.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:12px;background:#15171c;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35)';
+        d.textContent = msg;
+        const b = document.createElement('button');
+        b.textContent = btn;
+        b.style.cssText = 'border:0;border-radius:8px;padding:6px 10px;background:#3b82f6;color:#fff;font:inherit;cursor:pointer';
+        b.onclick = () => location.reload();
+        const x = document.createElement('button');
+        x.textContent = '×';
+        x.style.cssText = 'border:0;background:none;color:#aaa;font:inherit;font-size:16px;cursor:pointer';
+        x.onclick = () => d.remove();
+        d.append(b, x);
+        document.documentElement.appendChild(d);
+      }
+    }));
+  }
+}
 
 /* ============================ barre laterale =========================== */
 
@@ -153,12 +204,29 @@ B.alarms.onAlarm.addListener(a => {
 // La fenêtre « Se connecter avec Roblox » des trade ads (tradeads.js) : refermée quand le site a repris la main.
 B.tabs?.onUpdated?.addListener((tabId, info) => { onTradeAdsTab(tabId, info).catch(() => {}); });
 
-/** Un tour d'auto-post (tradeads.js) : le compte suivi, et seulement les items encore dans l'inventaire. */
-async function postTradeAds(force = false) {
+/** Ce que les tirages des trade ads lisent : l'inventaire du portefeuille et, pour la demande aléatoire, le catalogue en cache. */
+async function tradeAdsInputs() {
   const [state, report] = await Promise.all([getState(), getPortfolioReport()]);
   const inventaire = (report?.items || []).map(i => ({ id: i.kind === 'bundle' ? i.faceAssetId : i.id, value: i.value, name: i.name, projected: i.projected })).filter(i => i.id > 0);
   const offerable = inventaire.length ? new Set(inventaire.map(i => i.id)) : null;
-  return runTradeAds({ me: Number(state.userId) || 0, offerable, inventaire, force });
+  // Aucune requête en plus : la table Rolimon's déjà en cache, sans projected, œuf, ni item sans vraie value.
+  let demandables = null;
+  if ((await getTradeAdsConfig()).reqAlea) {
+    const cat = await safe(async () => getCatalog(await getSettings()), null);
+    if (cat?.ready) {
+      demandables = [];
+      for (const [id, entry] of Object.entries(cat.assets || {})) {
+        const e = readEntry(entry);
+        if (e && !e.noValue && !e.projected && !/\begg/i.test(e.name || '')) demandables.push({ id: Number(id), value: e.value });
+      }
+    }
+  }
+  return { me: Number(state.userId) || 0, inventaire, offerable, demandables };
+}
+
+/** Un tour d'auto-post (tradeads.js) : le compte suivi, et seulement les items encore dans l'inventaire. */
+async function postTradeAds(force = false) {
+  return runTradeAds({ ...(await tradeAdsInputs()), force });
 }
 
 async function configureAlarm(settings) {
@@ -1312,6 +1380,8 @@ async function handleMessage(msg, sender = null) {
       return tradeAdsLogin(msg.site);
     case 'ronote:tradeads-post':
       return postTradeAds(true);
+    case 'ronote:tradeads-draw':
+      return drawTradeAds(await tradeAdsInputs());
     // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.
     case 'ronote:proof-prepare':
       return proofPrepare(msg.info || {});

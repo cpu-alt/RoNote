@@ -69,17 +69,25 @@ export const SITES = {
         body: JSON.stringify({
           offering: ad.offer.map(id => ({ asset_id: String(id) })),
           looking_for: [...ad.items.map(id => ({ asset_id: String(id) })), ...ad.tags.map(tag => ({ type: 'tag', tag }))],
-          note: ad.note || ''
+          note: ad.note || '',
+          show_as: 'roblox'                 // champ ajouté par la mise à jour du site (20 nov.) : le profil Roblox, pas Discord
         })
       });
-      // 429 : 15 min entre deux annonces OU déjà 5 annonces en ligne (elles durent 14 jours).
-      return outcome(res.status, { 401: 'login', 403: 'login', 429: 'limit' });
+      if (res.status >= 200 && res.status < 300) return 'ok';
+      // Le site dit maintenant pourquoi : « Wait 12m 3s » (délai), « Not logged in », limite du jour…
+      const err = String((await res.json().catch(() => null))?.error || '');
+      if (/wait \d+m/i.test(err)) return 'cooldown';
+      if (res.status === 401 || /log ?in|sign ?in/i.test(err)) return 'login';
+      return outcome(res.status, { 403: 'login', 429: 'limit' });
     },
     // Mode malin : 5 annonces en ligne au plus, alors la plus ancienne part pour laisser la place à la nouvelle
     // (format de /ads/mine relevé dans l'extension RoUtility : { ads: [{ id, created_at }] }).
     async refresh() {
       const res = await fetch('https://routility.io/api/ads/mine', { credentials: 'include', cache: 'no-store' });
-      const ads = res.status === 200 ? (await res.json().catch(() => null))?.ads : null;
+      const d = res.status === 200 ? await res.json().catch(() => null) : null;
+      const ads = d?.ads;
+      // Depuis la mise à jour : `posted_24h` / `daily_limit` → inutile d'envoyer quand le jour est plein.
+      if (typeof d?.posted_24h === 'number' && d.daily_limit && d.posted_24h >= d.daily_limit) return 'daily';
       if (!Array.isArray(ads) || ads.length < 5) return;
       const old = [...ads].sort((a, b) => Number(a.created_at) - Number(b.created_at))[0];
       if (/^[\w-]{1,40}$/.test(String(old?.id))) await fetch('https://routility.io/api/ads/' + old.id, { method: 'DELETE', credentials: 'include' });
@@ -97,10 +105,66 @@ export function tirageAlea(inv, exclude = [], rnd = Math.random) {
   return a.slice(0, MAX_SIDE);
 }
 
+/**
+ * Demande aléatoire (20 nov., MYd) : des items tirés au hasard dont la value totale vaut celle de ce qu'on
+ * offre, plus `op` % (l'overpay voulu). `pool` : [{ id, value, … }] du catalogue Rolimon's (jamais un
+ * projected, un œuf, un item sans value ni un item qu'on offre). Tolérance ±8 % ; à défaut, le plus proche.
+ */
+export const OP_VALUES = [0, 5, 10, 15, 20, 30, 50];
+export function tirageDemande(pool, offerValue, op = 10, slots = MAX_SIDE, rnd = Math.random) {
+  const target = offerValue * (1 + op / 100);
+  if (!(target > 0) || slots < 1) return [];
+  const a = pool.filter(i => i.value > 0 && i.value <= target * 1.08);
+  if (!a.length) return [];
+  let best = null, bestGap = Infinity;
+  for (let essai = 0; essai < 300; essai++) {
+    const n = 1 + Math.floor(rnd() * Math.min(slots, a.length));
+    const pris = [], vus = new Set();
+    let reste = target;
+    for (let k = 0; k < n - 1; k++) {        // les n-1 premiers au hasard, sans dépasser ce qu'il reste
+      const ok = a.filter(i => !vus.has(i.id) && i.value < reste * 0.9);
+      if (!ok.length) break;
+      const i = ok[Math.floor(rnd() * ok.length)];
+      pris.push(i); vus.add(i.id); reste -= i.value;
+    }
+    let fin = null, gapFin = Infinity;        // le dernier : celui qui tombe le plus près du reste
+    for (const i of a) if (!vus.has(i.id) && Math.abs(reste - i.value) < gapFin) { gapFin = Math.abs(reste - i.value); fin = i; }
+    if (fin) pris.push(fin);
+    const gap = Math.abs(pris.reduce((x, i) => x + i.value, 0) - target) / target;
+    if (gap < bestGap) { best = pris; bestGap = gap; }
+    if (gap <= 0.08 && rnd() < 0.5) break;    // assez près : on garde un peu de hasard entre les tirages
+  }
+  return best || [];
+}
+
+/** Les deux tirages (offre `alea`, demande `reqAlea`) appliqués à `cfg`, sur place. */
+export function applyDraws(cfg, { inventaire = null, demandables = null, rnd = Math.random } = {}) {
+  if (cfg.alea && inventaire?.length) {
+    const tire = tirageAlea(inventaire, cfg.exclude, rnd).map(i => i.id);
+    if (tire.length) cfg.offer = tire;           // gardé : le popup montre ce qui vient de partir
+  }
+  if (cfg.reqAlea && demandables?.length && cfg.offer.length) {
+    const val = new Map((inventaire || []).map(i => [i.id, i.value || 0]));
+    const offerValue = cfg.offer.reduce((x, id) => x + (val.get(id) || 0), 0);
+    const pool = demandables.filter(i => !cfg.offer.includes(i.id));
+    const tire = tirageDemande(pool, offerValue, cfg.op, MAX_SIDE - cfg.tags.length, rnd).map(i => i.id);
+    if (tire.length) cfg.items = tire;           // gardé aussi : le popup montre la dernière demande
+  }
+  return cfg;
+}
+
+/** Bouton « Tirer » du popup : les tirages tout de suite, enregistrés, sans rien publier. */
+export async function drawTradeAds(inputs) {
+  const cfg = applyDraws(await getConfig(), inputs);
+  await saveConfig(cfg);
+  return { cfg };
+}
+
 export const DEFAULTS = {
   on: false, interval: 0,             // 0 = malin : la fenêtre de chaque site remplie au mieux
   offer: [], items: [], tags: [],
   alea: false,                        // modèle Aléatoire : 4 items retirés au hasard à chaque envoi
+  reqAlea: false, op: 10,             // demande aléatoire : items de value équivalente + op %, retirés à chaque envoi
   noEggs: true, minValue: 0,          // filtres du choix des items (popup) : sans les œufs, sans les petits items
   noProjected: true, exclude: [],     // projected cachés ; items que l'utilisateur ne veut jamais offrir
   note: '',                           // texte de l'annonce (RoUtility ; Rolimon's n'en a pas)
@@ -111,7 +175,7 @@ export const DEFAULTS = {
 
 const NOTE_MAX = 200, SAVED_MAX = 12, EXCLUDE_MAX = 1000;
 /** Ce qu'une configuration exportée ou enregistrée contient (jamais l'interrupteur ni le journal). */
-export const AD_KEYS = ['offer', 'alea', 'items', 'tags', 'interval', 'noEggs', 'minValue', 'noProjected', 'exclude', 'note', 'sites'];
+export const AD_KEYS = ['offer', 'alea', 'reqAlea', 'op', 'items', 'tags', 'interval', 'noEggs', 'minValue', 'noProjected', 'exclude', 'note', 'sites'];
 export const pickAd = (cfg) => Object.fromEntries(AD_KEYS.map(k => [k, cfg[k]]));
 const ids = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter(n => Number.isInteger(n) && n > 0))];
 
@@ -122,13 +186,15 @@ export function sanitize(patch, cur = DEFAULTS) {
   if ('noEggs' in patch) out.noEggs = !!patch.noEggs;
   if ('minValue' in patch) out.minValue = MIN_VALUES.includes(Number(patch.minValue)) ? Number(patch.minValue) : 0;
   if ('interval' in patch) out.interval = Number(patch.interval) === 0 ? 0 : Math.min(240, Math.max(15, Math.round(Number(patch.interval) || 15)));
+  if ('reqAlea' in patch) out.reqAlea = !!patch.reqAlea;
+  if ('op' in patch) out.op = OP_VALUES.includes(Number(patch.op)) ? Number(patch.op) : 10;
   if ('noProjected' in patch) out.noProjected = !!patch.noProjected;
   if ('note' in patch) out.note = String(patch.note || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, NOTE_MAX);
   if ('exclude' in patch) out.exclude = ids(patch.exclude).slice(0, EXCLUDE_MAX);
   if ('offer' in patch) { out.offer = ids(patch.offer).slice(0, MAX_SIDE); out.alea = !!patch.alea; }   // toucher aux items à la main éteint l'aléatoire
   out.offer = out.offer.filter(id => !out.exclude.includes(id));   // un item exclu n'est jamais offert
   if ('tags' in patch) out.tags = [...new Set((patch.tags || []).filter(x => TAGS.includes(x)))].slice(0, MAX_SIDE);
-  if ('items' in patch) out.items = ids(patch.items);
+  if ('items' in patch) { out.items = ids(patch.items); if (!('reqAlea' in patch)) out.reqAlea = false; }   // choisir à la main éteint la demande aléatoire
   out.items = out.items.slice(0, MAX_SIDE - out.tags.length);
   if (patch.sites && typeof patch.sites === 'object') {
     out.sites = { ...cur.sites };
@@ -241,16 +307,13 @@ export async function scheduleTradeAds(cfg) {
  * `offerable` : les ids encore dans l'inventaire (un item vendu n'est pas offert).
  * `inventaire` : ces items avec leur value, leur nom et `projected` : le tirage du modèle Aléatoire.
  */
-export async function runTradeAds({ me, offerable = null, inventaire = null, force = false, now = Date.now(), rnd = Math.random } = {}) {
+export async function runTradeAds({ me, offerable = null, inventaire = null, demandables = null, force = false, now = Date.now(), rnd = Math.random } = {}) {
   const cfg = await getConfig();
   if (!cfg.on && !force) return { skipped: 'off' };
   if (!me) return { skipped: 'me' };
   const locked = await tradeAdsLocked(me);
   if (locked) return { skipped: 'premium', locked };
-  if (cfg.alea && inventaire?.length) {
-    const tire = tirageAlea(inventaire, cfg.exclude, rnd).map(i => i.id);
-    if (tire.length) cfg.offer = tire;           // gardé : le popup montre ce qui vient de partir
-  }
+  applyDraws(cfg, { inventaire, demandables, rnd });
   const offer = offerable ? cfg.offer.filter(id => offerable.has(id)) : cfg.offer;
   if (!offer.length || !(cfg.items.length + cfg.tags.length)) return { skipped: 'empty' };
   const ad = { offer, items: cfg.items, tags: cfg.tags, note: cfg.note };
@@ -262,7 +325,7 @@ export async function runTradeAds({ me, offerable = null, inventaire = null, for
     const day = (cfg.sent[k] || []).filter(at => now - at < 24 * 60 * MIN);
     if (site.daily && day.length >= site.daily) { results[k] = 'daily'; continue; }
     if (!(await permitted(site))) { results[k] = 'perm'; continue; }
-    if (!cfg.interval && site.refresh) await site.refresh().catch(() => {});
+    if (site.refresh && (await site.refresh().catch(() => null)) === 'daily') { results[k] = 'daily'; continue; }
     const r = await site.post(ad, me).catch(() => 'network');
     results[k] = r;
     cfg.last[k] = now;          // même en échec : pas de relance en boucle avant le prochain tour
