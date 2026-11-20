@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Relais sans limite** (2.17.32) : durée « Sans limite » par défaut (`hours: 0`) ; le serveur s'arrête à la reprise,
+  au refus d'une session par le site ou à la fin de l'accès. 8, 12 et 24 h restent proposés. PRIVACY mis à jour.
 - **Trade ads pendant que tu dors** (2.17.31) : carte « Pendant que tu dors » (4, 8, 12 ou 24 h). Permission
   `cookies` **facultative**, demandée au clic : seulement les cookies que le navigateur enverrait aux API d'annonces
   de Rolimon's et RoUtility, jamais Roblox. Ils partent avec l'annonce, les réglages et les items tirables vers

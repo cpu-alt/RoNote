@@ -347,7 +347,7 @@ export async function runTradeAds({ me, offerable = null, inventaire = null, dem
  * les derniers tirages, et le serveur efface tout. Les sessions sont les cookies que le navigateur enverrait
  * lui-même à l'API du site (permission « cookies » facultative, demandée au clic) ; jamais un cookie Roblox.
  * ======================================================================== */
-export const RELAY_HOURS = [4, 8, 12, 24];
+export const RELAY_HOURS = [0, 8, 12, 24];   // 0 = jusqu'à la reprise (ou jusqu'à ce que le site refuse la session)
 const SESSION_URL = { rolimons: 'https://api.rolimons.com/tradeads/v1/createad', routility: 'https://routility.io/api/ads/' };
 
 async function relayCall(path, body) {
@@ -393,9 +393,9 @@ export async function relayPush(hours, inputs) {
   const offer = inputs.offerable ? cfg.offer.filter(id => inputs.offerable.has(id)) : cfg.offer;
   const ad = { ...pickAd(cfg), offer, inventaire: (inputs.inventaire || []).slice(0, 2000),
     pool: cfg.reqAlea ? (inputs.demandables || []).slice(0, 8000) : [] };
-  const r = await relayCall('tradeads/relay', { ad, sessions, hours: RELAY_HOURS.includes(Number(hours)) ? Number(hours) : 12, last: cfg.last, sent: cfg.sent });
+  const r = await relayCall('tradeads/relay', { ad, sessions, hours: RELAY_HOURS.includes(Number(hours)) ? Number(hours) : 0, last: cfg.last, sent: cfg.sent });
   if (!r.data?.active) return { error: r.data?.error || 'network' };
-  cfg.relay = { since: r.data.since * 1000, until: r.data.until * 1000, sites: r.data.sites };
+  cfg.relay = { since: r.data.since * 1000, until: r.data.until ? r.data.until * 1000 : null, sites: r.data.sites };
   cfg.on = true;
   await saveConfig(cfg);
   return { cfg };
@@ -422,7 +422,7 @@ export async function relaySync() {
   if (r.status !== 200) return cfg;
   merge(cfg, r.data);
   if (!r.data.active) cfg.relay = null;
-  else cfg.relay = { ...cfg.relay, until: r.data.until * 1000, sites: r.data.sites };
+  else cfg.relay = { ...cfg.relay, until: r.data.until ? r.data.until * 1000 : null, sites: r.data.sites };
   await saveConfig(cfg);
   return cfg;
 }

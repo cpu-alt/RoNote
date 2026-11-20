@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.32',
+    title: item('Relais sans limite', 'Relay with no limit'),
+    items: [
+      item("« Continuer sur le serveur » tourne par défaut sans limite : jusqu'à ce que tu reprennes ici ou que le site te déconnecte.",
+        "“Continue on server” now runs with no limit by default: until you resume here or the site signs you out.")
+    ]
+  },
+  {
     version: '2.17.31',
     title: item('Trade ads pendant que tu dors', 'Trade ads while you sleep'),
     items: [

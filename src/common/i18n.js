@@ -1358,6 +1358,8 @@ const EN = {
   "Vérification impossible ici": "Can't check from here",
   "Ton annonce publiée toute seule sur Rolimon's et RoUtility.": "Your ad posted automatically on Rolimon's and RoUtility.",
   "Share proof": "Share proof",
+  "Le serveur Neuronal publie ton annonce jusqu’à ce que tu reprennes ici ou que le site te déconnecte. Tu peux éteindre ton PC.": "The Neuronal server posts your ad until you resume here or the site signs you out. You can turn off your PC.",
+  "Sans limite": "No limit",
   "Autorisation refusée : RoNote ne peut pas lire tes sessions.": "Permission denied: RoNote can't read your sessions.",
   "Connecte-toi d’abord aux sites cochés (bouton « Se connecter avec Roblox »).": "Sign in to the ticked sites first (“Sign in with Roblox” button).",
   "Réservé aux abonnés, comme l’auto-post.": "Subscribers only, like auto-post.",

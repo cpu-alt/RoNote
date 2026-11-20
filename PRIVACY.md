@@ -130,7 +130,7 @@ would itself send to `api.rolimons.com` and `routility.io` (your sessions on tho
 **never a Roblox cookie**) and sends them to `neuronal.live`, with your ad, its settings and the
 items that can be drawn (your tradable items' IDs, names and values; the public value table).
 Neuronal stores the sessions **encrypted**, uses them only to post your ad on those sites for
-the time you chose (24 hours at most), never shows them back, and **erases them** when you
+the time you chose, or with no limit until you resume, never shows them back, and **erases them** when you
 click *Resume here*, when the time runs out, when a site refuses them, or when your access ends.
 
 **Without these options, no request goes to any other domain.**

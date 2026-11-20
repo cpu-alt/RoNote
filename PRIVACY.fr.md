@@ -134,7 +134,7 @@ que ton navigateur enverrait lui-même à `api.rolimons.com` et `routility.io` (
 deux sites, **jamais un cookie Roblox**) et les envoie à `neuronal.live`, avec ton annonce, ses
 réglages et les items qui peuvent être tirés (identifiants, noms et values de tes items échangeables ;
 la table publique des values). Neuronal garde les sessions **chiffrées**, ne s'en sert que pour
-publier ton annonce sur ces sites pendant la durée choisie (24 heures au plus), ne les renvoie
+publier ton annonce sur ces sites pendant la durée choisie, ou sans limite jusqu'à ce que tu reprennes,, ne les renvoie
 jamais, et **les efface** quand tu cliques *Reprendre ici*, à l'échéance, au premier refus d'un site
 ou quand ton accès se termine.
 

@@ -311,7 +311,7 @@ const exportText = (cfg) => JSON.stringify({ ronote: 'tradeads', v: 1, ad: pickA
 
 const toggle = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
 let searchTimer = 0, invTimer = 0;
-let relayHours = 12;
+let relayHours = 0;   // par défaut : jusqu'à la reprise
 const RELAY_ERR = {
   permission: "Autorisation refusée : RoNote ne peut pas lire tes sessions.",
   no_session: 'Connecte-toi d’abord aux sites cochés (bouton « Se connecter avec Roblox »).',
@@ -323,14 +323,16 @@ const RELAY_ERR = {
 function relayHtml(cfg, ready) {
   if (cfg.relay) {
     return `<section class="pf-card ta-card ta-relay on"><h3>${ic('moon')}${t('Sur le serveur')}</h3>
-      <p class="ta-why">${t("Le serveur Neuronal publie ton annonce jusqu'à {h}. Tu peux éteindre ton PC.", { h: new Date(cfg.relay.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}</p>
+      <p class="ta-why">${cfg.relay.until
+        ? t("Le serveur Neuronal publie ton annonce jusqu'à {h}. Tu peux éteindre ton PC.", { h: new Date(cfg.relay.until).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }) })
+        : t('Le serveur Neuronal publie ton annonce jusqu’à ce que tu reprennes ici ou que le site te déconnecte. Tu peux éteindre ton PC.')}</p>
       <button class="ta-btn wide primary" data-ta-resume>${ic('download')}${t('Reprendre ici')}</button>
       <small class="ta-why">${flash ? escapeHtml(flash) : t('Le journal et les derniers tirages reviennent ici ; le serveur efface tes sessions.')}</small></section>`;
   }
   return `<section class="pf-card ta-card ta-relay"><h3>${ic('moon')}${t('Pendant que tu dors')}</h3>
     <p class="ta-why">${t('Continue l’auto-post sur le serveur Neuronal quand ton PC est éteint, avec les mêmes règles.')}</p>
     <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Durée'))}">${RELAY_HOURS.map(h =>
-      `<button role="radio" aria-checked="${h === relayHours}" data-ta-hours="${h}">${h} h</button>`).join('')}</div>
+      `<button role="radio" aria-checked="${h === relayHours}" data-ta-hours="${h}">${h ? h + ' h' : t('Sans limite')}</button>`).join('')}</div>
     <button class="ta-btn wide" data-ta-relay${ready ? '' : ' disabled'}>${ic('upload')}${t('Continuer sur le serveur')}</button>
     <small class="ta-why">${flash ? escapeHtml(flash) : t('Tes sessions Rolimon’s et RoUtility (pas Roblox) partent chiffrées, et sont effacées à la reprise, à l’échéance ou au premier refus du site.')}</small></section>`;
 }
