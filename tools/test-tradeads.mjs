@@ -14,7 +14,9 @@ globalThis.chrome = {
       async remove(k) { store.delete(k); }
     }
   },
-  permissions: { contains: async ({ origins }) => origins.every(o => granted.has(o)) },
+  permissions: { contains: async ({ origins = [], permissions = [] }) => origins.every(o => granted.has(o)) && permissions.every(o => granted.has(o)) },
+  cookies: { async getAll({ url }) { return url.includes('rolimons') ? [{ name: '_RoliVerification', value: 'v', domain: '.rolimons.com' }] : []; } },
+  runtime: { getManifest: () => ({ version: '9.9.9' }) },
   alarms: { async clear(n) { alarms.delete(n); }, async create(n, o) { alarms.set(n, o); } },
   windows: { async create(o) { windows.push(o); return { id: 7, tabs: [{ id: 70 }] }; }, async remove(id) { closed.push(id); } },
   tabs: { async create() {} }
@@ -25,6 +27,7 @@ let calls = [];
 let routes = {};
 globalThis.fetch = async (url, init = {}) => {
   calls.push({ url: String(url), method: init.method || 'GET', credentials: init.credentials, body: JSON.parse(init.body || 'null') });
+  calls[calls.length - 1].headers = init.headers || {};
   const r = routes[String(url)] || [404, {}];
   return new Response(JSON.stringify(r[1]), { status: r[0] });
 };
@@ -297,6 +300,30 @@ console.log('\nModèles d\'annonce');
   routes['https://routility.io/api/ads/mine'] = [200, { ads: [], posted_24h: 10, daily_limit: 10 }];
   const dl = await ta.runTradeAds({ me: 42, now: 1e12 });
   check('limite du jour du site respectée sans envoyer', dl.results.routility === 'daily' && !calls.some(c => c.url === RU && c.method === 'POST'));
+
+  console.log('\nRelais : continuer sur le serveur');
+  const RELAY = 'https://neuronal.live/ext/v1/tradeads/relay';
+  reset();
+  await ta.saveTradeAds({ on: true, interval: 0, offer: [1, 2], tags: ['any'], sites: { rolimons: true, routility: true } });
+  const sansPerm = await ta.relayPush(12, { me: 42, inventaire: [{ id: 1, value: 5000 }] });
+  check('sans la permission cookies : rien ne part', sansPerm.error === 'permission' && !calls.some(c => c.url === RELAY));
+  granted.add('cookies');
+  routes[RELAY] = [200, { active: true, since: 1e9, until: 1e9 + 43200, sites: ['rolimons'] }];
+  const push = await ta.relayPush(12, { me: 42, inventaire: [{ id: 1, value: 5000 }], offerable: new Set([1]) });
+  const envoi = calls.find(c => c.url === RELAY);
+  check('l\'annonce part avec la session du site connecté seulement', push.cfg?.relay && JSON.stringify(Object.keys(envoi.body.sessions)) === '["rolimons"]'
+    && envoi.body.sessions.rolimons[0].name === '_RoliVerification' && envoi.body.hours === 12 && JSON.stringify(envoi.body.ad.offer) === '[1]');
+  check('jeton premium envoyé, jamais les cookies du navigateur', /^Bearer /.test(envoi.headers.Authorization || '') && envoi.credentials === 'omit');
+  check('aucun cookie Roblox demandé', !JSON.stringify(envoi.body).includes('ROBLOSECURITY'));
+  calls = [];
+  const pause = await ta.runTradeAds({ me: 42, now: 1e12, force: true });
+  check('pendant le relais, le navigateur ne publie pas', pause.skipped === 'relay' && !calls.some(c => c.url === ROLI));
+  routes[RELAY + '/stop'] = [200, { active: false, offer: [1], items: [], last: { rolimons: 1e12 }, sent: { rolimons: [1e12] },
+    log: [{ at: 1e12, site: 'rolimons', result: 'ok', offer: 1, server: true }] }];
+  const repris = await ta.relayPull();
+  check('reprendre : journal et horloges du serveur récupérés, relais coupé', repris.cfg.relay === null && repris.cfg.log[0].server && repris.cfg.last.rolimons === 1e12
+    && repris.cfg.sent.rolimons.includes(1e12));
+  granted.delete('cookies');
 
   console.log('\nImport / export');
   const { parseConfigFile } = await import('../src/popup/tradeads.js');

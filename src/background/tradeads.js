@@ -16,7 +16,8 @@
  */
 import { B, safe } from '../common/shim.js';
 import { getState } from '../common/state.js';
-import { premiumGet, premiumHeaders } from './premium.js';
+import { premiumGet, premiumHeaders, premiumRetry } from './premium.js';
+import { NEURONAL } from '../common/defaults.js';
 
 export const ALARM = 'ronote:tradeads';
 const KEY = 'tradeads';
@@ -170,7 +171,8 @@ export const DEFAULTS = {
   note: '',                           // texte de l'annonce (RoUtility ; Rolimon's n'en a pas)
   saved: [],                          // configurations enregistrées : [{ name, ad }]
   sites: { rolimons: true, routility: false },
-  last: {}, sent: {}, status: {}, log: []
+  last: {}, sent: {}, status: {}, log: [],
+  relay: null                         // { since, until, sites } : l'auto-post tourne sur le serveur Neuronal (relais)
 };
 
 const NOTE_MAX = 200, SAVED_MAX = 12, EXCLUDE_MAX = 1000;
@@ -235,7 +237,7 @@ export async function tradeAdsLocked(me) {
 
 /** L'état de chaque site pour le popup : connecté, à connecter, permission manquante ou bloqué. */
 export async function tradeAdsStatus() {
-  const cfg = await getConfig();
+  const cfg = await safe(() => relaySync(), null) || await getConfig();
   const locked = await tradeAdsLocked(Number((await safe(() => getState(), {}))?.userId) || 0);
   if (locked) return { cfg, sites: {}, locked, subscribeUrl: (await premiumGet()).me?.subscribe_url || '' };
   const out = {};
@@ -310,6 +312,7 @@ export async function scheduleTradeAds(cfg) {
 export async function runTradeAds({ me, offerable = null, inventaire = null, demandables = null, force = false, now = Date.now(), rnd = Math.random } = {}) {
   const cfg = await getConfig();
   if (!cfg.on && !force) return { skipped: 'off' };
+  if (cfg.relay) return { skipped: 'relay' };          // le serveur publie : le navigateur ne double pas
   if (!me) return { skipped: 'me' };
   const locked = await tradeAdsLocked(me);
   if (locked) return { skipped: 'premium', locked };
@@ -335,4 +338,91 @@ export async function runTradeAds({ me, offerable = null, inventaire = null, dem
   }
   await saveConfig(cfg);
   return { results };
+}
+
+/* ============================== RELAIS ===================================
+ * « Continuer sur le serveur » (MYd, 20 nov.) : l'annonce, les réglages, les items tirables et les sessions
+ * de chaque site coché partent vers Neuronal (neuronal/18qbfb_ronote_relais.py), qui publie avec les mêmes
+ * règles pendant que le PC dort. Le navigateur se met en pause ; « Reprendre ici » récupère le journal et
+ * les derniers tirages, et le serveur efface tout. Les sessions sont les cookies que le navigateur enverrait
+ * lui-même à l'API du site (permission « cookies » facultative, demandée au clic) ; jamais un cookie Roblox.
+ * ======================================================================== */
+export const RELAY_HOURS = [4, 8, 12, 24];
+const SESSION_URL = { rolimons: 'https://api.rolimons.com/tradeads/v1/createad', routility: 'https://routility.io/api/ads/' };
+
+async function relayCall(path, body) {
+  for (let essai = 0; essai < 2; essai++) {
+    const headers = { 'X-RoNote': B.runtime.getManifest?.().version || '1', ...(await premiumHeaders()) };
+    if (body) headers['Content-Type'] = 'application/json';
+    const res = await fetch(NEURONAL.api + path, { method: body ? 'POST' : 'GET', headers, credentials: 'omit',
+      body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000) }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : { error: 'network' };
+    if (res?.status === 401 && essai === 0 && await premiumRetry(data.error)) continue;
+    return { status: res?.status || 0, data };
+  }
+}
+
+/** Les cookies que le navigateur enverrait à l'API du site : rien d'autre. */
+async function sessionOf(site) {
+  const list = await safe(() => B.cookies.getAll({ url: SESSION_URL[site] }), []);
+  return (list || []).map(c => ({ name: c.name, value: c.value }));
+}
+
+/** Le journal du serveur rejoint celui du navigateur ; les horloges des sites gardent le plus récent. */
+function merge(cfg, v) {
+  if (!v) return cfg;
+  for (const k of Object.keys(SITES)) {
+    cfg.last[k] = Math.max(cfg.last[k] || 0, v.last?.[k] || 0);
+    cfg.sent[k] = [...new Set([...(cfg.sent[k] || []), ...(v.sent?.[k] || [])])].sort((a, b) => a - b).slice(-60);
+  }
+  const seen = new Set(cfg.log.map(l => l.at + l.site));
+  cfg.log = [...(v.log || []).filter(l => !seen.has(l.at + l.site)), ...cfg.log].sort((a, b) => b.at - a.at).slice(0, LOG_CAP);
+  if (Array.isArray(v.offer) && v.offer.length) cfg.offer = ids(v.offer).slice(0, MAX_SIDE);
+  if (Array.isArray(v.items) && (cfg.reqAlea || v.items.length)) cfg.items = ids(v.items).slice(0, MAX_SIDE - cfg.tags.length);
+  return cfg;
+}
+
+/** « Continuer sur le serveur » : `inputs` = { me, inventaire, offerable, demandables } du worker. */
+export async function relayPush(hours, inputs) {
+  const cfg = await getConfig();
+  if (await tradeAdsLocked(inputs.me)) return { error: 'premium' };
+  if (!(await safe(() => B.permissions.contains({ permissions: ['cookies'] }), false))) return { error: 'permission' };
+  const sessions = {};
+  for (const k of Object.keys(SITES)) if (cfg.sites[k]) { const c = await sessionOf(k); if (c.length) sessions[k] = c; }
+  if (!Object.keys(sessions).length) return { error: 'no_session' };
+  const offer = inputs.offerable ? cfg.offer.filter(id => inputs.offerable.has(id)) : cfg.offer;
+  const ad = { ...pickAd(cfg), offer, inventaire: (inputs.inventaire || []).slice(0, 2000),
+    pool: cfg.reqAlea ? (inputs.demandables || []).slice(0, 8000) : [] };
+  const r = await relayCall('tradeads/relay', { ad, sessions, hours: RELAY_HOURS.includes(Number(hours)) ? Number(hours) : 12, last: cfg.last, sent: cfg.sent });
+  if (!r.data?.active) return { error: r.data?.error || 'network' };
+  cfg.relay = { since: r.data.since * 1000, until: r.data.until * 1000, sites: r.data.sites };
+  cfg.on = true;
+  await saveConfig(cfg);
+  return { cfg };
+}
+
+/** « Reprendre ici » : le serveur rend le journal et oublie tout ; le navigateur reprend la main. */
+export async function relayPull() {
+  const cfg = await getConfig();
+  const r = await relayCall('tradeads/relay/stop', {});
+  if (r.status !== 200 && r.status !== 0 && r.status < 500) { /* déjà arrêté côté serveur : on reprend quand même */ }
+  if (r.status === 0) return { error: 'network' };
+  merge(cfg, r.data);
+  cfg.relay = null;
+  await saveConfig(cfg);
+  await scheduleTradeAds(cfg);
+  return { cfg };
+}
+
+/** À l'ouverture du popup, pendant le relais : le journal à jour ; s'il s'est arrêté seul (échéance, session), le navigateur reprend. */
+export async function relaySync() {
+  const cfg = await getConfig();
+  if (!cfg.relay) return cfg;
+  const r = await relayCall('tradeads/relay');
+  if (r.status !== 200) return cfg;
+  merge(cfg, r.data);
+  if (!r.data.active) cfg.relay = null;
+  else cfg.relay = { ...cfg.relay, until: r.data.until * 1000, sites: r.data.sites };
+  await saveConfig(cfg);
+  return cfg;
 }

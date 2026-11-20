@@ -22,7 +22,7 @@ import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, 
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
-import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, getConfig as getTradeAdsConfig } from './tradeads.js';
+import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, relayPush, relayPull, getConfig as getTradeAdsConfig } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
   noteCounterFromPartner, noteCounterByMe, takeHint, purgeHints
@@ -205,13 +205,13 @@ B.alarms.onAlarm.addListener(a => {
 B.tabs?.onUpdated?.addListener((tabId, info) => { onTradeAdsTab(tabId, info).catch(() => {}); });
 
 /** Ce que les tirages des trade ads lisent : l'inventaire du portefeuille et, pour la demande aléatoire, le catalogue en cache. */
-async function tradeAdsInputs() {
+async function tradeAdsInputs({ pool = false } = {}) {
   const [state, report] = await Promise.all([getState(), getPortfolioReport()]);
   const inventaire = (report?.items || []).map(i => ({ id: i.kind === 'bundle' ? i.faceAssetId : i.id, value: i.value, name: i.name, projected: i.projected })).filter(i => i.id > 0);
   const offerable = inventaire.length ? new Set(inventaire.map(i => i.id)) : null;
   // Aucune requête en plus : la table Rolimon's déjà en cache, sans projected, œuf, ni item sans vraie value.
   let demandables = null;
-  if ((await getTradeAdsConfig()).reqAlea) {
+  if (pool || (await getTradeAdsConfig()).reqAlea) {
     const cat = await safe(async () => getCatalog(await getSettings()), null);
     if (cat?.ready) {
       demandables = [];
@@ -1380,6 +1380,10 @@ async function handleMessage(msg, sender = null) {
       return tradeAdsLogin(msg.site);
     case 'ronote:tradeads-post':
       return postTradeAds(true);
+    case 'ronote:tradeads-relay':
+      return relayPush(msg.hours, await tradeAdsInputs({ pool: true }));
+    case 'ronote:tradeads-resume':
+      return relayPull();
     case 'ronote:tradeads-draw':
       return drawTradeAds(await tradeAdsInputs());
     // Share proof (proof.js, Elite) : ce que l'onglet sait du trade, puis capture et envoi en MP par RoOp Tracker.

@@ -124,6 +124,15 @@ your browser: RoNote never asks for, stores or types a password, and reads no co
 is sent is the ad itself and your Roblox user ID: to `api.rolimons.com` (Rolimon's), and to
 `routility.io` (RoUtility) only after you allow that optional permission.
 
+**Continue on server (RoNote premium, off by default).** Only if you click *Continue on
+server* and allow the optional `cookies` permission, RoNote reads the cookies your browser
+would itself send to `api.rolimons.com` and `routility.io` (your sessions on those two sites,
+**never a Roblox cookie**) and sends them to `neuronal.live`, with your ad, its settings and the
+items that can be drawn (your tradable items' IDs, names and values; the public value table).
+Neuronal stores the sessions **encrypted**, uses them only to post your ad on those sites for
+the time you chose (24 hours at most), never shows them back, and **erases them** when you
+click *Resume here*, when the time runs out, when a site refuses them, or when your access ends.
+
 **Without these options, no request goes to any other domain.**
 
 ## How your Roblox session is used
@@ -168,6 +177,7 @@ reply to an inbound trade, on your click.
 | `*.roblox.com` | The site whose trades RoNote reads |
 | `*.rolimons.com` | The public value table, public item histories, the public Rolimon's profile of players whose card you open and, with portfolio tracking, yours |
 | `routility.io` (optional) | Only requested if you tick RoUtility in Automatic trade ads: checks that you are signed in there and posts your ad, with the session you opened yourself |
+| `cookies` (optional) | Only requested when you click *Continue on server* in Automatic trade ads: reads your Rolimon's and RoUtility session cookies (the ones the browser sends to their trade-ad APIs) to hand them to the Neuronal server, encrypted. Never a Roblox cookie |
 | `neuronal.live` (optional) | Only requested if you turn on Neuronal lookups or the contribution: what the network knows about a player or an item whose sheet you open; with the contribution, your account's presence and your completed trades |
 
 ## Children and minimum age

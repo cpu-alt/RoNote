@@ -16,7 +16,7 @@ import { fmtNum, timeAgo, escapeHtml } from '../common/utils.js';
 import { send } from '../common/ui.js';
 import { ic } from '../common/icons.js';
 import { lockHtml } from './lock.js';
-import { smartGap, MIN_VALUES, OP_VALUES, pickAd, onlyAd, tirageAlea, isEgg as eggTest } from '../background/tradeads.js';
+import { smartGap, MIN_VALUES, OP_VALUES, RELAY_HOURS, pickAd, onlyAd, tirageAlea, isEgg as eggTest } from '../background/tradeads.js';
 
 const TAGS = ['any', 'demand', 'rares', 'robux', 'upgrade', 'downgrade', 'rap', 'wishlist', 'projecteds', 'adds'];
 const INTERVALS = [0, 15, 30, 60, 120];   // 0 = malin (background/tradeads.js `smartGap`)
@@ -115,6 +115,7 @@ function siteHtml(k, s) {
 /** Quand part la prochaine annonce sur chaque site coché (même règle que le worker). */
 function nextText(cfg, sites) {
   if (!cfg.on) return t('Rien ne part tant que l’interrupteur est éteint.');
+  if (cfg.relay) return t('Le serveur Neuronal publie à ta place.');
   const now = Date.now();
   const due = Object.entries(sites).filter(([k, s]) => s.on && cfg.sites[k]).map(([k, s]) => {
     const gap = cfg.interval ? Math.max(s.cooldown, cfg.interval) : smartGap(s);
@@ -246,6 +247,8 @@ function paint(root) {
       <section class="pf-card ta-card"><h3>${t('Où publier')}</h3>
         ${Object.entries(sites).map(([k, s]) => siteHtml(k, s)).join('')}</section>
 
+      ${relayHtml(cfg, ready)}
+
       <section class="pf-card ta-card"><h3>${t('Rythme')}</h3>
         <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Intervalle'))}">${INTERVALS.map(m =>
           `<button role="radio" aria-checked="${m === cfg.interval}" data-ta-int="${m}">${m ? m + ' min' : t('Malin')}</button>`).join('')}</div>
@@ -308,6 +311,29 @@ const exportText = (cfg) => JSON.stringify({ ronote: 'tradeads', v: 1, ad: pickA
 
 const toggle = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
 let searchTimer = 0, invTimer = 0;
+let relayHours = 12;
+const RELAY_ERR = {
+  permission: "Autorisation refusée : RoNote ne peut pas lire tes sessions.",
+  no_session: 'Connecte-toi d’abord aux sites cochés (bouton « Se connecter avec Roblox »).',
+  premium: 'Réservé aux abonnés, comme l’auto-post.', empty_ad: 'Ton annonce est vide.',
+  network: 'Serveur Neuronal injoignable, réessaie.'
+};
+
+/** La carte « Pendant que tu dors » : envoyer l'auto-post sur le serveur, ou le reprendre ici. */
+function relayHtml(cfg, ready) {
+  if (cfg.relay) {
+    return `<section class="pf-card ta-card ta-relay on"><h3>${ic('moon')}${t('Sur le serveur')}</h3>
+      <p class="ta-why">${t("Le serveur Neuronal publie ton annonce jusqu'à {h}. Tu peux éteindre ton PC.", { h: new Date(cfg.relay.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}</p>
+      <button class="ta-btn wide primary" data-ta-resume>${ic('download')}${t('Reprendre ici')}</button>
+      <small class="ta-why">${flash ? escapeHtml(flash) : t('Le journal et les derniers tirages reviennent ici ; le serveur efface tes sessions.')}</small></section>`;
+  }
+  return `<section class="pf-card ta-card ta-relay"><h3>${ic('moon')}${t('Pendant que tu dors')}</h3>
+    <p class="ta-why">${t('Continue l’auto-post sur le serveur Neuronal quand ton PC est éteint, avec les mêmes règles.')}</p>
+    <div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Durée'))}">${RELAY_HOURS.map(h =>
+      `<button role="radio" aria-checked="${h === relayHours}" data-ta-hours="${h}">${h} h</button>`).join('')}</div>
+    <button class="ta-btn wide" data-ta-relay${ready ? '' : ' disabled'}>${ic('upload')}${t('Continuer sur le serveur')}</button>
+    <small class="ta-why">${flash ? escapeHtml(flash) : t('Tes sessions Rolimon’s et RoUtility (pas Roblox) partent chiffrées, et sont effacées à la reprise, à l’échéance ou au premier refus du site.')}</small></section>`;
+}
 
 /** « Tirer » : le worker refait les tirages (offre et demande aléatoires) sans rien publier. */
 async function drawNow(listEl) {
@@ -322,11 +348,25 @@ export function renderTradeAds(listEl, portfolioReport) {
     listEl.dataset.taBound = '1';
     listEl.addEventListener('click', async (e) => {
       if (listEl.dataset.tab !== 'tradeads' || !res?.cfg) return;
-      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick], [data-ta-excl], [data-ta-showx], [data-ta-load], [data-ta-del], [data-ta-savecfg], [data-ta-export], [data-ta-copy], [data-ta-import], [data-ta-more], [data-ta-draw]');
+      const el = e.target.closest('[data-ta-offer], [data-ta-tag], [data-ta-item], [data-ta-int], [data-ta-login], [data-ta-now], [data-ta-preset], [data-ta-pick], [data-ta-excl], [data-ta-showx], [data-ta-load], [data-ta-del], [data-ta-savecfg], [data-ta-export], [data-ta-copy], [data-ta-import], [data-ta-more], [data-ta-draw], [data-ta-hours], [data-ta-relay], [data-ta-resume]');
       if (!el) return;
       const { cfg } = res;
       const d = el.dataset;
-      if ('taMore' in d) { listCap += LIST_STEP; paint(listEl); }
+      if (d.taHours) { relayHours = Number(d.taHours); paint(listEl); }
+      else if ('taRelay' in d) {
+        // La permission est demandée ici, au clic (Chrome ne la propose que sur un geste de l'utilisateur).
+        if (!(await B.permissions.request({ permissions: ['cookies'] }).catch(() => false))) return say(listEl, t(RELAY_ERR.permission));
+        el.disabled = true;
+        const r = await send({ type: 'ronote:tradeads-relay', hours: relayHours }).catch(() => null);
+        await load(listEl);
+        if (!r?.cfg) say(listEl, t(RELAY_ERR[r?.error] || RELAY_ERR.network));
+        else say(listEl, t('Le serveur a pris le relais.'));
+      } else if ('taResume' in d) {
+        el.disabled = true;
+        const r = await send({ type: 'ronote:tradeads-resume' }).catch(() => null);
+        await load(listEl);
+        say(listEl, r?.cfg ? t('Repris ici : le navigateur publie de nouveau.') : t(RELAY_ERR.network));
+      } else if ('taMore' in d) { listCap += LIST_STEP; paint(listEl); }
       else if ('taDraw' in d) { el.disabled = true; await drawNow(listEl); }
       else if (d.taPick) { pickTab = d.taPick; paint(listEl); }
       else if (d.taExcl) save(listEl, { exclude: toggle(cfg.exclude || [], Number(d.taExcl)) });

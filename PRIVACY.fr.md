@@ -128,6 +128,16 @@ passe, et ne lit aucun cookie. Ce qui part, c'est l'annonce elle-même et ton id
 Roblox : vers `api.rolimons.com` (Rolimon's), et vers `routility.io` (RoUtility) seulement
 après que tu as accordé cette permission facultative.
 
+**Continuer sur le serveur (RoNote premium, désactivé par défaut).** Seulement si tu cliques
+*Continuer sur le serveur* et accordes la permission facultative `cookies`, RoNote lit les cookies
+que ton navigateur enverrait lui-même à `api.rolimons.com` et `routility.io` (tes sessions sur ces
+deux sites, **jamais un cookie Roblox**) et les envoie à `neuronal.live`, avec ton annonce, ses
+réglages et les items qui peuvent être tirés (identifiants, noms et values de tes items échangeables ;
+la table publique des values). Neuronal garde les sessions **chiffrées**, ne s'en sert que pour
+publier ton annonce sur ces sites pendant la durée choisie (24 heures au plus), ne les renvoie
+jamais, et **les efface** quand tu cliques *Reprendre ici*, à l'échéance, au premier refus d'un site
+ou quand ton accès se termine.
+
 **Sans ces options, aucune requête ne part vers un autre domaine.**
 
 ## L'utilisation de ta session Roblox
@@ -173,6 +183,7 @@ trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton cli
 | `*.roblox.com` | Le site dont RoNote lit les trades |
 | `*.rolimons.com` | La table publique des valeurs, les historiques publics des objets, le profil Rolimon's public des joueurs dont tu ouvres la fiche et, avec le suivi du portefeuille, le tien |
 | `routility.io` (optionnelle) | Demandée seulement si tu coches RoUtility dans les trade ads automatiques : vérifie que tu y es connecté et publie ton annonce, avec la session que tu as ouverte toi-même |
+| `cookies` (optionnelle) | Demandée seulement au clic sur *Continuer sur le serveur* (Trade ads automatiques) : lit tes cookies de session Rolimon's et RoUtility (ceux que le navigateur envoie à leurs API d'annonces) pour les confier, chiffrés, au serveur Neuronal. Jamais un cookie Roblox |
 | `neuronal.live` (optionnelle) | Demandée seulement si tu actives les Fiches Neuronal ou la contribution : ce que le réseau sait d'un joueur ou d'un objet dont tu ouvres la fiche ; avec la contribution, la présence de ton compte et tes trades terminés |
 
 ## Enfants et âge minimum

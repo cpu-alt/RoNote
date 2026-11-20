@@ -5,6 +5,13 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Trade ads pendant que tu dors** (2.17.31) : carte « Pendant que tu dors » (4, 8, 12 ou 24 h). Permission
+  `cookies` **facultative**, demandée au clic : seulement les cookies que le navigateur enverrait aux API d'annonces
+  de Rolimon's et RoUtility, jamais Roblox. Ils partent avec l'annonce, les réglages et les items tirables vers
+  `POST /ext/v1/tradeads/relay` (Neuronal, `neuronal/18qbfb_ronote_relais.py`), chiffrés en base, effacés à la
+  reprise, à l'échéance, au premier refus d'un site ou à la fin de l'accès (MP de RoOp Tracker). Pendant le relais,
+  `runTradeAds` ne publie pas ; « Reprendre ici » fusionne journal, horloges des sites et derniers tirages.
+  PRIVACY et la justification store mises à jour.
 - **Trade ads : demande aléatoire, RoUtility réparé** (2.17.30) :
   - *Demande aléatoire* (onglet « Ce que je demande ») : `tirageDemande` tire 1 à 4 items du catalogue Rolimon's en
     cache (sans projected, œuf ni item sans value) dont le total vaut l'offre + l'overpay choisi (0–50 %, ±8 %),

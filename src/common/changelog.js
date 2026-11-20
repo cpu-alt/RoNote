@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: '2.17.31',
+    title: item('Trade ads pendant que tu dors', 'Trade ads while you sleep'),
+    items: [
+      item("« Continuer sur le serveur » : le serveur Neuronal publie ton annonce avec les mêmes règles pendant que ton PC est éteint (4 à 24 h).",
+        "“Continue on server”: the Neuronal server posts your ad with the same rules while your PC is off (4 to 24 h)."),
+      item("« Reprendre ici » récupère le journal et les derniers tirages ; tes sessions Rolimon's et RoUtility sont effacées du serveur.",
+        "“Resume here” brings back the log and latest draws; your Rolimon's and RoUtility sessions are erased from the server.")
+    ]
+  },
+  {
     version: '2.17.30',
     title: item('Trade ads : demande aléatoire, RoUtility réparé', 'Trade ads: random request, RoUtility fixed'),
     items: [
