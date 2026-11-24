@@ -109,6 +109,24 @@ async function installHeaderRules() {
   }
 }
 
+/**
+ * Rolimon's sans pubs (24 nov.) : le script n'est enregistré que si l'option est active, pour qu'il
+ * passe avant la page (monde MAIN, document_start) sans attendre la lecture des réglages.
+ */
+const ADFREE_ID = 'ronote-rolimons-adfree';
+async function syncAdFree(settings) {
+  const sc = B.scripting;
+  if (!sc?.registerContentScripts) return;
+  const have = (await sc.getRegisteredContentScripts({ ids: [ADFREE_ID] }).catch(() => [])).length > 0;
+  const want = !!settings?.rolimonsAdFree;
+  if (want && !have) {
+    await sc.registerContentScripts([{ id: ADFREE_ID, matches: ['https://www.rolimons.com/*'], js: ['content/rolimons-adfree.js'],
+      runAt: 'document_start', world: 'MAIN', allFrames: false, persistAcrossSessions: true }]).catch(() => {});
+  } else if (!want && have) {
+    await sc.unregisterContentScripts({ ids: [ADFREE_ID] }).catch(() => {});
+  }
+}
+
 /* =========================== cycle de vie ============================== */
 
 B.runtime.onInstalled.addListener(async (details) => {
@@ -118,6 +136,7 @@ B.runtime.onInstalled.addListener(async (details) => {
   setLang(settings.lang);
   await configureAlarm(settings);
   await applySidePanel(settings);
+  await safe(() => syncAdFree(settings));
   // Les alarmes ne survivent pas toujours à une mise à jour de l'extension : sans ça, l'auto-post s'arrêtait en silence.
   await safe(() => scheduleTradeAds());
   if (details.reason === 'update') await safe(refreshRobloxTabs);
@@ -139,6 +158,7 @@ B.runtime.onStartup?.addListener(async () => {
   const settings = await getSettings();
   await configureAlarm(settings);
   await applySidePanel(settings);
+  await safe(() => syncAdFree(settings));
   await safe(() => scheduleTradeAds());
   tick('startup');
 });
@@ -1889,6 +1909,7 @@ async function handleMessage(msg, sender = null) {
       if (msg.patch?.sentHistory === false) await clearSent();
       await configureAlarm(settings);
       await applySidePanel(settings);
+      await safe(() => syncAdFree(settings));
       await setBadge((await getState()).inboundCount, settings, false);
       if (msg.patch?.enabled) tick('settings');
       return { settings };
@@ -1903,6 +1924,7 @@ async function handleMessage(msg, sender = null) {
       setLang(settings.lang);
       await configureAlarm(settings);
       await applySidePanel(settings);
+      await safe(() => syncAdFree(settings));
       await setBadge((await getState()).inboundCount, settings, false);
       return { settings };
     }

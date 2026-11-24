@@ -1244,6 +1244,8 @@ const EN = {
   'Items': 'Items',
   'Tradé': 'Traded',
   'Non vérifié': 'Unverified',
+  "Rolimon's sans pubs": "Ad-free Rolimon's",
+  "Retire les publicités de rolimons.com : les pages chargent plus vite. Rien n'est bloqué ailleurs.": "Removes ads from rolimons.com: pages load faster. Nothing is blocked anywhere else.",
   'Vendre': 'Sell',
   'Mettre en vente': 'Put on sale',
   'Prix': 'Price',

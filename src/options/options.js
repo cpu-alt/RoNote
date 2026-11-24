@@ -23,7 +23,7 @@ function showUnreachable() {
 const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'watchRejectedError',
   'autoTrackOutbound', 'autoTrackCounters', 'notifyUntrackedOutbound',
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
-  'sound', 'soundByQuality', 'useRolimons', 'trackPortfolio', 'robuxTax', 'revalAlerts',
+  'sound', 'soundByQuality', 'useRolimons', 'rolimonsAdFree', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
   'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'profileCard', 'profileHeader', 'profilePanel', 'profileChart', 'profileTrades', 'sentHistory', 'bannerPct', 'listBadges', 'listLabels', 'sidePanel',
   'anonShowValues', 'anonShowRobux'];
