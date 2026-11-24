@@ -132,6 +132,7 @@ function cardHtml(p, both, isNew = false) {
     : p.offering?.length || p.wanting?.length ? adHtml(p) : '';
   const meta = [ads, timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
   const badges = (p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : '')
+    + (p.roli_verified ? `<span class="pf-ver" title="${escapeHtml(t("Badge Verified sur son profil Rolimon's"))}">✓ ${t('Vérifié')}</span>` : '')
     + (p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : '')
     + knownBadge(id);
   return `<article class="pf-card${isNew ? ' pf-new' : ''}" data-pf-id="${id}">

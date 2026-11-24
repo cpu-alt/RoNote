@@ -2463,3 +2463,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .ic, .tc, .pf-card, .nc-it img { transition: none !important; transform: none !important; }
   #list.tab-in .pf-list > *, #list.tab-in > .empty, #list.tab-in > .pm-lock, .pf-af input:checked { animation: none !important; }
 }
+
+/* 24 nov. : fiches Profils, tous les items visibles (retour à la ligne) et vignettes plus grandes ; badge Verified Rolimon's */
+.pf-card .ncl .nc-tiles { flex-wrap: wrap; overflow: visible; gap: 4px; }
+.pf-card .ncl .nc-it { width: 44px; }
+.pf-card .ncl .nc-it img, .pf-card .ncl .nc-ph { width: 32px; height: 32px; }
+.pf-card .ncl .nc-v { font-size: 9.5px; }
+.pf-card .ncl-sides { align-items: start; }
+.pf-card .ncl-ar { margin-top: 18px; }
+.pf-meta .pf-ver { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; font-weight: 750; background: #2fd07022; color: var(--win); }
