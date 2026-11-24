@@ -106,6 +106,7 @@ try {
   await import('../src/background/proof.js');
   await import('../src/background/sent.js');
   await import('../src/options/capture.js');
+  await import('../src/welcome/welcome.js');
 
   group('Modules');
   line('ok', '✓ tous les modules se chargent (syntaxe + imports)');
@@ -365,7 +366,7 @@ try {
   const SOURCES = [
     '../src/popup/popup.js', '../src/options/options.js',
     '../src/background/notifier.js', '../src/background/service-worker.js',
-    '../src/common/utils.js'
+    '../src/common/utils.js', '../src/welcome/welcome.js'
   ];
   const CALL = /\bt\(\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g;
   const unwrap = (raw) => raw.replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n');

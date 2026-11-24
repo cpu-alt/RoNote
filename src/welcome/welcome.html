@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bienvenue sur RoNote</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <img class="logo" src="../icons/icon128.png" alt="" width="88" height="88">
+      <h1>Merci de ta confiance 💜</h1>
+      <p class="lead">RoNote est installé. Il surveille tes trades Roblox, te prévient des nouveaux et te montre ce qu'ils valent vraiment.</p>
+    </header>
+
+    <section class="card pin" id="pin">
+      <div class="pin-head">
+        <h2>Épingle RoNote à ta barre d'outils</h2>
+        <span class="badge" id="pinState" hidden>✓ Épinglée</span>
+      </div>
+      <p class="muted">Tes trades, ton portefeuille et tes alertes sont à un clic. Sans épingle, l'icône reste cachée dans le menu des extensions.</p>
+
+      <!-- Une barre de navigateur dessinée : le geste à faire, animé -->
+      <div class="browser" aria-hidden="true">
+        <div class="bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="url">roblox.com</span>
+          <span class="tools">
+            <span class="slot" id="slot"><img src="../icons/icon32.png" alt=""></span>
+            <span class="puzzle"><svg viewBox="0 0 24 24"><path d="M19.4 7.3a2.4 2.4 0 0 1 1.7.7c.4.4.6 1 .6 1.6s-.2 1.2-.7 1.6l-1.6 1.6a.9.9 0 0 0-.3.8c.1.3.3.4.6.5a1.7 1.7 0 0 1 .9 2.9l-1.6 1.6a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.6-1.6a.9.9 0 0 0-.8-.3c-.3.1-.4.3-.5.6a1.7 1.7 0 0 1-2.9.9l-1.6-1.6a2.4 2.4 0 0 1 0-3.4l1.6-1.6c.2-.2.3-.5.3-.8-.1-.3-.3-.4-.6-.5a1.7 1.7 0 0 1-.9-2.9l1.6-1.6a2.4 2.4 0 0 1 3.4 0l1.6 1.6c.2.2.5.3.8.3.3-.1.4-.3.5-.6a1.7 1.7 0 0 1 2.9-.9z"/></svg></span>
+            <span class="avatar"></span>
+          </span>
+          <span class="cursor"></span>
+        </div>
+        <div class="menu">
+          <div class="mh">Extensions</div>
+          <div class="row"><img src="../icons/icon32.png" alt=""><span>RoNote</span>
+            <span class="pinbtn"><svg viewBox="0 0 24 24"><path d="M12 17v5M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span></div>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li><b>1</b><span>Clique sur l'icône Extensions (la pièce de puzzle) en haut à droite.</span></li>
+        <li><b>2</b><span>Clique sur l'épingle à côté de RoNote.</span></li>
+        <li><b>3</b><span>Clique sur le logo RoNote quand tu veux voir tes trades.</span></li>
+      </ol>
+    </section>
+
+    <section class="card next">
+      <h2>Et maintenant ?</h2>
+      <ul class="tips">
+        <li><span class="ic">🎮</span><span>Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule.</span></li>
+        <li><span class="ic">🔕</span><span>Les trades déjà présents ne déclencheront aucune alerte : seuls les nouveaux comptent.</span></li>
+        <li><span class="ic">🔎</span><span>Tape le pseudo exact d'un joueur dans la recherche Roblox : sa fiche apparaît en tête.</span></li>
+      </ul>
+      <div class="acts">
+        <a class="btn primary" href="https://www.roblox.com/trades" target="_blank" rel="noopener noreferrer">Ouvrir roblox.com</a>
+        <a class="btn" id="settings" href="../options/options.html">Réglages</a>
+      </div>
+    </section>
+
+    <p class="foot">Bon trade !</p>
+  </main>
+  <script type="module" src="welcome.js"></script>
+</body>
+</html>

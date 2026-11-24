@@ -121,8 +121,10 @@ B.runtime.onInstalled.addListener(async (details) => {
   // Les alarmes ne survivent pas toujours à une mise à jour de l'extension : sans ça, l'auto-post s'arrêtait en silence.
   await safe(() => scheduleTradeAds());
   if (details.reason === 'update') await safe(refreshRobloxTabs);
+  // Première installation : la page d'accueil (merci + comment épingler l'icône) remplace la notification.
   if (details.reason === 'install') {
-    await notifySystem(t('RoNote est installé'),
+    const opened = await safe(() => B.tabs.create({ url: B.runtime.getURL('welcome/welcome.html') }), null);
+    if (!opened) await notifySystem(t('RoNote est installé'),
       t('Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule. Les trades déjà présents ne déclencheront aucune alerte.'));
   }
   // Restes de la courbe « bundles comptés », retirée avant publication : les

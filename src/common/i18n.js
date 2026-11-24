@@ -1467,6 +1467,21 @@ const EN = {
   "Rien d'envoyé pour le moment.": "Nothing posted yet.",
   "Publier maintenant": "Post now",
   "Jamais plus d'une annonce par site toutes les 15 min.": "Never more than one ad per site every 15 min.",
+  "Bienvenue sur RoNote": "Welcome to RoNote",
+  "Merci de ta confiance 💜": "Thanks for trusting us 💜",
+  "RoNote est installé. Il surveille tes trades Roblox, te prévient des nouveaux et te montre ce qu'ils valent vraiment.": "RoNote is installed. It watches your Roblox trades, alerts you to new ones and shows what they're really worth.",
+  "Épingle RoNote à ta barre d'outils": "Pin RoNote to your toolbar",
+  "✓ Épinglée": "✓ Pinned",
+  "Tes trades, ton portefeuille et tes alertes sont à un clic. Sans épingle, l'icône reste cachée dans le menu des extensions.": "Your trades, portfolio and alerts are one click away. Unpinned, the icon stays hidden in the extensions menu.",
+  "Clique sur l'icône Extensions (la pièce de puzzle) en haut à droite.": "Click the Extensions icon (the puzzle piece) at the top right.",
+  "Clique sur l'épingle à côté de RoNote.": "Click the pin next to RoNote.",
+  "Clique sur le logo RoNote quand tu veux voir tes trades.": "Click the RoNote logo whenever you want to see your trades.",
+  "Et maintenant ?": "What now?",
+  "Ouvre roblox.com et connecte-toi : la surveillance démarre toute seule.": "Open roblox.com and log in: tracking starts on its own.",
+  "Les trades déjà présents ne déclencheront aucune alerte : seuls les nouveaux comptent.": "Trades already there won't trigger any alert: only new ones count.",
+  "Tape le pseudo exact d'un joueur dans la recherche Roblox : sa fiche apparaît en tête.": "Type a player's exact username in the Roblox search: their card shows on top.",
+  "Ouvrir roblox.com": "Open roblox.com",
+  "Bon trade !": "Happy trading!",
 };
 
 const DICT = { en: EN };

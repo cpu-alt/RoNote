@@ -1,0 +1,73 @@
+:root{color-scheme:dark;--bg:#0d0818;--card:#1b1030;--line:rgba(255,255,255,.08);--txt:#f3f0ff;--mut:rgba(243,240,255,.68);
+  --acc:#a78bfa;--acc2:#7dd3fc;--ok:#4ade80}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1200px 600px at 50% -10%,rgba(167,139,250,.22),transparent 60%),var(--bg);color:var(--txt);
+  font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:56px 24px 40px}
+.hero{text-align:center;animation:up .5s ease-out both}
+.logo{filter:drop-shadow(0 10px 28px rgba(167,139,250,.45));animation:float 4s ease-in-out infinite}
+h1{margin:18px 0 8px;font-size:34px;letter-spacing:-.02em;
+  background:linear-gradient(90deg,#fff,#c4b5fd 60%,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{margin:0 auto;max-width:560px;color:var(--mut);font-size:16px}
+.card{margin-top:28px;padding:24px;border-radius:20px;background:linear-gradient(180deg,#211536,var(--card));
+  border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.35);animation:up .5s ease-out both}
+.card.pin{animation-delay:.08s}.card.next{animation-delay:.16s}
+h2{margin:0;font-size:19px}
+.muted{color:var(--mut);margin:6px 0 0}
+.pin-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;color:#052e16;background:var(--ok);animation:pop .3s ease-out}
+.pin.done{border-color:rgba(74,222,128,.45)}
+
+/* La barre de navigateur dessinée */
+.browser{position:relative;margin:20px 0 6px;height:190px;border-radius:14px;background:#120b22;border:1px solid var(--line);overflow:hidden}
+.bar{position:relative;display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;background:#1d1433;border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.18)}
+.url{flex:1;height:28px;line-height:28px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--mut);font-size:13px}
+.tools{display:flex;align-items:center;gap:8px}
+.slot{width:0;opacity:0;overflow:hidden;display:grid;place-items:center;transition:width .3s,opacity .3s;animation:slot 6s infinite}
+.slot img{width:20px;height:20px}
+.puzzle{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;animation:hit1 6s infinite}
+.puzzle svg,.pinbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.menu{position:absolute;right:46px;top:52px;width:230px;padding:8px;border-radius:12px;background:#2a1d45;border:1px solid var(--line);
+  box-shadow:0 12px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(-6px) scale(.97);transform-origin:top right;animation:menu 6s infinite}
+.mh{padding:2px 6px 8px;font-size:12px;color:var(--mut)}
+.row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;background:rgba(255,255,255,.06);font-size:13.5px}
+.row img{width:18px;height:18px}.row span:first-of-type{flex:1}
+.pinbtn{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;color:var(--mut);animation:hit2 6s infinite}
+.cursor{position:absolute;width:18px;height:18px;left:0;top:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l16 10-7 1.5L9 21z' fill='white' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat;
+  animation:cur 6s infinite;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+
+/* Le scénario (6 s) : puzzle → menu → épingle → icône dans la barre */
+@keyframes cur{
+  0%{transform:translate(380px,150px);opacity:0}8%{opacity:1}
+  22%,28%{transform:var(--p1)}
+  45%,52%{transform:var(--p2)}
+  70%,100%{transform:var(--p3);opacity:1}96%{opacity:0}}
+@keyframes hit1{0%,22%{background:none}24%,30%{background:rgba(167,139,250,.35)}34%,100%{background:none}}
+@keyframes menu{0%,26%{opacity:0;transform:translateY(-6px) scale(.97)}30%,56%{opacity:1;transform:none}62%,100%{opacity:0;transform:translateY(-6px) scale(.97)}}
+@keyframes hit2{0%,46%{color:var(--mut);background:none}49%,58%{color:#fff;background:var(--acc)}}
+@keyframes slot{0%,56%{width:0;opacity:0}62%,94%{width:28px;opacity:1}100%{width:0;opacity:0}}
+@keyframes up{from{opacity:0;transform:translateY(10px)}}
+@keyframes float{50%{transform:translateY(-6px)}}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+
+.steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px}
+.steps li{display:flex;align-items:flex-start;gap:12px}
+.steps b{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font-size:13px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#0b0b14}
+.steps em{font-style:normal;font-weight:700;color:#fff}
+.tips{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.tips li{display:flex;gap:12px;color:var(--mut)}.tips .ic{flex:none}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{display:inline-flex;align-items:center;height:42px;padding:0 20px;border-radius:999px;font-weight:700;text-decoration:none;color:var(--txt);
+  background:rgba(255,255,255,.08);transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}
+.btn.primary{color:#0b0b14;background:linear-gradient(110deg,var(--acc),var(--acc2))}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.foot{text-align:center;color:var(--mut);margin-top:28px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}
+  .menu{opacity:1;transform:none}.slot{width:28px;opacity:1}.cursor{display:none}}
