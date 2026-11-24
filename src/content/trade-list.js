@@ -108,7 +108,8 @@
   }
 
   const USER_LINK = 'a[href*="/users/"]';
-  const norm = (s) => String(s || '').toLowerCase().replace(/^@/, '').replace(/[^a-z0-9]/g, '');
+  // Lettres et chiffres de toutes les écritures : un pseudo japonais (色あせたヴァンパイア) devenait vide et sa ligne restait nue.
+  const norm = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/^@/, '').replace(/[^\p{L}\p{N}]/gu, '');
   const sameName = (a, b) => !!a && !!b && (a === b || a.includes(b) || b.includes(a));
 
   /**
