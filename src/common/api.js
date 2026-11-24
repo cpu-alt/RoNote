@@ -533,14 +533,12 @@ export async function probeTradeDetail(id) {
  * first-party : elle a le cookie, le bon `Origin`, et peut aller chercher elle
  * meme un jeton CSRF frais. C'est le chemin le plus fiable pour une ECRITURE.
  */
-function relayPost(url, body = '{}') {
-  return relayInTabs(url, async (u, b) => {
+function relayPost(url, body = '{}', extra = {}) {
+  return relayInTabs(url, async (u, b, x) => {
     const send = (token) => fetch(u, {
       method: 'POST',
       credentials: 'include',
-      headers: token
-        ? { 'Content-Type': 'application/json', 'x-csrf-token': token }
-        : { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...x, ...(token ? { 'x-csrf-token': token } : {}) },
       body: b
     });
     try {
@@ -551,17 +549,29 @@ function relayPost(url, body = '{}') {
         const token = r.headers.get('x-csrf-token');
         if (token) r = await send(token);
       }
-      return { ok: r.ok, status: r.status, body: await r.text() };
+      // Vérification en deux étapes exigée : Roblox décrit le défi dans ces en-têtes.
+      const ch = ['rblx-challenge-id', 'rblx-challenge-type', 'rblx-challenge-metadata'].map(h => r.headers.get(h) || '');
+      return { ok: r.ok, status: r.status, body: await r.text(), ch };
     } catch (e) {
       return { ok: false, status: 0, body: String(e) };
     }
-  }, { firstAnswer: true, args: [body] });
+  }, { firstAnswer: true, args: [body, extra] });
 }
 
-async function apiPost(url, payload = {}) {
+/** Le défi « vérification en deux étapes » d'une réponse Roblox, ou null. */
+function readChallenge([id, type, raw] = []) {
+  if (!id || !type) return null;
+  let meta = {};
+  try { meta = JSON.parse(atob(raw || '')); } catch { /* métadonnées illisibles */ }
+  return { id, type, meta };
+}
+const challengeOf = (res) => readChallenge(['rblx-challenge-id', 'rblx-challenge-type', 'rblx-challenge-metadata']
+  .map(h => res?.headers?.get?.(h) || ''));
+
+async function apiPost(url, payload = {}, extra = {}) {
   const body = JSON.stringify(payload);
   const send = async () => {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', ...extra };
     if (csrfToken) headers['x-csrf-token'] = csrfToken;
     return fetchWithTimeout(url, { method: 'POST', credentials: 'include', headers, body });
   };
@@ -575,12 +585,17 @@ async function apiPost(url, payload = {}) {
     csrfToken = fresh;
     if (!res.ok) { try { res = await send(); } catch (e) { netErr = e; } }
   }
-  if (res?.ok) return { ok: true, via: 'direct' };
+  if (res?.ok) return { ok: true, via: 'direct', body: await res.text().catch(() => '') };
+  // Un défi dès l'envoi direct : le relais en déclencherait un second, inutile.
+  const direct = challengeOf(res);
+  if (direct) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: direct });
 
   // Le service worker n'a pas toujours le cookie ni le bon Origin. Depuis un
   // onglet Roblox, la requete est indistinguable de celle du site.
-  const relayed = await relayPost(url, body);
-  if (relayed?.ok) return { ok: true, via: 'onglet' };
+  const relayed = await relayPost(url, body, extra);
+  if (relayed?.ok) return { ok: true, via: 'onglet', body: relayed.body || '' };
+  const relCh = readChallenge(relayed?.ch);
+  if (relCh) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: relCh });
 
   let reason = netErr ? `Réseau: ${netErr.message}` : `HTTP ${res?.status ?? 0}`;
   // Roblox explique souvent le refus dans le corps : « Trade is not active »…
@@ -589,7 +604,51 @@ async function apiPost(url, payload = {}) {
     const msg = body?.errors?.[0]?.message;
     if (msg) reason = msg;
   } catch { /* corps illisible : on garde le statut */ }
-  throw new ApiError(reason, res?.status ?? 0);
+  throw new ApiError(reason, relayed?.status || res?.status || 0);
+}
+
+/* ================ vérification en deux étapes (2SV) ================
+ * Le protocole du site Roblox : (1) l'action renvoie 403 avec un défi
+ * (`rblx-challenge-*`) ; (2) on lit le mode de vérification du compte et,
+ * pour l'e-mail ou le SMS, on demande l'envoi du code ; (3) le code donne un
+ * `verificationToken` ; (4) `challenge/v1/continue` valide le défi ; (5) on
+ * rejoue l'action avec les en-têtes du défi résolu. */
+const TSV = 'https://twostepverification.roblox.com/v1';
+const MEDIA = { authenticator: 'authenticator', email: 'email', sms: 'sms' };
+
+/** Prépare la saisie : rend le mode (`authenticator`, `email`, `sms`), ou null si l'extension ne sait pas le passer (clé de sécurité…). */
+export async function twoStepStart(ch) {
+  if (ch?.type !== 'twostepverification') return null;
+  const uid = Number(ch.meta?.userId), cid = ch.meta?.challengeId, actionType = ch.meta?.actionType || 'Generic';
+  if (!uid || !cid) return null;
+  let media = 'authenticator';
+  try {
+    const q = new URLSearchParams({ challengeId: cid, actionType });
+    const j = await apiGet(`${TSV}/users/${uid}/configuration?${q}`);
+    media = String(j?.primaryMediaType || 'Authenticator').toLowerCase();
+  } catch { /* configuration illisible : l'application d'authentification est la plus courante */ }
+  media = MEDIA[media] || null;
+  if (media === 'email' || media === 'sms') await apiPost(`${TSV}/users/${uid}/challenges/${media}/send-code`, { challengeId: cid, actionType });
+  return media;
+}
+
+/** Vérifie le code et valide le défi ; rend les en-têtes à joindre quand on rejoue l'action. */
+export async function twoStepFinish(ch, media, code) {
+  const uid = Number(ch.meta?.userId), cid = ch.meta?.challengeId, actionType = ch.meta?.actionType || 'Generic';
+  const clean = String(code || '').replace(/\D/g, '');
+  if (!MEDIA[media] || !clean) throw Object.assign(new ApiError('code invalide', 400), { badCode: true });
+  let token = '';
+  try {
+    const v = await apiPost(`${TSV}/users/${uid}/challenges/${media}/verify`, { challengeId: cid, actionType, code: clean });
+    token = JSON.parse(v.body || '{}')?.verificationToken || '';
+  } catch (e) {
+    throw Object.assign(new ApiError('code refusé', e?.status || 400), { badCode: true });
+  }
+  if (!token) throw Object.assign(new ApiError('code refusé', 400), { badCode: true });
+  const meta = { verificationToken: token, rememberDevice: false, challengeId: cid, actionType };
+  await apiPost('https://apis.roblox.com/challenge/v1/continue',
+    { challengeId: ch.id, challengeType: ch.type, challengeMetadata: JSON.stringify(meta) });
+  return { 'rblx-challenge-id': ch.id, 'rblx-challenge-type': ch.type, 'rblx-challenge-metadata': btoa(JSON.stringify(meta)) };
 }
 
 /**
@@ -615,14 +674,14 @@ export async function acceptTrade(tradeId) {
   try {
     return await apiPost(`${TRADES}/trades/${id}/accept`);
   } catch (e) {
-    if (isChallenge(e)) e.challenge = true;
+    if (isChallenge(e)) e.challenge ||= true;
     throw e;
   }
 }
 
 /** Roblox exige une verification en deux etapes : l'extension ne la passe pas. */
-const isChallenge = (e) => e instanceof ApiError && (e.status === 403 || e.status === 0)
-  && /challenge|verif|two.?step|2sv/i.test(e.message);
+const isChallenge = (e) => e instanceof ApiError && (!!e.challenge || ((e.status === 403 || e.status === 0)
+  && /challenge|verif|two.?step|2sv/i.test(e.message)));
 
 /**
  * Contre-offre sur un trade recu, par l'API v2 (celle du site Roblox) : chaque cote
@@ -632,7 +691,7 @@ const isChallenge = (e) => e instanceof ApiError && (e.status === 403 || e.statu
  * 4 objets et refuse lui-meme ce qui ne tient pas (hold, Robux au-dela de la moitie
  * de la valeur) : son message remonte tel quel.
  */
-export async function counterTrade(tradeId, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }) {
+export async function counterTrade(tradeId, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }, headers = {}) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
   const ids = (list) => list.map(String).filter(isInstanceId);
   const robux = (n) => Math.max(0, Math.floor(Number(n) || 0));
@@ -643,9 +702,9 @@ export async function counterTrade(tradeId, { myId, partnerId, give = [], get = 
   if (!recipientOffer.collectibleItemInstanceIds.length && !recipientOffer.robux) throw new ApiError('demande au moins un objet', 0);
   if (!senderOffer.collectibleItemInstanceIds.length && !senderOffer.robux) throw new ApiError('offre au moins un objet', 0);
   try {
-    return await apiPost(`${TRADES_V2}/trades/${id}/counter`, { senderOffer, recipientOffer });
+    return await apiPost(`${TRADES_V2}/trades/${id}/counter`, { senderOffer, recipientOffer }, headers);
   } catch (e) {
-    if (isChallenge(e)) e.challenge = true;
+    if (isChallenge(e)) e.challenge ||= true;
     throw e;
   }
 }

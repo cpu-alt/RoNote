@@ -1050,6 +1050,33 @@ button.jr:active { transform: scale(.985); }
 }
 .z-msg.err { color: var(--loss); background: #2b1416; }
 
+/* Vérification en deux étapes : le code tapé ici, sans quitter la contre-offre. */
+.tsv { padding: 12px; border-top: 1px solid #ffffff0d; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); animation: tsvIn .2s var(--ease); }
+@keyframes tsvIn { from { opacity: 0; transform: translateY(4px); } }
+.tsv-head { display: flex; gap: 10px; align-items: flex-start; }
+.tsv-head > .ic { flex: none; width: 30px; height: 30px; padding: 7px; border-radius: var(--r-sm); color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.tsv-head b { display: block; font-size: 12.5px; color: var(--fg); }
+.tsv-head span { display: block; margin-top: 2px; font-size: 11px; color: var(--dim); line-height: 1.4; }
+.tsv-row { display: flex; gap: 8px; margin-top: 10px; }
+.tsv-code {
+  flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: var(--r-md); border: 1px solid var(--line);
+  background: var(--bg); color: var(--fg); font: 700 20px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .45em; text-align: center; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.tsv-code::placeholder { color: var(--faint); opacity: .45; }
+.tsv-code:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.tsv-code:disabled { opacity: .6; }
+.tsv-ok {
+  flex: none; padding: 0 16px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 12px; font-weight: 700;
+}
+.tsv-ok:hover:not(:disabled) { filter: brightness(1.1); }
+.tsv-ok:disabled { opacity: .6; cursor: default; }
+.tsv-foot { display: flex; align-items: center; gap: 10px; min-height: 18px; margin-top: 8px; font-size: 11px; }
+.tsv-err { flex: 1; color: var(--loss); }
+.tsv-link { padding: 0; border: 0; background: none; color: var(--dim); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.tsv-link:hover:not(:disabled) { color: var(--fg); }
+
 .z-foot {
   display: flex; gap: 8px; padding: 10px 12px;
   border-top: 1px solid #ffffff0d; background: #0c101a;

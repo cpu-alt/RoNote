@@ -45,7 +45,7 @@ export function openCounterEditor(card, deps) {
     give: pick(a?.give?.items), get: pick(a?.get?.items),
     giveRobux: a?.give?.robux || 0, getRobux: a?.get?.robux || 0,
     me: null, them: null, loading: true,
-    shelf: 'them', query: '', armed: false, busy: false, msg: null
+    shelf: 'them', query: '', armed: false, busy: false, msg: null, tsv: null
   };
   ed.original = signature();
 
@@ -159,6 +159,7 @@ function sheetHtml() {
         <div class="ctr-grid" data-part="shelf"></div>
       </section>
     </div>
+    <div class="tsv" data-part="tsv" hidden></div>
     <div class="z-msg" hidden></div>
     <footer class="z-foot">
       <button class="z-open" data-roblox>${t('Sur Roblox')} ${ic('external')}</button>
@@ -264,7 +265,7 @@ function paint({ shelf = true } = {}) {
   // La contre-offre part en v2 : chaque objet doit avoir son identifiant d'exemplaire (UUID).
   const noId = chosen.some(i => !INSTANCE_ID.test(String(i.uaid || '')));
   const unsure = chosen.some(i => i.unsure);
-  const sendable = !ed.loading && !ed.busy && !gone && !noId && changed
+  const sendable = !ed.loading && !ed.busy && !ed.tsv && !gone && !noId && changed
     && (ed.give.length || ed.giveRobux) && (ed.get.length || ed.getRobux);
   const btn = w.querySelector('[data-send]');
   btn.disabled = !sendable;
@@ -324,10 +325,19 @@ function bind(w) {
     if ('reload' in el.dataset) { if (!ed.loading) load(ed.card, true); return; }
     if ('roblox' in el.dataset) { B.tabs.create({ url: tradeUrl(ed.card.tradeId) }); return; }
     if ('send' in el.dataset) sendCounter();
+    if ('tsvOk' in el.dataset) submitCode();
+    if ('tsvCancel' in el.dataset) { ed.tsv = null; renderTsv(); paint({ shelf: false }); }
+    if ('tsvResend' in el.dataset) resendCode();
   });
 
   w.addEventListener('input', (e) => {
     if (!ed) return;
+    if (e.target.matches('[data-tsv-code]')) {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      if (ed.tsv?.err) { ed.tsv.err = ''; e.target.closest('.tsv').querySelector('.tsv-err').textContent = ''; }
+      if (e.target.value.length === 6) submitCode();
+      return;
+    }
     if (e.target.matches('.ctr-search input')) {
       ed.query = e.target.value;
       w.querySelector('[data-part="shelf"]').innerHTML = shelfHtml();
@@ -342,6 +352,10 @@ function bind(w) {
     const sim = simulate();
     w.querySelector('[data-part="sim"]').innerHTML = ed.deps.balanceHtml(sim, { big: true })
       + `<div class="ctr-sim-l">${t('Tu donnes {a} · tu reçois {b}', { a: fmtFull(sim.mainGive), b: fmtFull(sim.mainGet) })}</div>`;
+  });
+  // Entrée dans le champ du code : valide.
+  w.addEventListener('keydown', (e) => {
+    if (ed && e.key === 'Enter' && e.target.matches('[data-tsv-code]')) { e.preventDefault(); submitCode(); }
   });
   // Les Robux validés (sortie du champ) : la ligne entière se met à jour.
   w.addEventListener('change', (e) => { if (ed && e.target.dataset.robux) paint({ shelf: false }); });
@@ -370,12 +384,26 @@ async function sendCounter() {
   }).catch((e) => ({ error: String(e?.message || e) }));
   if (!ed || ed.card !== card) return;
   ed.busy = false;
+  settle(res);
+}
+
+/** La réponse d'un envoi (direct ou après le code) : fermé, code demandé, ou erreur. */
+function settle(res) {
+  const card = ed.card;
   if (res?.ok) {
     const done = ed.deps.onSent;
     close();
     done?.(res);
     return;
   }
+  if (res?.twoStep?.key) {
+    ed.tsv = { key: res.twoStep.key, media: res.twoStep.media, busy: false, err: '', sent: false };
+    ed.msg = null;
+    renderTsv();
+    paint({ shelf: false });
+    return;
+  }
+  ed.tsv = null; renderTsv();
   if (res?.challenge) B.tabs.create({ url: tradeUrl(card.tradeId) });
   ed.msg = {
     err: true,
@@ -384,6 +412,69 @@ async function sendCounter() {
       : t('Échec : {why}', { why: res?.error || '?' })
   };
   paint({ shelf: false });
+}
+
+/* ------------------- vérification en deux étapes (2SV) ------------------- */
+
+const TSV_TEXT = {
+  authenticator: () => t("Entre le code à 6 chiffres de ton application d'authentification."),
+  email: () => t('Roblox vient de t’envoyer un code par e-mail.'),
+  sms: () => t('Roblox vient de t’envoyer un code par SMS.')
+};
+
+/** Le panneau du code : dessiné seulement quand son état change (le champ garde sa saisie). */
+function renderTsv() {
+  const box = ed?.wrap.querySelector('[data-part="tsv"]');
+  if (!box) return;
+  const v = ed.tsv;
+  box.hidden = !v;
+  if (!v) { box.innerHTML = ''; return; }
+  const typed = box.querySelector('[data-tsv-code]')?.value || '';
+  box.innerHTML = `
+    <div class="tsv-head">${ic('lock')}<div><b>${t('Vérification en deux étapes')}</b>
+      <span>${escapeHtml((TSV_TEXT[v.media] || TSV_TEXT.authenticator)())}</span></div></div>
+    <div class="tsv-row">
+      <input class="tsv-code" data-tsv-code type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+        placeholder="000000" aria-label="${escapeHtml(t('Code de vérification'))}" value="${escapeHtml(v.busy ? typed : '')}" ${v.busy ? 'disabled' : ''}>
+      <button class="tsv-ok" data-tsv-ok ${v.busy ? 'disabled' : ''}>${v.busy ? t('Vérification…') : t('Valider')}</button>
+    </div>
+    <div class="tsv-foot">
+      <span class="tsv-err" role="alert">${escapeHtml(v.err || '')}</span>
+      ${v.media === 'email' || v.media === 'sms' ? `<button class="tsv-link" data-tsv-resend ${v.busy ? 'disabled' : ''}>${v.sent ? t('Code renvoyé') : t('Renvoyer le code')}</button>` : ''}
+      <button class="tsv-link" data-tsv-cancel ${v.busy ? 'disabled' : ''}>${t('Annuler')}</button>
+    </div>`;
+  if (!v.busy) setTimeout(() => box.querySelector('[data-tsv-code]')?.focus(), 0);
+}
+
+async function submitCode() {
+  const v = ed?.tsv;
+  const input = ed?.wrap.querySelector('[data-tsv-code]');
+  if (!v || v.busy || !input) return;
+  const code = input.value.replace(/\D/g, '');
+  if (code.length < 6) { v.err = t('Le code fait 6 chiffres.'); renderTsv(); return; }
+  v.busy = true; v.err = '';
+  renderTsv();
+  const card = ed.card;
+  const res = await send({ type: 'ronote:2sv', key: v.key, code }).catch((e) => ({ error: String(e?.message || e) }));
+  if (!ed || ed.card !== card || ed.tsv !== v) return;
+  v.busy = false;
+  if (res?.badCode) { v.err = t('Code incorrect, réessaie.'); renderTsv(); return; }
+  if (res?.error === 'expired') {
+    ed.tsv = null; renderTsv();
+    ed.msg = { err: true, text: t('La vérification a expiré : renvoie la contre-offre.') };
+    paint({ shelf: false });
+    return;
+  }
+  settle(res);
+}
+
+async function resendCode() {
+  const v = ed?.tsv;
+  if (!v || v.busy) return;
+  const res = await send({ type: 'ronote:2sv', key: v.key, resend: true }).catch(() => null);
+  if (!ed || ed.tsv !== v) return;
+  if (res?.ok) v.sent = true; else v.err = t('Impossible de renvoyer le code.');
+  renderTsv();
 }
 
 /** Ouvert ? (Échap et le clavier du popup en tiennent compte.) */

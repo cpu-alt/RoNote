@@ -1167,6 +1167,20 @@ async function uiData({ lite = false } = {}) {
 
 const presenceCache = { key: '', at: 0, map: {} };
 const searchCache = new Map();
+// Défis 2SV en attente de code : clé → { challenge, media, msg, at }. En mémoire seulement
+// (le code expire vite côté Roblox) ; un service worker endormi oblige juste à renvoyer.
+const twoStepPending = new Map();
+const TWO_STEP_TTL = 5 * 60e3;
+async function askTwoStep(challenge, msg) {
+  if (challenge === true || msg.challengeHeaders) return { challenge: true, error: 'vérification en deux étapes requise' };
+  let media = null;
+  try { media = await api.twoStepStart(challenge); } catch { media = null; }
+  if (!media) return { challenge: true, error: 'vérification en deux étapes requise' };
+  for (const [k, v] of twoStepPending) if (Date.now() - v.at > TWO_STEP_TTL) twoStepPending.delete(k);
+  const key = crypto.randomUUID();
+  twoStepPending.set(key, { challenge, media, msg, at: Date.now() });
+  return { twoStep: { key, media } };
+}
 
 async function handleMessage(msg, sender = null) {
   switch (msg.type) {
@@ -1790,7 +1804,7 @@ async function handleMessage(msg, sender = null) {
         const res = await api.counterTrade(id, {
           myId: state0.userId, partnerId: msg.partnerId,
           give: msg.give || [], get: msg.get || [], giveRobux: msg.giveRobux, getRobux: msg.getRobux
-        });
+        }, msg.challengeHeaders || {});
         // Les deux inventaires viennent de changer de main : le cache ment.
         dropCollectibles(state0.userId, msg.partnerId);
         // Le trade d'origine passe en « Countered » (Inactive) : l'etape Inactive
@@ -1812,9 +1826,25 @@ async function handleMessage(msg, sender = null) {
         }]);
         return { ok: true, via: res.via, state };
       } catch (e) {
-        if (e?.challenge) return { challenge: true, error: String(e.message || e) };
+        if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };
       }
+    }
+
+    // Le code de vérification en deux étapes, tapé dans le popup : on valide le défi
+    // puis on rejoue l'action en attente (la contre-offre) avec les en-têtes du défi résolu.
+    case 'ronote:2sv': {
+      const p = twoStepPending.get(String(msg.key || ''));
+      if (!p || Date.now() - p.at > TWO_STEP_TTL) { twoStepPending.delete(String(msg.key || '')); return { error: 'expired' }; }
+      if (msg.resend) {
+        try { await api.twoStepStart(p.challenge); return { ok: true }; } catch (e) { return { error: String(e?.message || e) }; }
+      }
+      let headers;
+      try { headers = await api.twoStepFinish(p.challenge, p.media, msg.code); } catch (e) {
+        return e?.badCode ? { badCode: true } : { error: String(e?.message || e) };
+      }
+      twoStepPending.delete(String(msg.key));
+      return handleMessage({ ...p.msg, challengeHeaders: headers }, sender);
     }
 
     case 'ronote:track': {

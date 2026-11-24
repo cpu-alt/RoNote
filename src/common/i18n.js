@@ -1503,6 +1503,18 @@ const EN = {
   "Rejoindre": "Join",
   "Visiter": "Visit",
   "Le site de Neuronal : le réseau de traders, les deals et tout l’écosystème RoNote.": "Neuronal's website: the trader network, deals and the whole RoNote ecosystem.",
+  "Entre le code à 6 chiffres de ton application d'authentification.": "Enter the 6-digit code from your authenticator app.",
+  "Roblox vient de t’envoyer un code par e-mail.": "Roblox just sent you a code by email.",
+  "Roblox vient de t’envoyer un code par SMS.": "Roblox just sent you a code by text message.",
+  "Vérification en deux étapes": "2-step verification",
+  "Code de vérification": "Verification code",
+  "Vérification…": "Verifying…",
+  "Code renvoyé": "Code sent again",
+  "Renvoyer le code": "Resend code",
+  "Le code fait 6 chiffres.": "The code has 6 digits.",
+  "Code incorrect, réessaie.": "Wrong code, try again.",
+  "La vérification a expiré : renvoie la contre-offre.": "Verification expired: send the counter again.",
+  "Impossible de renvoyer le code.": "Couldn't resend the code.",
 };
 
 const DICT = { en: EN };

@@ -1220,3 +1220,27 @@ sans toucher à la liste. Une carte passe si elle contient au moins un des items
 ids (asset et bundle), avec un secours par nom exact (une face peut porter l'ancien id d'asset chez Neuronal et
 l'id de son bundle dans le catalogue). Profils : « possède » = `offering` + `last.got_items`, « cherche » = `wanting`.
 Les puces des items choisis restent visibles filtres repliés ; le champ et le côté sont dans le panneau.
+
+## Vérification en deux étapes pendant une contre-offre
+
+Quand Roblox exige la 2SV, l'envoi répond **403** avec trois en-têtes : `rblx-challenge-id`,
+`rblx-challenge-type` (`twostepverification`) et `rblx-challenge-metadata` (JSON en base64 : `userId`,
+`challengeId` *interne*, `actionType`). Avant, `apiPost` ne lisait que le corps et affichait une erreur.
+
+Le protocole, le même que le site :
+
+1. `apiPost` lit le défi (envoi direct ou relais d'onglet) et lève `ApiError` avec `challenge = { id, type, meta }`.
+   Si l'envoi direct a déjà le défi, on **ne relaie pas** : le relais en ouvrirait un second.
+2. `twoStepStart` lit `GET twostepverification…/v1/users/{uid}/configuration` (mode principal) ; pour l'e-mail et
+   le SMS, `…/challenges/{media}/send-code`. Clé de sécurité ou mode inconnu : on retombe sur l'ancien comportement
+   (le trade s'ouvre sur roblox.com).
+3. Le service worker garde la requête en attente 5 min en mémoire (`twoStepPending`) et rend `{ twoStep: { key, media } }`.
+   Le popup affiche le champ du code (envoi automatique au 6ᵉ chiffre).
+4. `ronote:2sv` → `twoStepFinish` : `…/challenges/{media}/verify` donne un `verificationToken`, puis
+   `POST apis.roblox.com/challenge/v1/continue` valide le défi.
+5. On rejoue la contre-offre avec les trois en-têtes (`rblx-challenge-metadata` = base64 de
+   `{ verificationToken, rememberDevice: false, challengeId, actionType }`).
+
+Le code ne part que vers Roblox ; rien n'est stocké. L'aperçu du popup simule le défi avec `?challenge=1`
+(`?challenge=email` pour l'e-mail) : `123456` passe, tout autre code est refusé.
+

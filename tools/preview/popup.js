@@ -244,6 +244,7 @@ function demoItemHistory(itemId) {
 
 const PROMO_VERSION = PROMO ? (await json('../../src/manifest.json')).version : null;
 const log = document.getElementById('log');
+let PENDING_COUNTER = null;
 const SLOW = Number(new URLSearchParams(location.search).get('slow')) || 0;
 const mockRuntime = {
   getURL: (p) => p,
@@ -481,8 +482,19 @@ const mockRuntime = {
           them: { complete: false, partial: true, items: [...fromTrade(card.analysis.get.items.slice(1)), ...extra(ids.slice(24, 60), 800000)] }
         };
       }
+      // ?challenge=1 : Roblox demande le code 2SV ; « 123456 » passe, tout autre code est refusé.
+      case 'ronote:2sv': {
+        await new Promise(r => setTimeout(r, 500));
+        if (msg.resend) return { ok: true };
+        if (msg.code !== '123456') return { badCode: true };
+        return mockRuntime.sendMessage({ ...PENDING_COUNTER, passed: true });
+      }
       case 'ronote:counter': {
         await new Promise(r => setTimeout(r, 400));
+        if (new URLSearchParams(location.search).has('challenge') && !msg.passed) {
+          PENDING_COUNTER = msg;
+          return { twoStep: { key: 'demo', media: new URLSearchParams(location.search).get('challenge') === 'email' ? 'email' : 'authenticator' } };
+        }
         STATE.snapshot.inbound = STATE.snapshot.inbound.filter(x => x.tradeId !== msg.tradeId);
         CARDS.inbound = CARDS.inbound.filter(c => c.tradeId !== msg.tradeId);
         STATE.inboundCount = STATE.snapshot.inbound.length;
