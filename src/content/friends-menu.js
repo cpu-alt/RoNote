@@ -62,40 +62,30 @@
     svg{width:16px;height:16px}`;
   const DOTS = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.6" fill="currentColor"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><circle cx="13" cy="8" r="1.6" fill="currentColor"/></svg>';
 
-  function cardOf(link) {
-    // La carte : le premier ancêtre qui contient aussi l'avatar, sans englober d'autres profils.
-    let el = link;
-    for (let i = 0; i < 6 && el.parentElement; i++) {
-      const p = el.parentElement;
-      if (p.querySelectorAll('a[href*="/profile"]').length > 0 && new Set([...p.querySelectorAll('a[href*="/users/"]')].map(idOf)).size > 1) break;
-      el = p;
-      if (el.querySelector('img') && el.getBoundingClientRect().width > 160) return el;
-    }
-    return el.querySelector?.('img') ? el : null;
-  }
-  const idOf = (a) => Number(/\/users\/(\d+)/.exec(a.getAttribute('href') || '')?.[1]) || 0;
-
+  // Les cartes de Roblox : <li class="avatar-card" id="{userId}">, cliquables en entier (pas de lien /profile).
+  const text = (el) => (el?.textContent || '').trim();
   function decorate() {
     if (!pageOwner() || !alive()) return;
-    for (const a of document.querySelectorAll('a[href*="/users/"][href*="/profile"]:not([data-rn-fm])')) {
-      a.dataset.rnFm = '1';
-      const id = idOf(a);
-      if (!id || id === me() || a.closest('#header, nav, header')) continue;
-      const card = cardOf(a);
-      if (!card || card.querySelector(':scope > .ronote-fm')) continue;
-      if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+    for (const card of document.querySelectorAll('li.avatar-card:not([data-rn-fm])')) {
+      card.dataset.rnFm = '1';
+      const id = Number(card.id) || Number(/\/users\/(\d+)/.exec(card.querySelector('a[href*="/users/"]')?.getAttribute('href') || '')?.[1]) || 0;
+      if (!id || id === me()) continue;
+      const box = card.querySelector('.avatar-card-container') || card;
+      if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
       const host = document.createElement('div');
       host.className = 'ronote-fm';
       const sh = host.attachShadow({ mode: 'closed' });
       sh.innerHTML = `<style>${BTN_CSS}</style><button type="button" aria-haspopup="menu" aria-expanded="false"
         title="${esc(L('Actions RoNote', 'RoNote actions'))}">${DOTS}</button>`;
       const btn = sh.querySelector('button');
-      const name = () => (card.querySelector('[class*="username" i], [class*="handle" i]')?.textContent
-        || [...card.querySelectorAll('*')].map(e => e.childNodes.length === 1 && e.textContent.trim()).find(t => t && t.startsWith('@')) || '')
-        .trim().replace(/^@/, '');
-      const display = () => (a.textContent || '').trim() || name();
-      btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); toggle(btn, { id, name: name(), display: display(), card }); });
-      card.append(host);
+      // La carte entière ouvre le profil : le clic sur ⋯ ne doit pas remonter jusqu'à elle.
+      for (const ev of ['click', 'mousedown', 'pointerdown', 'mouseup']) host.addEventListener(ev, e => e.stopPropagation());
+      const ctx = () => {
+        const name = [...card.querySelectorAll('.avatar-card-label')].map(text).find(t => t.startsWith('@')) || '';
+        return { id, name: name.replace(/^@/, '').split(/\s/)[0], display: text(card.querySelector('.avatar-name, .avatar-card-name')) || name, card };
+      };
+      btn.addEventListener('click', e => { e.preventDefault(); toggle(btn, ctx()); });
+      box.append(host);
     }
   }
 
@@ -225,7 +215,7 @@
     }
   }
 
-  document.addEventListener('pointerdown', e => { if (openFor && !e.composedPath().some(n => n === menu || n === openFor.btn)) close(); }, true);
+  document.addEventListener('pointerdown', e => { if (openFor && !e.composedPath().some(n => n === menu || n === openFor.btn.getRootNode().host)) close(); }, true);
   addEventListener('scroll', () => { if (openFor) place(); }, { passive: true, capture: true });
   addEventListener('resize', () => openFor && place());
   addEventListener('hashchange', close);
