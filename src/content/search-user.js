@@ -34,7 +34,10 @@
     *{box-sizing:border-box}
     .c{display:flex;align-items:center;gap:12px;padding:10px 14px;color:#f3f0ff;text-decoration:none;
       font:14px/1.3 "Builder Sans","Gotham SSm",system-ui,sans-serif;font-variant-numeric:tabular-nums;
-      background:linear-gradient(90deg,rgba(167,139,250,.22),rgba(125,211,252,.10));border-bottom:1px solid rgba(255,255,255,.1)}
+      background:linear-gradient(90deg,rgba(167,139,250,.22),rgba(125,211,252,.10));border-bottom:1px solid rgba(255,255,255,.1);
+      transition:background .15s}
+    .c:hover{background:linear-gradient(90deg,rgba(167,139,250,.32),rgba(125,211,252,.16))}
+    :host([data-row]) .c{padding:8px 16px}
     .av{flex:none;width:48px;height:48px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.1)}
     .id{min-width:0;flex:1 1 auto}
     .dn{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -94,18 +97,33 @@
       // Un clic dans la fiche ne doit pas fermer la liste avant la navigation.
       host.addEventListener('mousedown', e => e.preventDefault());
     }
-    const box = input.closest('form, [class*="search" i]')?.parentElement || input.parentElement;
-    const list = box?.querySelector('ul[class*="dropdown" i], [role="listbox"], ul');
+    // La ligne « … in People » (lien vers /search/users) : sa liste est celle des choix de Roblox.
+    const people = document.querySelector('a[href*="/search/users" i], [href*="search/users" i]');
+    let row = people;
+    while (row && row.parentElement && row.parentElement.children.length < 3) row = row.parentElement;
+    const list = row?.parentElement;
     if (list) {
-      if (host.parentNode !== list || list.firstChild !== host) list.prepend(host);
-      host.style.cssText = 'list-style:none';
+      if (list.firstElementChild !== host) list.insertBefore(host, list.firstElementChild);
+      host.style.cssText = 'list-style:none;display:block;width:100%';
+      host.dataset.row = '1';
+      watch(list);
     } else {
+      delete host.dataset.row;
       const r = input.getBoundingClientRect();
       if (host.parentNode !== document.body) document.body.append(host);
       host.style.cssText = `position:fixed;z-index:2147483000;left:${r.left}px;top:${r.bottom + 4}px;width:${Math.max(r.width, 360)}px;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,.35)`;
     }
   }
-  function hide() { host?.remove(); shown = ''; }
+  // Roblox redessine sa liste à chaque frappe : on se remet en tête si on en est sorti.
+  let mo = null, watched = null;
+  function watch(list) {
+    if (watched === list) return;
+    mo?.disconnect();
+    watched = list;
+    mo = new MutationObserver(() => { if (shown && list.isConnected && list.firstElementChild !== host) list.insertBefore(host, list.firstElementChild); });
+    mo.observe(list, { childList: true });
+  }
+  function hide() { host?.remove(); shown = ''; mo?.disconnect(); mo = null; watched = null; }
 
   async function lookup(q) {
     const me = ++seq;
