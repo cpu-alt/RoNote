@@ -16,6 +16,7 @@ import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
 import { goalHtml, mountGoalEditor } from './goal.js';
 import { openOverlay, captureFocus, releaseFocus } from './overlay.js';
+import { askTwoStepCode } from './twostep.js';
 import { fluidHover } from '../common/fluid.js';
 import {
   setMoneyFormat, seriesText, orderedSeries, toggleSeries, downsample, chartModel, smoothPath,
@@ -964,17 +965,19 @@ async function sendDecline(tradeId, kind) {
 }
 
 /**
- * Accepter un trade reçu. Roblox peut exiger une vérification en deux étapes
- * que l'extension ne sait pas passer : le trade s'ouvre alors sur roblox.com,
- * où l'on finit soi-même (`res.challenge`).
+ * Accepter un trade reçu. Roblox peut exiger une vérification en deux étapes :
+ * le code se tape alors dans une petite fenêtre (twostep.js), puis l'acceptation
+ * repart. Mode que RoNote ne sait pas passer (clé de sécurité) : le trade s'ouvre
+ * sur roblox.com, où l'on finit soi-même (`res.challenge`).
  */
 async function sendAccept(tradeId) {
   const card = findCard(tradeId)?.card;
-  const res = await send({
+  let res = await send({
     type: 'ronote:accept', tradeId,
     partner: card?.partner?.displayName || card?.partner?.name || '',
     partnerId: card?.partner?.id || null
   });
+  if (res?.twoStep?.key) res = await askTwoStepCode(res.twoStep);
   if (res?.ok) {
     forgetTrade(tradeId);
     if (res.state) data.state = res.state;
@@ -1066,6 +1069,7 @@ async function decline(btn, card, kind, wrap, act = 'nix') {
   btn.dataset.armed = '0';
   btn.classList.remove('armed');
   btn.innerHTML = act === 'ok' ? `${ic('check')} ${idle}` : idle;
+  if (res?.cancelled) return;
   msg.hidden = false;
   msg.className = 'z-msg err';
   msg.textContent = res?.challenge
@@ -1119,6 +1123,7 @@ async function quickAct(btn, tradeId, kind, act) {
   }
   btn.disabled = false;
   disarmAct(btn);
+  if (res?.cancelled) return;
   btn.title = res?.challenge
     ? t('Roblox demande une vérification : le trade s\'est ouvert sur roblox.com, accepte-le là-bas.')
     : t('Échec : {why}', { why: res?.error || '?' });

@@ -1515,6 +1515,7 @@ const EN = {
   "Code incorrect, réessaie.": "Wrong code, try again.",
   "La vérification a expiré : renvoie la contre-offre.": "Verification expired: send the counter again.",
   "Impossible de renvoyer le code.": "Couldn't resend the code.",
+  "La vérification a expiré : recommence.": "Verification expired: try again.",
 };
 
 const DICT = { en: EN };

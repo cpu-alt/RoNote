@@ -19,8 +19,8 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
-      item("Contre-offre : quand Roblox demande ton code de vérification, tu le tapes directement dans RoNote ; la contre-offre part ensuite toute seule.",
-        "Counter-offers: when Roblox asks for your verification code, type it right in RoNote; the counter is then sent on its own."),
+      item("Contre-offre et Accepter : quand Roblox demande ton code de vérification, tu le tapes directement dans RoNote ; le trade part ensuite tout seul.",
+        "Counter and Accept: when Roblox asks for your verification code, type it right in RoNote; the trade then goes through on its own."),
       item("Tape le pseudo exact d'un joueur dans la recherche Roblox : il apparaît en tête des choix, avec présence, value, RAP, rang, ancienneté et tes trades avec lui.",
         "Type a player's exact username in the Roblox search: they show first in the choices, with presence, value, RAP, rank, account age and your trades with them."),
       item("Depuis cette ligne : Profil, Trade, Rolimon's et favori RoNote en un clic.",

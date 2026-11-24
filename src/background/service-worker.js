@@ -1735,7 +1735,7 @@ async function handleMessage(msg, sender = null) {
       const id = Number(msg.tradeId);
       if (!id) return { error: 'identifiant de trade invalide' };
       try {
-        const res = await api.acceptTrade(id);
+        const res = await api.acceptTrade(id, msg.challengeHeaders || {});
         // Le trade va réapparaître en « Completed » : on le marque déjà vu, sinon
         // on s'alerterait de son propre geste. Le flux Inactive reste surveillé :
         // si Roblox le rejette ensuite (« Rejected due to an error »), l'alerte part.
@@ -1754,7 +1754,7 @@ async function handleMessage(msg, sender = null) {
         }]);
         return { ok: true, via: res.via, state };
       } catch (e) {
-        if (e?.challenge) return { challenge: true, error: String(e.message || e) };
+        if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };
       }
     }

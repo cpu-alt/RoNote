@@ -5,9 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
-- **Contre-offre et vérification en deux étapes** : quand Roblox demande le code (application, e-mail ou SMS), le
-  popup l'affiche et le demande au lieu d'une erreur ; la contre-offre repart toute seule une fois le code validé.
-  Protocole dans `docs/technique.md` (« Vérification en deux étapes pendant une contre-offre »).
+- **Contre-offre, Accepter et vérification en deux étapes** : quand Roblox demande le code (application, e-mail ou
+  SMS), le popup le demande au lieu d'une erreur (panneau dans l'éditeur de contre-offre, petite fenêtre `twostep.js`
+  pour Accepter) ; l'action repart toute seule une fois le code validé.
+  Protocole dans `docs/technique.md` (« Vérification en deux étapes (contre-offre, Accepter) »).
 - **Page d'accueil** (`welcome/`) : ouverte une fois à l'installation à la place de la notification. En anglais par
   défaut (français si choisi dans les réglages, ou sélecteur EN / FR). « Vidéo » en HTML pilotée par une ligne de temps
   (lecture / pause, barre, chapitres, sous-titres) imitant Chrome, avec une capture du vrai popup

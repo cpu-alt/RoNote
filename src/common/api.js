@@ -668,11 +668,11 @@ export function declineTrade(tradeId) {
  * etapes avant d'accepter : l'extension ne sait pas la passer, elle le dit
  * (`ApiError#challenge`) et le popup ouvre le trade sur roblox.com.
  */
-export async function acceptTrade(tradeId) {
+export async function acceptTrade(tradeId, headers = {}) {
   const id = String(tradeId).replace(/[^0-9]/g, '');
   if (!id) throw new ApiError('identifiant de trade invalide', 0);
   try {
-    return await apiPost(`${TRADES}/trades/${id}/accept`);
+    return await apiPost(`${TRADES}/trades/${id}/accept`, {}, headers);
   } catch (e) {
     if (isChallenge(e)) e.challenge ||= true;
     throw e;

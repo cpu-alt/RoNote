@@ -504,9 +504,10 @@ const mockRuntime = {
       }
       case 'ronote:accept': {
         // ?challenge=1 : Roblox exige une vérification en deux étapes, pour voir ce cas.
-        if (new URLSearchParams(location.search).has('challenge')) {
+        if (new URLSearchParams(location.search).has('challenge') && !msg.passed) {
+          PENDING_COUNTER = msg;
           log.textContent = '→ trade #' + msg.tradeId + ' : vérification demandée par Roblox (simulation)';
-          return { challenge: true, error: 'Challenge is required to authorize the request' };
+          return { twoStep: { key: 'demo', media: new URLSearchParams(location.search).get('challenge') === 'email' ? 'email' : 'authenticator' } };
         }
         STATE.snapshot.inbound = STATE.snapshot.inbound.filter(x => x.tradeId !== msg.tradeId);
         CARDS.inbound = CARDS.inbound.filter(c => c.tradeId !== msg.tradeId);

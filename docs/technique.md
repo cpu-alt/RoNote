@@ -1221,7 +1221,7 @@ ids (asset et bundle), avec un secours par nom exact (une face peut porter l'anc
 l'id de son bundle dans le catalogue). Profils : « possède » = `offering` + `last.got_items`, « cherche » = `wanting`.
 Les puces des items choisis restent visibles filtres repliés ; le champ et le côté sont dans le panneau.
 
-## Vérification en deux étapes pendant une contre-offre
+## Vérification en deux étapes (contre-offre, Accepter)
 
 Quand Roblox exige la 2SV, l'envoi répond **403** avec trois en-têtes : `rblx-challenge-id`,
 `rblx-challenge-type` (`twostepverification`) et `rblx-challenge-metadata` (JSON en base64 : `userId`,
@@ -1241,6 +1241,8 @@ Le protocole, le même que le site :
 5. On rejoue la contre-offre avec les trois en-têtes (`rblx-challenge-metadata` = base64 de
    `{ verificationToken, rememberDevice: false, challengeId, actionType }`).
 
-Le code ne part que vers Roblox ; rien n'est stocké. L'aperçu du popup simule le défi avec `?challenge=1`
+Accepter suit le même chemin : `askTwoStep` garde le message d'origine, `ronote:2sv` le rejoue tel quel avec les
+en-têtes. Côté popup, l'éditeur de contre-offre a son panneau ; Accepter ouvre `popup/twostep.js` (une petite
+fenêtre par-dessus le zoom). Le code ne part que vers Roblox ; rien n'est stocké. L'aperçu du popup simule le défi avec `?challenge=1`
 (`?challenge=email` pour l'e-mail) : `123456` passe, tout autre code est refusé.
 
