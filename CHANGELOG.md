@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Menu ⋯ des amis** (`content/friends-menu.js`) : trade, profil, Rolimon's, favori, copier pseudo / ID, retirer l'ami
+  (ta liste seulement), bloquer. Requêtes directes vers Roblox avec le jeton CSRF de la page, confirmation en deux clics.
 - **Le joueur dans la recherche** : un pseudo exact tapé dans la recherche de roblox.com se glisse en tête des choix
   de Roblox (`content/search-user.js`) : présence, rang Neuronal, value / RAP / rang, trades avec toi, favori, liens.
   `ronote:search-user` gardé 10 min (présence 1 min), carte de profil 30 min, mémoire d'onglet 2 min.

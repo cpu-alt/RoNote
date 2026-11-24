@@ -108,6 +108,7 @@
         "content/item-page.js",
         "content/profile-card.js",
         "content/search-user.js",
+        "content/friends-menu.js",
         "content/nav-players.js",
         "content/sent-history.js"
       ],
