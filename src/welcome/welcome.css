@@ -181,6 +181,31 @@ h2{margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em}
 .foot{text-align:center;color:var(--faint);font-size:13.5px;margin-top:36px}
 #confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
 
+/* ---------------- Communauté ---------------- */
+.comm{margin-top:48px}
+.comm h2{margin-bottom:16px}
+.comm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.comm-grid{grid-template-columns:1fr}}
+.cc{position:relative;display:flex;align-items:center;gap:16px;padding:20px;border-radius:12px;overflow:hidden;text-decoration:none;color:var(--fg);
+  background:var(--surface);border:1px solid var(--line);transition:border-color .2s,transform .2s}
+.cc::before{content:"";position:absolute;inset:0;opacity:.0;transition:opacity .25s;pointer-events:none}
+.cc:hover{transform:translateY(-2px)}
+.cc:hover::before{opacity:1}
+.dc::before{background:radial-gradient(120% 140% at 0% 0%,rgba(88,101,242,.16),transparent 60%)}
+.web::before{background:radial-gradient(120% 140% at 0% 0%,rgba(61,142,255,.14),transparent 60%)}
+.dc:hover{border-color:rgba(88,101,242,.6)}.web:hover{border-color:rgba(61,142,255,.55)}
+.cl{position:relative;flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:12px}
+.dc .cl{background:#5865f2;color:#fff}.dc .cl i{width:24px;height:24px}
+.web .cl{background:var(--surface-3)}.web .cl img{width:30px;height:30px;object-fit:contain}
+.ct{position:relative;flex:1;min-width:0}
+.ct strong{display:block;font-size:15.5px;font-weight:600}
+.ct small{display:block;margin-top:3px;color:var(--dim);font-size:13.5px;line-height:1.45}
+.go{position:relative;flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;
+  font-size:13.5px;font-weight:600;background:var(--surface-3);transition:background .2s,color .2s}
+.go i{width:13px;height:13px}
+.dc:hover .go{background:#5865f2;color:#fff}.web:hover .go{background:var(--accent-fill);color:#fff}
+@media (max-width:520px){.go span{display:none}}
+
 @keyframes up{from{opacity:0;transform:translateY(10px)}}
 @keyframes pop{from{transform:scale(.7);opacity:0}}
 @media (max-width:640px){.menu{right:8px;width:250px}.pop{right:8px;width:52%}.side{display:none}.tab{width:150px}}

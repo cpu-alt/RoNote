@@ -1497,6 +1497,12 @@ const EN = {
   "Tes trades, ta value et tes alertes s’ouvrent.": "Your trades, value and alerts open up.",
   "Accès complet": "Full access",
   "Gérer les extensions": "Manage extensions",
+  "Rejoins la communauté": "Join the community",
+  "Le serveur Discord": "The Discord server",
+  "Alertes de deals, aide, nouveautés de RoNote et la communauté de traders.": "Deal alerts, help, RoNote news and the trading community.",
+  "Rejoindre": "Join",
+  "Visiter": "Visit",
+  "Le site de Neuronal : le réseau de traders, les deals et tout l’écosystème RoNote.": "Neuronal's website: the trader network, deals and the whole RoNote ecosystem.",
 };
 
 const DICT = { en: EN };
