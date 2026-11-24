@@ -19,8 +19,10 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
-      item("Tape le pseudo exact d'un joueur dans la recherche Roblox : sa fiche (avatar, ancienneté, value, RAP, rang) apparaît en tête, avec Profil et Trade.",
-        "Type a player's exact username in the Roblox search: their card (avatar, account age, value, RAP, rank) shows on top, with Profile and Trade.")
+      item("Tape le pseudo exact d'un joueur dans la recherche Roblox : il apparaît en tête des choix, avec présence, value, RAP, rang, ancienneté et tes trades avec lui.",
+        "Type a player's exact username in the Roblox search: they show first in the choices, with presence, value, RAP, rank, account age and your trades with them."),
+      item("Depuis cette ligne : Profil, Trade, Rolimon's et favori RoNote en un clic.",
+        "From that row: Profile, Trade, Rolimon's and RoNote favorite in one click.")
     ]
   },
   {

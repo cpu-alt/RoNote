@@ -1603,7 +1603,14 @@ async function handleMessage(msg, sender = null) {
       const q = String(msg.query || '').trim().replace(/^@/, '').toLowerCase();
       if (!/^[a-z0-9_]{3,20}$/.test(q)) return { error: 'unknown' };
       const hit = searchCache.get(q);
-      if (hit && Date.now() - hit.at < 600e3) return hit.res;
+      // Présence : rafraîchie après 1 min, le reste de la fiche garde ses 10 min.
+      const withPresence = async (res) => {
+        if (!res?.id || (res.presenceAt && Date.now() - res.presenceAt < 60e3)) return res;
+        const map = await safe(() => api.getPresence([res.id]), null);
+        if (map) Object.assign(res, { presence: map[res.id] ?? 0, presenceAt: Date.now() });
+        return res;
+      };
+      if (hit && Date.now() - hit.at < 600e3) return withPresence(hit.res);
       let res;
       try {
         const u = await api.findUser(q);
@@ -1616,7 +1623,7 @@ async function handleMessage(msg, sender = null) {
       } catch { return { error: 'unreachable' }; }
       if (searchCache.size > 200) searchCache.clear();
       searchCache.set(q, { at: Date.now(), res });
-      return res;
+      return withPresence(res);
     }
     case 'ronote:presence': {
       // Cache d'une minute : la barre de chaque onglet Roblox et le popup demandent la même chose.
