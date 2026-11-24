@@ -2480,11 +2480,25 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 /* ================= Mes items : best price / RAP de mon inventaire (24 nov.) ================= */
 .mi-list { display: grid; gap: 6px; padding: 0 0 8px; }
-.mi-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 7px 10px 7px 7px;
-  border-radius: var(--r-lg); border: 1px solid var(--line-soft); background: var(--surface); color: inherit; font: inherit; text-align: left; cursor: pointer;
-  transition: border-color var(--d-fast), transform var(--d-fast); }
-.mi-row:hover { border-color: var(--line); transform: translateY(-1px); }
-.mi-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mi-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; padding-right: 8px;
+  border-radius: var(--r-lg); border: 1px solid var(--line-soft); background: var(--surface); transition: border-color var(--d-fast); }
+.mi-row:hover { border-color: var(--line); }
+.mi-open { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; min-width: 0; padding: 7px 4px 7px 7px;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-lg); }
+.mi-open:focus-visible, .mi-sell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mi-sell { flex: none; padding: 6px 10px; border-radius: 8px; border: 1px solid #2fd07055; background: #2fd0701a; color: var(--win);
+  font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.mi-sell:hover { background: #2fd07030; }
+.mi-sell.done { border-color: var(--line-soft); background: none; color: var(--dim); cursor: default; }
+.mi-sd-body { padding: 0 12px 4px; display: grid; gap: 6px; }
+.mi-sd-price { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-2); }
+.mi-sd-price span { color: var(--dim); font-size: 11px; }
+.mi-sd-price input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 16px; font-weight: 800; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
+.mi-sd-price i { font-style: normal; color: var(--dim); font-weight: 700; }
+.mi-sd-net { font-size: 11.5px; color: var(--dim); } .mi-sd-net b { color: var(--win); }
+.mi-sd-warn { min-height: 14px; font-size: 11px; color: var(--warn); } .mi-sd-warn.bad { color: var(--loss); font-weight: 700; }
+.mi-sd .tsv-foot { display: flex; align-items: center; gap: 8px; padding: 10px 12px 12px; }
+.mi-sd .tsv-err { flex: 1; }
 .mi-img { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--r-md); background: var(--surface-2); }
 .mi-img img, .mi-img .nc-ph { width: 34px; height: 34px; object-fit: contain; }
 .mi-id { display: grid; gap: 2px; min-width: 0; }
@@ -2499,4 +2513,6 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .mi-num small { font-size: 10.5px; font-weight: 700; }
 .mi-num small.win { color: var(--win); } .mi-num small.loss { color: var(--loss); }
 .mi-foot { margin: 2px 2px 10px; color: var(--faint); font-size: 10.5px; text-align: center; }
-@media (prefers-reduced-motion: reduce) { .mi-row { transition: none; } .mi-row:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mi-row { transition: none; } }
+.mi-sd-price input:focus-visible { outline: none; }
+.mi-sd-price:focus-within { border-color: var(--accent); }

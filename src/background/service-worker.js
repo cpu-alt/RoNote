@@ -1734,6 +1734,21 @@ async function handleMessage(msg, sender = null) {
       }
     }
 
+    // Mettre un de mes items en vente depuis l'onglet Mes items (24 nov.) : `dry` rend le devis
+    // (copies, plancher, frais) pour la confirmation ; sans, une copie part en vente. 2SV comme accepter.
+    case 'ronote:sell': {
+      const fresh = await getState();
+      if (!fresh.userId) return { error: 'non connecté' };
+      const kind = msg.kind === 'bundle' ? 'bundle' : 'asset';
+      try {
+        if (msg.dry) return { quote: await api.resaleQuote(fresh.userId, kind, msg.id) };
+        return await api.putOnSale(fresh.userId, kind, msg.id, msg.price, msg.challengeHeaders || {});
+      } catch (e) {
+        if (e?.challenge && !msg.dry) return askTwoStep(e.challenge, msg);
+        return { error: String(e?.message || e) };
+      }
+    }
+
     // Accepter un trade reçu depuis le popup (deux clics côté interface).
     case 'ronote:accept': {
       const id = Number(msg.tradeId);

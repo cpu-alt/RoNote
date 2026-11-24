@@ -533,10 +533,10 @@ export async function probeTradeDetail(id) {
  * first-party : elle a le cookie, le bon `Origin`, et peut aller chercher elle
  * meme un jeton CSRF frais. C'est le chemin le plus fiable pour une ECRITURE.
  */
-function relayPost(url, body = '{}', extra = {}) {
-  return relayInTabs(url, async (u, b, x) => {
+function relayPost(url, body = '{}', extra = {}, method = 'POST') {
+  return relayInTabs(url, async (u, b, x, m) => {
     const send = (token) => fetch(u, {
-      method: 'POST',
+      method: m,
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...x, ...(token ? { 'x-csrf-token': token } : {}) },
       body: b
@@ -555,7 +555,7 @@ function relayPost(url, body = '{}', extra = {}) {
     } catch (e) {
       return { ok: false, status: 0, body: String(e) };
     }
-  }, { firstAnswer: true, args: [body, extra] });
+  }, { firstAnswer: true, args: [body, extra, method] });
 }
 
 /** Le défi « vérification en deux étapes » d'une réponse Roblox, ou null. */
@@ -568,12 +568,12 @@ function readChallenge([id, type, raw] = []) {
 const challengeOf = (res) => readChallenge(['rblx-challenge-id', 'rblx-challenge-type', 'rblx-challenge-metadata']
   .map(h => res?.headers?.get?.(h) || ''));
 
-async function apiPost(url, payload = {}, extra = {}) {
+async function apiPost(url, payload = {}, extra = {}, method = 'POST') {
   const body = JSON.stringify(payload);
   const send = async () => {
     const headers = { 'Content-Type': 'application/json', ...extra };
     if (csrfToken) headers['x-csrf-token'] = csrfToken;
-    return fetchWithTimeout(url, { method: 'POST', credentials: 'include', headers, body });
+    return fetchWithTimeout(url, { method, credentials: 'include', headers, body });
   };
 
   let res = null, netErr = null;
@@ -592,7 +592,7 @@ async function apiPost(url, payload = {}, extra = {}) {
 
   // Le service worker n'a pas toujours le cookie ni le bon Origin. Depuis un
   // onglet Roblox, la requete est indistinguable de celle du site.
-  const relayed = await relayPost(url, body, extra);
+  const relayed = await relayPost(url, body, extra, method);
   if (relayed?.ok) return { ok: true, via: 'onglet', body: relayed.body || '' };
   const relCh = readChallenge(relayed?.ch);
   if (relCh) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: relCh });
@@ -677,6 +677,57 @@ export async function acceptTrade(tradeId, headers = {}) {
     if (isChallenge(e)) e.challenge ||= true;
     throw e;
   }
+}
+
+/* ===================== mettre un item en vente (24 nov.) =====================
+ * Le chemin du site Roblox lui-même (ItemDetailsLimitedInventory.js, lu le 24/11) :
+ * les limiteds classiques passent aussi par les collectibles.
+ *   1. catalog/v1/catalog/items/details → collectibleItemId ;
+ *   2. marketplace-sales …/get-resale-parameters → frais (30 %, 1 R$ mini) et prix plancher ;
+ *   3. …/resellable-instances?ownerType=User&ownerId= → mes copies (isHeld, saleState) ;
+ *   4. PATCH …/item/{item}/instance/{copie}/resale { price, isOnSale, sellerId, sellerType, collectibleProductId }.
+ * La 2SV (« resale-friction ») revient en en-têtes rblx-challenge-* : même parcours qu'accepter un trade.
+ */
+const SALES = 'https://apis.roblox.com/marketplace-sales/v1/item';
+
+/** Ce qu'il faut savoir avant de confirmer : copies vendables, plancher, frais. */
+export async function resaleQuote(userId, kind, id) {
+  const uid = Number(userId), iid = Number(id);
+  if (!uid || !iid) throw new ApiError('item inconnu', 0);
+  const det = await apiPost(`${CATALOG}/catalog/items/details`, { items: [{ itemType: kind === 'bundle' ? 'Bundle' : 'Asset', id: iid }] });
+  const cid = JSON.parse(det.body || '{}').data?.[0]?.collectibleItemId;
+  if (!cid) throw new ApiError('cet item ne se revend pas', 0);
+  const [params, inst] = await Promise.all([
+    apiGet(`${SALES}/${cid}/get-resale-parameters`),
+    apiGet(`${SALES}/${cid}/resellable-instances?${new URLSearchParams({ cursor: '', ownerType: 'User', ownerId: String(uid), limit: '100' })}`)
+  ]);
+  const copies = inst?.itemInstances || [];
+  const free = copies.filter(c => !c.isHeld && c.saleState !== 'OnSale');
+  return {
+    cid, fee: Number(params?.resalePercentageFee) || 30, minFee: Number(params?.minimumFee) || 1,
+    floor: Number(params?.priceFloor) || 0, owned: copies.length, held: copies.filter(c => c.isHeld).length,
+    onSale: copies.filter(c => c.saleState === 'OnSale').length,
+    copy: free[0] ? { instance: free[0].collectibleInstanceId, product: free[0].collectibleProductId, serial: free[0].serialNumber ?? null } : null
+  };
+}
+
+/** Ce que le vendeur touche : le prix moins les frais Roblox. Exposé pour les tests. */
+export const resaleNet = (price, fee = 30, minFee = 1) => Math.max(0, price - Math.max(minFee, Math.floor(price * fee / 100)));
+
+/** Met UNE copie en vente à `price`. Re-vérifie tout juste avant (copie libre, plancher). */
+export async function putOnSale(userId, kind, id, price, headers = {}) {
+  const p = Math.floor(Number(price));
+  const q = await resaleQuote(userId, kind, id);
+  if (!q.copy) throw new ApiError(q.held ? 'toutes tes copies sont en hold' : 'aucune copie à mettre en vente', 0);
+  if (!(p >= Math.max(1, q.floor))) throw new ApiError(`prix minimum : ${q.floor} R$`, 0);
+  try {
+    await apiPost(`${SALES}/${q.cid}/instance/${q.copy.instance}/resale`,
+      { price: p, isOnSale: true, sellerId: Number(userId), sellerType: 'User', collectibleProductId: q.copy.product }, headers, 'PATCH');
+  } catch (e) {
+    if (isChallenge(e)) e.challenge ||= true;
+    throw e;
+  }
+  return { ok: true, price: p, net: resaleNet(p, q.fee, q.minFee), serial: q.copy.serial };
 }
 
 /** Roblox exige une verification en deux etapes : l'extension ne la passe pas. */

@@ -298,6 +298,12 @@ const mockRuntime = {
       // Fiches Neuronal : Shedletsky est dans la base, Roblox n'y est pas ; tout objet
       // dont l'identifiant est pair y a des trades, les autres non.
       // Mes items : un best price pour la plupart des objets du portefeuille d'exemple (ratio de x0,8 à x2,4).
+      // La vente : un devis (2 copies, dont 1 en hold), puis une 2SV au premier envoi pour voir la fenêtre du code.
+      case 'ronote:sell': {
+        await new Promise(r => setTimeout(r, 400));
+        if (msg.dry) return { quote: { cid: 'x', fee: 30, minFee: 1, floor: 95, owned: 2, held: 1, onSale: 0, copy: { instance: 'i', product: 'p', serial: null } } };
+        return { ok: true, price: msg.price, net: Math.floor(msg.price * 0.7) };
+      }
       case 'ronote:neuronal-bestprices': {
         await new Promise(r => setTimeout(r, 300));
         const items = report.items;

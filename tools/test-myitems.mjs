@@ -13,5 +13,7 @@ const { rows, unlisted } = rowsOf([
 check('ratio = best price / RAP', rows[0].ratio === 1.5 && rows[0].gain === 500);
 check("visage lu par son ancien asset", rows[1]?.bp === 100 && rows[1].ratio === 0.5 && rows[1].gain === -100);
 check('sans vente ou sans RAP : comptés à part', rows.length === 2 && unlisted === 2);
+const { resaleNet } = await import('../src/common/api.js');
+check('vente : 30 % de frais, 1 R$ minimum', resaleNet(200) === 140 && resaleNet(2) === 1 && resaleNet(1) === 0);
 console.log(`\n${passed} réussis, ${failed} échoués`);
 process.exit(failed ? 1 : 0);
