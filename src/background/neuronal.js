@@ -212,21 +212,30 @@ export async function neuronalProfiles(kind, tier, settings) {
  * tout le monde, gardée 60 s comme sur le serveur. Mêmes conditions que les fiches.
  */
 const DEALS_MS = 60e3;
-export async function neuronalDeals(settings, minutes = 0) {
+/** Une liste commune à tous (Deals, best prices), gardée `ms` ici comme sur le serveur. */
+async function sharedList(settings, key, path, ms) {
   if (!settings?.neuronalLookup) return { off: true };
   const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
   if (!granted) return { off: true, permission: false };
-  const key = minutes ? 'deals' + minutes : 'deals';
   const hit = (await cache())[key];
   if (hit && hit.until > Date.now()) return hit.value;
   if (pending.has(key)) return pending.get(key);
-  const run = fetchOne('deals', 0, minutes ? 'deals?minutes=' + minutes : 'deals').then(async (value) => {
-    await remember(key, value, value.data ? DEALS_MS : FAIL_MS);
+  const run = fetchOne(path.split('?')[0], 0, path).then(async (value) => {
+    await remember(key, value, value.data ? ms : FAIL_MS);
     return value;
   }).finally(() => pending.delete(key));
   pending.set(key, run);
   return run;
 }
+
+export const neuronalDeals = (settings, minutes = 0) =>
+  sharedList(settings, minutes ? 'deals' + minutes : 'deals', minutes ? 'deals?minutes=' + minutes : 'deals', DEALS_MS);
+
+/**
+ * 24 nov. : le best price de chaque limited (`/ext/v1/bestprices`, Insider/Elite), pour l'onglet
+ * « Mes items » : le popup le croise avec l'inventaire et le RAP qu'il a déjà. Gardé 60 s.
+ */
+export const neuronalBestPrices = (settings) => sharedList(settings, 'bestprices', 'bestprices', 60e3);
 
 /**
  * La demande des objets (`/ext/v1/demand`) : le classement de Neuronal par trades sur

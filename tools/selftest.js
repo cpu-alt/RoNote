@@ -799,6 +799,7 @@ try {
     await import('../src/popup/coinflip.js');
     await import('../src/popup/profiles.js');
     await import('../src/popup/deals.js');
+    await import('../src/popup/myitems.js');
     await import('../src/popup/tradeads.js');
     await import('../src/popup/nwcard.js');
     await import('../src/popup/itemfilter.js');

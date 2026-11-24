@@ -11,6 +11,7 @@ import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
 import { renderProfiles } from './profiles.js';
 import { renderDeals } from './deals.js';
+import { renderMyItems } from './myitems.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
@@ -2799,6 +2800,8 @@ function renderList() {
   if (tab === 'profiles') { lastListSig = ''; if (entering) renderProfiles(listEl, () => B.runtime.openOptionsPage()); return; }
   // Le Deal Sniper : relu en arrivant, puis chaque minute tant que l'onglet est affiché (deals.js).
   if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
+  // Mes items : le best price de mon inventaire (Insider/Elite), relu en arrivant sur l'onglet (myitems.js).
+  if (tab === 'myitems') { lastListSig = ''; if (entering) renderMyItems(listEl, data.report); return; }
   // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
   if (tab === 'tradeads') { lastListSig = ''; if (entering) tradeAdsMod().then(({ renderTradeAds }) => { if (tab === 'tradeads') renderTradeAds(listEl, data.report); }); return; }
   if (tab === 'home') {
@@ -3313,12 +3316,13 @@ document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
 
 // Profils et Deals partagent l'icône Profils : elle rouvre la vue choisie en dernier.
 const DISCOVER_KEY = 'ronote.discover';
-const discoverView = () => { try { return localStorage.getItem(DISCOVER_KEY) === 'deals' ? 'deals' : 'profiles'; } catch { return 'profiles'; } };
+const DISCOVER_VIEWS = ['profiles', 'deals', 'myitems'];
+const discoverView = () => { try { const v = localStorage.getItem(DISCOVER_KEY); return DISCOVER_VIEWS.includes(v) ? v : 'profiles'; } catch { return 'profiles'; } };
 document.querySelectorAll('.tab').forEach(el => {
   el.addEventListener('click', (e) => {
     // un clic de l'utilisateur sur l'icône (pas selectTab) : la dernière vue, Profils ou Deals
-    if (el.dataset.tab === 'profiles' && e.isTrusted && discoverView() === 'deals' && tab !== 'profiles') { selectTab('deals'); return; }
-    if (el.dataset.tab === 'profiles' || el.dataset.tab === 'deals') { try { localStorage.setItem(DISCOVER_KEY, el.dataset.tab); } catch { /* privé */ } }
+    if (el.dataset.tab === 'profiles' && e.isTrusted && discoverView() !== 'profiles' && tab !== 'profiles') { selectTab(discoverView()); return; }
+    if (DISCOVER_VIEWS.includes(el.dataset.tab)) { try { localStorage.setItem(DISCOVER_KEY, el.dataset.tab); } catch { /* privé */ } }
     document.querySelectorAll('.tab').forEach(x => {
       x.classList.remove('active');
       x.setAttribute('aria-selected', 'false');

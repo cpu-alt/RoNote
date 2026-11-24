@@ -2477,3 +2477,26 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .nc-hg { position: absolute; top: 1px; left: 2px; font-size: 9px; font-style: normal; line-height: 1; }
 .nc-gone { opacity: .35; }
 .nc-gone .nc-v { text-decoration: line-through; }
+
+/* ================= Mes items : best price / RAP de mon inventaire (24 nov.) ================= */
+.mi-list { display: grid; gap: 6px; padding: 0 0 8px; }
+.mi-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 7px 10px 7px 7px;
+  border-radius: var(--r-lg); border: 1px solid var(--line-soft); background: var(--surface); color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: border-color var(--d-fast), transform var(--d-fast); }
+.mi-row:hover { border-color: var(--line); transform: translateY(-1px); }
+.mi-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mi-img { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--r-md); background: var(--surface-2); }
+.mi-img img, .mi-img .nc-ph { width: 34px; height: 34px; object-fit: contain; }
+.mi-id { display: grid; gap: 2px; min-width: 0; }
+.mi-id > b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12.5px; }
+.mi-id small { color: var(--dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.mi-id small b { color: var(--text); font-weight: 750; }
+.mi-num { display: grid; justify-items: end; gap: 2px; font-variant-numeric: tabular-nums; }
+.mi-ratio { padding: 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--surface-3); }
+.mi-ratio.hot { background: #2fd07026; color: var(--win); }
+.mi-ratio.up { color: var(--text); }
+.mi-ratio.down { color: var(--dim); }
+.mi-num small { font-size: 10.5px; font-weight: 700; }
+.mi-num small.win { color: var(--win); } .mi-num small.loss { color: var(--loss); }
+.mi-foot { margin: 2px 2px 10px; color: var(--faint); font-size: 10.5px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .mi-row { transition: none; } .mi-row:hover { transform: none; } }

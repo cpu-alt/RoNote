@@ -297,6 +297,14 @@ const mockRuntime = {
         return { history: [...HISTORY, ...demoMonths()] };
       // Fiches Neuronal : Shedletsky est dans la base, Roblox n'y est pas ; tout objet
       // dont l'identifiant est pair y a des trades, les autres non.
+      // Mes items : un best price pour la plupart des objets du portefeuille d'exemple (ratio de x0,8 à x2,4).
+      case 'ronote:neuronal-bestprices': {
+        await new Promise(r => setTimeout(r, 300));
+        const items = report.items;
+        const prices = {};
+        items.forEach((i, n) => { if (n % 5 !== 4 && i.rap) prices[String(i.id)] = Math.round(i.rap * (0.8 + (n * 37 % 17) / 10)); });
+        return { data: { v: 1, at: Date.now() / 1000, prices } };
+      }
       case 'ronote:neuronal-profiles': {
         await new Promise(r => setTimeout(r, 300));
         const now = Date.now() / 1000;

@@ -18,7 +18,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
+import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalBestPrices, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
@@ -1370,6 +1370,10 @@ async function handleMessage(msg, sender = null) {
     // L'onglet Deals du popup : le Deal Sniper de Neuronal.
     case 'ronote:neuronal-deals':
       return neuronalDeals(await getSettings(), Number(msg.minutes) || 0);
+
+    // L'onglet Mes items du popup : le best price de chaque limited (Insider/Elite).
+    case 'ronote:neuronal-bestprices':
+      return neuronalBestPrices(await getSettings());
 
     // RoNote premium (premium.js) : la carte Premium des réglages. Connecté ou déconnecté,
     // les réponses Neuronal gardées (refus compris) sont oubliées, et les fiches s'allument.
