@@ -5,8 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
-- **Page d'accueil** (`welcome/`) : ouverte une fois à l'installation à la place de la notification ; merci, guide
-  animé pour épingler l'icône, détection en direct via `action.getUserSettings` (Chrome / Edge, pas Firefox).
+- **Page d'accueil** (`welcome/`) : ouverte une fois à l'installation à la place de la notification. En anglais par
+  défaut (français si choisi dans les réglages, ou sélecteur EN / FR). « Vidéo » en HTML pilotée par une ligne de temps
+  (lecture / pause, barre, chapitres, sous-titres), figée hors écran ; détection de l'épingle via
+  `action.getUserSettings` (Chrome / Edge, pas Firefox) et confettis.
 - **Menu ⋯ des amis** (`content/friends-menu.js`) : trade, profil, Rolimon's, favori, copier pseudo / ID, retirer l'ami
   (ta liste seulement), bloquer. Requêtes directes vers Roblox avec le jeton CSRF de la page, confirmation en deux clics.
 - **Le joueur dans la recherche** : un pseudo exact tapé dans la recherche de roblox.com se glisse en tête des choix

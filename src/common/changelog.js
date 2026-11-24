@@ -23,8 +23,8 @@ export const RELEASES = [
         "Type a player's exact username in the Roblox search: they show first in the choices, with presence, value, RAP, rank, account age and your trades with them."),
       item("Depuis cette ligne : Profil, Trade, Rolimon's et favori RoNote en un clic.",
         "From that row: Profile, Trade, Rolimon's and RoNote favorite in one click."),
-      item("À l'installation, une page d'accueil remercie et montre comment épingler RoNote (elle passe au vert une fois l'icône épinglée).",
-        "On install, a welcome page says thanks and shows how to pin RoNote (it turns green once the icon is pinned)."),
+      item("À l'installation, une page d'accueil remercie et montre en vidéo comment épingler RoNote ; confettis une fois l'icône épinglée.",
+        "On install, a welcome page says thanks and shows in a short video how to pin RoNote; confetti once the icon is pinned."),
       item("Liste d'amis : un menu ⋯ sur chaque carte pour envoyer un trade, ouvrir Rolimon's, mettre en favori, copier le pseudo, retirer l'ami ou le bloquer (avec confirmation).",
         "Friends list: a ⋯ menu on each card to send a trade, open Rolimon's, favorite, copy the username, unfriend or block (with confirmation).")
     ]
