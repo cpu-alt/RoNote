@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Le joueur dans la recherche** : un pseudo exact tapé dans la recherche de roblox.com affiche une fiche en tête
+  de la liste (`content/search-user.js`, message `ronote:search-user` gardé 10 min, puis la carte de profil en cache).
+  Suit le réglage « Carte de profil ».
 - **Relais sans limite** (2.17.32) : durée « Sans limite » par défaut (`hours: 0`) ; le serveur s'arrête à la reprise,
   au refus d'une session par le site ou à la fin de l'accès. 8, 12 et 24 h restent proposés. PRIVACY mis à jour.
 - **Trade ads pendant que tu dors** (2.17.31) : carte « Pendant que tu dors » (4, 8, 12 ou 24 h). Permission

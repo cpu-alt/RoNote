@@ -1164,6 +1164,7 @@ async function uiData({ lite = false } = {}) {
 }
 
 const presenceCache = { key: '', at: 0, map: {} };
+const searchCache = new Map();
 
 async function handleMessage(msg, sender = null) {
   switch (msg.type) {
@@ -1595,6 +1596,27 @@ async function handleMessage(msg, sender = null) {
       let hit = null;
       try { hit = await api.findUser(msg.query); } catch { return { error: 'unreachable' }; }
       return hit ? { ...hit, thumb: await api.getUserHeadshot(hit.id) } : { error: 'unknown' };
+    }
+    case 'ronote:search-user': {
+      // Barre de recherche Roblox : un pseudo exact → la fiche du joueur. 10 min en mémoire,
+      // car on retape souvent le même nom ; « personne » est aussi gardé.
+      const q = String(msg.query || '').trim().replace(/^@/, '').toLowerCase();
+      if (!/^[a-z0-9_]{3,20}$/.test(q)) return { error: 'unknown' };
+      const hit = searchCache.get(q);
+      if (hit && Date.now() - hit.at < 600e3) return hit.res;
+      let res;
+      try {
+        const u = await api.findUser(q);
+        if (!u) res = { error: 'unknown' };
+        else {
+          const [p, thumb] = await Promise.all([safe(() => api.getUserProfile(u.id), null), api.getUserHeadshot(u.id)]);
+          res = { id: u.id, name: p?.name || u.name, displayName: p?.displayName || '', created: p?.created || 0,
+            banned: !!p?.banned, verified: !!p?.verified, thumb: thumb || '' };
+        }
+      } catch { return { error: 'unreachable' }; }
+      if (searchCache.size > 200) searchCache.clear();
+      searchCache.set(q, { at: Date.now(), res });
+      return res;
     }
     case 'ronote:presence': {
       // Cache d'une minute : la barre de chaque onglet Roblox et le popup demandent la même chose.

@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item('Le joueur dans la recherche', 'Player in the search bar'),
+    items: [
+      item("Tape le pseudo exact d'un joueur dans la recherche Roblox : sa fiche (avatar, ancienneté, value, RAP, rang) apparaît en tête, avec Profil et Trade.",
+        "Type a player's exact username in the Roblox search: their card (avatar, account age, value, RAP, rank) shows on top, with Profile and Trade.")
+    ]
+  },
+  {
     version: '2.17.32',
     title: item('Relais sans limite', 'Relay with no limit'),
     items: [

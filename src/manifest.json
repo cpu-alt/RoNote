@@ -107,6 +107,7 @@
         "content/trade-list.js",
         "content/item-page.js",
         "content/profile-card.js",
+        "content/search-user.js",
         "content/nav-players.js",
         "content/sent-history.js"
       ],
