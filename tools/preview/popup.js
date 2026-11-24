@@ -307,8 +307,9 @@ const mockRuntime = {
         const last = (gave, got, gv, gt) => ({ id: 1, at: now - 240, gave_items: gave, got_items: got, gave_more: 0, got_more: 0, gave: gv, got: gt, parts: 1 });
         const all = [
           { id: 21, name: 'QuietSwapper', ads: 0, tier: 'ghost', at: now - 240, value: 184000, ronote: true, partner: { id: 22, name: 'Telamon' }, trade: 1,
-            last: { ...last([it(1, 'Domino Crown', 52000), it(2, 'Sparkle Time Fedora', 9100, 2)], [it(3, 'Valkyrie Helm', 71000)], 70200, 71000), got_robux: 1200, via_ronote: true } },
-          { id: 23, name: 'FirstAdGuy', ads: 1, tier: 'rookie', at: now - 900, value: 32000, offering: [it(4, 'Clockwork Shades', 18000), it(5, 'Bucket', 4200)], wanting: [it(6, 'Tailflipped Cap', 0)] },
+            last: { ...last([it(1, 'Domino Crown', 52000), it(2, 'Sparkle Time Fedora', 9100, 2)], [it(3, 'Valkyrie Helm', 71000), { ...it(11, 'Bombastic Hat', 900), gone: true }], 70200, 71900), got_robux: 1200, via_ronote: true } },
+          { id: 23, name: 'FirstAdGuy', ads: 1, tier: 'rookie', at: now - 900, value: 32000, roli_verified: true, offering: [it(4, 'Clockwork Shades', 18000), { ...it(5, 'Bucket', 4200), hold: '1d 4h' }, it(7, 'Purple Banded Top Hat', 6100), it(8, 'Red Baseball Cap', 2500)], wanting: [it(6, 'Tailflipped Cap', 0)] },
+          { id: 28, name: 'Laterfdh', ads: 4, tier: 'novice', at: now - 60, value: 14000, roli_verified: false, offering: [it(9, 'Black Iron Antlers', 6000), { ...it(10, 'Emerald Wings', 3500), hold: true }] },
           { id: 24, name: 'midnight_rap', ads: 4, tier: 'novice', at: now - 3600, value: 71500, partner: { id: 25, name: 'Builderman' }, trade: 2 },
           { id: 26, name: 'ValkFlipper', ads: 22, tier: 'casual', at: now - 7200, value: 1240000, ronote: true },
           { id: 27, name: 'shadow_lim', ads: 0, tier: 'ghost', at: now - 10800, value: 9800 }
