@@ -61,8 +61,8 @@ function player() {
     { t: 3100, at: '#pinb' },
     { t: 4450, at: '#slot' },
     { t: 5000, at: '#slot' },
-    { t: 6200, at: '#pop .tr', dx: -40, dy: 4 },
-    { t: D, at: '#pop .tr', dx: -40, dy: 4 }
+    { t: 6200, at: '#pop', dx: -30, dy: 40 },
+    { t: D, at: '#pop', dx: -30, dy: 40 }
   ];
   const ease = (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
   function point(k) {
@@ -162,7 +162,10 @@ function player() {
   document.addEventListener('visibilitychange', sync);
   addEventListener('resize', () => draw(pos, null));
 
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { wanted = false; seek(6200); }
+  // `#t=6000` : la scène figée à cet instant (aperçus, captures pour les stores).
+  const frozen = Number(/[#&]t=(\d+)/.exec(location.hash)?.[1]);
+  if (frozen >= 0 && location.hash) { wanted = false; seek(frozen); }
+  else if (matchMedia('(prefers-reduced-motion: reduce)').matches) { wanted = false; seek(6200); }
   else draw(0, null);
   sync();
 }

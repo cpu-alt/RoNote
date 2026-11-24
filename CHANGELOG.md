@@ -7,7 +7,8 @@ l'utilisateur, pas la liste des commits.
 
 - **Page d'accueil** (`welcome/`) : ouverte une fois à l'installation à la place de la notification. En anglais par
   défaut (français si choisi dans les réglages, ou sélecteur EN / FR). « Vidéo » en HTML pilotée par une ligne de temps
-  (lecture / pause, barre, chapitres, sous-titres), figée hors écran ; détection de l'épingle via
+  (lecture / pause, barre, chapitres, sous-titres) imitant Chrome, avec une capture du vrai popup
+  (`popup-demo.webp`, 35 Ko), style Neuronal ; `#t=6000` fige la scène pour les captures ; détection de l'épingle via
   `action.getUserSettings` (Chrome / Edge, pas Firefox) et confettis.
 - **Menu ⋯ des amis** (`content/friends-menu.js`) : trade, profil, Rolimon's, favori, copier pseudo / ID, retirer l'ami
   (ta liste seulement), bloquer. Requêtes directes vers Roblox avec le jeton CSRF de la page, confirmation en deux clics.

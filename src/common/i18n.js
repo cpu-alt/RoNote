@@ -1473,7 +1473,6 @@ const EN = {
   "Bon trade !": "Happy trading!",
   "Merci de ta confiance.": "Thanks for trusting us.",
   "RoNote surveille tes trades Roblox, te prévient des nouveaux et te montre ce qu'ils valent vraiment.": "RoNote watches your Roblox trades, alerts you to new ones and shows what they're really worth.",
-  "Étape 1 sur 1": "One quick step",
   "Épinglée": "Pinned",
   "Lecture": "Play",
   "Progression": "Progress",
@@ -1493,6 +1492,11 @@ const EN = {
   "Tape un pseudo dans la recherche Roblox : sa value et son rang apparaissent.": "Type a username in the Roblox search: their value and rank show up.",
   "Prêt ?": "Ready?",
   "Connecte-toi sur roblox.com : la surveillance démarre toute seule. Les trades déjà présents ne déclencheront aucune alerte.": "Log in on roblox.com: tracking starts on its own. Trades already there won't trigger any alert.",
+  "Clique sur la pièce de puzzle, en haut à droite du navigateur.": "Click the puzzle piece at the top right of your browser.",
+  "Clique sur l’épingle à côté de RoNote.": "Click the pin next to RoNote.",
+  "Tes trades, ta value et tes alertes s’ouvrent.": "Your trades, value and alerts open up.",
+  "Accès complet": "Full access",
+  "Gérer les extensions": "Manage extensions",
 };
 
 const DICT = { en: EN };
