@@ -122,7 +122,7 @@
     if (meta?.content) sendToken(meta.content);
   } catch { /* ignore */ }
   // Le bouton ▶ des vignettes (content/play-button.js) : le même lancement que le bouton Play de Roblox.
-  window.addEventListener('message', (e) => {
+  window.addEventListener?.('message', (e) => {
     const d = e.data;
     if (e.source !== window || e.origin !== location.origin || d?.__ronote !== 'play' || !/^\d{1,20}$/.test(String(d.placeId || ''))) return;
     const id = String(d.placeId);
