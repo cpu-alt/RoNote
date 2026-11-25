@@ -19,6 +19,10 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("Un bouton ▶ dans le coin de chaque jeu sur roblox.com (accueil, Charts, recherche) : le jeu se lance directement.",
+        "A ▶ button in the corner of every game on roblox.com (home, Charts, search): the game launches right away."),
+      item("Profils : les comptes de stockage (skin Roblox de base, vus dans un transfert) portent le badge Stockage, et un filtre permet de les exclure.",
+        "Profiles: storage accounts (default Roblox skin, seen in a transfer) carry a Storage badge, and a filter can hide them."),
       item("Contre-offre et Accepter : quand Roblox demande ton code de vérification, tu le tapes directement dans RoNote ; le trade part ensuite tout seul.",
         "Counter and Accept: when Roblox asks for your verification code, type it right in RoNote; the trade then goes through on its own."),
       item("Tape le pseudo exact d'un joueur dans la recherche Roblox : il apparaît en tête des choix, avec présence, value, RAP, rang, ancienneté et tes trades avec lui.",

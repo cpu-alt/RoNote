@@ -64,6 +64,7 @@ function pick() {
     // plusieurs paliers à la fois (5 novembre) ; l'ancien choix unique `tier` est repris
     tiers: (Array.isArray(p.tiers) ? p.tiers : p.tier ? [p.tier] : []).filter(k => TIERS.includes(k)),
     min: MINS.includes(p.min) ? p.min : 0,
+    noStorage: p.noStorage === true,           // 25 nov. : cacher les comptes de stockage (skin de base + transfert, vus par Neuronal)
     open: p.open === true                       // les filtres dépliés (repliés d'office : la liste d'abord)
   };
 }
@@ -99,7 +100,7 @@ function toolbarHtml(p, count) {
   return `<div class="pf-head">${discoverSwitch('profiles', live)}
     <div class="pf-bar"><div class="pf-seg" role="radiogroup" aria-label="${escapeHtml(t('Liste'))}">${SOURCES.map(([k, label]) =>
       chip('data-pf-src', k, t(label), k === p.src)).join('')}</div>
-      ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0) + itemFilterCount('profiles'))}</div>
+      ${filterToggle('data-pf-ftog', p.open, p.tiers.length + (p.min ? 1 : 0) + (p.noStorage ? 1 : 0) + itemFilterCount('profiles'))}</div>
     ${itemChipsHtml('profiles')}
     ${p.open ? '<div class="pf-fp">' + autoFillRow() + itemFilterHtml('profiles') : ''}
     ${p.open ? `<div class="pf-row" role="group" aria-label="${escapeHtml(t('Paliers'))}">
@@ -107,7 +108,9 @@ function toolbarHtml(p, count) {
         chip('data-pf-tier', k, escapeHtml(k), p.tiers.includes(k), 't-' + k, 'checkbox')).join('')}</div>
     <div class="pf-row pf-min" role="radiogroup" aria-label="${escapeHtml(t('Inventaire minimum'))}">
       <span class="pf-lbl">${t('Inventaire minimum')}</span>${MINS.map(v =>
-        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div></div>` : ''}
+        chip('data-pf-min', v, v ? fmtNum(v) + '+' : t('Tout'), v === p.min)).join('')}</div>
+    <div class="pf-row" role="group" aria-label="${escapeHtml(t('Comptes de stockage'))}">
+      <span class="pf-lbl" title="${escapeHtml(t('Skin Roblox de base et vu dans un transfert : un compte qui sert à stocker ou déplacer des items'))}">${t('Comptes de stockage')}</span>${chip('data-pf-stk', '0', t('Montrer'), !p.noStorage)}${chip('data-pf-stk', '1', t('Exclure'), p.noStorage)}</div></div>` : ''}
   </div>`;
 }
 
@@ -131,7 +134,8 @@ function cardHtml(p, both, isNew = false) {
   const body = p.last ? nwTradeLine({ ...p.last, partner: p.partner })
     : p.offering?.length || p.wanting?.length ? adHtml(p) : '';
   const meta = [ads, timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
-  const badges = (p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : '')
+  const badges = (p.storage ? `<span class="pf-stk" title="${escapeHtml(t('Skin Roblox de base et vu dans un transfert : un compte qui sert à stocker ou déplacer des items'))}">${t('Stockage')}</span>` : '')
+    + (p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : '')
     + (p.roli_verified ? `<span class="pf-ver" title="${escapeHtml(t("Badge Verified sur son profil Rolimon's"))}">✓ ${t('Vérifié')}</span>` : '')
     + (p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : '')
     + knownBadge(id);
@@ -169,7 +173,7 @@ function merge(p, ok) {
   // Objets : « possède » = ce que son annonce propose ou ce qu'il vient de recevoir ; « cherche » = son annonce.
   const byItem = itemMatcher('profiles');
   return [...byId.values()]
-    .filter(x => (!p.tiers.length || p.tiers.includes(x.tier)) && (!p.min || (x.value || 0) >= p.min)
+    .filter(x => (!p.tiers.length || p.tiers.includes(x.tier)) && (!p.min || (x.value || 0) >= p.min) && !(p.noStorage && x.storage)
       && (!byItem || byItem({ get: [...(x.offering || []), ...(x.last?.got_items || [])], give: x.wanting })))
     .sort((a, b) => b.at - a.at);
 }
@@ -285,7 +289,7 @@ export function renderProfiles(listEl, openOptions) {
       }
       if (e.target.closest('[data-autofill]')) { e.preventDefault(); toggleAutoFill(); load(listEl); return; }
       if (e.target.closest('[data-pf-ftog]')) { const p = pick(); p.open = !p.open; delete p.tier; write(p); load(listEl); return; }
-      const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min]');
+      const el = e.target.closest('[data-pf-src], [data-pf-tier], [data-pf-min], [data-pf-stk]');
       if (!el) return;
       const p = pick();
       if (el.dataset.pfSrc !== undefined) {
@@ -297,6 +301,7 @@ export function renderProfiles(listEl, openOptions) {
         p.tiers = !k ? [] : p.tiers.includes(k) ? p.tiers.filter(x => x !== k) : [...p.tiers, k];
         if (p.tiers.length === TIERS.filter(x => x !== 'ghost' || p.src !== 'classic').length) p.tiers = [];
       }
+      else if (el.dataset.pfStk !== undefined) p.noStorage = el.dataset.pfStk === '1';
       else p.min = Number(el.dataset.pfMin) || 0;
       delete p.tier;
       write(p);

@@ -1954,6 +1954,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-nl { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .pf-nl b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-id small { display: block; margin-top: 1px; color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-stk { flex: none; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(240, 173, 78, .45); background: rgba(240, 173, 78, .12); color: #f0ad4e; font-size: 9px; font-weight: 700; letter-spacing: .3px; }
 .pf-rn { flex: none; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(61, 142, 255, .45); background: rgba(61, 142, 255, .12); color: #3d8eff; font-size: 9px; font-weight: 700; letter-spacing: .3px; }
 .pf-side { flex: none; display: grid; justify-items: end; gap: 3px; }
 .pf-val { font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -2341,7 +2342,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-nl b { font-size: 13px; font-weight: 750; }
 .pf-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
 .pf-meta small { flex: 0 1 auto; min-width: 0; color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-meta .pf-rn, .pf-meta .pf-unv, .pf-meta .pf-known { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; vertical-align: 0; }
+.pf-meta .pf-rn, .pf-meta .pf-unv, .pf-meta .pf-known, .pf-meta .pf-stk { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; vertical-align: 0; }
 .pf-meta .pf-rn { line-height: 13px; }
 .pf-nl { overflow: hidden; }
 .pf-right { flex: none; display: grid; justify-items: end; gap: 4px; }

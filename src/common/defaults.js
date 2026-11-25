@@ -92,6 +92,7 @@ export const DEFAULTS = {
   bannerShow: 'both',         // both | value | rap
   bannerFormat: 'full',       // full (+2 345) | short (+2,3k)
   bannerPct: true,            // le pourcentage entre parentheses
+  gamePlayButton: true,       // bouton ▶ sur les vignettes de jeux de roblox.com (content/play-button.js)
   listBadges: true,           // ecarts RAP / Value sur chaque ligne des listes de trades Roblox
   listShow: 'both',           // both | value | rap
   listFormat: 'full',         // full (+2 345) | short (+2,3k) | pct (+12 %)

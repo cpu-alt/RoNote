@@ -121,7 +121,8 @@
         "content/search-user.js",
         "content/friends-menu.js",
         "content/nav-players.js",
-        "content/sent-history.js"
+        "content/sent-history.js",
+        "content/play-button.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

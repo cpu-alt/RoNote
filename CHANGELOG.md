@@ -5,6 +5,11 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Bouton Jouer sur les vignettes** (`content/play-button.js`) : un bouton ▶ vert dans le coin de chaque jeu de
+  roblox.com (accueil « Continue », Charts, recherche) lance le jeu directement, comme le bouton Play de sa page.
+  Réglage « Bouton Jouer sur les vignettes » (actif d'office).
+- **Profils : comptes de stockage** : Neuronal marque « Stockage » un compte au skin Roblox 100 % de base vu dans
+  un transfert (salon transfers-beams-buys) ; badge sur la fiche, et filtre « Comptes de stockage : Montrer / Exclure ».
 - **Contre-offre, Accepter et vérification en deux étapes** : quand Roblox demande le code (application, e-mail ou
   SMS), le popup le demande au lieu d'une erreur (panneau dans l'éditeur de contre-offre, petite fenêtre `twostep.js`
   pour Accepter) ; l'action repart toute seule une fois le code validé.
