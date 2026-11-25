@@ -12,6 +12,9 @@
  *  service worker, qui les cote et les illustre. Roblox limite chaque côté à
  *  quatre objets ; le reste (hold, Robux au-delà de la limite), c'est lui qui
  *  le refuse, et son message s'affiche tel quel.
+ *
+ *  25 nov. : `openNewTrade` ouvre le même éditeur pour un NOUVEAU trade avec un
+ *  joueur (Profils, Deals : réglage `composeInPopup`), envoyé par l'API v2.
  * ==========================================================================
  */
 import { B } from '../common/shim.js';
@@ -29,6 +32,9 @@ const ROBUX_TAX = 0.3;            // comme analysis.js : les Robux reçus arrive
 const BASIS_FIELD = { value: 'value', rap: 'rap', prudent: 'prudent' };
 
 const tradeUrl = (id) => `https://www.roblox.com/trades?tradeId=${id}`;
+// 25 nov. : le même éditeur compose aussi un NOUVEAU trade (`card.mode === 'new'`, sans tradeId)
+const isNew = () => ed?.card?.mode === 'new';
+const robloxUrl = (card) => (card.mode === 'new' ? `https://www.roblox.com/users/${Number(card.partner?.id)}/trade` : tradeUrl(card.tradeId));
 const pctOf = (from, to) => (from > 0 ? ((to - from) / from) * 100 : (to > 0 ? 100 : 0));
 
 let ed = null;   // l'éditeur ouvert, ou null
@@ -82,6 +88,11 @@ function load(card, fresh = false) {
     ed.give = adopt(a?.give?.items, res.me); ed.get = adopt(a?.get?.items, res.them);
     ed.original = signature();
     ed.give = adopt(cur.give, res.me); ed.get = adopt(cur.get, res.them);
+    if (ed.prefill) {                             // nouveau trade : seulement ce qu'on retrouve vraiment
+      const found = (l, side) => adopt(l, side).filter(i => INSTANCE_ID.test(String(i.uaid || '')) && !i.gone);
+      ed.give = found(ed.prefill.give, res.me); ed.get = found(ed.prefill.get, res.them);
+      ed.prefill = null;
+    }
     paint();
   }).catch((e) => {
     if (!ed || ed.loadToken !== token) return;
@@ -134,11 +145,12 @@ function simulate() {
 function sheetHtml() {
   const c = ed.card;
   const who = escapeHtml(c.partner?.displayName || c.partner?.name || '?');
-  return `<div class="zoom-card w-sheet ctr-sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(t('Contre-offre'))}">
+  const titre = isNew() ? t('Nouveau trade') : t('Contre-offre');
+  return `<div class="zoom-card w-sheet ctr-sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(titre)}">
     <header class="z-head">
       <div class="head">
         <span class="av-ring">${ed.deps.avatarHtml(c)}</span>
-        <div class="who"><div class="n">${t('Contre-offre à {who}', { who })}</div>
+        <div class="who"><div class="n">${isNew() ? t('Trade avec {who}', { who }) : t('Contre-offre à {who}', { who })}</div>
           <div class="t">${t('simulation · rien ne part avant ta confirmation')}</div></div>
       </div>
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
@@ -272,7 +284,8 @@ function paint({ shelf = true } = {}) {
   btn.classList.toggle('armed', ed.armed);
   btn.innerHTML = ed.busy ? t('Envoi…')
     : ed.armed ? t("Confirmer l'envoi")
-      : `${ic('counter')} ${t(changed ? 'Envoyer la contre-offre' : 'Modifie le trade pour contrer')}`;
+      : isNew() ? `${ic('counter')} ${t(changed ? 'Envoyer le trade' : 'Ajoute des objets des deux côtés')}`
+        : `${ic('counter')} ${t(changed ? 'Envoyer la contre-offre' : 'Modifie le trade pour contrer')}`;
   w.querySelector('[data-reset]').disabled = !changed;
 
   const msg = w.querySelector('.z-msg');
@@ -323,7 +336,7 @@ function bind(w) {
       return;
     }
     if ('reload' in el.dataset) { if (!ed.loading) load(ed.card, true); return; }
-    if ('roblox' in el.dataset) { B.tabs.create({ url: tradeUrl(ed.card.tradeId) }); return; }
+    if ('roblox' in el.dataset) { B.tabs.create({ url: robloxUrl(ed.card) }); return; }
     if ('send' in el.dataset) sendCounter();
     if ('tsvOk' in el.dataset) submitCode();
     if ('tsvCancel' in el.dataset) { ed.tsv = null; renderTsv(); paint({ shelf: false }); }
@@ -364,7 +377,8 @@ function bind(w) {
 async function sendCounter() {
   if (!ed.armed) {
     ed.armed = true;
-    ed.msg = { text: t('Cliquer une seconde fois pour envoyer. Le trade reçu sera remplacé par ta contre-offre.') };
+    ed.msg = { text: isNew() ? t('Cliquer une seconde fois pour envoyer le trade.')
+      : t('Cliquer une seconde fois pour envoyer. Le trade reçu sera remplacé par ta contre-offre.') };
     paint({ shelf: false });
     clearTimeout(armTimer);
     armTimer = setTimeout(() => { if (ed) { disarm(); paint({ shelf: false }); } }, 5000);
@@ -376,7 +390,7 @@ async function sendCounter() {
   ed.armed = false; ed.busy = true; ed.msg = null;
   paint({ shelf: false });
   const res = await send({
-    type: 'ronote:counter', tradeId: card.tradeId, partnerId: card.partner?.id,
+    type: isNew() ? 'ronote:send-trade' : 'ronote:counter', tradeId: card.tradeId, partnerId: card.partner?.id,
     partner: card.partner?.displayName || card.partner?.name || '',
     give: ed.give.map(i => i.uaid), get: ed.get.map(i => i.uaid),
     giveRobux: ed.giveRobux, getRobux: ed.getRobux,
@@ -404,11 +418,12 @@ function settle(res) {
     return;
   }
   ed.tsv = null; renderTsv();
-  if (res?.challenge) B.tabs.create({ url: tradeUrl(card.tradeId) });
+  if (res?.challenge) B.tabs.create({ url: robloxUrl(card) });
   ed.msg = {
     err: true,
     text: res?.challenge
-      ? t("Roblox demande une vérification : le trade s'est ouvert sur roblox.com, termine la contre-offre là-bas.")
+      ? (card.mode === 'new' ? t("Roblox demande une vérification : le trade s'est ouvert sur roblox.com, termine-le là-bas.")
+        : t("Roblox demande une vérification : le trade s'est ouvert sur roblox.com, termine la contre-offre là-bas."))
       : t('Échec : {why}', { why: res?.error || '?' })
   };
   paint({ shelf: false });
@@ -461,7 +476,7 @@ async function submitCode() {
   if (res?.badCode) { v.err = t('Code incorrect, réessaie.'); renderTsv(); return; }
   if (res?.error === 'expired') {
     ed.tsv = null; renderTsv();
-    ed.msg = { err: true, text: t('La vérification a expiré : renvoie la contre-offre.') };
+    ed.msg = { err: true, text: isNew() ? t('La vérification a expiré : renvoie le trade.') : t('La vérification a expiré : renvoie la contre-offre.') };
     paint({ shelf: false });
     return;
   }
@@ -480,3 +495,17 @@ async function resendCode() {
 /** Ouvert ? (Échap et le clavier du popup en tiennent compte.) */
 export const counterOpen = () => !!ed;
 export const closeCounterEditor = close;
+
+/**
+ * Un nouveau trade avec `partner` ({ id, name, displayName, thumb }), composé et envoyé ici.
+ * `mine` / `theirs` : des objets à pré-remplir ({ id } = assetId), retrouvés dans les inventaires.
+ */
+export function openNewTrade(partner, mine, theirs, deps) {
+  const pre = (l) => (l || []).slice(0, MAX_ITEMS).filter(i => Number(i.id)).map(i => ({ assetId: Number(i.id), name: i.name || '' }));
+  openCounterEditor({
+    mode: 'new', tradeId: null, partner,
+    analysis: { give: { items: [] }, get: { items: [] } }
+  }, deps);
+  // Le pré-remplissage n'est pas « l'original » : sans lui, l'envoi resterait grisé.
+  ed.prefill = { give: pre(mine), get: pre(theirs) };
+}

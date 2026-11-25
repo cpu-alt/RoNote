@@ -284,7 +284,7 @@ export function renderProfiles(listEl, openOptions) {
         const x = shown.find(y => Number(y.id) === Number(prep.dataset.prep));
         // ce qu'il cherche va de mon côté (s'il est dans mon inventaire) ; de son côté, ce qu'il propose,
         // sinon ce qu'il vient de recevoir dans le trade qui l'a révélé
-        if (x) prepTrade(e, x.id, x.wanting, x.offering?.length ? x.offering : x.last?.got_items);
+        if (x) prepTrade(e, x.id, x.wanting, x.offering?.length ? x.offering : x.last?.got_items, { name: x.name, thumb: x.thumb });
         return;
       }
       if (e.target.closest('[data-autofill]')) { e.preventDefault(); toggleAutoFill(); load(listEl); return; }

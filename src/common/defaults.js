@@ -92,6 +92,7 @@ export const DEFAULTS = {
   bannerShow: 'both',         // both | value | rap
   bannerFormat: 'full',       // full (+2 345) | short (+2,3k)
   bannerPct: true,            // le pourcentage entre parentheses
+  composeInPopup: true,       // le bouton Trade (Profils, Deals) ouvre l'éditeur de RoNote (popup/counter.js)
   gamePlayButton: true,       // bouton ▶ sur les vignettes de jeux de roblox.com (content/play-button.js)
   listBadges: true,           // ecarts RAP / Value sur chaque ligne des listes de trades Roblox
   listShow: 'both',           // both | value | rap

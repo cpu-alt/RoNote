@@ -1870,6 +1870,37 @@ async function handleMessage(msg, sender = null) {
       }
     }
 
+    /** 25 nov. : un NOUVEAU trade composé dans le popup (Profils, Deals), envoyé par l'API v2. */
+    case 'ronote:send-trade': {
+      const partnerId = Number(msg.partnerId);
+      const state0 = await getState();
+      if (!state0.userId) return { error: 'non connecté' };
+      if (!partnerId) return { error: 'partenaire inconnu' };
+      try {
+        const res = await api.sendTrade({
+          myId: state0.userId, partnerId,
+          give: msg.give || [], get: msg.get || [], giveRobux: msg.giveRobux, getRobux: msg.getRobux
+        }, msg.challengeHeaders || {});
+        dropCollectibles(state0.userId, partnerId);
+        let tradeId = null;
+        try { tradeId = Number(JSON.parse(res.body || '{}')?.id) || null; } catch { /* réponse sans id */ }
+        // son propre envoi n'est pas une nouveauté : déjà vu dans les « Envoyés »
+        if (tradeId) await editStore((st, streams) => { markSeen(streams, 'outbound', [tradeId]); });
+        await pushHistory([{
+          at: Date.now(), kind: 'sent_by_me', tradeId, uid: state0.userId,
+          partner: msg.partner || '?', partnerId, notified: false,
+          give: Number.isFinite(msg.giveValue) ? msg.giveValue : null,
+          get: Number.isFinite(msg.getValue) ? msg.getValue : null,
+          pct: Number.isFinite(msg.pct) ? msg.pct : null,
+          skipped: 'trade envoyé depuis RoNote'
+        }]);
+        return { ok: true, via: res.via, tradeId };
+      } catch (e) {
+        if (e?.challenge) return askTwoStep(e.challenge, msg);
+        return { error: String(e?.message || e) };
+      }
+    }
+
     // Le code de vérification en deux étapes, tapé dans le popup : on valide le défi
     // puis on rejoue l'action en attente (la contre-offre) avec les en-têtes du défi résolu.
     case 'ronote:2sv': {

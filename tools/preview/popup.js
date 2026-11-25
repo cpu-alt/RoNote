@@ -485,7 +485,8 @@ const mockRuntime = {
           unknown: i.unknown, noValue: i.noValue, onHold: false, projected: i.projected, isFace: i.isFace, thumb: i.thumb }));
         const extra = (ids, base) => ids.map((id, n) => {
           const r = analysis.resolveItem({ assetId: Number(id), recentAveragePrice: 0 }, cat);
-          return { uaid: base + n, assetId: r.assetId, bundleId: r.bundleId, name: r.name, acronym: r.acronym, serial: null,
+          // un identifiant d'exemplaire v2 (UUID), comme Roblox : sans lui l'envoi resterait grisé
+          return { uaid: `${String(base + n).padStart(8, '0')}-0000-4000-8000-000000000000`, assetId: r.assetId, bundleId: r.bundleId, name: r.name, acronym: r.acronym, serial: null,
             value: r.value, rap: r.rap, prudent: r.prudent, unknown: r.unknown, noValue: r.noValue,
             onHold: n === 2, projected: r.projected, isFace: r.isFace, thumb: thumbFor(r) };
         }).filter(i => !i.unknown);
@@ -516,6 +517,12 @@ const mockRuntime = {
         log.textContent = '→ contre-offre #' + msg.tradeId + ' : donne ' + msg.give.join(',') + ' + ' + msg.giveRobux
           + ' R$ · demande ' + msg.get.join(',') + ' + ' + msg.getRobux + ' R$ (simulation)';
         return { ok: true, via: 'test', state: STATE };
+      }
+      case 'ronote:send-trade': {
+        await new Promise(r => setTimeout(r, 400));
+        log.textContent = '→ nouveau trade à ' + msg.partnerId + ' : donne ' + msg.give.join(',') + ' + ' + msg.giveRobux
+          + ' R$ · demande ' + msg.get.join(',') + ' + ' + msg.getRobux + ' R$ (simulation)';
+        return { ok: true, via: 'test', tradeId: 990 };
       }
       case 'ronote:accept': {
         // ?challenge=1 : Roblox exige une vérification en deux étapes, pour voir ce cas.

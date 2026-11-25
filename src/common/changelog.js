@@ -19,6 +19,10 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("Le bouton Trade des Profils et des Deals ouvre l'éditeur de RoNote : compose le trade, vois l'écart, envoie-le en deux clics.",
+        "The Trade button in Profiles and Deals opens RoNote's editor: build the trade, see the balance, send it in two clicks."),
+      item("Contre-offre avec code de vérification : l'envoi après le code ne redemande plus de vérification.",
+        "Counter with a verification code: sending after the code no longer asks for verification again."),
       item("Un bouton ▶ dans le coin de chaque jeu sur roblox.com (accueil, Charts, recherche) : le jeu se lance directement.",
         "A ▶ button in the corner of every game on roblox.com (home, Charts, search): the game launches right away."),
       item("Profils : les comptes de stockage (skin Roblox de base, vus dans un transfert) portent le badge Stockage, et un filtre permet de les exclure.",

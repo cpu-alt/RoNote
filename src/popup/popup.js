@@ -10,7 +10,7 @@ import { partnerTimeline, partnerStats, accountAge, YOUNG_ACCOUNT_DAYS } from '.
 import { withDefaults, withStateDefaults } from '../common/state.js';
 import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, REDUCED_MOTION } from '../common/ui.js';
 import { renderProfiles } from './profiles.js';
-import { renderDeals } from './deals.js';
+import { renderDeals, compose } from './deals.js';
 import { renderMyItems } from './myitems.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
@@ -110,7 +110,7 @@ const KIND_ICON = {
   inbound: 'inbox', counter: 'counter', completed: 'check-circle', outbound: 'send',
   outbound_accepted: 'party', outbound_declined: 'x-circle', outbound_countered: 'counter',
   outbound_expired: 'clock', trade_error: 'alert', declined_by_me: 'ban', accepted_by_me: 'check-circle',
-  countered_by_me: 'counter'
+  countered_by_me: 'counter', sent_by_me: 'send'
 };
 
 /** Ce que raconte chaque ligne du journal, et sa couleur. */
@@ -126,13 +126,14 @@ const KIND_INFO = {
   declined_by_me:     { label: 'Refusé ou annulé depuis RoNote', tone: 'even' },
   accepted_by_me:     { label: 'Accepté depuis RoNote', tone: 'win' },
   countered_by_me:    { label: 'Contre-offre envoyée depuis RoNote', tone: 'accent' },
+  sent_by_me:         { label: 'Trade envoyé depuis RoNote', tone: 'accent' },
   revalued:           { label: 'Objet réévalué', tone: 'face' }
 };
 
 /** Ce qu'est une ligne du journal : l'accueil, le résumé et les filtres comptent pareil. */
 const isReceived = (h) => h.kind === 'inbound' || h.kind === 'counter';
 const isDone = (h) => h.kind === 'completed' || h.kind === 'outbound_accepted' || h.kind === 'accepted_by_me';
-const BY_ME = new Set(['declined_by_me', 'accepted_by_me', 'countered_by_me']);
+const BY_ME = new Set(['declined_by_me', 'accepted_by_me', 'countered_by_me', 'sent_by_me']);
 const isMuted = (h) => !!h.skipped && !BY_ME.has(h.kind);
 const isRated = (h) => h.get != null && h.give != null;
 const netOf = (list) => list.reduce((s, h) => s + (h.get - h.give), 0);
@@ -1010,6 +1011,18 @@ function openCounter(tradeId) {
     }
   }));
 }
+
+/** 25 nov. : le bouton Trade (Profils, Deals) compose le trade ici, dans le même éditeur que la contre-offre. */
+compose.open = (partner, mine, theirs) => {
+  if (data.settings?.composeInPopup === false || !partner?.id) return false;
+  closeZoom();
+  counterMod().then(({ openNewTrade }) => openNewTrade(partner, mine, theirs, {
+    settings: data.settings, balanceHtml, projHtml: projBadge,
+    avatarHtml: () => avatarHtml({ headshot: partner.thumb }),
+    onSent: () => { renderHeader(); renderList(); }
+  }));
+  return true;
+};
 
 /** Ce qu'affiche un bouton de geste, au repos et armé. `act` : nix (refuser/annuler) ou ok (accepter). */
 function actLabels(act, outbound) {

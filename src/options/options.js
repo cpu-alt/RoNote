@@ -25,7 +25,7 @@ const BOOLS = ['enabled', 'watchInbound', 'watchCompleted', 'watchOutbound', 'wa
   'desktopNotifications', 'showItems', 'requireInteraction', 'openOnClick', 'badge',
   'sound', 'soundByQuality', 'useRolimons', 'rolimonsAdFree', 'trackPortfolio', 'robuxTax', 'revalAlerts',
   'onlyWins', 'ignoreProjected', 'alwaysNotifyCounters',
-  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'profileCard', 'profileHeader', 'profilePanel', 'profileChart', 'profileTrades', 'sentHistory', 'bannerPct', 'listBadges', 'gamePlayButton', 'listLabels', 'sidePanel',
+  'showRare', 'showLuckyCat', 'pageDelta', 'pageItemValues', 'itemPageValue', 'profileCard', 'profileHeader', 'profilePanel', 'profileChart', 'profileTrades', 'sentHistory', 'bannerPct', 'listBadges', 'gamePlayButton', 'composeInPopup', 'listLabels', 'sidePanel',
   'anonShowValues', 'anonShowRobux'];
 const SELECTS = ['lang', 'uiTheme', 'valueBasis', 'bannerShow', 'bannerFormat', 'bannerStyle', 'bannerSize',
   'listShow', 'listFormat', 'listStyle', 'listSize', 'projectedSize', 'projectedShape', 'projectedCorner', 'demandIcon', 'proofMask', 'proofScope'];

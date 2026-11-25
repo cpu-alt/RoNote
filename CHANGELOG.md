@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Composer un trade dans RoNote** : le bouton Trade (Profils, Deals) ouvre le même éditeur que la contre-offre
+  (deux inventaires, écart en direct, envoi en deux clics, code 2SV). Réglage « Composer le trade dans RoNote ».
+- **Vérification en deux étapes** : l'action est rejouée une seule fois, par le chemin qui a reçu le défi (le
+  jeton ne sert qu'une fois : un second envoi redemandait une vérification).
 - **Bouton Jouer sur les vignettes** (`content/play-button.js`) : un bouton ▶ vert dans le coin de chaque jeu de
   roblox.com (accueil « Continue », Charts, recherche) lance le jeu directement, comme le bouton Play de sa page.
   Réglage « Bouton Jouer sur les vignettes » (actif d'office).

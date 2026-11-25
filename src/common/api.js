@@ -569,6 +569,10 @@ const challengeOf = (res) => readChallenge(['rblx-challenge-id', 'rblx-challenge
   .map(h => res?.headers?.get?.(h) || ''));
 
 async function apiPost(url, payload = {}, extra = {}, method = 'POST') {
+  // `_via` (25 nov.) : une action rejouée après la 2SV repart par le chemin qui a reçu le défi, et UNE fois :
+  // le jeton de vérification ne sert qu'une fois, un second envoi (direct puis onglet) en redemandait un.
+  const { _via: only, ...hdrs } = extra || {};
+  extra = hdrs;
   const body = JSON.stringify(payload);
   const send = async () => {
     const headers = { 'Content-Type': 'application/json', ...extra };
@@ -577,7 +581,7 @@ async function apiPost(url, payload = {}, extra = {}, method = 'POST') {
   };
 
   let res = null, netErr = null;
-  try { res = await send(); } catch (e) { netErr = e; }
+  if (only !== 'onglet') { try { res = await send(); } catch (e) { netErr = e; } }
 
   // Jeton perime ou absent : Roblox en renvoie un frais dans l'en-tete du refus.
   const fresh = res?.headers?.get?.('x-csrf-token');
@@ -588,14 +592,14 @@ async function apiPost(url, payload = {}, extra = {}, method = 'POST') {
   if (res?.ok) return { ok: true, via: 'direct', body: await res.text().catch(() => '') };
   // Un défi dès l'envoi direct : le relais en déclencherait un second, inutile.
   const direct = challengeOf(res);
-  if (direct) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: direct });
+  if (direct) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: { ...direct, via: 'direct' } });
 
   // Le service worker n'a pas toujours le cookie ni le bon Origin. Depuis un
   // onglet Roblox, la requete est indistinguable de celle du site.
-  const relayed = await relayPost(url, body, extra, method);
+  const relayed = only === 'direct' ? null : await relayPost(url, body, extra, method);
   if (relayed?.ok) return { ok: true, via: 'onglet', body: relayed.body || '' };
   const relCh = readChallenge(relayed?.ch);
-  if (relCh) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: relCh });
+  if (relCh) throw Object.assign(new ApiError('vérification en deux étapes requise', 403), { challenge: { ...relCh, via: 'onglet' } });
 
   let reason = netErr ? `Réseau: ${netErr.message}` : `HTTP ${res?.status ?? 0}`;
   // Roblox explique souvent le refus dans le corps : « Trade is not active »…
@@ -648,7 +652,8 @@ export async function twoStepFinish(ch, media, code) {
   const meta = { verificationToken: token, rememberDevice: false, challengeId: cid, actionType };
   await apiPost('https://apis.roblox.com/challenge/v1/continue',
     { challengeId: ch.id, challengeType: ch.type, challengeMetadata: JSON.stringify(meta) });
-  return { 'rblx-challenge-id': ch.id, 'rblx-challenge-type': ch.type, 'rblx-challenge-metadata': btoa(JSON.stringify(meta)) };
+  return { 'rblx-challenge-id': ch.id, 'rblx-challenge-type': ch.type, 'rblx-challenge-metadata': btoa(JSON.stringify(meta)),
+    ...(ch.via ? { _via: ch.via } : {}) };
 }
 
 /**
@@ -743,17 +748,26 @@ const isChallenge = (e) => e instanceof ApiError && (!!e.challenge || ((e.status
  * de la valeur) : son message remonte tel quel.
  */
 export async function counterTrade(tradeId, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }, headers = {}) {
-  const id = String(tradeId).replace(/[^0-9]/g, '');
+  return postOffer(String(tradeId).replace(/[^0-9]/g, ''), { myId, partnerId, give, get, giveRobux, getRobux }, headers);
+}
+
+/** 25 nov. : un NOUVEAU trade, composé dans le popup, par la même API v2 que la contre-offre. */
+export async function sendTrade(offer, headers = {}) {
+  return postOffer(null, offer, headers);
+}
+
+/** Contre-offre (`id`) ou nouveau trade (`id` null) : les deux côtés en exemplaires v2. */
+async function postOffer(id, { myId, partnerId, give = [], get = [], giveRobux = 0, getRobux = 0 }, headers = {}) {
   const ids = (list) => list.map(String).filter(isInstanceId);
   const robux = (n) => Math.max(0, Math.floor(Number(n) || 0));
-  if (!id || !Number(myId) || !Number(partnerId)) throw new ApiError('contre-offre incomplète', 0);
+  if (id === '' || !Number(myId) || !Number(partnerId)) throw new ApiError('contre-offre incomplète', 0);
   const senderOffer = { userId: Number(myId), robux: robux(giveRobux), collectibleItemInstanceIds: ids(give) };
   const recipientOffer = { userId: Number(partnerId), robux: robux(getRobux), collectibleItemInstanceIds: ids(get) };
   if (ids(give).length !== give.length || ids(get).length !== get.length) throw new ApiError('objet non identifié', 0);
   if (!recipientOffer.collectibleItemInstanceIds.length && !recipientOffer.robux) throw new ApiError('demande au moins un objet', 0);
   if (!senderOffer.collectibleItemInstanceIds.length && !senderOffer.robux) throw new ApiError('offre au moins un objet', 0);
   try {
-    return await apiPost(`${TRADES_V2}/trades/${id}/counter`, { senderOffer, recipientOffer }, headers);
+    return await apiPost(id ? `${TRADES_V2}/trades/${id}/counter` : `${TRADES_V2}/trades/send`, { senderOffer, recipientOffer }, headers);
   } catch (e) {
     if (isChallenge(e)) e.challenge ||= true;
     throw e;

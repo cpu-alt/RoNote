@@ -157,11 +157,11 @@ export const autoFillRow = () => `<label class="pf-af" data-autofill><input type
 
 // Les actions : Rolimon's (son logo), Roblox, et l'envoi, en tête de carte.
 export const acts = (uid, prepKey = '') => {
-  const prep = prepKey && autoFill();
+  const prep = autoFill();
   return `<span class="pf-qa">
     <button class="pf-ib pf-roli" data-open="https://www.rolimons.com/player/${uid}" title="Rolimon's"><img src="../assets/rolimons-logo.webp" alt="Rolimon's"></button>
     <button class="pf-ib" data-open="https://www.roblox.com/users/${uid}/profile" title="${escapeHtml(t('Profil Roblox'))}">${ic('user')}</button>
-    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade"${prep ? ` data-prep="${escapeHtml(String(prepKey))}"` : ''}
+    <button class="pf-ib pf-send" data-open="https://www.roblox.com/users/${uid}/trade"${prepKey ? ` data-prep="${escapeHtml(String(prepKey))}"` : ''}
       title="${escapeHtml(t(prep ? 'Préparer le trade (items déjà ajoutés)' : 'Envoyer un trade'))}">${ic('send')}<span>${t('Trade')}</span></button></span>`;
 };
 
@@ -170,10 +170,16 @@ export const acts = (uid, prepKey = '') => {
  * qui s'ouvre (content/sent-history.js l'ajoute : mes objets depuis mon inventaire, les siens depuis le
  * sien, dans les 3 minutes, une seule fois). `mine` / `theirs` : des objets Neuronal ({ id, name }).
  */
-export async function prepTrade(e, uid, mine, theirs) {
+// 25 nov. : `compose.open(partner, mine, theirs)` est posé par popup.js ; il ouvre l'éditeur de RoNote
+// (réglage `composeInPopup`) et rend false quand il est coupé : la page trade de Roblox prend le relais.
+export const compose = { open: null };
+export async function prepTrade(e, uid, mine, theirs, who = {}) {
   // Le popup se ferme dès que l'onglet s'ouvre : on enregistre D'ABORD, puis on ouvre nous-mêmes.
   e.preventDefault();
   e.stopPropagation();
+  if (!autoFill()) { mine = []; theirs = []; }   // « Remplissage auto » décoché : un trade vide
+  if (compose.open?.({ id: Number(uid), name: who.name || '', displayName: who.name || '', thumb: who.thumb || '' }, mine, theirs)) return;
+  if (!mine.length && !theirs.length) { try { B.tabs.create({ url: `https://www.roblox.com/users/${Number(uid)}/trade` }); } catch { /* aperçu */ } return; }
   const slim = (l) => (l || []).slice(0, 8).map(i => ({ id: Number(i.id) || 0, name: String(i.name || '') })).filter(i => i.id || i.name);
   try { await B.storage.local.set({ prepTrade: { uid: Number(uid), mine: slim(mine), theirs: slim(theirs), at: Date.now() } }); } catch { /* aperçu */ }
   try { B.tabs.create({ url: `https://www.roblox.com/users/${Number(uid)}/trade` }); } catch { /* aperçu */ }
@@ -304,7 +310,7 @@ export function renderDeals(listEl, openOptions) {
         const k = prep.dataset.prep, id = Number(k.slice(1));
         const x = (k[0] === 'r' ? last.data.robux : last.data.deals)?.find(y => Number(y.id) === id);
         // un deal : je donne ce qu'il demande, il me donne ce qu'il propose ; Robux : ses items seulement
-        if (x) prepTrade(e, x.user?.id, k[0] === 'r' ? [] : x.give, x.get);
+        if (x) prepTrade(e, x.user?.id, k[0] === 'r' ? [] : x.give, x.get, { name: x.user?.name, thumb: x.user?.thumb });
         return;
       }
       const el = e.target.closest('[data-dl-grade], [data-dl-size], [data-dl-sort], [data-dl-kind], [data-dl-since]');
