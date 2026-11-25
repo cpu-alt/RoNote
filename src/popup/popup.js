@@ -1012,6 +1012,19 @@ function openCounter(tradeId) {
   }));
 }
 
+/** 25 nov. : survoler Trade ou Contre-offre lance la lecture des deux inventaires (service worker,
+ *  ronote:inv-warm) : l'éditeur les trouve souvent prêts au clic. Une fois par joueur et par 30 s. */
+const warmed = new Map();
+document.addEventListener('pointerover', (e) => {
+  const el = e.target.closest?.('button[data-ctr], [data-prep]');
+  if (!el || (!el.dataset.ctr && data.settings?.composeInPopup === false)) return;   // la page Roblox n'en a pas besoin
+  const uid = el.dataset.ctr ? Number(findCard(Number(el.dataset.ctr))?.card?.partner?.id)
+    : Number((/\/users\/(\d+)\/trade/.exec(el.dataset.open || '') || [])[1]);
+  if (!uid || Date.now() - (warmed.get(uid) || 0) < 30e3) return;
+  warmed.set(uid, Date.now());
+  send({ type: 'ronote:inv-warm', partnerId: uid }).catch(() => {});
+});
+
 /** 25 nov. : le bouton Trade (Profils, Deals) compose le trade ici, dans le même éditeur que la contre-offre. */
 compose.open = (partner, mine, theirs) => {
   if (data.settings?.composeInPopup === false || !partner?.id) return false;

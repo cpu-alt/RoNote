@@ -145,55 +145,6 @@ console.log('\nAccepter un trade reçu, puis une vérification exigée par Roblo
   route = null;
 }
 
-console.log('\nContre-offre : la vérification en deux étapes, du défi au trade rejoué');
-{
-  preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777 }], outbound: [] } });
-  const meta = btoa(JSON.stringify({ userId: 1, challengeId: 'interne-1', actionType: 'Generic' }));
-  const envois = [];
-  route = async (url, json, init) => {
-    if (url.includes('/trades/777/counter')) {
-      const h = init.headers || {};
-      envois.push(h);
-      if (!h['rblx-challenge-id']) return new Response('{}', { status: 403, headers: {
-        'rblx-challenge-id': 'defi-1', 'rblx-challenge-type': 'twostepverification', 'rblx-challenge-metadata': meta } });
-      return json({ id: 778 });
-    }
-    if (url.includes('/configuration')) return json({ primaryMediaType: 'Authenticator' });
-    if (url.includes('/authenticator/verify')) return json({ verificationToken: 'jeton-1' });
-    if (url.includes('/challenge/v1/continue')) return json({});
-    return null;
-  };
-  await import(SW + '?run=2sv');
-  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
-  const uuid = (n) => `0000000${n}-0000-4000-8000-000000000000`;
-  const r1 = await send({ type: 'ronote:counter', tradeId: 777, partnerId: 9, give: [uuid(1)], get: [uuid(2)] });
-  check('le défi demande le code de l\'application', r1?.twoStep?.media === 'authenticator' && !!r1.twoStep.key);
-  const r2 = await send({ type: 'ronote:2sv', key: r1?.twoStep?.key, code: '123456' });
-  check('après le code, la contre-offre part', r2?.ok === true);
-  check('elle est rejouée UNE fois (le jeton ne sert qu\'une fois)', envois.length === 2);
-  const h = envois[1] || {};
-  check('le rejeu porte le défi résolu', h['rblx-challenge-id'] === 'defi-1' && h['rblx-challenge-type'] === 'twostepverification'
-    && JSON.parse(atob(h['rblx-challenge-metadata'] || 'e30=')).verificationToken === 'jeton-1');
-  check('aucun en-tête interne ne part chez Roblox', !('_via' in h));
-  route = null;
-}
-
-console.log('\nNouveau trade composé dans le popup');
-{
-  preset();
-  route = async (url, json) => (url.endsWith('/v2/trades/send') ? json({ id: 4242 }) : null);
-  await import(SW + '?run=send');
-  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
-  const uuid = (n) => `0000000${n}-0000-4000-8000-000000000000`;
-  const r = await send({ type: 'ronote:send-trade', partnerId: 9, partner: 'bob', give: [uuid(1)], get: [uuid(2)], giveValue: 10, getValue: 12 });
-  check('le trade part par POST /v2/trades/send', r?.ok === true && calls.some(c => c === 'POST https://trades.roblox.com/v2/trades/send'));
-  check('son numéro revient', r.tradeId === 4242);
-  check('il est déjà vu dans les « Envoyés » : pas d\'alerte de son propre envoi', store.get('streams').outbound.seen.includes(4242));
-  const vide = await send({ type: 'ronote:send-trade', partnerId: 9, give: [], get: [uuid(2)] });
-  check('un trade sans rien de mon côté est refusé avant Roblox', !!vide?.error);
-  route = null;
-}
-
 console.log('\nChangement de compte sur roblox.com pendant que l\'identité est en cache');
 {
   // Le compte 1 est connu et vérifié il y a peu ; le navigateur est désormais
@@ -311,6 +262,70 @@ console.log('\n« Contribuer » : le popup fermé sur la demande de permission')
   store.set('settings', { ...read(), neuronalJoinAt: 0 });
   await fire(['https://neuronal.live/*']);
   check('permission accordée depuis les réglages : la case décide seule', !read().neuronalShare);
+}
+
+console.log('\nContre-offre : la vérification en deux étapes, du défi au trade rejoué');
+{
+  preset({ inboundCount: 1, snapshot: { inbound: [{ tradeId: 777 }], outbound: [] } });
+  const meta = btoa(JSON.stringify({ userId: 1, challengeId: 'interne-1', actionType: 'Generic' }));
+  const envois = [];
+  route = async (url, json, init) => {
+    if (url.includes('/trades/777/counter')) {
+      const h = init.headers || {};
+      envois.push(h);
+      if (!h['rblx-challenge-id']) return new Response('{}', { status: 403, headers: {
+        'rblx-challenge-id': 'defi-1', 'rblx-challenge-type': 'twostepverification', 'rblx-challenge-metadata': meta } });
+      return json({ id: 778 });
+    }
+    if (url.includes('/configuration')) return json({ primaryMediaType: 'Authenticator' });
+    if (url.includes('/authenticator/verify')) return json({ verificationToken: 'jeton-1' });
+    if (url.includes('/challenge/v1/continue')) return json({});
+    return null;
+  };
+  await import(SW + '?run=2sv');
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  const uuid = (n) => `0000000${n}-0000-4000-8000-000000000000`;
+  const r1 = await send({ type: 'ronote:counter', tradeId: 777, partnerId: 9, give: [uuid(1)], get: [uuid(2)] });
+  check('le défi demande le code de l\'application', r1?.twoStep?.media === 'authenticator' && !!r1.twoStep.key);
+  const r2 = await send({ type: 'ronote:2sv', key: r1?.twoStep?.key, code: '123456' });
+  check('après le code, la contre-offre part', r2?.ok === true);
+  check('elle est rejouée UNE fois (le jeton ne sert qu\'une fois)', envois.length === 2);
+  const h = envois[1] || {};
+  check('le rejeu porte le défi résolu', h['rblx-challenge-id'] === 'defi-1' && h['rblx-challenge-type'] === 'twostepverification'
+    && JSON.parse(atob(h['rblx-challenge-metadata'] || 'e30=')).verificationToken === 'jeton-1');
+  check('aucun en-tête interne ne part chez Roblox', !('_via' in h));
+  route = null;
+}
+
+console.log('\nPréchargement des inventaires au survol');
+{
+  preset();
+  route = async (url, json) => (url.includes('/tradableItems') ? json({ items: [], nextPageCursor: null }) : null);
+  await import(SW + '?run=warm');
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  await send({ type: 'ronote:inv-warm', partnerId: 9 });
+  await sleep(50);
+  const lus = calls.filter(c => c.includes('/tradableItems')).length;
+  check('le survol lit les deux inventaires', lus === 2);
+  await send({ type: 'ronote:counter-load', partnerId: 9 });
+  check('l\'éditeur les reprend sans relire Roblox', calls.filter(c => c.includes('/tradableItems')).length === lus);
+  route = null;
+}
+
+console.log('\nNouveau trade composé dans le popup');
+{
+  preset();
+  route = async (url, json) => (url.endsWith('/v2/trades/send') ? json({ id: 4242 }) : null);
+  await import(SW + '?run=send');
+  const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
+  const uuid = (n) => `0000000${n}-0000-4000-8000-000000000000`;
+  const r = await send({ type: 'ronote:send-trade', partnerId: 9, partner: 'bob', give: [uuid(1)], get: [uuid(2)], giveValue: 10, getValue: 12 });
+  check('le trade part par POST /v2/trades/send', r?.ok === true && calls.some(c => c === 'POST https://trades.roblox.com/v2/trades/send'));
+  check('son numéro revient', r.tradeId === 4242);
+  check('il est déjà vu dans les « Envoyés » : pas d\'alerte de son propre envoi', store.get('streams').outbound.seen.includes(4242));
+  const vide = await send({ type: 'ronote:send-trade', partnerId: 9, give: [], get: [uuid(2)] });
+  check('un trade sans rien de mon côté est refusé avant Roblox', !!vide?.error);
+  route = null;
 }
 
 console.log(`\n${passed} réussis, ${failed} échoués.`);

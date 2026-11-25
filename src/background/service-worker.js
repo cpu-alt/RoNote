@@ -1775,6 +1775,7 @@ async function handleMessage(msg, sender = null) {
       if (!id) return { error: 'identifiant de trade invalide' };
       try {
         const res = await api.acceptTrade(id, msg.challengeHeaders || {});
+        dropCollectibles((await getState()).userId, msg.partnerId);   // les objets ont changé de main
         // Le trade va réapparaître en « Completed » : on le marque déjà vu, sinon
         // on s'alerterait de son propre geste. Le flux Inactive reste surveillé :
         // si Roblox le rejette ensuite (« Rejected due to an error »), l'alerte part.
@@ -1803,6 +1804,18 @@ async function handleMessage(msg, sender = null) {
      * exemplaire, cotes et illustres comme dans un trade. Un inventaire prive
      * ou injoignable n'empeche pas l'autre de s'afficher.
      */
+    // 25 nov. : la souris passe sur Trade ou Contre-offre : les deux inventaires commencent à se lire,
+    // l'éditeur les trouve souvent déjà là au clic. Rien n'est renvoyé ; un échec n'est pas gardé (collectiblesOf).
+    case 'ronote:inv-warm': {
+      const state = await getState();
+      const partnerId = Number(msg.partnerId);
+      if (state.userId && partnerId) {
+        collectiblesOf(state.userId, false, true).catch(() => {});
+        collectiblesOf(partnerId).catch(() => {});
+      }
+      return { ok: true };
+    }
+
     case 'ronote:counter-load': {
       const partnerId = Number(msg.partnerId);
       const state = await getState();
@@ -1810,7 +1823,7 @@ async function handleMessage(msg, sender = null) {
       if (!partnerId) return { error: 'partenaire inconnu' };
       const [settings, inv] = await Promise.all([
         getSettings(),
-        Promise.allSettled([collectiblesOf(state.userId, msg.fresh), collectiblesOf(partnerId, msg.fresh)])
+        Promise.allSettled([collectiblesOf(state.userId, msg.fresh, true), collectiblesOf(partnerId, msg.fresh)])
       ]);
       const cat = await getCatalog(settings);
       // Les objets echangeables de Roblox (v2) : visages, UGC et doublons compris. Un objet du trade
@@ -2063,6 +2076,8 @@ installHeaderRules().finally(() => tick('boot'));
 /* ------------- inventaires de la contre-offre, gardes une minute ------------ */
 
 const COLLECTIBLES_TTL = 60 * 1000;
+// 25 nov. : mon inventaire ne change que par mes trades, qui vident ce cache (envoi, contre-offre, acceptation)
+const MY_COLLECTIBLES_TTL = 3 * 60 * 1000;
 const collectiblesCache = new Map();   // userId -> { at, p }
 
 /**
@@ -2071,10 +2086,10 @@ const collectiblesCache = new Map();   // userId -> { at, p }
  * minute, et deux ouvertures simultanees n'en font qu'une. Un echec ou un
  * inventaire incomplet n'est pas garde.
  */
-function collectiblesOf(userId, fresh = false) {
+function collectiblesOf(userId, fresh = false, mine = false) {
   const uid = Number(userId);
   const hit = collectiblesCache.get(uid);
-  if (!fresh && hit && Date.now() - hit.at < COLLECTIBLES_TTL) return hit.p;
+  if (!fresh && hit && Date.now() - hit.at < (mine ? MY_COLLECTIBLES_TTL : COLLECTIBLES_TTL)) return hit.p;
   const p = api.getTradableItems(uid);
   collectiblesCache.set(uid, { at: Date.now(), p });
   p.then((v) => { if (!v?.complete && !v?.private) collectiblesCache.delete(uid); },
