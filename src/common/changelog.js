@@ -16,7 +16,7 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
+    version: '2.18.1',
     title: item("Clés d'essai et premium", "Trial keys and premium"),
     items: [
       item("Clés d'essai : le staff Neuronal peut offrir des clés d'essai Insider ou Elite (de 3 heures à 3 jours) ; elles s'utilisent dans Réglages › Neuronal et Premium, et l'accès se ferme tout seul à la fin.",
