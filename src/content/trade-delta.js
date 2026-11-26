@@ -1775,26 +1775,8 @@
     } else if (flexControl?.isConnected) {
       flexControl.remove(); globalThis.RoNoteFlex?.close();
     }
-    if (isCompleted(page)) {
-      if (!proofControl) {
-        proofControl = document.createElement('button');
-        proofControl.type = 'button';
-        proofControl.dataset.rn = 'trade-proof';
-        // Un bouclier coché : « preuve », sans texte à traduire.
-        proofControl.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>';
-        proofControl.title = TEXT.proof;
-        proofControl.setAttribute('aria-label', TEXT.proof);
-        proofControl.style.cssText = profileLink.style.cssText + 'padding:0;cursor:pointer;color:#3fcf6e;';
-        proofControl.addEventListener('click', () => setProof(!proofOn));
-      }
-      // Juste après Trade Flex (ou en tête) : une place fixe, sinon les deux s'échangent à chaque passage.
-      const flexOn = flexControl?.parentElement === tools;
-      if (flexOn ? flexControl.nextElementSibling !== proofControl : tools.firstElementChild !== proofControl) {
-        if (flexOn) flexControl.after(proofControl); else tools.prepend(proofControl);
-      }
-    } else if (proofControl?.isConnected) {
-      proofControl.remove(); autoProofOff();
-    }
+    // Le mode proof s'ouvre par le bouton « Proof » en bas du trade (mountProofButton).
+    if (!isCompleted(page)) autoProofOff();
     placeTools(heading, page.tradeHandle);
   }
   const clear = () => {
