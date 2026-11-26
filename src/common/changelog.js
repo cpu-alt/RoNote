@@ -16,6 +16,14 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item("Accessoires empilés", "Stacked accessories"),
+    items: [
+      item("Éditeur d'avatar : les accessoires s'empilent aussi en cliquant dans l'éditeur de Roblox (plus de 3 chapeaux, jusqu'à 10 accessoires) : Roblox ne retire plus le précédent.",
+        "Avatar editor: accessories now stack when you click in Roblox's own editor too (more than 3 hats, up to 10 accessories): Roblox no longer removes the previous one.")
+    ]
+  },
+  {
     version: '2.18.1',
     title: item("Clés d'essai et premium", "Trial keys and premium"),
     items: [

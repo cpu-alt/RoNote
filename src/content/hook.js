@@ -6,7 +6,9 @@
  * Plutot que de deviner l'endpoint et les en-tetes qu'elle utilise, on ecoute
  * ses propres reponses et on les transmet a l'extension.
  *
- * On n'intercepte QUE les reponses de detail de trade, et on ne modifie rien.
+ * On n'intercepte QUE les reponses de detail de trade, et on ne les modifie pas.
+ * Seule exception : l'enregistrement de l'editeur d'avatar, pour empiler les
+ * accessoires (reglage avatarPlus, active par content/avatar-plus.js).
  */
 (() => {
   // N'importe quel service de Roblox qui sert le detail d'un trade : la page
@@ -79,7 +81,7 @@
   const origSetHeader = XMLHttpRequest.prototype.setRequestHeader;
 
   XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-    try { this.__ronoteUrl = String(url || ''); } catch { /* ignore */ }
+    try { this.__ronoteUrl = String(url || ''); this.__ronoteMethod = String(method || '').toUpperCase(); } catch { /* ignore */ }
     return origOpen.call(this, method, url, ...rest);
   };
 
@@ -88,8 +90,50 @@
     return origSetHeader.call(this, name, value);
   };
 
+  // L'éditeur d'avatar envoie sa liste complète (PATCH v4/avatar) et y retire de lui-même un
+  // accessoire au-delà de sa limite (3 chapeaux, 1 par autre type) : le serveur en accepte 10.
+  // On remet ce qu'il a retiré pour faire de la place, et ce qu'on avait déjà remis (il l'ignore).
+  const ACC_TYPES = new Set([8, 41, 42, 43, 44, 45, 46, 47]);
+  const AVATAR_RE = /\/\/avatar\.roblox\.com\/v\d+\/avatar(?:$|[?#])/i;
+  const kept = new Set();
+  let stackOn = false;
+  const stackBack = (before, ids) => {
+    const added = [...ids].filter(id => !before.some(b => b.id === id)).length;
+    const gone = before.filter(b => !ids.has(b.id) && ACC_TYPES.has(b.assetType?.id));
+    const evicted = gone.filter(b => !kept.has(b.id));
+    const back = [...gone.filter(b => kept.has(b.id)), ...(added && evicted.length <= added ? evicted : [])];
+    const acc = before.filter(b => ids.has(b.id) && ACC_TYPES.has(b.assetType?.id)).length + added;
+    return back.slice(0, Math.max(0, 10 - acc));
+  };
+  async function stackSend(xhr, origSend, body) {
+    let out = body;
+    try {
+      const j = JSON.parse(body);
+      const list = j?.avatarDefinition?.updateAvatarModel?.assets;
+      if (Array.isArray(list)) {
+        const before = (await origFetch('https://avatar.roblox.com/v2/avatar/avatar', { credentials: 'include' }).then(r => r.json())).assets || [];
+        const back = stackBack(before, new Set(list.map(a => Number(a.id))));
+        if (back.length) {
+          back.forEach(b => kept.add(b.id));
+          list.push(...back.map(b => (b.meta ? { id: b.id, meta: b.meta } : { id: b.id })));
+          out = JSON.stringify(j);
+          xhr.addEventListener('load', () => window.postMessage({ __ronote: 'avatar-stacked' }, location.origin));
+        }
+      }
+    } catch { /* lecture impossible : la requête part telle quelle */ }
+    origSend.call(xhr, out);
+  }
+  window.addEventListener?.('message', (e) => {
+    if (e.source === window && e.origin === location.origin && e.data?.__ronote === 'avatar-stack') stackOn = !!e.data.on;
+  });
+
   XMLHttpRequest.prototype.send = (function (origSend) {
     return function (...args) {
+      if (stackOn && this.__ronoteMethod === 'PATCH' && AVATAR_RE.test(this.__ronoteUrl || '')
+          && typeof args[0] === 'string' && args[0].includes('UpdateAssets')) {
+        stackSend(this, origSend, args[0]);
+        return;
+      }
       try {
         const isSend = SEND_RE.test(this.__ronoteUrl || '');
         const m = isSend ? null : TRADE_RE.exec(this.__ronoteUrl || '');

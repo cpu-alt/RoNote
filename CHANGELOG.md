@@ -3,6 +3,10 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation : Accessoires empilés
+
+- **Éditeur d'avatar** : les accessoires s'empilent aussi en cliquant dans l'éditeur de Roblox (plus de 3 chapeaux, jusqu'à 10 accessoires) : Roblox ne retire plus le précédent.
+
 ## v2.18.1 : Clés d'essai et premium
 
 - **Clés d'essai** : le staff Neuronal peut offrir des clés d'essai Insider ou Elite (de 3 heures à 3 jours) ; elles s'utilisent dans Réglages › Neuronal et Premium, et l'accès se ferme tout seul à la fin.

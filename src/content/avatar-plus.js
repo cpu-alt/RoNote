@@ -220,7 +220,12 @@
   const onPage = () => /^\/my\/avatar/i.test(location.pathname);
   let enabled = true, t = 0;
   const obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (enabled && onPage()) mount(); }, 200); });
+  // hook.js (monde de la page) empile aussi ce qu'on porte par l'éditeur de Roblox.
+  window.addEventListener('message', (e) => {
+    if (e.source === window && e.data?.__ronote === 'avatar-stacked' && root) { stale = true; loadWorn().then(paint).then(redrawPreview).catch(() => {}); }
+  });
   function sync() {
+    window.postMessage({ __ronote: 'avatar-stack', on: enabled && onPage() }, location.origin);
     if (!enabled || !onPage()) { host?.remove(); return; }
     mount();
   }
