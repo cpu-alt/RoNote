@@ -2,13 +2,14 @@ import { B, safe } from '../common/shim.js';
 import * as api from '../common/api.js';
 import { ApiError } from '../common/api.js';
 import {
-  getSettings, saveSettings, replaceSettings, getState, setState, getStreams, saveStreams,
+  getSettings, saveSettings, replaceSettings, adoptSyncedSettings, getState, setState, getStreams, saveStreams,
   pushHistory, getHistory, clearHistory, getPortfolio, savePortfolio,
   getPortfolioReport, savePortfolioReport
 } from '../common/state.js';
 import { getCatalog, readEntry } from '../common/roli.js';
 import { pageDetail, analyzePage, capturedForPage, resolveNames, findByName, addKnownInstances } from '../common/page-trade.js';
 import { setLang, t } from '../common/i18n.js';
+import { pullSettings, isSettingsChange, notifiedElsewhere, shareNotifs, closedElsewhere, leaveSync } from '../common/sync.js';
 import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
 import { resolveThumbs, flushThumbs, clearThumbs, assetKey, bundleKey } from '../common/thumbs.js';
@@ -140,6 +141,7 @@ B.runtime.onInstalled.addListener(async (details) => {
   // Les alarmes ne survivent pas toujours à une mise à jour de l'extension : sans ça, l'auto-post s'arrêtait en silence.
   await safe(() => scheduleTradeAds());
   if (details.reason === 'update') await safe(refreshRobloxTabs);
+  await safe(syncFromCloud);
   // Première installation : la page d'accueil (merci + comment épingler l'icône) remplace la notification.
   if (details.reason === 'install') {
     const opened = await safe(() => B.tabs.create({ url: B.runtime.getURL('welcome/welcome.html') }), null);
@@ -160,6 +162,7 @@ B.runtime.onStartup?.addListener(async () => {
   await applySidePanel(settings);
   await safe(() => syncAdFree(settings));
   await safe(() => scheduleTradeAds());
+  await safe(syncFromCloud);
   tick('startup');
 });
 
@@ -923,18 +926,46 @@ async function refreshLuckyCat(settings) {
   return luckyAsking;
 }
 
+/* ======================= synchro entre appareils ======================= */
+
+/** Reglages modifies sur un autre appareil : adoptes ici, puis appliques comme apres un import. */
+async function syncFromCloud() {
+  const merged = await pullSettings(await getSettings());
+  if (!merged) return;
+  const settings = await adoptSyncedSettings(merged);
+  setLang(settings.lang);
+  await configureAlarm(settings);
+  await applySidePanel(settings);
+  await safe(() => syncAdFree(settings));
+  await setBadge((await getState()).inboundCount, settings, false);
+}
+
+B.storage.onChanged.addListener(async (changes, areaName) => {
+  if (isSettingsChange(changes, areaName)) await safe(syncFromCloud);
+  for (const id of await safe(() => closedElsewhere(changes, areaName), [])) {
+    await safe(() => B.notifications.clear(id));
+  }
+});
+
+const notifIdOf = (card) => `ronote:${card.kind}:${card.tradeId}`;
+
 /** Envoi groupe : au-dela du plafond, une notification resume par type. */
 async function emit(ctx) {
   if (!ctx.events.length) return;
+  // Un trade deja notifie par un autre de mes appareils ne sonne pas une seconde fois ici.
+  const elsewhere = await safe(() => notifiedElsewhere(ctx.settings), new Set());
+  const events = ctx.events.filter(c => !c.tradeId || !elsewhere.has(notifIdOf(c)));
+  if (!events.length) return;
+  await safe(() => shareNotifs(events.filter(c => c.tradeId).map(notifIdOf), ctx.settings));
   // Le son part tout de suite, en parallele des notifications : il n'attend
   // ni le telechargement d'un portrait ni l'ecriture de l'etat. Pas de son
   // pendant les heures silencieuses, meme si les notifications restent.
   const sound = inQuietHours(ctx.settings.quietHours)
     ? null
-    : playSoundsFor(ctx.events, ctx.settings).catch(() => 0);
+    : playSoundsFor(events, ctx.settings).catch(() => 0);
   const max = Math.max(1, ctx.settings.maxNotificationsPerPoll || 5);
   const byKind = new Map();
-  for (const card of ctx.events) {
+  for (const card of events) {
     if (!byKind.has(card.kind)) byKind.set(card.kind, []);
     byKind.get(card.kind).push(card);
   }
@@ -1010,6 +1041,7 @@ B.notifications.onClicked.addListener(async (id) => {
   const settings = await getSettings();
   if (rec?.url && settings.openOnClick) await openUrl(rec.url);
   await safe(() => B.notifications.clear(id));
+  await safe(() => shareNotifs([id], settings, true));
 });
 
 B.notifications.onButtonClicked?.addListener(async (id, idx) => {
@@ -1026,7 +1058,11 @@ B.notifications.onButtonClicked?.addListener(async (id, idx) => {
   await safe(() => B.notifications.clear(id));
 });
 
-B.notifications.onClosed?.addListener((id) => forgetNotif(id));
+B.notifications.onClosed?.addListener(async (id, byUser) => {
+  await forgetNotif(id);
+  // Fermee a la main ici : elle disparait aussi de mes autres appareils.
+  if (byUser && id.startsWith('ronote:')) await safe(async () => shareNotifs([id], await getSettings(), true));
+});
 
 /* ============================ messages ================================= */
 
@@ -1951,6 +1987,8 @@ async function handleMessage(msg, sender = null) {
       if (msg.patch?.historyLimit) await pushHistory([], settings.historyLimit, true);
       // L'historique d'envoi coupe : ce qui avait ete garde s'efface avec lui.
       if (msg.patch?.sentHistory === false) await clearSent();
+      if (msg.patch?.syncDevices === false) await leaveSync();
+      if (msg.patch?.syncDevices === true) await safe(syncFromCloud);
       await configureAlarm(settings);
       await applySidePanel(settings);
       await safe(() => syncAdFree(settings));

@@ -3,6 +3,7 @@ export const DEFAULTS = {
   lang: 'auto',               // auto (langue du navigateur) | fr | en
   sidePanel: false,           // l'icone ouvre une barre laterale au lieu du popup
   uiTheme: 'neuronal',        // style du popup et des reglages : neuronal | classic
+  syncDevices: false,         // (a activer sur chaque appareil) reglages et notifications partages entre mes appareils (stockage synchronise du navigateur, common/sync.js)
   neuronalLookup: false,      // fiches joueur / objet : ce que Neuronal en sait (permission optionnelle)
   neuronalShare: false,       // contribuer au reseau : presence du compte + trades termines (meme permission)
   neuronalAsked: false,       // la question « rejoindre la carte Neuronal ? » a eu sa reponse (installation ou mise a jour)

@@ -94,7 +94,7 @@ rallongent la revue.
 
 | Permission | Justification à coller |
 |---|---|
-| `storage` | Keep the user's settings and trade tracking state across browser restarts. Local storage only, never synced. |
+| `storage` | Keep the user's settings and trade tracking state across browser restarts. Local storage only; `storage.sync` is used only if the user turns on *Sync my devices* (off by default), to copy their settings and the ids of shown notifications to their own other devices through their browser account. |
 | `unlimitedStorage` | Hold the portfolio history (one point per day) and the trade log, which outgrow the 5 MB quota of `storage.local` over months of use. Everything stays on the user's machine; nothing is synced. |
 | `alarms` | Trigger the periodic trade check. A Manifest V3 service worker is suspended after a few seconds, so `alarms` is the only reliable way to wake it. |
 | `notifications` | Display the desktop notifications announcing trade changes. This is the extension's core function. |

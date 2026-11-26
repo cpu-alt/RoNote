@@ -377,6 +377,8 @@ const EN = {
   'S\'applique au popup, aux réglages et aux notifications.': 'Applies to the popup, the settings and the notifications.',
   'Surveillance active': 'Monitoring on',
   'Barre latérale': 'Sidebar',
+  'Synchroniser mes appareils': 'Sync my devices',
+  "Réglages, joueurs suivis et notifications partagés entre tes PC connectés au même compte du navigateur (Google, Microsoft ou Firefox). Un trade notifié sur un PC ne sonne pas sur l'autre, et une alerte fermée disparaît partout. Le choix Neuronal reste propre à chaque appareil.": "Settings, followed players and notifications shared between your PCs signed in to the same browser account (Google, Microsoft or Firefox). A trade notified on one PC doesn't ring on the other, and an alert you close disappears everywhere. The Neuronal choice stays specific to each device.",
   'Accepter ce trade': 'Accept this trade',
   'Accepter ?': 'Accept?',
   'Faire une contre-offre sur Roblox': 'Counter on Roblox',

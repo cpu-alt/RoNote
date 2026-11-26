@@ -29,8 +29,19 @@ Only in your browser's **local storage** (`storage.local`), on your machine. In
 practice: your settings, trade tracking state, your account value history, and the
 event log.
 
-That storage is **local and never synced**: RoNote deliberately avoids
-`storage.sync`, so nothing is uploaded to your Google account or to any other device.
+By default that storage is **local and never synced**: nothing is uploaded to your
+Google account or to any other device.
+
+**Exception, only if you turn it on: "Sync my devices"** (Settings, off by default, to
+enable on each device). RoNote then also writes to your browser's own synced storage
+(`storage.sync`), which your browser vendor (Google, Microsoft or Mozilla) carries to
+your other devices signed in to the same browser account. What is copied: your
+settings, including the players you follow, ignore or saved for later (Roblox id and
+name, no avatar), and for 3 hours the ids of the trade notifications shown or closed
+(`ronote:<kind>:<tradeId>`), so a trade doesn't ring twice. Never copied: your trades'
+contents, the portfolio, the log, the Roblox session, imported images or sounds, and
+your Neuronal choice (each device asks for its own). No RoNote or Neuronal server is
+involved. Turning the option off stops the copies.
 
 To erase everything: uninstall the extension, or use **Reset** in the settings page.
 There is no copy anywhere else to delete.

@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Synchroniser mes appareils** (`common/sync.js`, désactivé d'office, à activer sur chaque PC) : réglages et
+  joueurs suivis copiés par le stockage synchronisé du navigateur ; un trade notifié sur un PC ne sonne pas sur
+  l'autre, et une alerte fermée ou cliquée disparaît partout. Un appareil qui rejoint adopte d'abord la config
+  existante. Le consentement Neuronal reste propre à chaque appareil.
 - **Composer un trade dans RoNote** : le bouton Trade (Profils, Deals) ouvre le même éditeur que la contre-offre
   (deux inventaires, écart en direct, envoi en deux clics, code 2SV). Réglage « Composer le trade dans RoNote ».
 - **Vérification en deux étapes** : l'action est rejouée une seule fois, par le chemin qui a reçu le défi (le

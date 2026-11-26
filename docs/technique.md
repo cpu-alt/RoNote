@@ -1246,3 +1246,18 @@ en-têtes. Côté popup, l'éditeur de contre-offre a son panneau ; Accepter ouv
 fenêtre par-dessus le zoom). Le code ne part que vers Roblox ; rien n'est stocké. L'aperçu du popup simule le défi avec `?challenge=1`
 (`?challenge=email` pour l'e-mail) : `123456` passe, tout autre code est refusé.
 
+
+## Synchro entre appareils (`common/sync.js`)
+
+- Option `syncDevices`, **locale** à chaque appareil (comme le consentement Neuronal, voir `LOCAL_ONLY`) et
+  désactivée d'office. Passe par `storage.sync` du navigateur : aucun serveur à nous.
+- Réglages : JSON en morceaux `cfg0..cfgN` de 7 000 caractères (8 Ko par clé), méta `cfgMeta {n, at, dev}`. Le
+  dernier qui écrit gagne (`settingsSyncAt` local). Les écritures sont groupées (1,5 s) pour le quota de 120/min,
+  et rien n'est envoyé si le contenu est déjà celui du nuage. Les vignettes des listes de joueurs ne voyagent pas.
+- **Un appareil qui n'a jamais lu le nuage n'y écrit pas** (`syncJoined`) : sinon un PC tout juste installé (qui
+  touche `neuronalAsked` au premier lancement) écraserait la config des autres avec les défauts. Couper l'option
+  efface `syncJoined` : à la réactivation, le nuage gagne à nouveau.
+- Notifications : `notifSync { id: {at, dev, done?, by?} }`, 80 ids sur 3 h. `emit()` saute les trades déjà
+  notifiés par un autre appareil ; un clic ou une fermeture à la main pose `done`, et les autres appareils
+  effacent la notification (`storage.onChanged`). Deux PC qui vérifient à la même seconde peuvent encore sonner
+  tous les deux : accepté, l'écart est de quelques secondes au plus.

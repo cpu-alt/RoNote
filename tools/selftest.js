@@ -295,6 +295,19 @@ try {
   check('statut normalise', ['Rejected due to an error', 'countered', 'COMPLETED'].map(tracker.normStatus),
     ['RejectedDueToError', 'Countered', 'Completed']);
 
+  /* ------------------------- synchro entre appareils --------------------- */
+  group('Synchro');
+  const sync = await import('../src/common/sync.js');
+  const base = { lang: 'fr', syncDevices: true, neuronalShare: true,
+    favUsers: [{ id: 7, name: 'a', at: 1, thumb: 'https://t.rbxcdn.com/x', thumbAt: 2 }] };
+  const part = sync.syncablePart(base);
+  check('synchro : consentement Neuronal et option restent locaux', ['syncDevices', 'neuronalShare'].filter(k => k in part), []);
+  check('synchro : vignettes retirees', part.favUsers, [{ id: 7, name: 'a', at: 1 }]);
+  const merged = sync.mergeIncoming({ ...base, syncDevices: true, neuronalShare: false }, { ...part, lang: 'en', neuronalShare: true });
+  check('synchro : reglage recu adopte, consentement d'ici garde', [merged.lang, merged.neuronalShare], ['en', false]);
+  check('synchro : vignette d'ici remise', merged.favUsers[0].thumb, 'https://t.rbxcdn.com/x');
+  check('synchro : morceaux sous 8 Ko', sync.toChunks('x'.repeat(15000)).map(c => c.length), [7000, 7000, 1000]);
+
   /* --------------------------- sons et reglages -------------------------- */
   group('Sons');
   const tones = await import('../src/common/tones.js');

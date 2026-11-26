@@ -1,5 +1,6 @@
 import { B } from './shim.js';
 import { DEFAULTS } from './defaults.js';
+import { schedulePush, touchLocal } from './sync.js';
 
 const KEY_SETTINGS = 'settings';
 const KEY_STATE    = 'state';
@@ -73,6 +74,8 @@ export function sanitizeSettings(raw) {
 export async function replaceSettings(raw) {
   const next = withDefaults(sanitizeSettings(raw));
   await B.storage.local.set({ [KEY_SETTINGS]: next });
+  await touchLocal();
+  schedulePush(next);
   return next;
 }
 
@@ -87,6 +90,15 @@ export async function saveSettings(patch) {
   if (patch?.notifyOutbound) next.notifyOutbound = { ...cur.notifyOutbound, ...patch.notifyOutbound };
   if (patch?.quietHours) next.quietHours = { ...cur.quietHours, ...patch.quietHours };
   if (patch?.sounds) next.sounds = { ...cur.sounds, ...patch.sounds };
+  await B.storage.local.set({ [KEY_SETTINGS]: next });
+  await touchLocal();
+  schedulePush(next);
+  return next;
+}
+
+/** Reglages venus d'un autre appareil (sync.js) : ecrits sans etre renvoyes. */
+export async function adoptSyncedSettings(merged) {
+  const next = withDefaults(sanitizeSettings(merged));
   await B.storage.local.set({ [KEY_SETTINGS]: next });
   return next;
 }

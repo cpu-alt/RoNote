@@ -29,9 +29,20 @@ Uniquement dans le **stockage local** de ton navigateur (`storage.local`), sur t
 machine. Concrètement : tes réglages, l'état de suivi des trades, l'historique de la
 valeur de ton compte et le journal des événements.
 
-Ce stockage est **local et non synchronisé** : RoNote n'utilise volontairement pas
-`storage.sync`, donc rien ne remonte vers ton compte Google ni vers aucun autre
-appareil.
+Par défaut, ce stockage est **local et non synchronisé** : rien ne remonte vers ton
+compte Google ni vers aucun autre appareil.
+
+**Exception, seulement si tu l'actives : « Synchroniser mes appareils »** (Réglages,
+désactivé d'office, à activer sur chaque appareil). RoNote écrit alors aussi dans le
+stockage synchronisé de ton navigateur (`storage.sync`), que l'éditeur du navigateur
+(Google, Microsoft ou Mozilla) transporte vers tes autres appareils connectés au même
+compte. Ce qui est copié : tes réglages, y compris les joueurs suivis, ignorés ou mis
+de côté (id et pseudo Roblox, sans avatar), et pendant 3 heures les ids des
+notifications de trade montrées ou fermées (`ronote:<type>:<idDuTrade>`), pour qu'un
+trade ne sonne pas deux fois. Jamais copiés : le contenu de tes trades, le
+portefeuille, le journal, la session Roblox, les images et sons importés, et ton choix
+Neuronal (chaque appareil le demande). Aucun serveur de RoNote ni de Neuronal n'est
+utilisé. Couper l'option arrête les copies.
 
 Pour tout effacer : désinstalle l'extension, ou utilise **Réinitialiser** dans les
 réglages. Il n'y a aucune copie ailleurs à supprimer.
