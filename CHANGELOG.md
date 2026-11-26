@@ -5,6 +5,8 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **roblox.com plus fluide** : six scripts n'observent plus le document que sur leur page (trades, liste des trades,
+  objet, profil, amis) au lieu de toutes les pages du site ; une seule minuterie suit l'URL (`RoNoteRoute`).
 - **Mon profit sur Rolimon's** (`content/rolimons-profit.js`, réglage actif d'office) : sur MA page joueur
   rolimons.com, sous chaque item, le gain en value depuis la date « Owner Since » de Rolimon's (RAP en info-bulle).
   Historique lu seulement pour les cartes visibles, deux à la fois, en cache dans le worker. Avant le premier

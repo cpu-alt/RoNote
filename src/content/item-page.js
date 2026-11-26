@@ -291,6 +291,10 @@
     if (!onItem || !enabled) return;
     if (!infoKey || (info?.known && !host?.isConnected)) schedule();
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // Branché seulement sur une page d'objet (RoNoteRoute) ; en partir nettoie le bloc.
+  if (globalThis.RoNoteRoute) {
+    globalThis.RoNoteRoute.watch(observer, () => !!pageItem(), { childList: true, subtree: true },
+      () => { seenUrl = location.href; onItem = !!pageItem(); schedule(); });
+  } else observer.observe(document.documentElement, { childList: true, subtree: true });
   schedule();
 })();

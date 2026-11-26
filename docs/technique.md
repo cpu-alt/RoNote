@@ -1261,3 +1261,15 @@ fenêtre par-dessus le zoom). Le code ne part que vers Roblox ; rien n'est stock
   notifiés par un autre appareil ; un clic ou une fermeture à la main pose `done`, et les autres appareils
   effacent la notification (`storage.onChanged`). Deux PC qui vérifient à la même seconde peuvent encore sonner
   tous les deux : accepté, l'écart est de quelques secondes au plus.
+
+## L'aiguilleur des scripts de contenu (`RoNoteRoute`, `content/tradedom.js`)
+
+- Avant le 26/11, `trade-delta`, `trade-list`, `scrape`, `item-page`, `profile-card` et `friends-menu` observaient
+  tout le document de **chaque** page de roblox.com et ne faisaient rien hors de la leur. Le navigateur créait
+  quand même un relevé par mutation pour chacun ; `trade-delta` suivait en plus chaque texte et attribut du site.
+- `RoNoteRoute.watch(observer, want, opts, onChange)` ne branche l'observateur que si `want()` est vrai et le
+  débranche sinon. Une seule minuterie (1 s, onglet visible) plus `popstate`, `hashchange` et l'API Navigation
+  suivent l'URL pour tous les scripts. `onChange` sert à se remettre à jour ou à nettoyer en partant.
+- Chaque script garde un repli (`observe` direct) si `RoNoteRoute` manque. `tradedom.js` doit rester premier
+  dans son groupe du manifeste (c'est déjà la condition de `RoNoteDom`).
+- `play-button` et `nav-players` restent sur tout le site (jeux et barre partout), mais groupent déjà leur travail.

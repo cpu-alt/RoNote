@@ -438,7 +438,9 @@
     if (!lastKind && !onListPage()) return;
     if (records.some(r => r.addedNodes.length || r.removedNodes.length)) schedule();
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // Branché seulement sur la liste des trades, ou tant qu'il reste des badges à retirer (RoNoteRoute).
+  if (globalThis.RoNoteRoute) globalThis.RoNoteRoute.watch(observer, () => !dead && (onListPage() || !!lastKind), { childList: true, subtree: true }, schedule);
+  else observer.observe(document.documentElement, { childList: true, subtree: true });
   globalThis.addEventListener('popstate', schedule);
   globalThis.addEventListener('hashchange', schedule);
   // Largeur de fenêtre ou zoom changés : les textes de Roblox se replacent,

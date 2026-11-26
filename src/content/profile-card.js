@@ -824,6 +824,10 @@
       (data && strip && !strip.isConnected && stripRow()) || (data && seen && !seen.isConnected) ||
       (data && host._nsec < SECTIONS.length))) schedule();
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // Branché seulement sur un profil (RoNoteRoute) ; en partir nettoie la carte.
+  if (globalThis.RoNoteRoute) {
+    globalThis.RoNoteRoute.watch(observer, () => !!pageUser(), { childList: true, subtree: true },
+      () => { seenUrl = location.href; onProfile = !!pageUser(); schedule(); });
+  } else observer.observe(document.documentElement, { childList: true, subtree: true });
   schedule();
 })();

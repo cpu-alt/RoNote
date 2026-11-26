@@ -224,6 +224,11 @@
   let queued = false;
   const later = () => { if (queued) return; queued = true; setTimeout(() => { queued = false; decorate(); }, 60); };
   const mo = new MutationObserver(() => { if (pageOwner()) later(); });
-  const start = () => { mo.observe(document.body, { childList: true, subtree: true }); later(); };
+  // Branché seulement sur une liste d'amis (RoNoteRoute).
+  const start = () => {
+    if (globalThis.RoNoteRoute) globalThis.RoNoteRoute.watch(mo, () => !!pageOwner(), { childList: true, subtree: true }, later);
+    else mo.observe(document.body, { childList: true, subtree: true });
+    later();
+  };
   if (document.body) start(); else addEventListener('DOMContentLoaded', start, { once: true });
 })();

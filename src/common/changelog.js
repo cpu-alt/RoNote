@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("roblox.com plus fluide : RoNote ne surveille plus les pages qui ne le concernent pas (jeux, avatar, accueil).",
+        "Smoother roblox.com: RoNote no longer watches the pages it has nothing to do on (games, avatar, home)."),
       item("Sur ta page Rolimon's, sous chaque item : ce que tu y as gagné ou perdu depuis que tu l'as.",
         "On your Rolimon's page, under each item: what you gained or lost on it since you got it."),
       item("Nouvelle vue Rolimon's : les deals de rolimons.com (items sous leur RAP ou leur value), en direct dans RoNote.",

@@ -60,6 +60,9 @@
     timer = setTimeout(publish, 400);
   };
 
-  new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+  // Branché seulement sur /trades (tradedom.js : RoNoteRoute).
+  const mo = new MutationObserver(schedule);
+  if (globalThis.RoNoteRoute) globalThis.RoNoteRoute.watch(mo, onTradesPage, { childList: true, subtree: true }, schedule);
+  else mo.observe(document.documentElement, { childList: true, subtree: true });
   schedule();
 })();

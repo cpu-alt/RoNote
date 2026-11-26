@@ -2182,7 +2182,11 @@
     if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n =>
       n === profileLink || n.contains?.(profileLink) || (n !== host && !n.dataset?.rn)) ||
       r.type === 'characterData' || r.type === 'attributes')) schedule();
-  }).observe(document.documentElement, { childList: true, characterData: true, attributes: true, attributeFilter: ['href', 'title'], subtree: true });
+  });
+  // Textes et attributs de TOUT roblox.com suivis : seulement sur une page de trade (RoNoteRoute).
+  const watchOpts = { childList: true, characterData: true, attributes: true, attributeFilter: ['href', 'title'], subtree: true };
+  if (globalThis.RoNoteRoute) globalThis.RoNoteRoute.watch(observer, () => !dead && onPage(), watchOpts, () => { if (!onPage() && host) clear(); schedule(); });
+  else observer.observe(document.documentElement, watchOpts);
   globalThis.addEventListener('popstate', schedule);
   globalThis.addEventListener('hashchange', schedule);
   // Seulement sur une page de trade : ailleurs sur Roblox, défiler ou

@@ -606,3 +606,49 @@ globalThis.RoNoteDom = {
   myInventoryHeading: () => visibleText(MY_INVENTORY)
 };
 })();
+
+/* ==========================================================================
+ *  L'AIGUILLEUR (26 novembre) : un observateur par page, pas sur tout le site
+ * --------------------------------------------------------------------------
+ *  Chaque script de contenu surveillait tout le document de TOUTES les pages
+ *  de roblox.com (jeux, avatar, accueil…) pour ne rien faire hors de la
+ *  sienne : le navigateur fabriquait quand même un relevé par mutation, pour
+ *  chacun. `RoNoteRoute.watch` ne branche l'observateur que sur sa page, et
+ *  le débranche en partant. Une seule minuterie (1 s, onglet visible) suit
+ *  l'URL pour tous : l'application est monopage, une navigation ne recharge
+ *  pas les scripts.
+ * ========================================================================== */
+(() => {
+  if (globalThis.RoNoteRoute) return;
+  const subs = [];
+  let href = location.href;
+  const sync = () => { for (const s of subs) s.sync(); };
+  const check = () => { if (location.href !== href) { href = location.href; sync(); } };
+  setInterval(() => { if (!document.hidden) check(); }, 1000);
+  addEventListener('popstate', check);
+  addEventListener('hashchange', check);
+  globalThis.navigation?.addEventListener?.('navigatesuccess', check);
+  globalThis.RoNoteRoute = {
+    /**
+     * Branche `observer` (options `opts`) tant que `want()` est vrai. `onChange` est appelé
+     * à chaque branchement ou débranchement : le script s'y remet à jour (ou se nettoie).
+     */
+    watch(observer, want, opts, onChange) {
+      let on = false;
+      const s = {
+        sync() {
+          let w = false;
+          try { w = !!want(); } catch { /* page en cours de démontage */ }
+          if (w === on) return;
+          if (w) observer.observe(document.documentElement, opts); else observer.disconnect();
+          on = w;
+          try { onChange?.(); } catch { /* le script gère ses erreurs */ }
+        }
+      };
+      subs.push(s);
+      s.sync();
+      return s;
+    },
+    recheck: sync
+  };
+})();
