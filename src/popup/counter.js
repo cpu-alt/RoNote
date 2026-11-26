@@ -380,6 +380,9 @@ function bind(w) {
   w.addEventListener('change', (e) => { if (ed && e.target.dataset.robux) paint({ shelf: false }); });
 }
 
+const sentItem = (i) => ({ uaid: String(i.uaid || ''), assetId: Number(i.assetId) || 0, bundleId: Number(i.bundleId) || 0,
+  legacyAssetId: Number(i.legacyAssetId) || 0, name: String(i.name || ''), serial: i.serial ?? null });
+
 async function sendCounter() {
   if (!ed.armed) {
     ed.armed = true;
@@ -399,6 +402,8 @@ async function sendCounter() {
     type: isNew() ? 'ronote:send-trade' : 'ronote:counter', tradeId: card.tradeId, partnerId: card.partner?.id,
     partner: card.partner?.displayName || card.partner?.name || '',
     give: ed.give.map(i => i.uaid), get: ed.get.map(i => i.uaid),
+    // De quoi dessiner la carte du trade envoyé tout de suite, sans relire son détail chez Roblox.
+    giveItems: ed.give.map(sentItem), getItems: ed.get.map(sentItem),
     giveRobux: ed.giveRobux, getRobux: ed.getRobux,
     giveValue: sim.mainGive, getValue: sim.mainGet, pct: sim.incomplete ? null : sim.pctMain
   }).catch((e) => ({ error: String(e?.message || e) }));

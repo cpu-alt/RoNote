@@ -1008,6 +1008,7 @@ function openCounter(tradeId) {
     onSent: (res) => {
       forgetTrade(tradeId);
       if (res?.state) data.state = res.state;
+      if (res?.card?.tradeId) cards.outbound.set(res.card.tradeId, res.card);   // la carte est là, sans relire Roblox
       renderHeader();
       renderList();
       sentToast(card.partner);
@@ -1037,6 +1038,7 @@ compose.open = (partner, mine, theirs) => {
     avatarHtml: () => avatarHtml({ headshot: partner.thumb }),
     onSent: (res) => {
       if (res?.state) data.state = res.state;
+      if (res?.card?.tradeId) cards.outbound.set(res.card.tradeId, res.card);   // la carte est là, sans relire Roblox
       renderHeader(); renderList();
       sentToast(partner);
     }

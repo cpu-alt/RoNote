@@ -319,12 +319,19 @@ console.log('\nNouveau trade composé dans le popup');
   await import(SW + '?run=send');
   const send = (msg) => new Promise(res => listeners.message.at(-1)(msg, {}, res));
   const uuid = (n) => `0000000${n}-0000-4000-8000-000000000000`;
-  const r = await send({ type: 'ronote:send-trade', partnerId: 9, partner: 'bob', give: [uuid(1)], get: [uuid(2)], giveValue: 10, getValue: 12 });
+  const r = await send({ type: 'ronote:send-trade', partnerId: 9, partner: 'bob', give: [uuid(1)], get: [uuid(2)], giveValue: 10, getValue: 12,
+    giveItems: [{ uaid: uuid(1), assetId: 1028606, name: 'Red Baseball Cap' }], getItems: [{ uaid: uuid(2), assetId: 1028720, name: 'Viking Helm' }] });
   check('le trade part par POST /v2/trades/send', r?.ok === true && calls.some(c => c === 'POST https://trades.roblox.com/v2/trades/send'));
   check('son numéro revient', r.tradeId === 4242);
   check('il est déjà vu dans les « Envoyés » : pas d\'alerte de son propre envoi', store.get('streams').outbound.seen.includes(4242));
   const ligne = (store.get('state')?.snapshot?.outbound || []).find(t => t.tradeId === 4242);
   check('… et il est DANS les « Envoyés » tout de suite, avec son partenaire', !!ligne?.pending && ligne.partner?.id === 9);
+  check('la carte du trade revient avec la réponse : rien à relire chez Roblox',
+    r.card?.tradeId === 4242 && r.card.kind === 'outbound' && r.card.partner?.id === 9 && r.card.analysis?.give?.items?.length === 1 && r.card.analysis?.get?.items?.length === 1);
+  const lecturesDetail = calls.filter(c => /trades\/4242(?:$|[?/])/.test(c)).length;
+  const h = await send({ type: 'ronote:hydrate', ids: [4242], kind: 'outbound' });
+  check('le popup rouvert la retrouve sans lire son détail', h?.cards?.[0]?.tradeId === 4242
+    && calls.filter(c => /trades\/4242(?:$|[?/])/.test(c)).length === lecturesDetail);
   const avant = calls.length;
   await sleep(1700);
   check("une vérification part 1,5 s après l'envoi, sans attendre la cadence", calls.length > avant);

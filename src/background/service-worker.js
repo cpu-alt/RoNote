@@ -943,6 +943,32 @@ async function refreshLuckyCat(settings) {
  * envoi : rien de plus que si l'utilisateur cliquait « vérifier ».
  */
 const sentFollow = new Set();
+
+/**
+ * La carte d'un trade qu'on vient d'envoyer, faite de ce qu'on a envoyé (items, Robux, partenaire) :
+ * mise en cache comme une carte lue chez Roblox (makeCard), elle s'affiche sans attendre que Roblox
+ * serve le détail d'un trade tout neuf (souvent quelques secondes, parfois une erreur).
+ */
+async function sentCard(tradeId, myId, msg) {
+  if (!Array.isArray(msg.giveItems) && !Array.isArray(msg.getItems)) return null;
+  const items = (list) => (Array.isArray(list) ? list : []).slice(0, 8).map(i => ({
+    id: i.uaid || null, serialNumber: i.serial ?? null, name: i.name || '',
+    ...(Number(i.bundleId) ? { bundleId: Number(i.bundleId) } : { assetId: Number(i.legacyAssetId) || Number(i.assetId) || 0 })
+  }));
+  const settings = await getSettings();
+  const partner = { id: Number(msg.partnerId), name: msg.partner || '', displayName: msg.partner || '' };
+  const raw = {
+    id: Number(tradeId), status: 'Open', created: new Date().toISOString(), user: partner,
+    offers: [
+      { user: { id: Number(myId) }, robux: Number(msg.giveRobux) || 0, userAssets: items(msg.giveItems) },
+      { user: partner, robux: Number(msg.getRobux) || 0, userAssets: items(msg.getItems) }
+    ]
+  };
+  const card = await safeCard(async () => makeCard(api.normalizeTradeDetail(raw), 'outbound', myId, await getCatalog(settings), settings), null);
+  if (card) saveDetailCacheSoon();       // le popup rouvert plus tard la retrouve aussi
+  return card;
+}
+
 async function afterSend(tradeId, partner = null) {
   const id = Number(tradeId);
   if (!id) return null;
@@ -1984,6 +2010,7 @@ async function handleMessage(msg, sender = null) {
         let newId = null;
         try { newId = Number(JSON.parse(res.body || '{}')?.id) || null; } catch { /* réponse sans id */ }
         const after = newId ? await afterSend(newId, { id: Number(msg.partnerId), name: msg.partner || '', displayName: msg.partner || '' }) : null;
+        const card = newId ? await sentCard(newId, state0.userId, msg) : null;
         await pushHistory([{
           at: Date.now(), kind: 'countered_by_me', tradeId: id, uid: state.userId,
           partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
@@ -1992,7 +2019,7 @@ async function handleMessage(msg, sender = null) {
           pct: Number.isFinite(msg.pct) ? msg.pct : null,
           skipped: 'contre-offre envoyée depuis RoNote'
         }]);
-        return { ok: true, via: res.via, state: after || state };
+        return { ok: true, via: res.via, state: after || state, card };
       } catch (e) {
         if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };
@@ -2015,6 +2042,7 @@ async function handleMessage(msg, sender = null) {
         try { tradeId = Number(JSON.parse(res.body || '{}')?.id) || null; } catch { /* réponse sans id */ }
         // son propre envoi n'est pas une nouveauté, et il entre dans les « Envoyés » tout de suite
         const sentState = tradeId ? await afterSend(tradeId, { id: partnerId, name: msg.partner || '', displayName: msg.partner || '' }) : null;
+        const card = tradeId ? await sentCard(tradeId, state0.userId, msg) : null;
         await pushHistory([{
           at: Date.now(), kind: 'sent_by_me', tradeId, uid: state0.userId,
           partner: msg.partner || '?', partnerId, notified: false,
@@ -2023,7 +2051,7 @@ async function handleMessage(msg, sender = null) {
           pct: Number.isFinite(msg.pct) ? msg.pct : null,
           skipped: 'trade envoyé depuis RoNote'
         }]);
-        return { ok: true, via: res.via, tradeId, state: sentState };
+        return { ok: true, via: res.via, tradeId, state: sentState, card };
       } catch (e) {
         if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };
