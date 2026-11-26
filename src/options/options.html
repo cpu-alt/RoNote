@@ -22,13 +22,19 @@
     </label>
     <nav class="nav" id="nav">
       <a href="#s-general"><i data-ic="settings"></i>Général</a>
-      <a href="#s-premium"><i data-ic="star"></i>Premium</a>
+      <span class="nav-group">Alertes</span>
       <a href="#s-watch"><i data-ic="eye"></i>Trades surveillés</a>
       <a href="#s-notif"><i data-ic="bell"></i>Notifications</a>
       <a href="#s-sound"><i data-ic="volume"></i>Son</a>
       <a href="#s-filters"><i data-ic="filter"></i>Filtres</a>
+      <span class="nav-group">Trading</span>
+      <a href="#s-send"><i data-ic="send"></i>Envoyer des trades</a>
       <a href="#s-value"><i data-ic="chart"></i>Valeurs</a>
+      <span class="nav-group">Affichage</span>
+      <a href="#s-roblox"><i data-ic="grid"></i>Sur roblox.com</a>
       <a href="#s-look"><i data-ic="palette"></i>Apparence</a>
+      <span class="nav-group">Compte</span>
+      <a href="#s-premium"><i data-ic="star"></i>Neuronal et Premium</a>
       <a href="#s-backup"><i data-ic="tool"></i>Sauvegarde</a>
       <a href="#s-news"><i data-ic="sparkle"></i>Quoi de neuf</a>
     </nav>
@@ -48,6 +54,7 @@
     <!-- ============================== Général ============================== -->
     <section class="card" id="s-general">
       <h2><i data-ic="settings"></i>Général</h2>
+      <p class="lead">L'essentiel : surveillance, langue, cadence et synchronisation entre tes appareils.</p>
       <label class="row switch"><input type="checkbox" id="enabled">
         <span><b>Surveillance active</b><small>Décoché, RoNote ne vérifie plus rien et n'envoie aucune alerte.</small></span></label>
       <label class="row">
@@ -87,6 +94,7 @@
     <!-- ========================= Trades surveillés ========================= -->
     <section class="card" id="s-watch">
       <h2><i data-ic="eye"></i>Trades surveillés</h2>
+      <p class="lead">Les onglets de Roblox que RoNote suit, et le suivi de tes envois.</p>
       <h3>Onglets de Roblox</h3>
       <label class="row switch"><input type="checkbox" id="watchInbound">
         <span><b>Trades reçus</b><small>Onglet « Inbound », contre-offres comprises.</small></span></label>
@@ -121,6 +129,7 @@
     <!-- ============================ Notifications ========================== -->
     <section class="card" id="s-notif">
       <h2><i data-ic="bell"></i>Notifications</h2>
+      <p class="lead">Comment et quand RoNote te prévient.</p>
       <label class="row switch"><input type="checkbox" id="desktopNotifications">
         <span><b>Notifications bureau</b><small>Notifications système de Windows, macOS ou Linux.</small></span></label>
       <label class="row switch" data-needs="desktopNotifications"><input type="checkbox" id="showItems">
@@ -149,6 +158,7 @@
     <!-- ================================= Son =============================== -->
     <section class="card" id="s-sound">
       <h2><i data-ic="volume"></i>Son</h2>
+      <p class="lead">Un son par type d’événement, ou les tiens.</p>
       <label class="row switch"><input type="checkbox" id="sound">
         <span><b>Jouer un son</b><small>Un son par type d'événement. Le bouton lecture fait écouter celui choisi.</small></span></label>
       <div class="row" data-needs="sound"><span><b>Trade reçu, contre-offre</b></span>
@@ -184,7 +194,8 @@
 
     <!-- =============================== Filtres ============================= -->
     <section class="card" id="s-filters">
-      <h2><i data-ic="filter"></i>Filtres <small class="hint">(trades reçus uniquement)</small></h2>
+      <h2><i data-ic="filter"></i>Filtres</h2>
+      <p class="lead">Les trades reçus qui ne méritent pas d’alerte. Ils restent visibles dans le popup.</p>
       <p class="hint top">Un trade filtré n'envoie pas d'alerte, mais reste visible dans le popup et le journal. Un trade aux cotes incertaines est toujours notifié.</p>
       <label class="row switch"><input type="checkbox" id="onlyWins">
         <span><b>Ne notifier que les trades gagnants</b><small>Gain calculé sur la base choisie dans Valeurs.</small></span></label>
@@ -204,15 +215,23 @@
       <div id="ignored" class="chips"></div>
     </section>
 
+    <!-- ========================== Envoyer des trades ======================= -->
+    <section class="card" id="s-send">
+      <h2><i data-ic="send"></i>Envoyer des trades</h2>
+      <p class="lead">Composer, contrer et envoyer : l'éditeur de RoNote et ce qu'il retient de tes envois.</p>
+      <label class="row switch"><input type="checkbox" id="composeInPopup">
+        <span><b>Composer le trade dans RoNote</b><small>Le bouton Trade (Profils, Deals) ouvre l'éditeur de RoNote : les deux inventaires, l'écart en direct, puis l'envoi en deux clics. Sinon, la page trade de Roblox.</small></span></label>
+
+      <label class="row switch" data-keys="historique history envoi sent envoyes objets items insider elite premium"><input type="checkbox" id="sentHistory">
+        <span><b>Envoi rapide : mes objets récents</b><small>RoNote premium Insider ou Elite : sous « Trade with … », les objets que tu as mis récemment de ton côté ; un clic les remet dans ton offre. Gardé seulement sur cet ordinateur ; le couper efface l'historique.</small></span></label>
+    </section>
+
     <!-- =============================== Valeurs ============================= -->
     <section class="card" id="s-value">
       <h2><i data-ic="chart"></i>Valeurs</h2>
+      <p class="lead">D'où viennent les cotes et comment les trades sont comptés.</p>
       <label class="row switch"><input type="checkbox" id="useRolimons">
         <span><b>Utiliser les cotes Rolimon's</b><small>Cotes de la communauté et détection des objets « projected ». Rafraîchies toutes les 15 min.</small></span></label>
-      <label class="row switch" data-needs="useRolimons"><input type="checkbox" id="rolimonsProfit">
-        <span><b>Mon profit sur Rolimon's</b><small>Sur ta page joueur Rolimon's, sous chaque item : ce qu'il a pris ou perdu (value, RAP) depuis le jour où tu l'as.</small></span></label>
-      <label class="row switch"><input type="checkbox" id="rolimonsAdFree">
-        <span><b>Rolimon's sans pubs</b><small>Retire les publicités de rolimons.com : les pages chargent plus vite. Rien n'est bloqué ailleurs.</small></span></label>
       <label class="row" data-needs="useRolimons"><span><b>Base de calcul</b><small>La value est la cote sur laquelle se font les trades. Le RAP ne reflète que l'historique des ventes, et se gonfle facilement.</small></span>
         <select id="valueBasis">
           <option value="value">Value Rolimon's (recommandé)</option>
@@ -233,116 +252,23 @@
         <input type="number" id="revalMinPercent" min="3" max="100" step="1"></label>
       <p class="hint">Quel que soit le réglage, la value et le RAP restent tous deux affichés. Un objet sans cote n'est jamais compté comme 0 : il est exclu des totaux et signalé.</p>
 
-      <h3 id="s-neuronal"><img class="nw-mark" src="../assets/neuronal-logo.png" alt="" width="16" height="16">Neuronal</h3>
-      <label class="row switch" data-keys="neuronal réseau network base de données database fiche joueur objet discord"><input type="checkbox" id="neuronalLookup">
-        <span><b>Fiches Neuronal</b><small>Dans la fiche d'un joueur ou d'un objet, montre s'il est dans la base Neuronal et ses derniers trades. Seul son identifiant Roblox est envoyé à neuronal.live, à l'ouverture de la fiche. Le navigateur demande l'accès au site quand tu l'actives.</small></span></label>
-      <label class="row switch" data-keys="neuronal réseau network carte map partager share contribuer robux trades ronote"><input type="checkbox" id="neuronalShare">
-        <span><b>Contribuer au réseau Neuronal</b><small>Ton compte apparaît sur la carte de neuronal.live avec le cadre RoNote, et tes trades terminés y sont envoyés tels que Roblox les donne : objets exacts et Robux de chaque côté, avec l'identifiant de ton partenaire. Rien d'autre, et aucune requête de plus vers Roblox.</small>
-          <small class="nw-share-state" id="nwShareState" hidden></small>
-          <a class="nw-link" id="nwRonoteLink" target="_blank" rel="noopener">RoNote sur neuronal.live</a></span></label>
+
+      <h3>Sur rolimons.com</h3>
+      <label class="row switch" data-needs="useRolimons"><input type="checkbox" id="rolimonsProfit">
+        <span><b>Mon profit sur Rolimon's</b><small>Sur ta page joueur Rolimon's, sous chaque item : ce qu'il a pris ou perdu (value, RAP) depuis le jour où tu l'as.</small></span></label>
+      <label class="row switch"><input type="checkbox" id="rolimonsAdFree">
+        <span><b>Rolimon's sans pubs</b><small>Retire les publicités de rolimons.com : les pages chargent plus vite. Rien n'est bloqué ailleurs.</small></span></label>
     </section>
 
-    <!-- =============================== Premium ============================= -->
-    <section class="card" id="s-premium">
-      <h2><i data-ic="star"></i>Premium</h2>
-      <p class="hint top" data-keys="premium abonnement subscription discord clé key deals profils profiles">Les fiches Neuronal, les Profils et les Deals sont réservés aux abonnés du Discord Neuronal. Tout le reste de RoNote reste gratuit, et la contribution au réseau reste un choix à part.</p>
-      <div id="premium" class="premium" aria-live="polite"></div>
-    </section>
-
-    <!-- ============================== Apparence ============================ -->
-    <section class="card" id="s-look">
-      <h2><i data-ic="palette"></i>Apparence</h2>
-
-      <label class="row" data-keys="interface ui style neuronal classique classic popup réglages look">
-        <span><b>Interface</b><small>Le style du popup, de la barre latérale et de cette page. Neuronal reprend celui du site neuronal.live.</small></span>
-        <select id="uiTheme">
-          <option value="neuronal">Neuronal (par défaut)</option>
-          <option value="classic">Classique</option>
-        </select>
-      </label>
-
-      <h3>Thème</h3>
-      <div class="row design" id="theme-row" data-keys="theme thème neon néon sunset ocean océan casino minimal partager share">
-        <div class="design-head"><span><b>Thème RoNote</b><small>Règle d'un coup le bandeau, la colonne des listes, le badge « projected » et le fond de Roblox. Chaque réglage reste modifiable ensuite.</small></span></div>
-        <div class="themes" id="themes" role="list"></div>
-        <div class="btnrow">
-          <button class="btn" id="theme-export" type="button"><i data-ic="download"></i>Exporter mon thème</button>
-          <label class="btn" for="theme-file" tabindex="0"><i data-ic="upload"></i>Importer un thème</label>
-          <input type="file" id="theme-file" accept="application/json,.json" hidden>
-        </div>
-        <small class="proj-msg" id="theme-msg"></small>
-      </div>
-
-      <h3>Repères sur les objets</h3>
-      <label class="row switch" data-needs="useRolimons" data-keys="diamant diamond rare"><input type="checkbox" id="showRare">
-        <span><b>Diamant sur les objets rares <span class="mark-demo" data-mark="rare"></span></b><small>Les objets que Rolimon's classe « rares », dans le popup et sur les pages de trade Roblox.</small></span></label>
-      <label class="row switch" data-needs="useRolimons" data-keys="lucky cat chat rolibadge"><input type="checkbox" id="showLuckyCat">
-        <span><b>Lucky Cat de Rolimon's <span class="mark-demo" data-mark="lucky"></span></b><small>Signale l'exemplaire tiré par le Lucky Cat : qui le possède gagne un RoliBadge. Le tirage change toutes les 4 à 24 h.</small></span></label>
-      <p class="hint" id="lucky-now" hidden></p>
-
-      <h3>Popup</h3>
-
-      <h3>Fond des pages Roblox</h3>
-      <div class="row design" id="bg-row" data-keys="fond background image wallpaper voile flou blur">
-        <div class="design-head"><span><b>Ton image en fond</b><small>Derrière toutes les pages de roblox.com. Le voile, de la couleur de ton thème Roblox, garde le texte lisible.</small></span>
-          <button class="btn ghost" id="bg-reset" type="button"><i data-ic="undo"></i>Par défaut</button></div>
-        <div class="design-body">
-          <span class="bg-stage" id="bg-preview" aria-hidden="true"><span class="bg-lines"><i></i><i></i><i></i></span></span>
-          <div class="design-side">
-            <div class="fields">
-              <label class="field"><span>Voile</span>
-                <select id="pageBgDim">
-                  <option value="0">Aucun</option>
-                  <option value="30">Léger</option>
-                  <option value="60">Moyen</option>
-                  <option value="80">Fort</option>
-                </select></label>
-              <label class="field"><span>Flou</span>
-                <select id="pageBgBlur">
-                  <option value="0">Aucun</option>
-                  <option value="4">Léger</option>
-                  <option value="12">Fort</option>
-                </select></label>
-            </div>
-            <div class="btnrow">
-              <label class="btn" for="bg-file" tabindex="0"><i data-ic="upload"></i>Importer une image</label>
-              <input type="file" id="bg-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-              <button class="btn" id="bg-clear" type="button" hidden>Retirer l'image</button>
-            </div>
-            <small class="proj-msg" id="bg-msg"></small>
-          </div>
-        </div>
-      </div>
-
-      <h3>Mode anonyme</h3>
-      <label class="row switch" data-keys="anonyme anonymous stream pseudo username cacher hide"><input type="checkbox" id="anonShowValues">
-        <span><b>Garder ma value visible</b><small>Le mode anonyme (H) ne cache alors que ton pseudo et ton portrait : value, RAP, rang et gains restent lisibles.</small></span></label>
-      <label class="row switch" data-keys="anonyme anonymous robux solde balance"><input type="checkbox" id="anonShowRobux">
-        <span><b>Garder mon solde de Robux visible</b><small>Dans la barre du haut de Roblox, en mode anonyme.</small></span></label>
-
-      <h3>Page d'un objet sur Roblox</h3>
-      <label class="row switch" data-needs="useRolimons" data-keys="limited item objet catalog rolimons lien link"><input type="checkbox" id="itemPageValue">
-        <span><b>Value et lien Rolimon's sur la page d'un limited</b><small>Une rangée « Value » sous « Best Price » : sa value, sa demande et sa tendance, avec un lien vers sa fiche Rolimon's.</small></span></label>
-
-      <h3>Profil d'un joueur sur Roblox</h3>
-      <label class="row switch" data-needs="useRolimons" data-keys="profil profile joueur player value rap inventaire inventory discord"><input type="checkbox" id="profileCard">
-        <span><b>Carte RoNote sur le profil d'un joueur</b><small>Sa value, son RAP, son rang Rolimon's, un aperçu de ses limiteds les plus chers et son Discord s'il a choisi de le montrer.</small></span></label>
-      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileHeader">
-        <span><b>Value et rang dans l'en-tête</b><small>Des pastilles à droite de « Friends · Followers », et la dernière connexion sous le pseudo.</small></span></label>
-      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profilePanel">
-        <span><b>Ranger Tenue, Store, Jeux et Collections dans un panneau</b><small>Ils quittent la page et s'ouvrent d'un clic sur l'avatar. Désactivé : la page de Roblox reste telle quelle.</small></span></label>
-      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileChart">
-        <span><b>Courbe de la value</b><small>L'historique Rolimon's du joueur (30 jours, 90 jours, 1 an), lu à la demande et gardé 6 h.</small></span></label>
-      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileTrades">
-        <span><b>Ses derniers trades</b><small>RoNote premium Insider ou Elite : les trades prouvés du joueur vus par Neuronal.</small></span></label>
-
+    <!-- ============================ Sur roblox.com ========================= -->
+    <section class="card" id="s-roblox">
+      <h2><i data-ic="grid"></i>Sur roblox.com</h2>
+      <p class="lead">Ce que RoNote ajoute aux pages de Roblox. Chaque ajout se coupe ici, page par page.</p>
       <h3>Page d'un trade sur Roblox</h3>
       <label class="row switch"><input type="checkbox" id="pageDelta">
         <span><b>Ajouts RoNote sur la page des trades</b><small>Bandeau des écarts, cotes des objets et badge « projected ». S'applique tout de suite aux onglets ouverts.</small></span></label>
       <label class="row switch" data-needs="pageDelta"><input type="checkbox" id="pageItemValues">
         <span><b>Cote Rolimon's sous chaque objet</b><small>Et le total de chaque offre, sous celui de Roblox.</small></span></label>
-      <label class="row switch" data-keys="historique history envoi sent envoyes objets items insider elite premium"><input type="checkbox" id="sentHistory">
-        <span><b>Envoi rapide : mes objets récents</b><small>RoNote premium Insider ou Elite : sous « Trade with … », les objets que tu as mis récemment de ton côté ; un clic les remet dans ton offre. Gardé seulement sur cet ordinateur ; le couper efface l'historique.</small></span></label>
 
       <div class="row design" id="banner-row" data-needs="pageDelta" data-keys="couleur color gain loss style taille size pourcentage percent format design">
         <div class="design-head"><span><b>Bandeau des écarts</b><small>Posé entre les deux offres.</small></span>
@@ -474,14 +400,6 @@
         </div>
       </div>
 
-      <h3>Trades</h3>
-      <label class="row switch"><input type="checkbox" id="composeInPopup">
-        <span><b>Composer le trade dans RoNote</b><small>Le bouton Trade (Profils, Deals) ouvre l'éditeur de RoNote : les deux inventaires, l'écart en direct, puis l'envoi en deux clics. Sinon, la page trade de Roblox.</small></span></label>
-
-      <h3>Jeux sur Roblox</h3>
-      <label class="row switch"><input type="checkbox" id="gamePlayButton">
-        <span><b>Bouton Jouer sur les vignettes</b><small>Un bouton ▶ dans le coin de chaque jeu (accueil, Charts, recherche) : le jeu se lance directement, sans ouvrir sa page.</small></span></label>
-
       <h3>Listes de trades sur Roblox</h3>
       <label class="row switch"><input type="checkbox" id="listBadges">
         <span><b>Écarts RAP / Value sur les listes</b><small>Onglets Reçus, Envoyés et Terminés : l'écart de chaque trade à droite de sa ligne, sans l'ouvrir. La date passe sous le pseudo.</small></span></label>
@@ -528,11 +446,122 @@
           <div class="swatch-line"><span class="swatch-label">Perte</span><span class="swatches" id="list-loss-swatches"></span></div>
         </div>
       </div>
+      <h3>Page d'un objet sur Roblox</h3>
+      <label class="row switch" data-needs="useRolimons" data-keys="limited item objet catalog rolimons lien link"><input type="checkbox" id="itemPageValue">
+        <span><b>Value et lien Rolimon's sur la page d'un limited</b><small>Une rangée « Value » sous « Best Price » : sa value, sa demande et sa tendance, avec un lien vers sa fiche Rolimon's.</small></span></label>
+
+      <h3>Profil d'un joueur sur Roblox</h3>
+      <label class="row switch" data-needs="useRolimons" data-keys="profil profile joueur player value rap inventaire inventory discord"><input type="checkbox" id="profileCard">
+        <span><b>Carte RoNote sur le profil d'un joueur</b><small>Sa value, son RAP, son rang Rolimon's, un aperçu de ses limiteds les plus chers et son Discord s'il a choisi de le montrer.</small></span></label>
+      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileHeader">
+        <span><b>Value et rang dans l'en-tête</b><small>Des pastilles à droite de « Friends · Followers », et la dernière connexion sous le pseudo.</small></span></label>
+      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profilePanel">
+        <span><b>Ranger Tenue, Store, Jeux et Collections dans un panneau</b><small>Ils quittent la page et s'ouvrent d'un clic sur l'avatar. Désactivé : la page de Roblox reste telle quelle.</small></span></label>
+      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileChart">
+        <span><b>Courbe de la value</b><small>L'historique Rolimon's du joueur (30 jours, 90 jours, 1 an), lu à la demande et gardé 6 h.</small></span></label>
+      <label class="row switch" data-needs="profileCard"><input type="checkbox" id="profileTrades">
+        <span><b>Ses derniers trades</b><small>RoNote premium Insider ou Elite : les trades prouvés du joueur vus par Neuronal.</small></span></label>
+
+      <h3>Jeux sur Roblox</h3>
+      <label class="row switch"><input type="checkbox" id="gamePlayButton">
+        <span><b>Bouton Jouer sur les vignettes</b><small>Un bouton ▶ dans le coin de chaque jeu (accueil, Charts, recherche) : le jeu se lance directement, sans ouvrir sa page.</small></span></label>
+
+      <h3>Mode anonyme</h3>
+      <label class="row switch" data-keys="anonyme anonymous stream pseudo username cacher hide"><input type="checkbox" id="anonShowValues">
+        <span><b>Garder ma value visible</b><small>Le mode anonyme (H) ne cache alors que ton pseudo et ton portrait : value, RAP, rang et gains restent lisibles.</small></span></label>
+      <label class="row switch" data-keys="anonyme anonymous robux solde balance"><input type="checkbox" id="anonShowRobux">
+        <span><b>Garder mon solde de Robux visible</b><small>Dans la barre du haut de Roblox, en mode anonyme.</small></span></label>
+
+      <h3>Fond des pages Roblox</h3>
+      <div class="row design" id="bg-row" data-keys="fond background image wallpaper voile flou blur">
+        <div class="design-head"><span><b>Ton image en fond</b><small>Derrière toutes les pages de roblox.com. Le voile, de la couleur de ton thème Roblox, garde le texte lisible.</small></span>
+          <button class="btn ghost" id="bg-reset" type="button"><i data-ic="undo"></i>Par défaut</button></div>
+        <div class="design-body">
+          <span class="bg-stage" id="bg-preview" aria-hidden="true"><span class="bg-lines"><i></i><i></i><i></i></span></span>
+          <div class="design-side">
+            <div class="fields">
+              <label class="field"><span>Voile</span>
+                <select id="pageBgDim">
+                  <option value="0">Aucun</option>
+                  <option value="30">Léger</option>
+                  <option value="60">Moyen</option>
+                  <option value="80">Fort</option>
+                </select></label>
+              <label class="field"><span>Flou</span>
+                <select id="pageBgBlur">
+                  <option value="0">Aucun</option>
+                  <option value="4">Léger</option>
+                  <option value="12">Fort</option>
+                </select></label>
+            </div>
+            <div class="btnrow">
+              <label class="btn" for="bg-file" tabindex="0"><i data-ic="upload"></i>Importer une image</label>
+              <input type="file" id="bg-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+              <button class="btn" id="bg-clear" type="button" hidden>Retirer l'image</button>
+            </div>
+            <small class="proj-msg" id="bg-msg"></small>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================== Apparence ============================ -->
+    <section class="card" id="s-look">
+      <h2><i data-ic="palette"></i>Apparence</h2>
+      <p class="lead">Le style du popup, de cette page, et ton thème.</p>
+
+      <label class="row" data-keys="interface ui style neuronal classique classic popup réglages look">
+        <span><b>Interface</b><small>Le style du popup, de la barre latérale et de cette page. Neuronal reprend celui du site neuronal.live.</small></span>
+        <select id="uiTheme">
+          <option value="neuronal">Neuronal (par défaut)</option>
+          <option value="classic">Classique</option>
+        </select>
+      </label>
+
+      <h3>Thème</h3>
+      <div class="row design" id="theme-row" data-keys="theme thème neon néon sunset ocean océan casino minimal partager share">
+        <div class="design-head"><span><b>Thème RoNote</b><small>Règle d'un coup le bandeau, la colonne des listes, le badge « projected » et le fond de Roblox. Chaque réglage reste modifiable ensuite.</small></span></div>
+        <div class="themes" id="themes" role="list"></div>
+        <div class="btnrow">
+          <button class="btn" id="theme-export" type="button"><i data-ic="download"></i>Exporter mon thème</button>
+          <label class="btn" for="theme-file" tabindex="0"><i data-ic="upload"></i>Importer un thème</label>
+          <input type="file" id="theme-file" accept="application/json,.json" hidden>
+        </div>
+        <small class="proj-msg" id="theme-msg"></small>
+      </div>
+
+      <h3>Repères sur les objets</h3>
+      <label class="row switch" data-needs="useRolimons" data-keys="diamant diamond rare"><input type="checkbox" id="showRare">
+        <span><b>Diamant sur les objets rares <span class="mark-demo" data-mark="rare"></span></b><small>Les objets que Rolimon's classe « rares », dans le popup et sur les pages de trade Roblox.</small></span></label>
+      <label class="row switch" data-needs="useRolimons" data-keys="lucky cat chat rolibadge"><input type="checkbox" id="showLuckyCat">
+        <span><b>Lucky Cat de Rolimon's <span class="mark-demo" data-mark="lucky"></span></b><small>Signale l'exemplaire tiré par le Lucky Cat : qui le possède gagne un RoliBadge. Le tirage change toutes les 4 à 24 h.</small></span></label>
+      <p class="hint" id="lucky-now" hidden></p>
+
+
+    </section>
+
+    <!-- =============================== Neuronal et Premium ================= -->
+    <section class="card" id="s-premium">
+      <h2><i data-ic="star"></i>Neuronal et Premium</h2>
+      <p class="lead">Le réseau Neuronal (neuronal.live) et les fonctions RoNote premium. Rien ne part sans ton accord.</p>
+      <h3 id="s-neuronal"><img class="nw-mark" src="../assets/neuronal-logo.png" alt="" width="16" height="16">Neuronal</h3>
+      <label class="row switch" data-keys="neuronal réseau network base de données database fiche joueur objet discord"><input type="checkbox" id="neuronalLookup">
+        <span><b>Fiches Neuronal</b><small>Dans la fiche d'un joueur ou d'un objet, montre s'il est dans la base Neuronal et ses derniers trades. Seul son identifiant Roblox est envoyé à neuronal.live, à l'ouverture de la fiche. Le navigateur demande l'accès au site quand tu l'actives.</small></span></label>
+      <label class="row switch" data-keys="neuronal réseau network carte map partager share contribuer robux trades ronote"><input type="checkbox" id="neuronalShare">
+        <span><b>Contribuer au réseau Neuronal</b><small>Ton compte apparaît sur la carte de neuronal.live avec le cadre RoNote, et tes trades terminés y sont envoyés tels que Roblox les donne : objets exacts et Robux de chaque côté, avec l'identifiant de ton partenaire. Rien d'autre, et aucune requête de plus vers Roblox.</small>
+          <small class="nw-share-state" id="nwShareState" hidden></small>
+          <a class="nw-link" id="nwRonoteLink" target="_blank" rel="noopener">RoNote sur neuronal.live</a></span></label>
+
+      <h3>Premium</h3>
+      <p class="hint top" data-keys="premium abonnement subscription discord clé key deals profils profiles">Les fiches Neuronal, les Profils et les Deals sont réservés aux abonnés du Discord Neuronal. Tout le reste de RoNote reste gratuit, et la contribution au réseau reste un choix à part.</p>
+      <div id="premium" class="premium" aria-live="polite"></div>
     </section>
 
     <!-- ============================== Sauvegarde =========================== -->
     <section class="card" id="s-backup">
       <h2><i data-ic="tool"></i>Sauvegarde et maintenance</h2>
+      <p class="lead">Exporter, importer, remettre à zéro.</p>
       <h3>Mes réglages</h3>
       <div class="row"><span><b>Exporter mes réglages</b><small>Un fichier à garder, ou à importer sur un autre navigateur. L'image du badge est incluse.</small></span>
         <button id="btn-settings-export" class="btn" type="button"><i data-ic="download"></i>Exporter</button></div>

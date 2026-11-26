@@ -679,3 +679,10 @@ html { scrollbar-width: thin; scrollbar-color: #ffffff1c transparent; }
 .proof-preview i.hid::before { display: none; }
 .proof-preview i.hid { color: rgba(255,255,255,.5); letter-spacing: 2px; font-size: 12px; }
 .proof-preview.img i.hid { border-color: transparent; }
+
+/* Refonte du 26 nov. : le menu par familles, un chapeau sous chaque titre */
+.nav-group { display: block; margin: 12px 0 3px; padding: 0 12px; color: var(--faint, #6b7686); font-size: 10.5px; font-weight: 750;
+  letter-spacing: .07em; text-transform: uppercase; }
+.nav-group[hidden] { display: none; }
+.card > .lead { margin: -4px 0 12px; color: var(--dim, #9aa4b2); font-size: 12.5px; line-height: 1.45; }
+.card h3:first-of-type { margin-top: 6px; }

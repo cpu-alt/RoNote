@@ -430,7 +430,7 @@ try {
     'Volume', 'Ping', '1 minute', '2 minutes', '5 minutes',
     'Value {v}', 'RAP {v}', 'bundle #{id}', 'Value {a} vs RAP {b}', 'Total value', 'proj',
     'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal', 'Discord',
-    'Deals', 'Premium', 'Pause', 'Trades', 'My items', 'Trade ads', 'Watchlist', "Rolimon's"]);
+    'Deals', 'Premium', 'Pause', 'Trades', 'My items', 'Trade ads', 'Watchlist', "Rolimon's", 'Trading']);
   const reallyMissing = [...missingT].filter(x => !SAME.has(x));
   check(`${calls} appels a t() : tous traduits en anglais`, reallyMissing, []);
 

@@ -5,202 +5,149 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
-- **Un trade envoyé arrive tout de suite dans « Envoyés »** (`afterSend`, service worker) : depuis l'éditeur de
-  RoNote, une contre-offre ou la page de Roblox elle-même (`hook.js` → `relay.js` → `ronote:page-sent`). Une ligne
-  provisoire à l'instant, puis une vérification 1,5 s après (une seconde à +6 s si Roblox ne le liste pas encore).
-  Avant, il fallait attendre la vérification suivante (30 s par défaut). La cadence n'a pas baissé : pas une
-  requête de plus en fond.
-- **Envoi plus confortable** : bandeau « Trade envoyé à X · Voir » qui ouvre les Envoyés, et Ctrl+Entrée (deux
-  fois, comme le bouton) dans l'éditeur.
-- **roblox.com plus fluide** : six scripts n'observent plus le document que sur leur page (trades, liste des trades,
-  objet, profil, amis) au lieu de toutes les pages du site ; une seule minuterie suit l'URL (`RoNoteRoute`).
-- **Mon profit sur Rolimon's** (`content/rolimons-profit.js`, réglage actif d'office) : sur MA page joueur
-  rolimons.com, sous chaque item, le gain en value depuis la date « Owner Since » de Rolimon's (RAP en info-bulle).
-  Historique lu seulement pour les cartes visibles, deux à la fois, en cache dans le worker. Avant le premier
-  relevé de Rolimon's (2016 environ), la ligne dit « Profit depuis 2016 ».
-- **Deals de Rolimon's** (5e vue, `popup/roli-deals.js` + `background/roli-deals.js`) : les limiteds vendus sous
-  leur RAP ou leur value, comme rolimons.com/deals, sans serveur. La page (730 Ko) est lue au plus toutes les
-  15 min, puis seuls les changements (`market/v2/dealactivity`) toutes les 25 s, et seulement vue ouverte.
-- `tools/selftest.js` : réparé (une apostrophe mal échappée dans les tests de synchro le cassait).
-- **Watchlist** (4e vue de Profils / Deals / My items, `popup/watchlist.js` + `background/watchlist.js`) : des
-  items voulus avec un prix cible ; meilleur prix lu sur le catalogue Roblox (une requête pour toute la liste, toutes
-  les 2 min au plus, rien si la liste est vide), notification sous la cible (pas deux fois au même prix). Aucun
-  serveur ; la liste suit la synchro entre appareils.
-- **My items plus complet** : bandeau (revente au best price, profit possible, items au-dessus du RAP), recherche
-  par nom / initiales / id, tris Prix et Value, value Rolimon's sur chaque ligne, et « Pas en vente aussi » : les
-  items que personne ne vend, vendables (prix proposé = value ou RAP).
-- **Synchroniser mes appareils** (`common/sync.js`, désactivé d'office, à activer sur chaque PC) : réglages et
-  joueurs suivis copiés par le stockage synchronisé du navigateur ; un trade notifié sur un PC ne sonne pas sur
-  l'autre, et une alerte fermée ou cliquée disparaît partout. Un appareil qui rejoint adopte d'abord la config
-  existante. Le consentement Neuronal reste propre à chaque appareil.
-- **Composer un trade dans RoNote** : le bouton Trade (Profils, Deals) ouvre le même éditeur que la contre-offre
-  (deux inventaires, écart en direct, envoi en deux clics, code 2SV). Réglage « Composer le trade dans RoNote ».
-- **Vérification en deux étapes** : l'action est rejouée une seule fois, par le chemin qui a reçu le défi (le
-  jeton ne sert qu'une fois : un second envoi redemandait une vérification).
-- **Bouton Jouer sur les vignettes** (`content/play-button.js`) : un bouton ▶ vert dans le coin de chaque jeu de
-  roblox.com (accueil « Continue », Charts, recherche) lance le jeu directement, comme le bouton Play de sa page.
-  Réglage « Bouton Jouer sur les vignettes » (actif d'office).
-- **Profils : comptes de stockage** : Neuronal marque « Stockage » un compte au skin Roblox 100 % de base vu dans
-  un transfert (salon transfers-beams-buys) ; badge sur la fiche, et filtre « Comptes de stockage : Montrer / Exclure ».
-- **Contre-offre, Accepter et vérification en deux étapes** : quand Roblox demande le code (application, e-mail ou
-  SMS), le popup le demande au lieu d'une erreur (panneau dans l'éditeur de contre-offre, petite fenêtre `twostep.js`
-  pour Accepter) ; l'action repart toute seule une fois le code validé.
-  Protocole dans `docs/technique.md` (« Vérification en deux étapes (contre-offre, Accepter) »).
-- **Page d'accueil** (`welcome/`) : ouverte une fois à l'installation à la place de la notification. En anglais par
-  défaut (français si choisi dans les réglages, ou sélecteur EN / FR). « Vidéo » en HTML pilotée par une ligne de temps
-  (lecture / pause, barre, chapitres, sous-titres) imitant Chrome, avec une capture du vrai popup
-  (`popup-demo.webp`, 35 Ko), style Neuronal ; `#t=6000` fige la scène pour les captures ; détection de l'épingle via
-  `action.getUserSettings` (Chrome / Edge, pas Firefox) et confettis.
-- **Menu ⋯ des amis** (`content/friends-menu.js`) : trade, profil, Rolimon's, favori, copier pseudo / ID, retirer l'ami
-  (ta liste seulement), bloquer. Requêtes directes vers Roblox avec le jeton CSRF de la page, confirmation en deux clics.
-- **Le joueur dans la recherche** : un pseudo exact tapé dans la recherche de roblox.com se glisse en tête des choix
-  de Roblox (`content/search-user.js`) : présence, rang Neuronal, value / RAP / rang, trades avec toi, favori, liens.
-  `ronote:search-user` gardé 10 min (présence 1 min), carte de profil 30 min, mémoire d'onglet 2 min.
-  Suit le réglage « Carte de profil ».
-- **Relais sans limite** (2.17.32) : durée « Sans limite » par défaut (`hours: 0`) ; le serveur s'arrête à la reprise,
-  au refus d'une session par le site ou à la fin de l'accès. 8, 12 et 24 h restent proposés. PRIVACY mis à jour.
-- **Trade ads pendant que tu dors** (2.17.31) : carte « Pendant que tu dors » (4, 8, 12 ou 24 h). Permission
-  `cookies` **facultative**, demandée au clic : seulement les cookies que le navigateur enverrait aux API d'annonces
-  de Rolimon's et RoUtility, jamais Roblox. Ils partent avec l'annonce, les réglages et les items tirables vers
-  `POST /ext/v1/tradeads/relay` (Neuronal, `neuronal/18qbfb_ronote_relais.py`), chiffrés en base, effacés à la
-  reprise, à l'échéance, au premier refus d'un site ou à la fin de l'accès (MP de RoOp Tracker). Pendant le relais,
-  `runTradeAds` ne publie pas ; « Reprendre ici » fusionne journal, horloges des sites et derniers tirages.
-  PRIVACY et la justification store mises à jour.
-- **Trade ads : demande aléatoire, RoUtility réparé** (2.17.30) :
-  - *Demande aléatoire* (onglet « Ce que je demande ») : `tirageDemande` tire 1 à 4 items du catalogue Rolimon's en
-    cache (sans projected, œuf ni item sans value) dont le total vaut l'offre + l'overpay choisi (0–50 %, ±8 %),
-    retirés à chaque envoi ; bouton « Tirer » pour voir tout de suite. Choisir un item à la main l'éteint.
-  - *RoUtility* (mise à jour du site, 20 nov.) : `show_as: 'roblox'` envoyé, `Origin`/`Referer` du site posés par une
-    règle de session (comme pour Roblox), « Wait Xm Ys » lu comme le délai, `posted_24h`/`daily_limit` respectés.
-  - *Mise à jour de l'extension* : l'alarme d'auto-post est reposée à l'installation ; les onglets roblox.com en
-    arrière-plan sont rechargés, l'onglet actif reçoit un bandeau « Recharger la page ».
-  - *Popup* : « Mes items » dessine 60 lignes puis « Voir plus », la recherche attend une pause de frappe.
-- **Finitions du popup** (2.17.29) : une couche en fin de `popup.css` — filet de lumière et ombre au survol des cartes,
-  pression à rebond sur tous les boutons, même anneau de focus clavier, icônes Lucide animées (actualiser et réglages
-  tournent, l'avion d'envoi décolle, les vignettes montent), entrée en cascade de Profils et Deals à l'arrivée sur
-  l'onglet (`.tab-in`, posée 900 ms par `renderList`) ; les listes de trades gardent leur entrée `.w-in`.
-  Tout est coupé sous `prefers-reduced-motion`.
-- **Icônes Lucide** (2.17.28) : `src/common/icons.js` reprend les 65 icônes de l'extension depuis lucide-static 0.469.0
-  (ISC, licence dans `src/assets/LICENSE-lucide.txt`), mêmes noms côté code ; le logo Discord et le point plein restent les nôtres.
-- **Filtres réparés** (2.17.27) : la liste de suggestions d'items, vide et cachée, restait dessinée (`display: grid`
-  passait outre `[hidden]`) et recouvrait « Les deux / Possède / Cherche ». L'onglet Deals reprend le style des autres
-  onglets ; la value d'inventaire des Profils est une pastille « Inv. 26k ».
-- **Onglet « Deals »** (2.17.26) : l'accès à Profils et Deals est un onglet nommé, teinté de l'accent, au bout de la
-  barre (il tient en français et en anglais), au lieu d'une petite icône radar.
-- **Filtres dépliés rangés** : un seul panneau ; Remplissage auto en tête, puis Items, Paliers, Inventaire minimum (ou
-  Palier, Depuis, Taille), chacun avec son titre au-dessus ; les puces passent à la ligne au lieu de défiler à moitié cachées.
-- **Profils et Deals refaits** (2.17.25) : le nom n'est plus coupé (la value de l'inventaire passe sous les boutons),
-  badges sur la ligne d'infos, contenu en bande plate sous l'en-tête ; une annonce sans « Cherche » dit « rien de précis »
-  au lieu de N/A ; les deals disent « Tu donnes / Tu reçois » ; le bouton « R » devient le logo Rolimon's, l'envoi un
-  bouton « Trade ».
-- **Remplissage auto** : une case en tête des filtres (Profils et Deals, un seul réglage, décochée d'office) ; cochée,
-  le bouton Trade prépare le trade avec les items de l'annonce, sinon il ouvre la page d'échange vide.
-- **« Récents » seulement en composant** : la ligne des objets récents n'apparaît plus sur le détail d'un trade
-  reçu (« Trade with … » sur /trades), seulement quand l'inventaire à piocher est affiché (envoi ou counter).
-- **Badge Verified de Rolimon's** (Profils) : « Non vérifié » sur un joueur sans le badge Verified de son profil
-  Rolimon's (`roli_verified` de `/ext/v1/profiles`, absent tant que Neuronal ne l'a pas lu).
-- **Items surveillés communs Discord + RoNote** (Insider / Elite) : le filtre par items de Profils est le filtre Profile
-  discovery « RoNote » du membre sur Discord (`/ext/v1/watch`) ; il reçoit donc aussi les DM. Lu à l'ouverture de
-  Profils (Discord a le dernier mot), écrit 600 ms après un changement ; « ⇄ Discord · DM » dans le panneau, « Discord
-  plein » s'il a déjà 5 filtres ; 5 items au plus (la limite de Discord) une fois synchronisé.
-- **Popup plus léger** : pile ou face, trade ads, la feuille de partage (encodeur GIF et fonds compris) et l'éditeur de
-  contre-offre (~90 Ko) sont chargés à la demande (`import()` à la première ouverture, puis gardés) au lieu d'être lus
-  à chaque ouverture du popup.
-- **Déjà tradé avec lui** (Profils, Deals, Robux) : « Tradé ×n » quand au moins un trade a été conclu avec ce joueur,
-  sinon « Contacté ×n » (offres envoyées ou reçues) ; au survol, conclus / envoyés / reçus, le bilan et le dernier
-  contact. Tiré du journal local et des envois notés (`ronote:partners`, une fois par ouverture, aucune requête).
-- **Préparer le trade** (Deals, Robux, Profils) : le bouton d'envoi range ce qu'il faut mettre de chaque côté puis
-  ouvre la page d'échange ; RoNote y ajoute les items (les miens depuis mon inventaire, les siens depuis le sien,
-  par Entrée sur la carte ou la recherche de Roblox) et le dit (« Trade préparé : 3 items ajoutés »). Deal : je
-  donne ce qu'il demande, il donne ce qu'il propose ; Profil : ce qu'il cherche de mon côté, ce qu'il propose
-  (ou vient de recevoir) du sien. Une seule fois, dans les 3 minutes, même envoi rapide coupé.
-- **Envoi rapide sur l'écran de counter** `/trades/{id}/counter` : le partenaire vient du détail du trade que la page
-  charge (intercepté, aucune requête) ; la ligne se pose sous le titre ou, à défaut, au-dessus de « Your Inventory ».
-  Corrigé : « Your Offer » et « Your Request » ont la même classe, le compteur ne regarde plus que l'offre.
-- **Filtrer par items** (Profils, Deals, Robux) : dans « Filtres », un champ « Ajouter un item… » propose les items
-  du catalogue Rolimon's (nom, acronyme, vignette, value ; ↑ ↓ Entrée Échap) ; jusqu'à 8 items, et le côté où ils
-  doivent être (Deals : tu reçois / tu donnes ; Profils : possède — son annonce ou son dernier trade — / cherche).
-  Les items choisis restent en puces sous la barre même filtres repliés (× pour retirer, « Effacer »), le badge
-  « Filtres » les compte. Aucune requête : le catalogue est déjà chargé, le filtrage se fait sur les cartes.
-- **Cartes refaites, plus compactes** (popup) : une carte de trade passe d'environ 200 à 115 px (l'écart en valeur
-  et en % dans la pastille d'en-tête, plus d'encadré du verdict ni d'intitulés « Vous donnez / recevez », vignettes
-  de 32 px, une info sous chaque total, 3 étiquettes au plus) ; le zoom garde tout. **Profils** et **Deals** :
-  filtres repliés derrière « Filtres » (le nombre de filtres actifs en pastille, l'état retenu), fiches d'une
-  ligne d'en-tête (palier, RoNote, value, et Rolimon's / Roblox / Envoyer un trade en petits boutons), une ligne
-  de trade ou d'annonce (total au-dessus de vignettes de 24 px), plus de pied de carte ; un deal ~115 px au lieu
-  de ~180, un profil ~105 au lieu de ~190 ; la carte Robux met vignette et chiffres sur une ligne.
-- **Envoi rapide** (Insider / Elite, désactivé par défaut) : sur la page « Trade with … », une ligne discrète
-  sous le titre, « Recent » et les petites vignettes de **tes objets récents**, ceux que tu as mis de ton côté dans
-  tes derniers envois (un par objet, le plus récent d'abord, le nombre de fois en coin, liseré violet s'il a déjà
-  été proposé à ce joueur ; nom et value au survol). La liste reprend aussi **tes trades déjà envoyés** (en cours,
-  refusés, expirés, contrés : les 15 plus récents encore inconnus, relus une fois puis gardés). **Un clic remet
-  l'objet dans ton offre, où qu'il soit dans ton inventaire** : sur la page affichée, RoNote l'ajoute comme le
-  ferait la touche Entrée ; sinon il passe par la recherche de Roblox, l'ajoute et remet la liste comme avant
-  (« Added », ou « On hold » / « Not in your inventory »). Mini badge **Projected** (couleur des réglages) et 💎
-  rare sur les vignettes ; au survol, nom, value, Projected et nombre de fois **dans la ligne** (plus d'infobulle
-  du navigateur) ; un objet **déjà dans ton offre** est coché et atténué, un second clic le retire. La ligne
-  s'affiche tout de suite avec ce qui est gardé, le rattrapage finit en arrière-plan. **Aussi en counter** : la
-  ligne apparaît sur l'écran de counter (adresse `/users/{id}/trade` ou `/trades`, titre « Counter … ») et un
-  counter envoyé (`…/trades/{id}/counter`) est noté comme un envoi. **Plusieurs copies** : chaque clic ajoute
-  une copie de plus (la suivante encore libre), un clic droit ou Maj+clic en retire une ; une pastille verte dit
-  combien sont dans l'offre ; « Toutes tes copies sont déjà dans l'offre » quand il n'en reste plus. Les clics
-  s'enchaînent dans l'ordre, et un 2e clic reprend la recherche encore ouverte (0,16 s au lieu de 1 s). Aucune requête Roblox : l'envoi est
-  noté au moment du « Make Offer » (panier lu sur la page, vignettes comprises), complété par les trades envoyés
-  déjà en cache. Gardé seulement sur l'ordinateur (150 envois) ; couper l'option l'efface.
-- **Joueurs gardés, plus pratiques** : boutons Favori / Plus tard sur la carte RoNote des profils Roblox ;
-  pastille verte (en ligne) ou bleue (en jeu) dans la barre et le popup ; un joueur « plus tard » sort de la liste
-  dès qu'on lui envoie un trade ; avatars renouvelés chaque semaine ; la barre ne se redessine plus pour rien.
-- **Joueurs gardés dans la barre de Roblox** : sous le dernier lien de la barre de gauche, les joueurs « à envoyer
-  plus tard » (un clic ouvre la fenêtre de trade) puis les favoris, avec leur avatar ; vide, le bloc dit comment en ajouter.
-- **Favoris et « à envoyer plus tard »** : deux boutons sur la fiche d'un joueur ; l'accueil liste ces joueurs,
-  un clic ouvre la fenêtre de trade Roblox (plus tard) ou sa fiche / son profil (favori), la croix le retire.
-- **Accueil : chiffre périmé signalé** : si « Suivre la valeur de mon compte » est coupé, l'accueil le dit (avec
-  l'âge du relevé) et propose de le réactiver d'un clic ; un relevé de plus de 3 h affiche son âge.
-- **Courbe Rolimon's sur la carte du profil** : value et RAP, 30 j / 90 j / 1 an / tout, variation sur la période
-  et survol pour lire un relevé ; lue après la carte (même historique que la fiche joueur, gardé 6 h).
-- **Derniers trades du joueur** (Insider / Elite) : ses trades prouvés vus par Neuronal (`/ext/v1/player/<id>/trades`,
-  vérifié côté serveur), objets donnés → reçus et gain ; sinon une invitation à débloquer.
-- **Réglages › Profil d'un joueur** : en-tête (pastilles, dernière connexion), panneau, courbe et trades,
-  chacun désactivable, appliqué tout de suite.
-- **Sous le @pseudo** : dernière connexion avec une pastille (vert < 24 h, orange < 7 j, gris au-delà) et âge
-  du compte (alerte sous 30 jours) ; retirés de la carte, qui ne les répète plus.
-- **En-tête du profil** : badge d'abonné, value (lien Rolimon's), RAP, rang et Discord en pastilles à droite de
-  la rangée « Friends · Followers · Following » ; la carte garde le nombre de limiteds, les liens et l'inventaire.
-- **Carte du profil plus nette** : surface sombre et opaque (le dégradé pastel des abonnés rendait le texte
-  illisible) ; le rang n'est plus qu'un liseré dégradé et un badge. Value en blanc.
-- **Onglet Store complet** : la boutique du créateur lue sur catalog.roblox.com (30 par page, « Voir plus »),
-  à l'ouverture de l'onglet seulement ; la première page est gardée 30 min. Lien « Tout sur Roblox ».
-- **Ton Discord sur ton profil** : connecté à RoNote premium, ton Discord et ton rang s'affichent sur ton propre
-  profil Roblox depuis ta session locale (sans attendre Neuronal) ; une ligne rappelle s'il n'est visible que par toi.
-- **Panneau du profil refait** : en-tête avec la photo cerclée aux couleurs du rang, noms, value, RAP et Discord ;
-  onglets en barre segmentée avec le nombre d'objets ; tuiles de Roblox habillées en cartes.
-- **Profil Roblox, panneau à onglets** : Tenue, Store, Jeux et Collections sont retirés de la page (Amis, Favoris,
-  Communautés et Badges y restent) et s'ouvrent dans un panneau latéral à onglets,
-  au clic sur l'avatar ou sur les raccourcis de la carte ; ← → changent d'onglet, Échap ferme. Les blocs
-  restent ceux de Roblox (seul le CSS change), rien ne tourne panneau fermé. Logo agrandi à 60 px.
-- **Profil Roblox, la tenue** : « Currently Wearing » est retiré de la page et s'ouvre en panneau latéral (grille
-  3 colonnes) au clic sur l'avatar ou sur « Sa tenue » ; Échap, la croix ou le fond le ferment. Le bloc reste
-  celui de Roblox, seul le CSS change. Logo de la carte agrandi.
-- **Profil Roblox, suite** : badge Elite / Insider / Tracker des abonnés Neuronal et carte aux couleurs de
-  leur rang (les mêmes que la carte du site) ; âge du compte (alerte sous 30 jours), dernière connexion,
-  tes trades avec ce joueur et ton gain net (journal local, sans réseau) ; recherche dans l'inventaire déplié.
-- **Carte RoNote sur le profil Roblox d'un joueur** : en tête de /users/{id}/profile, sa value, son RAP,
-  son rang Rolimon's et son nombre de limiteds, un aperçu de ses 8 limiteds les plus chers (vignettes,
-  value, copies, projected) dépliable jusqu'à 60, et des boutons Trade et Rolimon's. Une seule question
-  au service worker par profil, gardée 30 min. Réglages › Profil d'un joueur sur Roblox.
-- **Montrer mon Discord sur mon profil Roblox** (RoNote premium, désactivé par défaut) : les autres
-  utilisateurs de RoNote voient ton Discord sur ta carte, un clic copie ton pseudo.
-- **Proof de plusieurs trades** : dans le panneau proof, « Choisir dans la liste » met une case sur chaque
-  trade de la liste de gauche (le masque du mode proof se lève le temps du choix) ; coche ceux que tu veux,
-  OK, et RoNote ouvre chacun à son tour, le photographie et l'ajoute. « Ajouter ce trade » ajoute aussi le
-  trade ouvert, un par un. Le proof réunit alors tout le lot : les
-  objets donnés / reçus (un même objet compté, « x2 »), les values additionnées avec l'écart, les pseudos et
-  la première et la dernière date. Une image par trade : le MP porte le texte et la première capture, puis une image par trade suivant ;
-  « Télécharger l'image » enregistre un fichier par trade. RoNote attend que les vignettes soient chargées avant
-  chaque capture.
-- **Trade ads, modèle Aléatoire** : quatre items de ton inventaire tirés au hasard, seulement ceux à 1 000 de
-  value ou plus (jamais d'œuf ni de projected), contre any, demand, upgrade et downgrade. RoNote retire 4 nouveaux items à chaque annonce publiée ;
-  choisir un autre modèle ou un item à la main l'arrête.
+- **Watchlist** : ajoute les items que tu veux avec un prix cible : RoNote te prévient dès que quelqu'un en vend un moins cher.
+- **Deals de Rolimon's** : une nouvelle vue reprend rolimons.com/deals en direct : les items vendus sous leur RAP ou leur value.
+- **Mon profit sur Rolimon's** : sur ta page joueur Rolimon's, sous chaque item : ce que tu y as gagné ou perdu depuis que tu l'as.
+- **My items** : totaux en haut (revente, profit possible), recherche, tri par prix ou value, et les items que personne ne vend, prêts à mettre en vente.
+- **Synchroniser mes appareils** : réglages, joueurs suivis et Watchlist partagés entre tes PC ; un trade notifié sur l'un ne sonne pas sur l'autre.
+- **Composer un trade dans RoNote** : le bouton Trade des Profils et des Deals ouvre l'éditeur de RoNote : les deux inventaires, l'écart en direct, l'envoi en deux clics (ou Ctrl+Entrée).
+- **Envoyés, tout de suite** : un trade envoyé, depuis RoNote ou depuis Roblox, apparaît aussitôt dans Envoyés, avec un bandeau « Trade envoyé · Voir ».
+- **Vérification en deux étapes** : quand Roblox demande ton code (contre-offre, Accepter, envoi), tu le tapes dans RoNote et le trade part tout seul.
+- **Réglages réorganisés** : le menu est rangé par familles (Alertes, Trading, Affichage, Compte), avec une section « Sur roblox.com » pour tout ce que RoNote ajoute au site.
+- **Recherche de joueur** : le pseudo exact d'un joueur tapé dans la recherche Roblox apparaît en tête, avec présence, value, RAP, rang et vos trades, puis Profil, Trade et Rolimon's en un clic.
+- **Bouton Jouer** : un bouton Jouer dans le coin de chaque jeu sur roblox.com lance le jeu sans ouvrir sa page.
+- **Menu des amis** : un menu ⋯ sur chaque ami : trade, Rolimon's, favori, copier le pseudo, retirer ou bloquer (avec confirmation).
+- **Comptes de stockage** : dans Profils, les comptes de stockage portent un badge, et un filtre permet de les exclure.
+- **Page d'accueil** : À l'installation, une page d'accueil montre en vidéo comment épingler RoNote.
+- **roblox.com plus fluide** : RoNote ne surveille plus les pages qui ne le concernent pas (jeux, avatar, accueil).
+
+## v2.17.32 : Relais sans limite
+
+- « Continuer sur le serveur » tourne par défaut sans limite : jusqu'à ce que tu reprennes ici ou que le site te déconnecte.
+
+## v2.17.31 : Trade ads pendant que tu dors
+
+- « Continuer sur le serveur » : le serveur Neuronal publie ton annonce avec les mêmes règles pendant que ton PC est éteint (4 à 24 h).
+- « Reprendre ici » récupère le journal et les derniers tirages ; tes sessions Rolimon's et RoUtility sont effacées du serveur.
+
+## v2.17.30 : Trade ads : demande aléatoire, RoUtility réparé
+
+- Demande aléatoire : des items tirés au hasard qui valent ce que tu offres, plus l'overpay choisi (0 à 50 %), nouveaux à chaque envoi.
+- RoUtility publie de nouveau après la mise à jour du site, et sa limite du jour est respectée.
+- Après une mise à jour de RoNote : l'auto-post repart tout seul, les onglets Roblox en arrière-plan se rechargent, l'onglet ouvert propose « Recharger ».
+- Liste « Mes items » plus rapide sur les gros inventaires.
+
+## v2.17.29 : Popup plus vivant
+
+- Micro-animations : icônes qui réagissent au survol, boutons qui s'enfoncent, cartes qui se soulèvent, Profils et Deals qui entrent en cascade.
+- Focus clavier visible partout ; tout se coupe si le système demande moins d'animations.
+
+## v2.17.28 : Nouvelles icônes
+
+- Toutes les icônes de l'extension viennent maintenant de Lucide : plus fines et plus cohérentes.
+
+## v2.17.27 : Filtres réparés
+
+- Filtres : une case vide ne recouvre plus « Les deux / Possède / Cherche ».
+- L'onglet Deals a le style des autres onglets ; la value d'inventaire est une pastille « Inv. ».
+
+## v2.17.26 : Deals plus faciles à trouver
+
+- Un onglet « Deals » bien visible dans la barre, à la place de la petite icône.
+- Filtres dépliés rangés : un panneau, une section par ligne avec son titre, plus rien de coupé.
+
+## v2.17.25 : Profils et Deals plus clairs
+
+- Cartes Profils et Deals refaites : nom lisible, value de l'inventaire, « Tu donnes / Tu reçois », logo Rolimon's.
+- Remplissage auto : une case dans les filtres décide si le bouton Trade remplit le trade.
+- Les objets récents ne s'affichent plus que quand on compose un trade ou un counter.
+
+## v2.17.24 : Badge Verified de Rolimon's
+
+- Profils : « Non vérifié » sur les joueurs qui n'ont pas le badge Verified sur leur profil Rolimon's.
+
+## v2.17.23 : Items surveillés : Discord + RoNote
+
+- Le filtre par items de Profils est ton filtre « RoNote » de Profile discovery sur Discord : la même liste ici et là-bas, et tu reçois les DM quand un joueur correspond.
+
+## v2.17.22 : Popup plus léger
+
+- Le popup s'ouvre plus vite : pile ou face, trade ads, le partage d'image et la contre-offre ne se chargent qu'au moment où tu les ouvres.
+
+## v2.17.21 : Déjà tradé avec lui
+
+- Profils et Deals : une pastille « Tradé ×n » (ou « Contacté ×n ») sur les joueurs que tu connais déjà, avec ton bilan au survol.
+
+## v2.17.20 : Préparer le trade
+
+- Deals et Profils : le bouton d'envoi ouvre la page d'échange avec les items déjà ajoutés des deux côtés (ce que tu donnes, ce que tu reçois).
+- L'envoi rapide apparaît aussi sur l'écran de counter d'un trade reçu (/trades/…/counter).
+
+## v2.17.19 : Filtrer par items
+
+- Profils, Deals et Robux : choisis un ou plusieurs items (suggestions du catalogue avec vignette et value) et le côté où ils doivent être (tu reçois / tu donnes, possède / cherche).
+- Les items choisis restent visibles en puces sous la barre, même filtres repliés ; un clic les retire.
+
+## v2.17.18 : Cartes plus compactes
+
+- Cartes de trades plus compactes : l'écart en valeur et en % dans la pastille d'en-tête, une ligne d'objets, les étiquettes sur une ligne. Le détail complet reste dans le zoom.
+- Profils et Deals : filtres repliés derrière un bouton « Filtres » (avec le nombre de filtres actifs), fiches d'une ligne d'en-tête avec les actions en petits boutons, vignettes plus petites.
+
+## v2.17.17 : Envoi rapide
+
+- Plusieurs copies : chaque clic en ajoute une de plus, un clic droit en retire une ; un compteur vert dit combien sont dans ton offre.
+- Plus rapide : des clics rapides s'enchaînent sans relancer la recherche.
+- Aussi quand tu contres un trade : la ligne de tes objets récents apparaît sur l'écran de counter, et le counter envoyé rejoint la liste.
+- Les vignettes portent un mini badge Projected (à la couleur de tes réglages) et une marque pour un objet rare ; nom, value et nombre de fois s'affichent dans la ligne au survol.
+- Un objet déjà dans ton offre est coché et atténué ; un second clic le retire.
+- La liste reprend aussi tes trades déjà envoyés (en cours, refusés, expirés), pas seulement ceux envoyés depuis l'activation.
+- Un clic ajoute l'objet même s'il n'est pas sur la page affichée de ton inventaire : RoNote le cherche pour toi.
+- Insider et Elite : sous « Trade with … », une ligne discrète avec tes objets récents (ceux que tu as mis de ton côté dans tes derniers envois) ; un clic les remet dans ton offre. Désactivé par défaut (Réglages › Page d'un trade).
+
+## v2.17.10 : Courbe, derniers trades et réglages du profil
+
+- Profil Roblox : la courbe Rolimon's de la value et du RAP (30 j, 90 j, 1 an, tout), survol pour lire un relevé.
+- Insider et Elite : les derniers trades prouvés du joueur, vus par Neuronal, sur sa carte.
+- Réglages › Profil d'un joueur : en-tête, panneau, courbe et trades s'activent un par un.
+
+## v2.17.9 : Dernière connexion sous le pseudo
+
+- Profil Roblox : dernière connexion (pastille verte, orange ou grise) et âge du compte sous le @pseudo.
+
+## v2.17.8 : Value et rang dans l’en-tête du profil
+
+- Profil Roblox : le badge d'abonné, la value, le RAP, le rang Rolimon's et le Discord s'affichent à droite de « Friends · Followers », dans l'espace libre.
+
+## v2.17.7 : Carte plus nette, boutique complète
+
+- Carte du profil sur fond sombre, lisible partout ; le rang d'abonné n'est plus qu'un liseré et un badge.
+- Onglet Store : toute la boutique du joueur (et plus seulement 6 articles), page par page, avec un lien vers le catalogue Roblox.
+
+## v2.17.6 : Ton Discord sur ton profil, panneau refait
+
+- Connecté à RoNote premium : ton Discord et ton rang apparaissent sur ton propre profil Roblox, tout de suite.
+- Panneau du profil refait : photo cerclée aux couleurs du rang, value et RAP, onglets avec le nombre d'objets, tuiles en cartes.
+
+## v2.17.5 : Le profil Roblox rangé dans un panneau
+
+- Tenue, Store, Jeux et Collections passent dans un panneau à onglets, ouvert d'un clic sur l'avatar ou un raccourci de la carte ; Amis, Favoris, Communautés et Badges restent sur la page. ← → changent d'onglet, Échap ferme.
+- Logo RoNote encore plus grand.
+
+## v2.17.3 : La tenue dans un panneau
+
+- Profil Roblox : « Currently Wearing » quitte la page et s'ouvre dans un panneau à droite quand tu cliques sur l'avatar (ou « Sa tenue »). Échap ferme.
+- Logo RoNote plus grand sur la carte.
+
+## v2.17.2 : Le rang Neuronal et plus d’infos sur les profils
+
+- Les abonnés Neuronal ont leur badge (Elite, Insider, Tracker) et une carte aux couleurs de leur rang, comme sur le site.
+- Âge du compte (alerte si moins de 30 jours), dernière connexion et tes trades avec ce joueur, gain net compris.
+- Inventaire déplié : une recherche pour retrouver un objet.
+
+## v2.17.1 : La carte RoNote sur les profils Roblox
+
+- Sur le profil Roblox d'un joueur : sa value, son RAP, son rang Rolimon's et un aperçu de ses limiteds les plus chers, dépliable.
+- RoNote premium : montre ton Discord sur ton profil Roblox aux autres utilisateurs de RoNote (Réglages › Premium).
 
 ## v2.17.0 : trade ads automatiques et nouveau logo
 

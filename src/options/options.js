@@ -575,6 +575,12 @@ function runSearch() {
     if (link) link.hidden = !any;
   }
   $('#no-hit').hidden = !q || hits > 0;
+  // Un titre de famille du menu sans lien visible se cache avec eux.
+  for (const g of document.querySelectorAll('#nav .nav-group')) {
+    let n = g.nextElementSibling, any = false;
+    while (n && !n.classList.contains('nav-group')) { if (n.matches('a') && !n.hidden) any = true; n = n.nextElementSibling; }
+    g.hidden = !any;
+  }
   // Un lien masqué sous le pointeur n'envoie pas de `pointerout` : la pastille
   // du survol resterait seule dans le vide.
   document.querySelector('#nav > .fh')?.classList.remove('on');
@@ -795,7 +801,7 @@ function wire() {
   // permet qu'avec activeTab ou <all_urls> : cette permission facultative, demandée ici, une fois.
   const CAPTURE = { origins: ['<all_urls>'] };
   const paintCapture = async () => {
-    const ok = await B.permissions.contains(CAPTURE).catch(() => false);
+    const ok = await Promise.resolve(B.permissions?.contains?.(CAPTURE)).catch(() => false) || false;
     $('#proof-capture').disabled = ok;
     $('#proof-capture').lastChild.textContent = t(ok ? 'Captures autorisées' : 'Autoriser les captures');
   };
