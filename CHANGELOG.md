@@ -5,6 +5,7 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Bouton Proof** : sous un trade terminé, un bouton « Proof » au style de Decline ouvre le panneau de proof.
 - **Watchlist** : ajoute les items que tu veux avec un prix cible : RoNote te prévient dès que quelqu'un en vend un moins cher.
 - **Deals de Rolimon's** : une nouvelle vue reprend rolimons.com/deals en direct : les items vendus sous leur RAP ou leur value.
 - **Mon profit sur Rolimon's** : sur ta page joueur Rolimon's, sous chaque item : ce que tu y as gagné ou perdu depuis que tu l'as.

@@ -79,6 +79,7 @@
       tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou capture le trade seul.',
       rate_limited: 'Trop de proofs cette heure : réessaie plus tard.', bad_date: 'Date attendue au format MM/JJ/AAAA.', network: 'Neuronal injoignable : réessaie.' },
     resend: 'Renvoyer',
+    proofBtn: 'Proof', proofBtnTitle: 'Préparer le proof de ce trade (masque la liste, capture, texte Rolimons)',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
     stale: 'Cotes Rolimon’s trop anciennes.',
@@ -155,6 +156,7 @@
       tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or capture the trade alone.',
       rate_limited: 'Too many proofs this hour: try again later.', bad_date: 'Date expected as MM/DD/YYYY.', network: 'Neuronal unreachable: try again.' },
     resend: 'Send again',
+    proofBtn: 'Proof', proofBtnTitle: 'Prepare the proof of this trade (hides the list, screenshot, Rolimons text)',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
     stale: 'Rolimon’s values too old.',
@@ -1694,6 +1696,38 @@
     }
     if (resendButton.previousElementSibling !== decline) decline.after(resendButton);
   }
+  /**
+   * « Proof » en bas d'un trade terminé, au style du Decline de Roblox (que ces trades n'ont pas) :
+   * ouvre le même panneau que le bouclier vert du titre. Posé sous le bloc « Items you received ».
+   */
+  let proofBottom = null;
+  function mountProofButton(page) {
+    const last = page?.partnerId > 0 && !page.composer && isCompleted(page) ? page.sides?.[page.sides.length - 1]?.root : null;
+    if (!last?.isConnected) { proofBottom?.remove(); return; }
+    if (!proofBottom) {
+      proofBottom = document.createElement('div');
+      proofBottom.dataset.rn = 'trade-proof-bottom';
+      proofBottom.style.cssText = 'display:flex;gap:8px;margin:14px 0 4px;';
+      const b = document.createElement('button');
+      b.type = 'button';
+      const ic = document.createElement('span'), label = document.createElement('span');
+      ic.style.cssText = 'display:flex;color:#3fcf6e;';
+      ic.innerHTML = PROOF_SVG.shield.replace('width="18" height="18"', 'width="16" height="16"');
+      label.textContent = TEXT.proofBtn;
+      b.append(ic, label);
+      b.title = TEXT.proofBtnTitle; b.setAttribute('aria-label', TEXT.proofBtnTitle);
+      b.style.cssText = 'display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border:0;border-radius:8px;'
+        + 'background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background .15s,transform .1s;';
+      b.addEventListener('mouseenter', () => { b.style.background = 'rgba(255,255,255,.2)'; });
+      b.addEventListener('mouseleave', () => { b.style.background = 'rgba(255,255,255,.12)'; b.style.transform = ''; });
+      b.addEventListener('mousedown', () => { b.style.transform = 'scale(.97)'; });
+      b.addEventListener('mouseup', () => { b.style.transform = ''; });
+      b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setProof(!proofOn); });
+      proofBottom.append(b);
+    }
+    proofBottom.firstElementChild?.setAttribute('aria-pressed', String(proofOn));
+    if (last.nextElementSibling !== proofBottom) last.after(proofBottom);
+  }
   function mountProfileLink(page) {
     const heading = page?.partnerId > 0 && page.tradeHeading?.isConnected ? page.tradeHeading : null;
     if (!heading) { flexControl?.remove(); proofControl?.remove(); autoProofOff(); serialControl?.remove(); profileLink?.remove(); profileLink = null; tools?.remove(); releaseHeading(); return; }
@@ -2100,6 +2134,7 @@
     try { page = dom.readTradePage(); } catch { clear(); return; }
     mountProfileLink(page);
     mountResend(page);
+    mountProofButton(page);
     updateInventories(page.ok ? page : null);
     if (!page.ok) { clear(); return; }
     const sig = location.href + '|' + dom.signatureOf(page);

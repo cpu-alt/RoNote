@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item("Watchlist, Deals Rolimon's et synchro", "Watchlist, Rolimon's deals and sync"),
     items: [
+      item("Bouton Proof : sous un trade terminé, un bouton « Proof » au style de Decline ouvre le panneau de proof.",
+        "Proof button: under a completed trade, a “Proof” button styled like Decline opens the proof panel."),
       item("Watchlist : ajoute les items que tu veux avec un prix cible : RoNote te prévient dès que quelqu'un en vend un moins cher.",
         "Watchlist: add the items you want with a target price: RoNote tells you as soon as someone sells one for less."),
       item("Deals de Rolimon's : une nouvelle vue reprend rolimons.com/deals en direct : les items vendus sous leur RAP ou leur value.",
