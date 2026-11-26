@@ -7,8 +7,8 @@
  * ses propres reponses et on les transmet a l'extension.
  *
  * On n'intercepte QUE les reponses de detail de trade, et on ne les modifie pas.
- * Seule exception : les limites d'accessoires lues par l'editeur d'avatar
- * (avatar-rules), relevees a 10 pour pouvoir les empiler.
+ * Seule exception : le script de l'editeur d'avatar, execute avec la limite
+ * d'accessoires du serveur (10 au total) pour pouvoir les empiler.
  */
 (() => {
   // N'importe quel service de Roblox qui sert le detail d'un trade : la page
@@ -90,35 +90,34 @@
     return origSetHeader.call(this, name, value);
   };
 
-  // L'éditeur d'avatar lit ses limites dans avatar-rules (3 chapeaux, 1 par autre accessoire) ;
-  // le serveur accepte 10 accessoires : on lui annonce 10, il empile alors tout seul.
-  const RULES_RE = /\/\/avatar\.roblox\.com\/v1\/avatar-rules(?:$|[?#])/i;
-  const ACC_TYPES = new Set([8, 41, 42, 43, 44, 45, 46, 47]);
-  const textGet = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText').get;
-  const respGet = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'response').get;
-  const sansLimite = (rules) => {
-    for (const t of rules?.wearableAssetTypes || []) if (ACC_TYPES.has(t.id)) t.maxNumber = 10;
-    return rules;
-  };
-  function liftLimits(xhr) {
-    let memo;
-    const patched = () => {
-      if (memo === undefined && xhr.readyState === 4) {
-        try { memo = JSON.stringify(sansLimite(xhr.responseType === 'json' ? respGet.call(xhr) : JSON.parse(textGet.call(xhr)))); } catch { memo = null; }
+  // L'éditeur d'avatar limite chaque type d'accessoire (3 chapeaux, 1 du reste) dans son propre
+  // script ; le serveur accepte 10 accessoires au total. On exécute son script avec la règle du
+  // serveur (les deux « !x&& » retirés). Script changé chez Roblox : motif absent, on n'y touche pas.
+  const AVATAR_JS = /-Avatar\.js(?:$|\?)/;
+  const ACC_RULE = /!\w+&&(\w+\(\w+\.name\)\?(?:10|"Accessory"):)/g;
+  if (/^\/my\/avatar/i.test(location.pathname)) {
+    new MutationObserver((muts, obs) => {
+      for (const m of muts) for (const s of m.addedNodes) {
+        if (s.tagName !== 'SCRIPT' || !AVATAR_JS.test(s.src || '')) continue;
+        obs.disconnect();
+        try {
+          const x = new XMLHttpRequest();
+          x.open('GET', s.src, false);   // synchrone : le script corrigé garde sa place dans l'ordre de la page
+          x.send();
+          const code = x.status === 200 ? x.responseText : '';
+          if ((code.match(ACC_RULE) || []).length !== 2) return;
+          s.type = 'javascript/blocked';
+          const fixed = document.createElement('script');
+          fixed.textContent = code.replace(ACC_RULE, '$1');
+          s.after(fixed);
+        } catch { /* le script d'origine s'exécute */ }
+        return;
       }
-      return memo;
-    };
-    Object.defineProperty(xhr, 'responseText', { configurable: true, get() { return patched() ?? textGet.call(this); } });
-    Object.defineProperty(xhr, 'response', { configurable: true, get() {
-      const t = patched();
-      if (t == null) return respGet.call(this);
-      return this.responseType === 'json' ? JSON.parse(t) : (this.responseType === '' || this.responseType === 'text') ? t : respGet.call(this);
-    } });
+    }).observe(document.documentElement, { childList: true, subtree: true });
   }
 
   XMLHttpRequest.prototype.send = (function (origSend) {
     return function (...args) {
-      try { if (RULES_RE.test(this.__ronoteUrl || '')) liftLimits(this); } catch { /* ignore */ }
       try {
         const isSend = SEND_RE.test(this.__ronoteUrl || '');
         const m = isSend ? null : TRADE_RE.exec(this.__ronoteUrl || '');
