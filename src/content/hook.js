@@ -81,7 +81,7 @@
   const origSetHeader = XMLHttpRequest.prototype.setRequestHeader;
 
   XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-    try { this.__ronoteUrl = String(url || ''); } catch { /* ignore */ }
+    try { this.__ronoteUrl = String(url || ''); this.__ronotePatch = /^patch$/i.test(method); } catch { /* ignore */ }
     return origOpen.call(this, method, url, ...rest);
   };
 
@@ -118,6 +118,10 @@
 
   XMLHttpRequest.prototype.send = (function (origSend) {
     return function (...args) {
+      // Enregistrement de l'éditeur d'avatar : l'encart « Porté » (avatar-plus.js) se relit.
+      if (this.__ronotePatch && /\/\/avatar\.roblox\.com\/v\d+\/avatar(?:$|[?#])/i.test(this.__ronoteUrl || '')) {
+        this.addEventListener('load', () => window.postMessage({ __ronote: 'avatar-changed' }, location.origin));
+      }
       try {
         const isSend = SEND_RE.test(this.__ronoteUrl || '');
         const m = isSend ? null : TRADE_RE.exec(this.__ronoteUrl || '');
