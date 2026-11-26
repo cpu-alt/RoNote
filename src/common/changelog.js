@@ -16,7 +16,7 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
-    version: null,
+    version: '2.18.0',
     title: item("Watchlist, Deals Rolimon's et synchro", "Watchlist, Rolimon's deals and sync"),
     items: [
       item("Éditeur d'avatar : sous l'avatar, ce que tu portes, tes accessoires à porter sans la limite de 3 par type (jusqu'à 10) et tes tenues RoNote.",
