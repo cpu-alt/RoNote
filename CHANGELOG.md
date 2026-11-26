@@ -5,6 +5,10 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Watchlist** (4e vue de Profils / Deals / My items, `popup/watchlist.js` + `background/watchlist.js`) : des
+  items voulus avec un prix cible ; meilleur prix lu sur le catalogue Roblox (une requête pour toute la liste, toutes
+  les 2 min au plus, rien si la liste est vide), notification sous la cible (pas deux fois au même prix). Aucun
+  serveur ; la liste suit la synchro entre appareils.
 - **My items plus complet** : bandeau (revente au best price, profit possible, items au-dessus du RAP), recherche
   par nom / initiales / id, tris Prix et Value, value Rolimon's sur chaque ligne, et « Pas en vente aussi » : les
   items que personne ne vend, vendables (prix proposé = value ou RAP).

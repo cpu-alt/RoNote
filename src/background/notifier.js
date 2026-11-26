@@ -414,6 +414,13 @@ export async function notifyRevaluations(hits, settings) {
   return id;
 }
 
+/** Un item de la watchlist sous sa cible : un clic ouvre sa page Roblox. */
+export async function notifyWatch(title, message, url) {
+  const id = `ronote:watch:${Date.now()}`;
+  await create(id, { title, message, iconUrl: FALLBACK_ICON, priority: 2, requireInteraction: false });
+  await rememberNotif(id, { url });
+}
+
 export async function notifySystem(title, message, tag = 'sys') {
   await create(`ronote:${tag}:${Date.now()}`, {
     title, message, iconUrl: FALLBACK_ICON, priority: 2, requireInteraction: false

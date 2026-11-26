@@ -119,7 +119,8 @@ export const DEFAULTS = {
   ignoreProjected: false,     // ignorer les trades contenant un item "projected"
   ignoredUsers: [],           // [{id, name}]
   favUsers: [],               // joueurs favoris [{id, name, at}]
-  laterUsers: [],             // joueurs à qui envoyer un trade plus tard [{id, name, at}]
+  laterUsers: [],
+  watchList: [],              // watchlist : items voulus [{id, kind: 'asset'|'bundle', name, target}] (background/watchlist.js)             // joueurs à qui envoyer un trade plus tard [{id, name, at}]
   alwaysNotifyCounters: true, // une contre-offre passe outre les filtres
 
   // --- Heures silencieuses -----------------------------------------------

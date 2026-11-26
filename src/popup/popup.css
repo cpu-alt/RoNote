@@ -2528,3 +2528,20 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .mi-all[aria-checked="true"] { border-color: var(--accent); color: var(--text); background: var(--surface-3); }
 .mi-ratio.solo { color: var(--dim); font-size: 10.5px; }
 .mi-sep { margin: 6px 2px 0; color: var(--faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Watchlist (popup/watchlist.js) */
+.wl-row { grid-template-columns: 1fr auto; }
+.wl-row.hit { border-color: #2fd07066; background: #2fd07010; }
+.wl-side { display: flex; align-items: center; gap: 4px; }
+.wl-target { display: grid; gap: 1px; justify-items: end; }
+.wl-target i { font-style: normal; color: var(--faint); font-size: 9.5px; }
+.wl-target input { width: 70px; height: 26px; padding: 0 7px; border-radius: 7px; border: 1px solid var(--line-soft); background: var(--surface-2); color: var(--text); font: inherit; font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.wl-target input:focus { outline: none; border-color: var(--accent); }
+.wl-x { width: 24px; height: 24px; border-radius: 7px; border: 0; background: none; color: var(--dim); font-size: 16px; cursor: pointer; }
+.wl-x:hover { background: var(--surface-3); color: var(--loss); }
+.wl-found { display: grid; gap: 4px; margin: 6px 0 2px; }
+.wl-add { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; border-radius: var(--r-md); border: 1px dashed var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.wl-add:hover:not(:disabled) { border-color: var(--accent); }
+.wl-add:disabled { opacity: .5; cursor: default; }
+.wl-add i { font-style: normal; font-size: 16px; font-weight: 800; color: var(--accent); }
+.wl-hits { margin: 0 0 6px; color: var(--win); font-size: 11.5px; font-weight: 700; }

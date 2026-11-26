@@ -94,7 +94,7 @@ export function knownBadge(uid) {
 }
 
 /** Le sélecteur en tête des vues Profils et Deals (une seule icône dans la barre d'onglets). */
-export const discoverSwitch = (active, extra = '') => `<div class="dc-switch" role="tablist" aria-label="Neuronal">${[['profiles', t('Profils')], ['deals', t('Deals')], ['myitems', t('Mes items')]]
+export const discoverSwitch = (active, extra = '') => `<div class="dc-switch" role="tablist" aria-label="Neuronal">${[['profiles', t('Profils')], ['deals', t('Deals')], ['myitems', t('Mes items')], ['watch', t('Watchlist')]]
   .map(([k, l]) => `<button role="tab" data-go-tab="${k}" aria-selected="${k === active}">${l}</button>`).join('')}${extra}</div>`;
 
 const chip = (attr, value, label, on, cls = '', role = 'checkbox') =>

@@ -36,7 +36,7 @@ compte Google ni vers aucun autre appareil.
 désactivé d'office, à activer sur chaque appareil). RoNote écrit alors aussi dans le
 stockage synchronisé de ton navigateur (`storage.sync`), que l'éditeur du navigateur
 (Google, Microsoft ou Mozilla) transporte vers tes autres appareils connectés au même
-compte. Ce qui est copié : tes réglages, y compris les joueurs suivis, ignorés ou mis
+compte. Ce qui est copié : tes réglages (dont ta Watchlist : ids, noms et prix cibles des items), les joueurs suivis, ignorés ou mis
 de côté (id et pseudo Roblox, sans avatar), et pendant 3 heures les ids des
 notifications de trade montrées ou fermées (`ronote:<type>:<idDuTrade>`), pour qu'un
 trade ne sonne pas deux fois. Jamais copiés : le contenu de tes trades, le
@@ -53,7 +53,7 @@ Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son
 
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
-| `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
+| `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils, et le meilleur prix de revente des items de ta Watchlist | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
 | `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur ou son profil Roblox, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
 
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le

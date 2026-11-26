@@ -695,6 +695,12 @@ export async function acceptTrade(tradeId, headers = {}) {
  */
 const SALES = 'https://apis.roblox.com/marketplace-sales/v1/item';
 
+/** Les fiches catalogue de plusieurs items en une requête (120 au plus) : meilleur prix de revente compris (watchlist). */
+export async function getCatalogDetails(items) {
+  const res = await apiPost(`${CATALOG}/catalog/items/details`, { items: items.slice(0, 120) });
+  return JSON.parse(res.body || '{}').data || [];
+}
+
 /** Ce qu'il faut savoir avant de confirmer : copies vendables, plancher, frais. */
 export async function resaleQuote(userId, kind, id) {
   const uid = Number(userId), iid = Number(id);

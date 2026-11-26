@@ -37,7 +37,8 @@ export function withDefaults(s) {
     notifyOutbound: { ...DEFAULTS.notifyOutbound, ...(stored.notifyOutbound || {}) },
     ignoredUsers: Array.isArray(stored.ignoredUsers) ? stored.ignoredUsers : [],
     favUsers: Array.isArray(stored.favUsers) ? stored.favUsers : [],
-    laterUsers: Array.isArray(stored.laterUsers) ? stored.laterUsers : []
+    laterUsers: Array.isArray(stored.laterUsers) ? stored.laterUsers : [],
+    watchList: Array.isArray(stored.watchList) ? stored.watchList : []
   };
 }
 
@@ -52,7 +53,12 @@ export function sanitizeSettings(raw) {
   for (const [k, def] of Object.entries(DEFAULTS)) {
     const v = raw[k];
     if (v === undefined || v === null) continue;
-    if (k === 'ignoredUsers' || k === 'favUsers' || k === 'laterUsers') {
+    if (k === 'watchList') {
+      if (Array.isArray(v)) {
+        out[k] = v.filter(w => Number(w?.id) > 0).slice(0, 60).map(w => ({ id: Number(w.id), kind: w.kind === 'bundle' ? 'bundle' : 'asset',
+          name: String(w.name || '').slice(0, 60), target: Math.max(0, Math.floor(Number(w.target) || 0)) }));
+      }
+    } else if (k === 'ignoredUsers' || k === 'favUsers' || k === 'laterUsers') {
       if (Array.isArray(v)) {
         out[k] = v.filter(u => Number(u?.id) > 0)
           .map(u => ({ id: Number(u.id), name: String(u.name || '').slice(0, 40), ...(Number(u.at) > 0 ? { at: Number(u.at) } : {}),

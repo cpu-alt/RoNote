@@ -308,6 +308,17 @@ try {
   check('synchro : vignette d'ici remise', merged.favUsers[0].thumb, 'https://t.rbxcdn.com/x');
   check('synchro : morceaux sous 8 Ko', sync.toChunks('x'.repeat(15000)).map(c => c.length), [7000, 7000, 1000]);
 
+  group('Watchlist');
+  const wl = await import('../src/background/watchlist.js');
+  const wp = wl.pricesOf([{ id: 5, itemType: 'Asset', lowestResalePrice: 900 }, { id: 6, itemType: 'Bundle', lowestPrice: 50 }]);
+  check('watchlist : prix par clé', wp, { a5: 900, b6: 50 });
+  const wlist = [{ id: 5, kind: 'asset', name: 'x', target: 1000 }, { id: 6, kind: 'bundle', name: 'y', target: 10 }];
+  check('watchlist : alerte sous la cible seulement', wl.hitsOf(wlist, wp, {}).map(h => h.id), [5]);
+  check('watchlist : même prix, pas de 2e alerte', wl.hitsOf(wlist, wp, { a5: { hitAt: Date.now(), hitBp: 900 } }).length, 0);
+  const wlPopup = await import('../src/popup/watchlist.js');
+  check('watchlist : états sous / proche / loin', [{ bp: 90, target: 100 }, { bp: 105, target: 100 }, { bp: 200, target: 100 }].map(wlPopup.stateOf), ['hit', 'near', '']);
+  check('watchlist : moins cher encore, nouvelle alerte', wl.hitsOf(wlist, { a5: 800 }, { a5: { hitAt: Date.now(), hitBp: 900 } }).length, 1);
+
   /* --------------------------- sons et reglages -------------------------- */
   group('Sons');
   const tones = await import('../src/common/tones.js');

@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("Nouvel onglet Watchlist : ajoute les items que tu veux avec un prix cible, RoNote te prévient quand quelqu'un le vend moins cher.",
+        "New Watchlist tab: add the items you want with a target price, RoNote tells you when someone sells one for less."),
       item("My items : totaux en haut (revente, profit possible), recherche, tri par prix ou value, et les items que personne ne vend, à mettre en vente.",
         "My items: totals on top (resale, possible profit), search, sort by price or value, and the items nobody sells, ready to list."),
       item("Réglages > Synchroniser mes appareils : réglages et joueurs suivis partagés entre tes PC ; un trade notifié sur l'un ne sonne pas sur l'autre, une alerte fermée disparaît partout.",

@@ -12,6 +12,7 @@ import { $, send, ask, applyLang as applyPageLang, onStoredChange, factHtml, RED
 import { renderProfiles } from './profiles.js';
 import { renderDeals, compose } from './deals.js';
 import { renderMyItems } from './myitems.js';
+import { renderWatchlist } from './watchlist.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
@@ -2828,6 +2829,8 @@ function renderList() {
   if (tab === 'deals') { lastListSig = ''; if (entering) renderDeals(listEl, () => B.runtime.openOptionsPage()); return; }
   // Mes items : le best price de mon inventaire (Insider/Elite), relu en arrivant sur l'onglet (myitems.js).
   if (tab === 'myitems') { lastListSig = ''; if (entering) renderMyItems(listEl, data.report); return; }
+  // La watchlist : sans serveur, prix lus sur Roblox par le worker (watchlist.js).
+  if (tab === 'watch') { lastListSig = ''; if (entering) renderWatchlist(listEl); return; }
   // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
   if (tab === 'tradeads') { lastListSig = ''; if (entering) tradeAdsMod().then(({ renderTradeAds }) => { if (tab === 'tradeads') renderTradeAds(listEl, data.report); }); return; }
   if (tab === 'home') {
@@ -3342,7 +3345,7 @@ document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
 
 // Profils et Deals partagent l'icône Profils : elle rouvre la vue choisie en dernier.
 const DISCOVER_KEY = 'ronote.discover';
-const DISCOVER_VIEWS = ['profiles', 'deals', 'myitems'];
+const DISCOVER_VIEWS = ['profiles', 'deals', 'myitems', 'watch'];
 const discoverView = () => { try { const v = localStorage.getItem(DISCOVER_KEY); return DISCOVER_VIEWS.includes(v) ? v : 'profiles'; } catch { return 'profiles'; } };
 document.querySelectorAll('.tab').forEach(el => {
   el.addEventListener('click', (e) => {

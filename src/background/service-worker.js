@@ -23,6 +23,7 @@ import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, 
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
+import { checkWatchlist, readWatchPrices, watchKey, WATCH_MAX } from './watchlist.js';
 import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, relayPush, relayPull, getConfig as getTradeAdsConfig } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -885,6 +886,7 @@ async function tick(reason = 'manual') {
     }
     await flushThumbs({ force: true });
     await refreshLuckyCat(settings);
+    await safe(() => checkWatchlist(settings));     // watchlist : une requête catalogue toutes les 2 min au plus
   } catch (e) {
     console.error('[RoNote] tick:', e);
   } finally {
@@ -1601,6 +1603,30 @@ async function handleMessage(msg, sender = null) {
     // Les items surveilles, communs a Discord (filtre « RoNote ») et a l'onglet Profils.
     case 'ronote:watch':
       return neuronalWatch(msg.set || null);
+
+    // Watchlist (watchlist.js) : la liste est dans les réglages, les prix lus restent ici.
+    case 'ronote:wl-get': {
+      const settings = await getSettings();
+      const prices = await safe(() => checkWatchlist(settings, { force: !!msg.force }), null) || await readWatchPrices();
+      const cat = await getCatalog(settings);
+      const items = settings.watchList.map(w => ({ ...w, ...resolveItem(w.kind === 'bundle' ? { bundleId: w.id } : { assetId: w.id }, cat) , name: w.name, id: w.id, kind: w.kind }));
+      const thumbs = await safe(() => resolveThumbs(items.map(thumbKeysFor)), []);
+      return { checkedAt: prices.checkedAt, max: WATCH_MAX, items: items.map((i, n) => ({
+        key: watchKey(i), id: i.id, kind: i.kind, name: i.name, target: i.target, value: i.value || 0, rap: i.rap || 0,
+        bp: prices.items[watchKey(i)]?.bp || 0, thumb: thumbs?.[n] || null })) };
+    }
+    case 'ronote:wl-set': {
+      const settings = await getSettings();
+      let list = settings.watchList.filter(w => watchKey(w) !== watchKey(msg.item || {}));
+      if (msg.remove) { await saveSettings({ watchList: list }); return { ok: true }; }
+      const old = settings.watchList.find(w => watchKey(w) === watchKey(msg.item));
+      const item = { id: Number(msg.item.id), kind: msg.item.kind === 'bundle' ? 'bundle' : 'asset',
+        name: String(msg.item.name || old?.name || '').slice(0, 60), target: Math.max(0, Math.floor(Number(msg.item.target ?? old?.target) || 0)) };
+      list = old ? settings.watchList.map(w => watchKey(w) === watchKey(item) ? item : w) : [item, ...list];
+      if (list.length > WATCH_MAX) return { error: t('{n} items au plus', { n: WATCH_MAX }) };
+      await saveSettings({ watchList: list });
+      return { ok: true };
+    }
     // « Deja trade avec lui » (Profils, Deals, 18 nov.) : pour chaque partenaire connu du journal local
     // (et des envois notes par l'envoi rapide), trades conclus, envoyes, recus, gain net, dernier contact.
     // Aucune requete : tout est deja en local. Le popup le demande une fois par ouverture.

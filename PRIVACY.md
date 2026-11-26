@@ -36,7 +36,7 @@ Google account or to any other device.
 enable on each device). RoNote then also writes to your browser's own synced storage
 (`storage.sync`), which your browser vendor (Google, Microsoft or Mozilla) carries to
 your other devices signed in to the same browser account. What is copied: your
-settings, including the players you follow, ignore or saved for later (Roblox id and
+settings (including your Watchlist: item ids, names and target prices), the players you follow, ignore or saved for later (Roblox id and
 name, no avatar), and for 3 hours the ids of the trade notifications shown or closed
 (`ronote:<kind>:<tradeId>`), so a trade doesn't ring twice. Never copied: your trades'
 contents, the portfolio, the log, the Roblox session, imported images or sounds, and
@@ -52,7 +52,7 @@ By default, RoNote contacts exactly two domains, both declared in its manifest:
 
 | Domain | Why | What is sent |
 |---|---|---|
-| `*.roblox.com` | Read your trades, items, thumbnails and profiles | Nothing beyond the request itself, using the Roblox session already present in your browser |
+| `*.roblox.com` | Read your trades, items, thumbnails and profiles, and the lowest resale price of the items in your Watchlist | Nothing beyond the request itself, using the Roblox session already present in your browser |
 | `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card or their Roblox profile, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the

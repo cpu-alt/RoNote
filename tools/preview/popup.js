@@ -304,6 +304,12 @@ const mockRuntime = {
         if (msg.dry) return { quote: { cid: 'x', fee: 30, minFee: 1, floor: 95, owned: 2, held: 1, onSale: 0, copy: { instance: 'i', product: 'p', serial: null } } };
         return { ok: true, price: msg.price, net: Math.floor(msg.price * 0.7) };
       }
+      case 'ronote:wl-get': {
+        const its = report.items.slice(3, 7);
+        return { checkedAt: Date.now(), max: 60, items: its.map((i, n) => ({ key: 'a' + i.id, id: i.id, kind: 'asset', name: i.name,
+          value: i.value, rap: i.rap, thumb: i.thumb, bp: Math.round(i.rap * [0.9, 1.05, 1.4, 1.2][n]), target: [Math.round(i.rap), Math.round(i.rap), 0, Math.round(i.rap)][n] })) };
+      }
+      case 'ronote:wl-set': return { ok: true };
       case 'ronote:neuronal-bestprices': {
         await new Promise(r => setTimeout(r, 300));
         const items = report.items;
