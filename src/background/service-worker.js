@@ -23,6 +23,7 @@ import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, 
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
+import { roliDeals } from './roli-deals.js';
 import { checkWatchlist, readWatchPrices, watchKey, WATCH_MAX } from './watchlist.js';
 import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, relayPush, relayPull, getConfig as getTradeAdsConfig } from './tradeads.js';
 import {
@@ -942,7 +943,7 @@ async function syncFromCloud() {
   await setBadge((await getState()).inboundCount, settings, false);
 }
 
-B.storage.onChanged.addListener(async (changes, areaName) => {
+B.storage.onChanged?.addListener(async (changes, areaName) => {
   if (isSettingsChange(changes, areaName)) await safe(syncFromCloud);
   for (const id of await safe(() => closedElsewhere(changes, areaName), [])) {
     await safe(() => B.notifications.clear(id));
@@ -1603,6 +1604,14 @@ async function handleMessage(msg, sender = null) {
     // Les items surveilles, communs a Discord (filtre « RoNote ») et a l'onglet Profils.
     case 'ronote:watch':
       return neuronalWatch(msg.set || null);
+
+    // Les Deals de Rolimon's (roli-deals.js) : demandés par la vue ouverte seulement.
+    case 'ronote:roli-deals': {
+      if (!await rolimonsOn()) return { off: true };
+      const settings = await getSettings();
+      try { return await roliDeals(await getCatalog(settings), { force: !!msg.force }); }
+      catch (e) { return { error: String(e?.message || e) }; }
+    }
 
     // Watchlist (watchlist.js) : la liste est dans les réglages, les prix lus restent ici.
     case 'ronote:wl-get': {

@@ -2545,3 +2545,13 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .wl-add:disabled { opacity: .5; cursor: default; }
 .wl-add i { font-style: normal; font-size: 16px; font-weight: 800; color: var(--accent); }
 .wl-hits { margin: 0 0 6px; color: var(--win); font-size: 11.5px; font-weight: 700; }
+
+/* Deals de Rolimon's (popup/roli-deals.js) */
+.rd-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 7px 10px 7px 7px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rd-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rd-proj { font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--warn); text-transform: uppercase; }
+/* Cinq vues sous Profils (26 nov.) : le sélecteur tient sur une ligne, défile s'il le faut. */
+.dc-switch { gap: 11px; overflow-x: auto; scrollbar-width: none; }
+.dc-switch::-webkit-scrollbar { display: none; }
+.dc-switch button { flex: none; white-space: nowrap; font-size: 12px; }
+.dc-switch .pf-count { flex: none; white-space: nowrap; }

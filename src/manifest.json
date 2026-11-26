@@ -115,6 +115,16 @@
       ],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.rolimons.com/player/*"
+      ],
+      "js": [
+        "content/rolimons-profit.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ]
 }

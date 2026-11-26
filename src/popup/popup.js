@@ -13,6 +13,7 @@ import { renderProfiles } from './profiles.js';
 import { renderDeals, compose } from './deals.js';
 import { renderMyItems } from './myitems.js';
 import { renderWatchlist } from './watchlist.js';
+import { renderRoliDeals } from './roli-deals.js';
 import { nwTradeCard } from './nwcard.js';
 import { lockHtml } from './lock.js';
 import { FLEX_PLOT } from './recap.js';
@@ -2831,6 +2832,8 @@ function renderList() {
   if (tab === 'myitems') { lastListSig = ''; if (entering) renderMyItems(listEl, data.report); return; }
   // La watchlist : sans serveur, prix lus sur Roblox par le worker (watchlist.js).
   if (tab === 'watch') { lastListSig = ''; if (entering) renderWatchlist(listEl); return; }
+  // Les Deals de Rolimon's, sans serveur : relus en direct tant que la vue est ouverte (roli-deals.js).
+  if (tab === 'rdeals') { lastListSig = ''; if (entering) renderRoliDeals(listEl); return; }
   // L'auto-post de trade ads (tradeads.js) : relu en arrivant sur l'onglet seulement.
   if (tab === 'tradeads') { lastListSig = ''; if (entering) tradeAdsMod().then(({ renderTradeAds }) => { if (tab === 'tradeads') renderTradeAds(listEl, data.report); }); return; }
   if (tab === 'home') {
@@ -3345,7 +3348,7 @@ document.querySelector('.tabs')?.addEventListener('keydown', (e) => {
 
 // Profils et Deals partagent l'icône Profils : elle rouvre la vue choisie en dernier.
 const DISCOVER_KEY = 'ronote.discover';
-const DISCOVER_VIEWS = ['profiles', 'deals', 'myitems', 'watch'];
+const DISCOVER_VIEWS = ['profiles', 'deals', 'myitems', 'watch', 'rdeals'];
 const discoverView = () => { try { const v = localStorage.getItem(DISCOVER_KEY); return DISCOVER_VIEWS.includes(v) ? v : 'profiles'; } catch { return 'profiles'; } };
 document.querySelectorAll('.tab').forEach(el => {
   el.addEventListener('click', (e) => {

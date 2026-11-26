@@ -5,6 +5,14 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Mon profit sur Rolimon's** (`content/rolimons-profit.js`, réglage actif d'office) : sur MA page joueur
+  rolimons.com, sous chaque item, le gain en value depuis la date « Owner Since » de Rolimon's (RAP en info-bulle).
+  Historique lu seulement pour les cartes visibles, deux à la fois, en cache dans le worker. Avant le premier
+  relevé de Rolimon's (2016 environ), la ligne dit « Profit depuis 2016 ».
+- **Deals de Rolimon's** (5e vue, `popup/roli-deals.js` + `background/roli-deals.js`) : les limiteds vendus sous
+  leur RAP ou leur value, comme rolimons.com/deals, sans serveur. La page (730 Ko) est lue au plus toutes les
+  15 min, puis seuls les changements (`market/v2/dealactivity`) toutes les 25 s, et seulement vue ouverte.
+- `tools/selftest.js` : réparé (une apostrophe mal échappée dans les tests de synchro le cassait).
 - **Watchlist** (4e vue de Profils / Deals / My items, `popup/watchlist.js` + `background/watchlist.js`) : des
   items voulus avec un prix cible ; meilleur prix lu sur le catalogue Roblox (une requête pour toute la liste, toutes
   les 2 min au plus, rien si la liste est vide), notification sous la cible (pas deux fois au même prix). Aucun

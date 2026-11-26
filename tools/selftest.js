@@ -304,8 +304,8 @@ try {
   check('synchro : consentement Neuronal et option restent locaux', ['syncDevices', 'neuronalShare'].filter(k => k in part), []);
   check('synchro : vignettes retirees', part.favUsers, [{ id: 7, name: 'a', at: 1 }]);
   const merged = sync.mergeIncoming({ ...base, syncDevices: true, neuronalShare: false }, { ...part, lang: 'en', neuronalShare: true });
-  check('synchro : reglage recu adopte, consentement d'ici garde', [merged.lang, merged.neuronalShare], ['en', false]);
-  check('synchro : vignette d'ici remise', merged.favUsers[0].thumb, 'https://t.rbxcdn.com/x');
+  check("synchro : reglage recu adopte, consentement d'ici garde", [merged.lang, merged.neuronalShare], ['en', false]);
+  check("synchro : vignette d'ici remise", merged.favUsers[0].thumb, 'https://t.rbxcdn.com/x');
   check('synchro : morceaux sous 8 Ko', sync.toChunks('x'.repeat(15000)).map(c => c.length), [7000, 7000, 1000]);
 
   group('Watchlist');
@@ -318,6 +318,18 @@ try {
   const wlPopup = await import('../src/popup/watchlist.js');
   check('watchlist : états sous / proche / loin', [{ bp: 90, target: 100 }, { bp: 105, target: 100 }, { bp: 200, target: 100 }].map(wlPopup.stateOf), ['hit', 'near', '']);
   check('watchlist : moins cher encore, nouvelle alerte', wl.hitsOf(wlist, { a5: 800 }, { a5: { hitAt: Date.now(), hitBp: 900 } }).length, 1);
+
+  group("Deals Rolimon's");
+  const rd = await import('../src/background/roli-deals.js');
+  const rdItems = rd.itemsOf({ activity: { '1:5': ['A', 100, 80, 100, 1, 5], '2:7': ['B', 100, 0, 50, 2, 7] },
+    details: { '1:5': ['A', 100, 80, 'a', null, 120, 120, null, null, 'u'], '2:7': ['B', 50, 0, 'b', null, null, 50, null, null, null] } });
+  check("deals Rolimon's : remise RAP et value", rd.dealOf(rdItems['1:5']), { rap: 20, value: 33 });
+  rd.applyActivity(rdItems, [[200, 0, 5, 1, 60], [50, 1, 5, 1, 999]]);
+  check("deals Rolimon's : changement récent appliqué, ancien ignoré", [rdItems['1:5'].bp, rdItems['1:5'].rap], [60, 100]);
+  const rdPop = await import('../src/popup/roli-deals.js');
+  const rdList = [{ name: 'A', dealRap: 25, dealValue: 5, at: 1, bp: 10 }, { name: 'B', dealRap: 5, dealValue: 40, at: 2, bp: 20, projected: true }];
+  check("deals Rolimon's : filtre de remise et projected cachés", rdPop.shownOf(rdList, { basis: 'rap', min: 10, sort: 'deal', proj: false }).map(x => x.name), ['A']);
+  check("deals Rolimon's : base value", rdPop.shownOf(rdList, { basis: 'value', min: 10, sort: 'deal', proj: true }).map(x => x.name), ['B']);
 
   /* --------------------------- sons et reglages -------------------------- */
   group('Sons');
@@ -417,7 +429,8 @@ try {
     'projected', 'rare', 'bundle', 'value', 'Notifications', 'Maintenance', 'Test',
     'Volume', 'Ping', '1 minute', '2 minutes', '5 minutes',
     'Value {v}', 'RAP {v}', 'bundle #{id}', 'Value {a} vs RAP {b}', 'Total value', 'proj',
-    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal', 'Discord']);
+    'Français', 'English', 'bundles', 'Volume', 'Notifications', 'Ping', 'Flex', 'Popup', 'Format', 'Style', 'Interface', 'Neuronal', 'Discord',
+    'Deals', 'Premium', 'Pause', 'Trades', 'My items', 'Trade ads', 'Watchlist', "Rolimon's"]);
   const reallyMissing = [...missingT].filter(x => !SAME.has(x));
   check(`${calls} appels a t() : tous traduits en anglais`, reallyMissing, []);
 

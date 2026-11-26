@@ -1103,6 +1103,38 @@ async function rolimons(url, what, retryOn429 = true) {
   return j;
 }
 
+/* ===================== les Deals de Rolimon's (26 nov.) =====================
+ * La page rolimons.com/deals porte tout dans son HTML : `item_activity` (meilleur prix et RAP
+ * de chaque limited) et `item_details` (nom, value, vignette). Elle pèse ~730 Ko : on la lit
+ * rarement, puis on suit les changements par l'API qu'elle interroge elle-même. */
+
+/** Les deux tables de la page Deals. Exposé pour les tests. */
+export function parseDealsPage(html) {
+  const grab = (re) => {
+    const m = re.exec(html);
+    try { return m ? JSON.parse(m[1]) : null; } catch { return null; }
+  };
+  const activity = grab(/var\s+item_activity\s*=\s*(\{[^\n]*?\});/), details = grab(/var\s+item_details\s*=\s*(\{[^\n]*?\});/);
+  if (!activity || !details) throw new ApiError("deals introuvables dans la page Rolimon's", 0);
+  return { activity, details };
+}
+
+export async function getDealsPage() {
+  const url = 'https://www.rolimons.com/deals';
+  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 30000));
+  if (!r.ok) {
+    if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 10);
+    throw new ApiError('HTTP ' + r.status, r.status, 0, "Rolimon's");
+  }
+  return parseDealsPage(await r.text());
+}
+
+/** Les derniers changements : [horodatage s, 0 = meilleur prix | 1 = RAP, id, 1 = asset | 2 = bundle, prix]. */
+export async function getDealActivity() {
+  const j = await rolimons('https://api.rolimons.com/market/v2/dealactivity', 'activité des deals');
+  return Array.isArray(j.activities) ? j.activities : [];
+}
+
 /** Valeur et RAP du compte, tels que Rolimon's les publie sur le profil. */
 export async function getPlayerInfo(userId) {
   const j = await rolimons(`${ROLIMONS}/playerinfo/${userId}`, 'profil');

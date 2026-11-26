@@ -54,7 +54,7 @@ Par défaut, RoNote ne contacte que deux domaines, tous deux déclarés dans son
 | Domaine | Pourquoi | Ce qui est envoyé |
 |---|---|---|
 | `*.roblox.com` | Lire tes trades, les objets, les vignettes, les profils, et le meilleur prix de revente des items de ta Watchlist | Rien d'autre que la requête elle-même, avec la session Roblox déjà présente dans ton navigateur |
-| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur ou son profil Roblox, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
+| `*.rolimons.com` | Télécharger la table publique des valeurs d'objets et, quand tu ouvres un objet, son historique public (aussi sur ta propre page joueur Rolimon's, pour le profit affiché sous chaque item). Quand tu ouvres la vue Rolimon's du popup, sa page Deals publique et l'activité des deals. Avec le suivi du portefeuille, lire ton profil Rolimon's public. Quand tu ouvres la fiche d'un joueur ou son profil Roblox, lire le sien | Pour la table et les historiques, **rien te concernant** : les mêmes pages publiques pour tous. Pour le suivi du portefeuille, ton **identifiant Roblox**, déjà public, pour trouver ton profil. Pour la fiche d'un joueur, **son** identifiant Roblox, public lui aussi |
 
 Rolimon's est **désactivable** dans les réglages. Sans lui, RoNote se rabat sur le
 RAP fourni par Roblox et ne contacte plus que Roblox.

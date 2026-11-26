@@ -304,6 +304,14 @@ const mockRuntime = {
         if (msg.dry) return { quote: { cid: 'x', fee: 30, minFee: 1, floor: 95, owned: 2, held: 1, onSale: 0, copy: { instance: 'i', product: 'p', serial: null } } };
         return { ok: true, price: msg.price, net: Math.floor(msg.price * 0.7) };
       }
+      case 'ronote:roli-deals': {
+        await new Promise(r => setTimeout(r, 200));
+        return { at: Date.now(), items: report.items.slice(0, 40).filter(i => i.rap).map((i, n) => {
+          const bp = Math.round(i.rap * (0.55 + (n * 37 % 50) / 100));
+          return { key: '1:' + i.id, id: i.id, kind: 'asset', name: i.name, thumb: i.thumb, acronym: i.acronym, at: Date.now() - n * 47000,
+            bp, rap: i.rap, value: i.value, dealRap: Math.round(100 - bp / i.rap * 100), dealValue: i.value ? Math.round(100 - bp / i.value * 100) : null, projected: n % 9 === 4 };
+        }).filter(x => x.dealRap > 0 || x.dealValue > 0) };
+      }
       case 'ronote:wl-get': {
         const its = report.items.slice(3, 7);
         return { checkedAt: Date.now(), max: 60, items: its.map((i, n) => ({ key: 'a' + i.id, id: i.id, kind: 'asset', name: i.name,

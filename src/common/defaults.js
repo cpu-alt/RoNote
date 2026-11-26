@@ -56,6 +56,7 @@ export const DEFAULTS = {
 
   // --- Valeurs / analyse -------------------------------------------------
   useRolimons: true,          // cotes Rolimon's (repli RAP si indispo)
+  rolimonsProfit: true,       // ma page joueur Rolimon's : profit de chaque item depuis que je l'ai (content/rolimons-profit.js)
   rolimonsAdFree: true,       // rolimons.com sans les pubs NitroPay (content/rolimons-adfree.js)
   valueBasis: 'value',        // base de calcul : value | rap | prudent
   speculativeRatio: 1.6,      // value >= N x RAP -> cote signalee comme speculative

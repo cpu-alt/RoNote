@@ -53,7 +53,7 @@ By default, RoNote contacts exactly two domains, both declared in its manifest:
 | Domain | Why | What is sent |
 |---|---|---|
 | `*.roblox.com` | Read your trades, items, thumbnails and profiles, and the lowest resale price of the items in your Watchlist | Nothing beyond the request itself, using the Roblox session already present in your browser |
-| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card or their Roblox profile, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
+| `*.rolimons.com` | Download the public item value table and, when you open an item, its public price history (also on your own Rolimon's player page, for the profit shown under each item). When you open the Rolimon's view of the popup, its public Deals page and deal activity. With portfolio tracking on, read your public Rolimon's profile. When you open a player's card or their Roblox profile, read theirs | For the value table and item histories, **nothing about you** : the same public pages for every user. For portfolio tracking, your **Roblox user ID**, which is already public, to look up your profile. For a player's card, **their** Roblox user ID, public as well |
 
 Rolimon's can be **turned off** in the settings. Without it, RoNote falls back to the
 RAP reported by Roblox and contacts nothing but Roblox.
