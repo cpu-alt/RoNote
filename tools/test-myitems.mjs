@@ -13,6 +13,10 @@ const { rows, unlisted } = rowsOf([
 check('ratio = best price / RAP', rows[0].ratio === 1.5 && rows[0].gain === 500);
 check("visage lu par son ancien asset", rows[1]?.bp === 100 && rows[1].ratio === 0.5 && rows[1].gain === -100);
 check('sans vente ou sans RAP : comptés à part', rows.length === 2 && unlisted === 2);
+const { totalsOf } = await import('../src/popup/myitems.js');
+const tot = totalsOf([{ bp: 1500, gain: 500, count: 2 }, { bp: 100, gain: -100 }]);
+check('totaux : revente et profit comptent les copies', tot.worth === 3100 && tot.profit === 1000 && tot.above === 1);
+check('items non vendus gardés pour « Pas en vente aussi »', rowsOf([{ id: 9, rap: 50, name: 'x' }], {}).idle[0]?.id === 9);
 const { resaleNet } = await import('../src/common/api.js');
 check('vente : 30 % de frais, 1 R$ minimum', resaleNet(200) === 140 && resaleNet(2) === 1 && resaleNet(1) === 0);
 console.log(`\n${passed} réussis, ${failed} échoués`);

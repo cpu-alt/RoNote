@@ -5,6 +5,9 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **My items plus complet** : bandeau (revente au best price, profit possible, items au-dessus du RAP), recherche
+  par nom / initiales / id, tris Prix et Value, value Rolimon's sur chaque ligne, et « Pas en vente aussi » : les
+  items que personne ne vend, vendables (prix proposé = value ou RAP).
 - **Synchroniser mes appareils** (`common/sync.js`, désactivé d'office, à activer sur chaque PC) : réglages et
   joueurs suivis copiés par le stockage synchronisé du navigateur ; un trade notifié sur un PC ne sonne pas sur
   l'autre, et une alerte fermée ou cliquée disparaît partout. Un appareil qui rejoint adopte d'abord la config

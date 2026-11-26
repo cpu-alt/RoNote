@@ -2517,3 +2517,14 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 @media (prefers-reduced-motion: reduce) { .mi-row { transition: none; } }
 .mi-sd-price input:focus-visible { outline: none; }
 .mi-sd-price:focus-within { border-color: var(--accent); }
+
+/* My items : totaux, recherche, items que personne ne vend */
+.mi-tot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 8px; }
+.mi-tot span { display: grid; gap: 2px; padding: 7px 9px; border-radius: var(--r-md); border: 1px solid var(--line-soft); background: var(--surface-2); }
+.mi-tot small { color: var(--dim); font-size: 10px; }
+.mi-tot b { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mi-tot b.win { color: var(--win); }
+.mi-all { flex: none; height: 28px; padding: 0 10px; border-radius: var(--r-md); border: 1px solid var(--line-soft); background: none; color: var(--dim); font: inherit; font-size: 11px; cursor: pointer; }
+.mi-all[aria-checked="true"] { border-color: var(--accent); color: var(--text); background: var(--surface-3); }
+.mi-ratio.solo { color: var(--dim); font-size: 10.5px; }
+.mi-sep { margin: 6px 2px 0; color: var(--faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
