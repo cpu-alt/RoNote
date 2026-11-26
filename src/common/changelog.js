@@ -19,8 +19,8 @@ export const RELEASES = [
     version: null,
     title: item("Accessoires empilés", "Stacked accessories"),
     items: [
-      item("Éditeur d'avatar : les accessoires s'empilent aussi en cliquant dans l'éditeur de Roblox (plus de 3 chapeaux, jusqu'à 10 accessoires) : Roblox ne retire plus le précédent.",
-        "Avatar editor: accessories now stack when you click in Roblox's own editor too (more than 3 hats, up to 10 accessories): Roblox no longer removes the previous one.")
+      item("Éditeur d'avatar : les accessoires s'empilent directement dans l'éditeur de Roblox (jusqu'à 10 au lieu de 3 chapeaux et 1 par type). Le panneau RoNote sous l'avatar est retiré.",
+        "Avatar editor: accessories stack right in Roblox's own editor (up to 10 instead of 3 hats and 1 per type). The RoNote panel under the avatar is removed.")
     ]
   },
   {

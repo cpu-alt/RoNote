@@ -5,7 +5,7 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation : Accessoires empilés
 
-- **Éditeur d'avatar** : les accessoires s'empilent aussi en cliquant dans l'éditeur de Roblox (plus de 3 chapeaux, jusqu'à 10 accessoires) : Roblox ne retire plus le précédent.
+- **Éditeur d'avatar** : les accessoires s'empilent directement dans l'éditeur de Roblox (jusqu'à 10 au lieu de 3 chapeaux et 1 par type). Le panneau RoNote sous l'avatar est retiré.
 
 ## v2.18.1 : Clés d'essai et premium
 
