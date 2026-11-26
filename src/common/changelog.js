@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("My items : totaux en haut (revente, profit possible), recherche, tri par prix ou value, et les items que personne ne vend, à mettre en vente.",
+        "My items: totals on top (resale, possible profit), search, sort by price or value, and the items nobody sells, ready to list."),
       item("Réglages > Synchroniser mes appareils : réglages et joueurs suivis partagés entre tes PC ; un trade notifié sur l'un ne sonne pas sur l'autre, une alerte fermée disparaît partout.",
         "Settings > Sync my devices: settings and followed players shared between your PCs; a trade notified on one doesn't ring on the other, a closed alert disappears everywhere."),
       item("Le bouton Trade des Profils et des Deals ouvre l'éditeur de RoNote : compose le trade, vois l'écart, envoie-le en deux clics.",
