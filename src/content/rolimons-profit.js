@@ -141,6 +141,9 @@
   B.storage.local.get(['state', 'settings']).then(({ state, settings }) => {
     if (settings?.rolimonsProfit === false || settings?.useRolimons === false) return;
     if (Number(state?.userId) !== pageId) return;          // seulement MA page
+    return B.runtime.sendMessage({ type: 'ronote:premium-has', feature: 'profit' });   // Insider ou Elite (26 nov.)
+  }).then((r) => {
+    if (!r?.ok) return;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
     else start();
   }).catch(() => {});

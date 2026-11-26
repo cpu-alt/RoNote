@@ -17,6 +17,7 @@ let last = null;       // la dernière réponse du worker
 let found = [];        // résultats de la recherche
 let query = '';
 let searchSeq = 0;
+let locked = false;    // le 4e item refusé sans premium
 
 /** L'état d'une ligne : sous la cible, proche (≤ 10 % au-dessus), ou rien. Exposé pour les tests. */
 export function stateOf(w) {
@@ -63,8 +64,11 @@ function paint(root) {
     <div class="pf-bar dl-search"><input type="search" data-wl-q placeholder="${escapeHtml(t('Ajouter un item (nom, initiales)'))}"
       value="${escapeHtml(query)}" aria-label="${escapeHtml(t('Ajouter un item'))}" autocomplete="off" spellcheck="false"></div>${foundHtml()}</div>`;
   if (!last) { root.innerHTML = head + `<div class="pf-list">${'<div class="pf-skel"></div>'.repeat(3)}</div>`; return; }
+  const free = last.full === false;
+  const lockHtml = free && (locked || items.length >= last.max)
+    ? `<p class="wl-lock">${ic('lock')}<span>${t('Watchlist gratuite : {n} items surveillés. Illimitée avec Insider ou Elite (Réglages › Neuronal et Premium).', { n: last.max })}</span></p>` : '';
   const sorted = [...items].sort((a, b) => (stateOf(b) === 'hit') - (stateOf(a) === 'hit') || (stateOf(b) === 'near') - (stateOf(a) === 'near'));
-  root.innerHTML = head + (items.length
+  root.innerHTML = head + lockHtml + (items.length
     ? (hits ? `<p class="wl-hits">${t('{n} sous ta cible', { n: hits })}</p>` : '') + `<div class="mi-list">${sorted.map(rowHtml).join('')}</div>`
       + `<p class="mi-foot">${t('Prix lus sur Roblox toutes les 2 min. Une notification part quand un item passe sous sa cible.')}</p>`
     : `<div class="empty"><div class="empty-ic">${ic('search')}</div><b>${t('Ta watchlist est vide')}</b><span>${t('Cherche un item au-dessus, fixe un prix cible : RoNote te prévient quand quelqu\'un le vend moins cher.')}</span></div>`);
@@ -91,7 +95,9 @@ export function renderWatchlist(root) {
         if (!f) return;
         add.disabled = true;
         const res = await send({ type: 'ronote:wl-set', item: { id: f.bundleId || f.assetId, kind: f.bundleId ? 'bundle' : 'asset', name: f.name, target: 0 } });
+        if (res?.error === 'locked') { locked = true; add.disabled = false; paint(root); return; }
         if (res?.error) { add.title = res.error; return; }
+        locked = false;
         query = ''; found = [];
         await load(root, true);
         root.querySelector('.wl-row input')?.focus();     // le prix cible, tout de suite

@@ -74,7 +74,9 @@ function paint(root) {
       : last.off ? `<div class="empty"><b>${t("Rolimon's est désactivé dans les réglages")}</b></div>`
       : !last.items ? `<div class="empty"><b>${t("Rolimon's est injoignable.")}</b><span>${escapeHtml(last.error || '')}</span></div>`
       : shown.length ? `<div class="mi-list">${shown.slice(0, MAX_ROWS).map(x => rowHtml(x, p.basis)).join('')}</div>`
-        + `<p class="mi-foot">${t("Données de rolimons.com/deals, en direct. Un clic ouvre l'item sur Roblox.")}</p>`
+        + `<p class="mi-foot">${last.live === false
+          ? t("Données de rolimons.com/deals, mises à jour toutes les 15 min. En direct avec Insider ou Elite. Un clic ouvre l'item sur Roblox.")
+          : t("Données de rolimons.com/deals, en direct. Un clic ouvre l'item sur Roblox.")}</p>`
       : `<div class="empty"><b>${t('Aucun deal')}</b><span>${t('Rien ne correspond à ces filtres pour le moment.')}</span></div>`);
   if (typing !== null) { const b = root.querySelector('[data-rd-q]'); b?.focus(); b?.setSelectionRange(typing, typing); }
 }

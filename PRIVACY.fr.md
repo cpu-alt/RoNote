@@ -183,6 +183,11 @@ accessoire, remettre une tenue. Il lit pour cela tes accessoires sur
 `inventory.roblox.com` et leurs vignettes sur `thumbnails.roblox.com`. Les tenues
 enregistrées restent sur ton PC (`storage.local`) ; rien n'est envoyé à RoNote ni à Neuronal.
 
+Quand tu utilises une **clé d'essai** offerte par le staff Neuronal, RoNote envoie à Neuronal la clé et
+les identifiants des comptes Roblox suivis par ton RoNote. Neuronal les garde avec ton compte Discord
+pour vérifier qu'une clé n'est jamais utilisée par son créateur ou un de ses comptes, et journalise
+quel compte Roblox a utilisé quelle clé. L'accès se ferme tout seul à la fin de l'essai.
+
 ## Les permissions demandées, et pourquoi
 
 | Permission | À quoi elle sert |

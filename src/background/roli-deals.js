@@ -50,13 +50,14 @@ export function dealOf(it) {
   };
 }
 
-export async function roliDeals(cat, { force = false } = {}) {
+export async function roliDeals(cat, { force = false, live = true } = {}) {
   busy = busy || (async () => {
     try {
       const now = Date.now();
-      if (force || !base || now - base.at > PAGE_EVERY) {
+      // Sans premium (`live` faux) : la page seule, relue toutes les 15 min ; ni changements en direct, ni relecture forcée.
+      if ((force && live) || !base || now - base.at > PAGE_EVERY) {
         base = { at: now, deltaAt: now, items: itemsOf(await api.getDealsPage()) };
-      } else if (now - base.deltaAt > DELTA_EVERY) {
+      } else if (live && now - base.deltaAt > DELTA_EVERY) {
         base.deltaAt = now;
         applyActivity(base.items, await api.getDealActivity().catch(() => []));
       }

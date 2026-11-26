@@ -3,6 +3,11 @@
 Toutes les versions notables de RoNote : ce qui change du point de vue de
 l'utilisateur, pas la liste des commits.
 
+## En préparation
+
+- **Clés d'essai** : le staff Neuronal peut offrir des clés d'essai Insider ou Elite (de 3 heures à 3 jours) ; elles s'utilisent dans Réglages › Neuronal et Premium, et l'accès se ferme tout seul à la fin.
+- **Premium** : la Watchlist au-delà de 3 items, les Deals Rolimon's en direct, le profit sur Rolimon's et le proof en lot demandent Insider ou Elite.
+
 ## v2.18.0 : Watchlist, Deals Rolimon's et synchro
 
 - **Éditeur d'avatar** : sous l'avatar, ce que tu portes, tes accessoires à porter sans la limite de 3 par type (jusqu'à 10) et tes tenues RoNote.

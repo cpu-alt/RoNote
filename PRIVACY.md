@@ -177,6 +177,11 @@ put an outfit back on. For this it reads your accessories on `inventory.roblox.c
 and their thumbnails on `thumbnails.roblox.com`. Saved outfits stay on your PC
 (`storage.local`); nothing is sent to RoNote or Neuronal.
 
+When you use a **trial key** given by the Neuronal staff, RoNote sends Neuronal the key and the IDs of
+the Roblox accounts your RoNote follows. Neuronal keeps them with your Discord account to check that a
+key is never used by its creator or one of their accounts, and logs which Roblox account used which key.
+The access closes on its own when the trial ends.
+
 ## The permissions requested, and why
 
 | Permission | What it is for |

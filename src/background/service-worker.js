@@ -20,11 +20,11 @@ import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } fr
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
 import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalBestPrices, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
-import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders } from './premium.js';
+import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders, premiumHas, premiumTrial } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
 import { roliDeals } from './roli-deals.js';
-import { checkWatchlist, readWatchPrices, watchKey, WATCH_MAX } from './watchlist.js';
+import { checkWatchlist, readWatchPrices, watchKey, WATCH_MAX, WATCH_FREE } from './watchlist.js';
 import { ALARM as TRADEADS_ALARM, tradeAdsStatus, saveTradeAds, scheduleTradeAds, runTradeAds, tradeAdsLogin, onTradeAdsTab, drawTradeAds, relayPush, relayPull, getConfig as getTradeAdsConfig } from './tradeads.js';
 import {
   resolveTracked, normStatus, OUTCOMES,
@@ -1514,6 +1514,13 @@ async function handleMessage(msg, sender = null) {
     }
     case 'ronote:premium-key':
       return premiumKey(msg.key);
+    case 'ronote:premium-trial': {
+      const r = await premiumTrial(msg.code);
+      if (r.ok) await neuronalForget();
+      return r;
+    }
+    case 'ronote:premium-has':                      // content scripts : une fonction premium ouverte ?
+      return { ok: await premiumHas(String(msg.feature || '')) };
     // Auto-post de trade ads (tradeads.js) : l'onglet Trade ads du popup.
     case 'ronote:tradeads-get':
       return tradeAdsStatus();
@@ -1672,18 +1679,21 @@ async function handleMessage(msg, sender = null) {
     case 'ronote:roli-deals': {
       if (!await rolimonsOn()) return { off: true };
       const settings = await getSettings();
-      try { return await roliDeals(await getCatalog(settings), { force: !!msg.force }); }
+      // En direct (30 s) avec Insider ou Elite ; sinon la page relue toutes les 10 min.
+      const live = await premiumHas('roli_deals');
+      try { return { ...await roliDeals(await getCatalog(settings), { force: !!msg.force, live }), live }; }
       catch (e) { return { error: String(e?.message || e) }; }
     }
 
     // Watchlist (watchlist.js) : la liste est dans les réglages, les prix lus restent ici.
     case 'ronote:wl-get': {
       const settings = await getSettings();
-      const prices = await safe(() => checkWatchlist(settings, { force: !!msg.force }), null) || await readWatchPrices();
+      const full = await premiumHas('watchlist');
+      const prices = await safe(() => checkWatchlist(settings, { force: !!msg.force, full }), null) || await readWatchPrices();
       const cat = await getCatalog(settings);
       const items = settings.watchList.map(w => ({ ...w, ...resolveItem(w.kind === 'bundle' ? { bundleId: w.id } : { assetId: w.id }, cat) , name: w.name, id: w.id, kind: w.kind }));
       const thumbs = await safe(() => resolveThumbs(items.map(thumbKeysFor)), []);
-      return { checkedAt: prices.checkedAt, max: WATCH_MAX, items: items.map((i, n) => ({
+      return { checkedAt: prices.checkedAt, max: full ? WATCH_MAX : WATCH_FREE, full, items: items.map((i, n) => ({
         key: watchKey(i), id: i.id, kind: i.kind, name: i.name, target: i.target, value: i.value || 0, rap: i.rap || 0,
         bp: prices.items[watchKey(i)]?.bp || 0, thumb: thumbs?.[n] || null })) };
     }
@@ -1694,6 +1704,7 @@ async function handleMessage(msg, sender = null) {
       const old = settings.watchList.find(w => watchKey(w) === watchKey(msg.item));
       const item = { id: Number(msg.item.id), kind: msg.item.kind === 'bundle' ? 'bundle' : 'asset',
         name: String(msg.item.name || old?.name || '').slice(0, 60), target: Math.max(0, Math.floor(Number(msg.item.target ?? old?.target) || 0)) };
+      if (!old && list.length >= WATCH_FREE && !await premiumHas('watchlist')) return { error: 'locked', max: WATCH_FREE };
       list = old ? settings.watchList.map(w => watchKey(w) === watchKey(item) ? item : w) : [item, ...list];
       if (list.length > WATCH_MAX) return { error: t('{n} items au plus', { n: WATCH_MAX }) };
       await saveSettings({ watchList: list });

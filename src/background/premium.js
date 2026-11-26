@@ -129,6 +129,34 @@ export async function premiumRetry(reason) {
   return !!p.token;
 }
 
+/**
+ * Une fonction premium ouverte MAINTENANT ? (26 nov. : Watchlist, Deals Rolimon's en direct, profit,
+ * proof en lot.) Le jeton s'arrête avec un accès minuté (clé d'essai) : passé, on le renouvelle, et
+ * sans réponse de Neuronal un jeton expiré n'ouvre plus rien. Verrou d'interface : ces fonctions
+ * tournent sans serveur, le vrai verrou reste celui des routes Neuronal.
+ */
+export async function premiumHas(feature) {
+  let p = await premiumGet();
+  if (!p.token) return false;
+  p = await renew(!!p.exp && p.exp * 1000 <= Date.now());
+  if (!p.token || (p.exp && p.exp * 1000 <= Date.now())) return false;
+  return !!p.me?.features?.[feature];
+}
+
+/** Une clé d'essai offerte par le staff (RNT-XXXX-XXXX-XXXX) : le nouveau jeton porte l'accès. */
+export async function premiumTrial(code) {
+  if (!await granted()) return { error: 'permission' };
+  const p = await premiumGet();
+  if (!p.token) return { error: 'login' };
+  // Les comptes suivis par ce RoNote : Neuronal refuse la clé s'ils croisent ceux de son créateur.
+  const st = await getState().catch(() => null);
+  const accounts = (st?.accounts || []).map(a => Number(a.id)).filter(n => n > 0).slice(0, 20);
+  const r = await call('auth/trial', { method: 'POST', token: p.token, body: { code: String(code || '').trim(), accounts } });
+  if (r.status === 200 && r.data.token) { await keep(r.data); return { ok: true }; }
+  if (r.status === 401) await renew(true);
+  return { error: r.data.error || 'network' };
+}
+
 /* ------------------------------ connexion ------------------------------- */
 
 function fragment(url) {

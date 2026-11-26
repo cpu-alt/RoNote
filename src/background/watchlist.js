@@ -15,9 +15,11 @@
 import { B, safe } from '../common/shim.js';
 import { getCatalogDetails } from '../common/api.js';
 import { notifyWatch } from './notifier.js';
+import { premiumHas } from './premium.js';
 import { t } from '../common/i18n.js';
 
 export const WATCH_MAX = 60;
+export const WATCH_FREE = 3;                 // 26 nov. : au-delà, Insider ou Elite (premiumHas('watchlist'))
 const EVERY = 2 * 60 * 1000;
 const RENOTIFY = 6 * 60 * 60 * 1000;   // même prix toujours sous la cible : une alerte toutes les 6 h au plus
 const KEY = 'watchPrices';
@@ -56,11 +58,12 @@ export async function readWatchPrices() {
 
 let running = null;
 /** Relit les prix si c'est l'heure (ou `force`), et alerte sous la cible. */
-export function checkWatchlist(settings, { force = false } = {}) {
-  const list = (settings?.watchList || []).slice(0, WATCH_MAX);
-  if (!list.length) return readWatchPrices();
+export function checkWatchlist(settings, { force = false, full } = {}) {
+  if (!(settings?.watchList || []).length) return readWatchPrices();
   running = running || (async () => {
     try {
+      // Sans premium, seuls les 3 premiers items sont surveillés (les autres restent dans la liste).
+      const list = settings.watchList.slice(0, (full ?? await premiumHas('watchlist')) ? WATCH_MAX : WATCH_FREE);
       const stored = await readWatchPrices();
       if (!force && Date.now() - stored.checkedAt < EVERY) return stored;
       const prices = pricesOf(await getCatalogDetails(list.map(w => ({ itemType: w.kind === 'bundle' ? 'Bundle' : 'Asset', id: Number(w.id) }))));

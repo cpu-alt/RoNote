@@ -16,6 +16,16 @@ const item = (fr, en) => ({ fr, en });
 
 export const RELEASES = [
   {
+    version: null,
+    title: item("Clés d'essai et premium", "Trial keys and premium"),
+    items: [
+      item("Clés d'essai : le staff Neuronal peut offrir des clés d'essai Insider ou Elite (de 3 heures à 3 jours) ; elles s'utilisent dans Réglages › Neuronal et Premium, et l'accès se ferme tout seul à la fin.",
+        "Trial keys: the Neuronal staff can give Insider or Elite trial keys (3 hours to 3 days); use them in Settings › Neuronal and Premium, and the access closes on its own at the end."),
+      item("Premium : la Watchlist au-delà de 3 items, les Deals Rolimon's en direct, le profit sur Rolimon's et le proof en lot demandent Insider ou Elite.",
+        "Premium: the Watchlist beyond 3 items, live Rolimon's deals, the profit on Rolimon's and batch proofs need Insider or Elite.")
+    ]
+  },
+  {
     version: '2.18.0',
     title: item("Watchlist, Deals Rolimon's et synchro", "Watchlist, Rolimon's deals and sync"),
     items: [

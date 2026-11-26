@@ -79,6 +79,7 @@
       tracker_offline: 'RoOp Tracker est hors ligne : réessaie dans une minute.', too_large: 'Capture trop lourde : réduis la fenêtre ou capture le trade seul.',
       rate_limited: 'Trop de proofs cette heure : réessaie plus tard.', bad_date: 'Date attendue au format MM/JJ/AAAA.', network: 'Neuronal injoignable : réessaie.' },
     resend: 'Renvoyer',
+    proofBatchLocked: 'Proof de plusieurs trades en une image : réservé à Elite (Réglages › Neuronal et Premium).',
     proofBtn: 'Proof', proofBtnTitle: 'Préparer le proof de ce trade (masque la liste, capture, texte Rolimons)',
     resendTitle: (who) => `Ouvrir un nouveau trade avec ${who || 'ce joueur'}`,
     catalog: 'Cotes Rolimon’s pas encore chargées.',
@@ -156,6 +157,7 @@
       tracker_offline: 'RoOp Tracker is offline: try again in a minute.', too_large: 'Screenshot too heavy: make the window smaller or capture the trade alone.',
       rate_limited: 'Too many proofs this hour: try again later.', bad_date: 'Date expected as MM/DD/YYYY.', network: 'Neuronal unreachable: try again.' },
     resend: 'Send again',
+    proofBatchLocked: 'Proof of several trades in one image: Elite only (Settings › Neuronal and Premium).',
     proofBtn: 'Proof', proofBtnTitle: 'Prepare the proof of this trade (hides the list, screenshot, Rolimons text)',
     resendTitle: (who) => `Open a new trade with ${who || 'this player'}`,
     catalog: 'Rolimon’s values not loaded yet.',
@@ -1172,6 +1174,12 @@
   async function proofLotAdd() {
     const info = proofInfo();
     if (!info.ok || proofPanel.lot.some(t => t.sig === proofKeyOf(info)) || proofNeedsAllow('add')) return;
+    // 26 nov. : le proof de plusieurs trades en une image est Elite (le premier trade reste libre : un proof simple).
+    if (proofPanel.lot.length >= 1) {
+      const has = await B.runtime.sendMessage({ type: 'ronote:premium-has', feature: 'proof_batch' }).catch(() => null);
+      if (!proofPanel) return;
+      if (!has?.ok) return proofSay(TEXT.proofBatchLocked, 'err');
+    }
     proofSay(TEXT.proofMultiAdding);
     const res = await proofShoot('ronote:proof-save', {}, false);
     if (!proofPanel) return;

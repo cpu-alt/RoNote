@@ -17,7 +17,11 @@ const FEATURES = [
   ['profiles', 'Profils', 'Profile discovery : les joueurs repérés, classique et Neuronal.'],
   ['deals', 'Deals', 'Le Deal Sniper et le Robux Sniper, en direct.'],
   ['tradeads', 'Trade ads automatiques', "Ton annonce publiée toute seule sur Rolimon's et RoUtility."],
-  ['proof', 'Share proof', 'La capture du trade terminé, envoyée en MP sur Discord (Elite).']
+  ['proof', 'Share proof', 'La capture du trade terminé, envoyée en MP sur Discord (Elite).'],
+  ['watchlist', 'Watchlist illimitée', 'Plus de 3 items surveillés, avec leur alerte.'],
+  ['roli_deals', "Deals Rolimon's en direct", 'Mis à jour toutes les 30 s au lieu de 15 min.'],
+  ['profit', "Mon profit sur Rolimon's", 'Sous chaque item de ta page joueur, ce que tu y as gagné.'],
+  ['proof_batch', 'Proof en lot', 'Plusieurs trades terminés en une seule image (Elite).']
 ];
 
 const ERRORS = {
@@ -42,7 +46,13 @@ const ERRORS = {
   revoked: 'Ta session a été fermée : reconnecte-toi.',
   login: 'Reconnecte-toi.',
   other_account: "Roblox a confirmé un autre compte que celui suivi par RoNote. Connecte-toi sur roblox.com avec le bon compte, puis réessaie.",
-  roblox_oauth_off: "La connexion Roblox n'est pas encore ouverte : utilise le code dans la description."
+  roblox_oauth_off: "La connexion Roblox n'est pas encore ouverte : utilise le code dans la description.",
+  // Clés d'essai (26 nov.)
+  invalid: "Clé d'essai inconnue. Vérifie-la (RNT-XXXX-XXXX-XXXX).",
+  used: "Cette clé d'essai a déjà servi.",
+  own_key: "Une clé d'essai est un cadeau : celui qui l'a créée ne peut pas l'utiliser.",
+  link: "Vérifie d'abord ton compte Roblox : la clé d'essai s'y attache.",
+  trial_cooldown: "Une clé d'essai par mois et par compte : tu en as déjà utilisé une récemment."
 };
 const errorText = (e) => t(ERRORS[e] || 'Neuronal est injoignable.');
 
@@ -115,6 +125,11 @@ function signedInHtml(me, roblox) {
     ${linked ? `<label class="row switch pm-show"><input type="checkbox" data-pm="showcase"${me.showcase ? ' checked' : ''}${busy ? ' disabled' : ''}>
       <span><b>${t('Montrer mon Discord sur mon profil Roblox')}</b><small>${t('Les utilisateurs de RoNote verront ton pseudo Discord sur ta page Roblox. Désactivable à tout moment.')}</small></span></label>` : ''}
     <ul class="pm-feats">${feats}</ul>
+    <form class="pm-key" data-pm-form="trial">
+      <input type="text" id="pm-trial" autocomplete="off" spellcheck="false" placeholder="RNT-XXXX-XXXX-XXXX" aria-label="${escapeHtml(t("Clé d'essai"))}" maxlength="24">
+      <button class="btn" type="submit"${busy || !linked ? ' disabled' : ''}>${t("Utiliser une clé d'essai")}</button>
+      <small>${linked ? t("Offerte par le staff Neuronal : Insider ou Elite pendant quelques heures ou quelques jours. Une par mois.") : t("Vérifie d'abord ton compte Roblox : la clé d'essai s'y attache.")}</small>
+    </form>
     <div class="pm-actions"><button class="btn" data-pm="logout" type="button">${t('Se déconnecter')}</button></div>`;
 }
 
@@ -175,6 +190,18 @@ async function onClick(e) {
 }
 
 async function onSubmit(e) {
+  if (e.target.matches('[data-pm-form="trial"]')) {
+    e.preventDefault();
+    const code = root.querySelector('#pm-trial')?.value || '';
+    const perm = askPermission();
+    if (!await perm) { message = errorText('permission'); paint(); return; }
+    busy = true; message = ''; paint();
+    const r = await send({ type: 'ronote:premium-trial', code }).catch(() => ({ error: 'network' })) || { error: 'network' };
+    busy = false;
+    message = r.error ? errorText(r.error === 'cooldown' ? 'trial_cooldown' : r.error) : t("Clé d'essai activée : les fonctions premium sont ouvertes jusqu'à la fin de l'essai.");
+    await refresh(!r.error);
+    return;
+  }
   if (!e.target.matches('[data-pm-form="key"]')) return;
   e.preventDefault();
   const key = root.querySelector('#pm-key')?.value || '';
