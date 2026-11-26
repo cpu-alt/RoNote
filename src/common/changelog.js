@@ -19,6 +19,8 @@ export const RELEASES = [
     version: null,
     title: item("Watchlist, Deals Rolimon's et synchro", "Watchlist, Rolimon's deals and sync"),
     items: [
+      item("Éditeur d'avatar : sous l'avatar, ce que tu portes, tes accessoires à porter sans la limite de 3 par type (jusqu'à 10) et tes tenues RoNote.",
+        "Avatar editor: under the avatar, what you wear, your accessories to wear without the 3-per-type limit (up to 10) and your RoNote outfits."),
       item("Bouton Proof : sous un trade terminé, un bouton « Proof » au style de Decline ouvre le panneau de proof.",
         "Proof button: under a completed trade, a “Proof” button styled like Decline opens the proof panel."),
       item("Watchlist : ajoute les items que tu veux avec un prix cible : RoNote te prévient dès que quelqu'un en vend un moins cher.",

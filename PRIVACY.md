@@ -171,6 +171,12 @@ reads both players' limiteds from `inventory.roblox.com` when you open the edito
 nothing of it is kept. RoNote **never creates a trade on its own**: it only sends in
 reply to an inbound trade, on your click.
 
+On `roblox.com/my/avatar`, the RoNote panel can also **change what your avatar
+wears** (`avatar.roblox.com`), only when you click: wear or remove an accessory,
+put an outfit back on. For this it reads your accessories on `inventory.roblox.com`
+and their thumbnails on `thumbnails.roblox.com`. Saved outfits stay on your PC
+(`storage.local`); nothing is sent to RoNote or Neuronal.
+
 ## The permissions requested, and why
 
 | Permission | What it is for |

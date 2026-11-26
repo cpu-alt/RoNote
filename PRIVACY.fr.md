@@ -177,6 +177,12 @@ objets, RoNote lit les limiteds des deux joueurs sur `inventory.roblox.com`, au
 moment où tu ouvres l'éditeur ; rien n'en est conservé. RoNote **ne crée jamais de
 trade de lui-même** : il n'envoie qu'en réponse à un trade reçu, sur ton clic.
 
+Sur `roblox.com/my/avatar`, le panneau RoNote peut aussi **changer ce que porte ton
+avatar** (`avatar.roblox.com`), seulement sur ton clic : porter ou retirer un
+accessoire, remettre une tenue. Il lit pour cela tes accessoires sur
+`inventory.roblox.com` et leurs vignettes sur `thumbnails.roblox.com`. Les tenues
+enregistrées restent sur ton PC (`storage.local`) ; rien n'est envoyé à RoNote ni à Neuronal.
+
 ## Les permissions demandées, et pourquoi
 
 | Permission | À quoi elle sert |
