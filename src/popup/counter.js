@@ -282,6 +282,7 @@ function paint({ shelf = true } = {}) {
   const btn = w.querySelector('[data-send]');
   btn.disabled = !sendable;
   btn.classList.toggle('armed', ed.armed);
+  btn.title = t('Raccourci : Ctrl+Entrée, deux fois');
   btn.innerHTML = ed.busy ? t('Envoi…')
     : ed.armed ? t("Confirmer l'envoi")
       : isNew() ? `${ic('counter')} ${t(changed ? 'Envoyer le trade' : 'Ajoute des objets des deux côtés')}`
@@ -368,7 +369,12 @@ function bind(w) {
   });
   // Entrée dans le champ du code : valide.
   w.addEventListener('keydown', (e) => {
-    if (ed && e.key === 'Enter' && e.target.matches('[data-tsv-code]')) { e.preventDefault(); submitCode(); }
+    if (ed && e.key === 'Enter' && e.target.matches('[data-tsv-code]')) { e.preventDefault(); submitCode(); return; }
+    // Ctrl+Entrée (⌘+Entrée sur Mac) : comme le bouton, deux fois (armer, puis envoyer).
+    if (ed && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!w.querySelector('[data-send]')?.disabled) sendCounter();
+    }
   });
   // Les Robux validés (sortie du champ) : la ligne entière se met à jour.
   w.addEventListener('change', (e) => { if (ed && e.target.dataset.robux) paint({ shelf: false }); });

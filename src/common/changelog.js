@@ -19,6 +19,10 @@ export const RELEASES = [
     version: null,
     title: item('Le joueur dans la recherche', 'Player in the search bar'),
     items: [
+      item("Un trade envoyé (depuis RoNote ou depuis Roblox) apparaît tout de suite dans Envoyés, au lieu d'attendre la prochaine vérification.",
+        "A sent trade (from RoNote or from Roblox) shows up in Outbound right away, instead of waiting for the next check."),
+      item("Après un envoi, un bandeau « Trade envoyé · Voir » ; Ctrl+Entrée envoie depuis l'éditeur (deux fois, comme le bouton).",
+        "After sending, a \"Trade sent · View\" banner; Ctrl+Enter sends from the editor (twice, like the button)."),
       item("roblox.com plus fluide : RoNote ne surveille plus les pages qui ne le concernent pas (jeux, avatar, accueil).",
         "Smoother roblox.com: RoNote no longer watches the pages it has nothing to do on (games, avatar, home)."),
       item("Sur ta page Rolimon's, sous chaque item : ce que tu y as gagné ou perdu depuis que tu l'as.",

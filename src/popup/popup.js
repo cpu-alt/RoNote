@@ -1010,6 +1010,7 @@ function openCounter(tradeId) {
       if (res?.state) data.state = res.state;
       renderHeader();
       renderList();
+      sentToast(card.partner);
     }
   }));
 }
@@ -1034,10 +1035,33 @@ compose.open = (partner, mine, theirs) => {
   counterMod().then(({ openNewTrade }) => openNewTrade(partner, mine, theirs, {
     settings: data.settings, balanceHtml, projHtml: projBadge,
     avatarHtml: () => avatarHtml({ headshot: partner.thumb }),
-    onSent: () => { renderHeader(); renderList(); }
+    onSent: (res) => {
+      if (res?.state) data.state = res.state;
+      renderHeader(); renderList();
+      sentToast(partner);
+    }
   }));
   return true;
 };
+
+/**
+ * 26 nov. : après un envoi, un bandeau dit à qui c'est parti, avec « Voir » vers les Envoyés, où le trade
+ * est déjà (le worker l'y ajoute à l'instant : afterSend). Il s'efface seul au bout de 5 s.
+ */
+let toastTimer = 0;
+function sentToast(partner) {
+  document.querySelector('.rn-toast')?.remove();
+  const who = partner?.displayName || partner?.name || '';
+  const el = document.createElement('div');
+  el.className = 'rn-toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML = `${ic('check')}<span>${escapeHtml(who ? t('Trade envoyé à {who}', { who }) : t('Trade envoyé'))}</span>
+    <button type="button">${t('Voir')}</button>`;
+  el.querySelector('button').addEventListener('click', () => { el.remove(); selectTab('outbound'); });
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 5000);
+}
 
 /** Ce qu'affiche un bouton de geste, au repos et armé. `act` : nix (refuser/annuler) ou ok (accepter). */
 function actLabels(act, outbound) {

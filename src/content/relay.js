@@ -24,6 +24,8 @@ window.addEventListener('message', (e) => {
         .catch(() => {});
     } else if (d.__ronote === 'trade-sent' && /^\d+$/.test(String(d.tradeId || ''))) {
       globalThis.RoNoteSent?.sent(String(d.tradeId));   // content/sent-history.js (meme monde isole)
+      // ... et dans les « Envoyés » de RoNote tout de suite, sans attendre la prochaine verification.
+      Promise.resolve(B.runtime.sendMessage({ type: 'ronote:page-sent', tradeId: String(d.tradeId) })).catch(() => {});
     } else if (d.__ronote === 'csrf' && d.token) {
       Promise.resolve(B.runtime.sendMessage({ type: 'ronote:csrf', token: d.token })).catch(() => {});
     }

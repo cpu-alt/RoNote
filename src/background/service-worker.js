@@ -377,7 +377,11 @@ async function stepInactive(ctx) {
 async function stepOutbound(ctx) {
   const trackedCount = Object.keys(ctx.state.tracked).length;
   const r = await pollStream('outbound', ctx.streams, { pageLimit: trackedCount ? 100 : PAGE_LIMIT });
-  ctx.snapshot.outbound = r.all.slice(0, SNAPSHOT_LIMIT).map(liteTrade);
+  // Un envoi tout juste fait (afterSend) que Roblox ne liste pas encore reste affiché une minute.
+  const listedIds = new Set(r.all.map(t => Number(t.id)));
+  const justSent = (ctx.snapshot.outbound || []).filter(t => t.pending && !listedIds.has(Number(t.tradeId))
+    && Date.now() - Date.parse(t.created || 0) < 60e3);
+  ctx.snapshot.outbound = [...justSent, ...r.all.slice(0, SNAPSHOT_LIMIT).map(liteTrade)];
   const openIds = new Set(r.all.map(t => Number(t.id)));
 
   // --- nouveaux trades envoyes ---
@@ -927,6 +931,39 @@ async function refreshLuckyCat(settings) {
     } finally { luckyAsking = null; }
   })();
   return luckyAsking;
+}
+
+/* ===================== un trade envoyé, tout de suite ===================== */
+
+/**
+ * 26 nov. : un trade envoyé (depuis RoNote ou depuis roblox.com) n'apparaissait dans « Envoyés » qu'à la
+ * vérification suivante, jusqu'à 30 s plus tard. Il y entre maintenant à l'instant (ligne provisoire, que
+ * le popup complète par `ronote:hydrate`), puis une vérification part 1,5 s après, le temps que Roblox
+ * l'inscrive dans sa liste, et une seconde à +6 s s'il n'y est pas encore. Deux lectures au plus par
+ * envoi : rien de plus que si l'utilisateur cliquait « vérifier ».
+ */
+const sentFollow = new Set();
+async function afterSend(tradeId, partner = null) {
+  const id = Number(tradeId);
+  if (!id) return null;
+  const state = await editStore((st, streams) => {
+    markSeen(streams, 'outbound', [id]);
+    st.snapshot ||= { inbound: [], completed: [], outbound: [], at: 0 };
+    const list = Array.isArray(st.snapshot.outbound) ? st.snapshot.outbound : [];
+    if (!list.some(t => Number(t.tradeId) === id)) {
+      st.snapshot.outbound = [{ tradeId: id, partner: partner?.id ? { id: Number(partner.id), name: partner.name || '', displayName: partner.displayName || partner.name || '' } : null,
+        created: new Date().toISOString(), expiration: null, status: 'Open', pending: true }, ...list];
+    }
+  });
+  if (sentFollow.has(id)) return state;
+  sentFollow.add(id);
+  const listed = async () => ((await getState()).snapshot?.outbound || []).some(t => Number(t.tradeId) === id && !t.pending);
+  setTimeout(async () => {
+    await safe(() => tick('manual'));
+    if (!await safe(listed, true)) setTimeout(() => { safe(() => tick('manual')); sentFollow.delete(id); }, 6000);
+    else sentFollow.delete(id);
+  }, 1500);
+  return state;
 }
 
 /* ======================= synchro entre appareils ======================= */
@@ -1691,6 +1728,10 @@ async function handleMessage(msg, sender = null) {
       if (!p.me?.features?.profiles) return { locked: 'subscribe' };
       return sentHistory(msg.partnerId, settings);
     }
+    // Un trade envoyé depuis la page de Roblox (content/hook.js → relay.js) : même traitement.
+    case 'ronote:page-sent':
+      await afterSend(msg.tradeId);
+      return { ok: true };
     case 'ronote:sent-record': {
       const settings = await getSettings();
       if (!settings.sentHistory) return { ok: false };
@@ -1939,6 +1980,10 @@ async function handleMessage(msg, sender = null) {
         });
         await forgetCard(id);
         await setBadge(state.inboundCount, await getSettings(), false);
+        // La contre-offre est un nouveau trade envoyé : dans les « Envoyés » tout de suite aussi.
+        let newId = null;
+        try { newId = Number(JSON.parse(res.body || '{}')?.id) || null; } catch { /* réponse sans id */ }
+        const after = newId ? await afterSend(newId, { id: Number(msg.partnerId), name: msg.partner || '', displayName: msg.partner || '' }) : null;
         await pushHistory([{
           at: Date.now(), kind: 'countered_by_me', tradeId: id, uid: state.userId,
           partner: msg.partner || '?', partnerId: Number(msg.partnerId) || null, notified: false,
@@ -1947,7 +1992,7 @@ async function handleMessage(msg, sender = null) {
           pct: Number.isFinite(msg.pct) ? msg.pct : null,
           skipped: 'contre-offre envoyée depuis RoNote'
         }]);
-        return { ok: true, via: res.via, state };
+        return { ok: true, via: res.via, state: after || state };
       } catch (e) {
         if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };
@@ -1968,8 +2013,8 @@ async function handleMessage(msg, sender = null) {
         dropCollectibles(state0.userId, partnerId);
         let tradeId = null;
         try { tradeId = Number(JSON.parse(res.body || '{}')?.id) || null; } catch { /* réponse sans id */ }
-        // son propre envoi n'est pas une nouveauté : déjà vu dans les « Envoyés »
-        if (tradeId) await editStore((st, streams) => { markSeen(streams, 'outbound', [tradeId]); });
+        // son propre envoi n'est pas une nouveauté, et il entre dans les « Envoyés » tout de suite
+        const sentState = tradeId ? await afterSend(tradeId, { id: partnerId, name: msg.partner || '', displayName: msg.partner || '' }) : null;
         await pushHistory([{
           at: Date.now(), kind: 'sent_by_me', tradeId, uid: state0.userId,
           partner: msg.partner || '?', partnerId, notified: false,
@@ -1978,7 +2023,7 @@ async function handleMessage(msg, sender = null) {
           pct: Number.isFinite(msg.pct) ? msg.pct : null,
           skipped: 'trade envoyé depuis RoNote'
         }]);
-        return { ok: true, via: res.via, tradeId };
+        return { ok: true, via: res.via, tradeId, state: sentState };
       } catch (e) {
         if (e?.challenge) return askTwoStep(e.challenge, msg);
         return { error: String(e?.message || e) };

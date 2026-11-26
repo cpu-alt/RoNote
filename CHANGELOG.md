@@ -5,6 +5,13 @@ l'utilisateur, pas la liste des commits.
 
 ## En préparation
 
+- **Un trade envoyé arrive tout de suite dans « Envoyés »** (`afterSend`, service worker) : depuis l'éditeur de
+  RoNote, une contre-offre ou la page de Roblox elle-même (`hook.js` → `relay.js` → `ronote:page-sent`). Une ligne
+  provisoire à l'instant, puis une vérification 1,5 s après (une seconde à +6 s si Roblox ne le liste pas encore).
+  Avant, il fallait attendre la vérification suivante (30 s par défaut). La cadence n'a pas baissé : pas une
+  requête de plus en fond.
+- **Envoi plus confortable** : bandeau « Trade envoyé à X · Voir » qui ouvre les Envoyés, et Ctrl+Entrée (deux
+  fois, comme le bouton) dans l'éditeur.
 - **roblox.com plus fluide** : six scripts n'observent plus le document que sur leur page (trades, liste des trades,
   objet, profil, amis) au lieu de toutes les pages du site ; une seule minuterie suit l'URL (`RoNoteRoute`).
 - **Mon profit sur Rolimon's** (`content/rolimons-profit.js`, réglage actif d'office) : sur MA page joueur
