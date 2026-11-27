@@ -21,6 +21,15 @@ function walk(dir, out = []) {
   return out;
 }
 
+// Les versions se relevent a la main : Firefox est reste a 2.18.1 de 2.18.2 a 2.18.4.
+try {
+  const versions = Object.fromEntries([['package.json', join(root, 'package.json')],
+    ['manifest.json', join(src, 'manifest.json')], ['manifest.firefox.json', join(src, 'manifest.firefox.json')]]
+    .map(([n, p]) => [n, JSON.parse(readFileSync(p, 'utf8')).version]));
+  if (new Set(Object.values(versions)).size === 1) ok(`version ${versions['package.json']} partout`);
+  else fail('versions différentes : ' + Object.entries(versions).map(([n, v]) => `${n} ${v}`).join(', '));
+} catch (e) { fail(`versions illisibles : ${e.message}`); }
+
 for (const mf of ['manifest.json', 'manifest.firefox.json']) {
   const p = join(src, mf);
   let m;

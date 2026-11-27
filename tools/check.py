@@ -42,6 +42,18 @@ def walk(suffix):
 
 
 # --------------------------------------------------------------- manifestes
+# Les versions se relevent a la main : Firefox est reste a 2.18.1 de 2.18.2 a 2.18.4.
+try:
+    versions = {n: json.loads(p.read_text(encoding="utf-8")).get("version") for n, p in (
+        ("package.json", ROOT / "package.json"), ("manifest.json", SRC / "manifest.json"),
+        ("manifest.firefox.json", SRC / "manifest.firefox.json"))}
+    if len(set(versions.values())) == 1:
+        ok(f"version {versions['package.json']} partout")
+    else:
+        fail("versions differentes : " + ", ".join(f"{n} {v}" for n, v in versions.items()))
+except Exception as exc:                                      # noqa: BLE001
+    fail(f"versions illisibles : {exc}")
+
 for name in ("manifest.json", "manifest.firefox.json"):
     path = SRC / name
     try:
