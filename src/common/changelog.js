@@ -24,6 +24,14 @@ export const RELEASES = [
     ]
   },
   {
+    version: '2.18.4',
+    title: item('Proof sans Robux', 'Proof without Robux'),
+    items: [
+      item("Proof : « Cacher les Robux » montre le trade comme s'il n'en avait pas : ligne Robux cachée, totaux et values sans Robux, texte du proof sans Robux.",
+        "Proof: “Hide Robux” shows the trade as if it had none: Robux line hidden, totals and values without Robux, proof text without Robux.")
+    ]
+  },
+  {
     version: '2.18.3',
     title: item('Projected check dans RoNote, best price', 'Projected check in RoNote, best price'),
     items: [

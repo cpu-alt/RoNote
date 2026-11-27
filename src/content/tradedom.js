@@ -153,7 +153,7 @@ function labeledAmount(root, pattern) {
     for (let row = el.parentElement, depth = 0; row && root.contains(row) && depth < 3; row = row.parentElement, depth++) {
       if (row.querySelector(ITEM_LINK)) break;
       const amount = numericIn(row);
-      if (amount !== null) return { amount, label: el.textContent };
+      if (amount !== null) return { amount, label: el.textContent, row };
     }
   }
   return null;
@@ -212,7 +212,7 @@ function sideOnPage(g) {
     root: g.root, heading, totalLabel, role: roleOf(heading?.textContent), items,
     userIds: userIdsIn(g.root), robuxText: robuxTextIn(g.root),
     rapTotal: total?.amount ?? null,
-    robux: robux?.amount ?? 0,
+    robux: robux?.amount ?? 0, robuxRow: robux?.row || null,
     robuxNet: !!robux && /after|apres|nets?/i.test(robux.label)
   };
 }

@@ -7,6 +7,10 @@ l'utilisateur, pas la liste des commits.
 
 - **Éditeur d'avatar** : les accessoires s'empilent directement dans l'éditeur de Roblox (jusqu'à 10 au lieu de 3 chapeaux et 1 par type). Le panneau RoNote sous l'avatar est retiré.
 
+## v2.18.4 : Proof sans Robux
+
+- **Proof** : « Cacher les Robux » montre le trade comme s'il n'en avait pas : ligne Robux cachée, totaux et values sans Robux, texte du proof sans Robux.
+
 ## v2.18.3 : Projected check dans RoNote, best price
 
 - **Projected (Elite)** : survoler le badge projected d'une page de trade, ou cliquer pour l'épingler, ouvre une carte avec le même conseil que `/projected check` sur Discord : combien donner en RAP (Fair), où commencer (Lowball), ne jamais dépasser (Max), et une jauge de ce qu'il vaut face au RAP affiché. Les chiffres viennent de Neuronal ; sans réponse, RoNote refait le même calcul sur l'historique Rolimon's : la base est le RAP d'avant le pump, les ventes d'après pump disent où l'item retombe.

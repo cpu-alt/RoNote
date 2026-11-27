@@ -54,7 +54,7 @@
     proofMaskTitle: 'Masquer la liste', proofMaskLabel: 'Les autres trades deviennent', proofMasks: ['Points', 'Flou', 'Rien', 'Image'],
     proofScopeLabel: 'Sur', proofScopes: ['Les autres trades', 'Toute la liste'],
     proofImport: 'Choisir une image', proofChangeImage: 'Changer', proofRemoveImage: 'Retirer', proofBadImage: 'Image illisible.',
-    proofSerials: 'Flouter les numéros de série',
+    proofSerials: 'Flouter les numéros de série', proofRobux: 'Cacher les Robux (comme sans Robux)',
     proofTextTitle: 'Le proof',
     proofSwap: 'Inverser Sender et Receiver',
     proofMultiTitle: 'Plusieurs trades',
@@ -141,7 +141,7 @@
     proofMaskTitle: 'Hide the list', proofMaskLabel: 'The other trades become', proofMasks: ['Dots', 'Blur', 'Nothing', 'Image'],
     proofScopeLabel: 'On', proofScopes: ['The other trades', 'The whole list'],
     proofImport: 'Choose an image', proofChangeImage: 'Change', proofRemoveImage: 'Remove', proofBadImage: 'Unreadable image.',
-    proofSerials: 'Blur serial numbers',
+    proofSerials: 'Blur serial numbers', proofRobux: 'Hide Robux (as if none)',
     proofTextTitle: 'The proof',
     proofSwap: 'Swap Sender and Receiver',
     proofMultiTitle: 'Several trades',
@@ -913,9 +913,10 @@
     for (const [source, target] of [[side.totalLabel, total.label], [sourceAmount, total.amount],
       [side.totalLabel, total.dlabel], [sourceAmount, total.dhost]]) {
       if (!source) continue;
-      const css = getComputedStyle(source);
+      const css = getComputedStyle(source), alt = source.style?.getPropertyValue?.('--rn-alt-fs');
       for (const property of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'color']) {
-        if (css[property] && target.style[property] !== css[property]) target.style[property] = css[property];
+        const v = property === 'fontSize' && alt ? alt : css[property];
+        if (v && target.style[property] !== v) target.style[property] = v;
       }
     }
     total.icon.style.width = '1em'; total.icon.style.height = '1em';
@@ -923,6 +924,34 @@
     return total;
   }
 
+  /* « Cacher les Robux » du panneau proof (MYd, 27 nov.) : le trade se montre comme s'il n'en avait pas.
+     La ligne « Robux offerts » est cachée, le total de Roblox devient la somme des RAP des objets, la Value
+     de RoNote perd sa part de Robux (donnés bruts, reçus nets), et le texte du proof ne les cite plus. */
+  let robuxHidden = false;
+  const noRobux = () => proofOn && robuxHidden;
+  // Lu sur la page (l'analyse du worker n'a pas toujours les Robux) : donnés bruts, reçus nets de 30 %.
+  const robuxPart = (a, role) => {
+    const s = shownPage?.sides?.find(x => x.role === role), r = s?.robux || 0;
+    return role === 'get' && !s?.robuxNet ? Math.floor(r * .7 + 1e-9) : r;
+  };
+  function markRobux(side, total) {
+    if (!side.robux) return;
+    const row = side.robuxRow;
+    if (row?.isConnected && !row.contains?.(side.totalLabel) && !row.querySelector?.('[data-rn]')) row.setAttribute('data-rn-robux', '');
+    const leaf = total?.row && [...(total.row.querySelectorAll?.('*') || [])].reverse().find(el => !el.childElementCount && /\d/.test(el.textContent || ''));
+    const raps = side.items.map(i => i.rap);
+    if (!leaf || !raps.every(Number.isFinite)) return;
+    if (!leaf.hasAttribute('data-rn-alt')) leaf.style.setProperty('--rn-alt-fs', getComputedStyle(leaf).fontSize);
+    const alt = number.format(raps.reduce((n, r) => n + r, 0));
+    if (leaf.getAttribute('data-rn-alt') !== alt) leaf.setAttribute('data-rn-alt', alt);
+  }
+  const repaintRobux = () => { if (shownAnalysis && host?._row) render(shownAnalysis); else if (shownPage) renderTotals(shownPage, shownAnalysis); };
+  function hideRobux(on) {
+    robuxHidden = on;
+    document.documentElement.toggleAttribute('data-rn-norobux', on);
+    repaintRobux();
+    if (proofPanel) proofFill();
+  }
   function renderTotals(page, analysis, pending = false) {
     const keep = new Set();
     if (!itemValues) page = null;
@@ -931,7 +960,9 @@
       if (!total) continue;
       keep.add(side.root);
       const fallback = side.role === 'give' ? analysis?.give?.value : side.role === 'get' ? analysis?.get?.value : null;
-      const value = analysis?.pageTotals?.[index] ?? fallback;
+      let value = analysis?.pageTotals?.[index] ?? fallback;
+      if (noRobux() && Number.isFinite(value)) value -= robuxPart(analysis, side.role);
+      markRobux(side, total);
       const available = !!analysis?.valueAvailable && Number.isFinite(value);
       const text = available ? number.format(value) : pending ? '…' : 'N/A';
       if (total.value.textContent !== text) total.value.textContent = text;
@@ -1135,6 +1166,9 @@
         ${on} .trade-row-list .trade-row-divider{visibility:hidden!important}
         ${on} .trade-row-list .trade-row.selected{background:${proofLook.scope === 'list' ? 'transparent' : 'rgb(24 12 46 / .94)'}!important}`;
     }
+    css += `${on}[data-rn-norobux] [data-rn-robux]{display:none!important}
+      ${on}[data-rn-norobux] [data-rn-alt]{font-size:0!important}
+      ${on}[data-rn-norobux] [data-rn-alt]::after{content:attr(data-rn-alt);font-size:var(--rn-alt-fs,14px)}`;
     return css;
   }
   function paintProof() {
@@ -1156,6 +1190,7 @@
     paintProof();
     document.documentElement.toggleAttribute('data-rn-proof', on);
     if (on) openProofPanel(); else closeProofPanel();
+    if (robuxHidden) repaintRobux();
     if (proofControl) {
       proofControl.setAttribute('aria-pressed', String(on));
       proofControl.style.background = on ? 'rgba(63,207,110,.28)' : 'rgba(20,28,40,.45)';
@@ -1251,9 +1286,10 @@
     // La date de la ligne ouverte, telle que Roblox l'écrit (jj/mm en français) : rendue en MM/JJ/AAAA.
     const d = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(document.querySelector('.trade-row.selected')?.textContent || '');
     const date = d ? (fr ? [d[2], d[1], d[3]] : [d[1], d[2], d[3]]).map((x, k) => k < 2 ? x.padStart(2, '0') : x).join('/') : '';
+    const cut = role => robuxHidden ? robuxPart(a, role) : 0;
     return { ok: true, tradeId: page.tradeId || '', partner: (page.handle || '').replace(/^@/, ''),
-      give: { items: items(a.give), robux: a.give.robux || 0 }, get: { items: items(a.get), robux: a.get.robux || 0 },
-      values: a.valueAvailable !== false ? [a.give.value, a.get.value] : null, date };
+      give: { items: items(a.give), robux: robuxHidden ? 0 : a.give.robux || 0 }, get: { items: items(a.get), robux: robuxHidden ? 0 : a.get.robux || 0 },
+      values: a.valueAvailable !== false ? [a.give.value - cut('give'), a.get.value - cut('get')] : null, date };
   }
   /** La zone à capturer, en pixels CSS : le trade, ou toute la colonne des trades avec la liste. */
   function proofFrame(list) {
@@ -1289,6 +1325,7 @@
         ${proofLook.image ? `<button type="button" class="mini" data-clear>${TEXT.proofRemoveImage}</button>` : ''}</div>
       <span class="k">${TEXT.proofScopeLabel}</span>${proofSeg('proofScope', proofLook.scope, [['others', TEXT.proofScopes[0]], ['list', TEXT.proofScopes[1]]], TEXT.proofScopeLabel)}
       <label class="sw">${TEXT.proofSerials}<input type="checkbox" data-serials${serialHidden ? ' checked' : ''}></label>
+      <label class="sw">${TEXT.proofRobux}<input type="checkbox" data-norobux${robuxHidden ? ' checked' : ''}></label>
     </section>`;
   }
   function proofRenderMask() {
@@ -1620,6 +1657,7 @@
       const t = e.target;
       if (t.matches('[data-img]') && t.files?.[0]) proofImage(t.files[0]);
       else if (t.matches('[data-serials]')) hideSerials(t.checked);
+      else if (t.matches('[data-norobux]')) hideRobux(t.checked);
     });
     root.addEventListener('click', e => {
       const t = e.target;
@@ -2254,8 +2292,16 @@
       const explicit = a?.[field + 'Available'];
       const available = a && (typeof explicit === 'boolean' ? explicit : !a.incomplete &&
         (field !== 'value' || (a.hasValues && !a.valueVeryStale)) && items.every(i => i[field] > 0));
-      const delta = available ? a.get[field] - a.give[field] : 0;
-      const pct = available && a.give[field] > 0 ? delta / a.give[field] * 100 : null;
+      // Robux cachés (proof) : les deux côtés perdent leur part de Robux, comme dans les totaux.
+      // Le RAP sans Robux : la somme des RAP des objets de la page (le total de Roblox compte les Robux bruts).
+      const bare = role => {
+        const raps = shownPage?.sides?.find(x => x.role === role)?.items?.map(i => i.rap) || [];
+        if (field === 'rap' && raps.length && raps.every(Number.isFinite)) return raps.reduce((n, r) => n + r, 0);
+        return a[role][field] - robuxPart(a, role);
+      };
+      const gv = available ? (noRobux() ? bare('give') : a.give[field]) : 0;
+      const delta = available ? (noRobux() ? bare('get') : a.get[field]) - gv : 0;
+      const pct = available && gv > 0 ? delta / gv * 100 : null;
       cell.dataset.tone = delta < 0 ? 'down' : delta > 0 ? 'up' : 'neutral';
       cell.children[0].className = `arrow ${delta < 0 ? 'down' : delta > 0 ? '' : 'flat'}`;
       const text = !available ? `${label} · ${pending && field === 'value' ? '…' : 'N/A'}`
