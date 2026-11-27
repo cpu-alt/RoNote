@@ -80,6 +80,7 @@ try {
   const filters = await import('../src/common/filters.js');
   const thumbs = await import('../src/common/thumbs.js');
   await import('../src/common/proof-merge.js');   // proof de plusieurs trades : la syntaxe chargée pour de vrai
+  await import('../src/common/projected-estimate.js');   // vrai prix d'un projected (Elite)
   const streams = await import('../src/background/streams.js');
   const tracker = await import('../src/background/tracker.js');
   const utils = await import('../src/common/utils.js');

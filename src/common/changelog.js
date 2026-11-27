@@ -24,6 +24,16 @@ export const RELEASES = [
     ]
   },
   {
+    version: '2.18.3',
+    title: item('Projected check dans RoNote, best price', 'Projected check in RoNote, best price'),
+    items: [
+      item("Projected (Elite) : survoler le badge projected d'une page de trade, ou cliquer pour l'épingler, donne le même conseil que /projected check sur Discord : combien donner en RAP, où commencer, ne jamais dépasser, avec une jauge face au RAP affiché.",
+        "Projected (Elite): hover the projected badge on a trade page, or click to pin it, for the same advice as /projected check on Discord: how much RAP to give, where to start, never above, with a gauge against the RAP shown."),
+      item("Fiche d'un item : le grand chiffre est le prix d'une pièce, la carte projected donne ce même conseil pour Elite, et une tuile Best price donne le prix le plus bas en vente avec les 5 revendeurs les moins chers.",
+        "Item sheet: the big number is the price of one copy, the projected card gives that same advice for Elite, and a Best price tile gives the lowest price on sale with the 5 cheapest resellers.")
+    ]
+  },
+  {
     version: '2.18.1',
     title: item("Clés d'essai et premium", "Trial keys and premium"),
     items: [

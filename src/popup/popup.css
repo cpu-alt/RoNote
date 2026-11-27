@@ -942,6 +942,60 @@ button.jr:active { transform: scale(.985); }
 .w-rev { margin-top: 10px; padding: 8px 10px; border-radius: var(--r-md); background: var(--surface-2); font-size: 11.5px; font-weight: 600; }
 .w-warn { margin-top: 8px; padding: 8px 10px; border-radius: var(--r-md); background: #33280f; color: var(--warn); font-size: 11px; }
 
+/* Marché d'un objet (fiche) : carte projected et vrai prix (Elite), tuile Best price et revendeurs. */
+.mk-proj { margin-top: 10px; padding: 10px 12px 11px; border-radius: 14px;
+  background: radial-gradient(120% 100% at 100% 0%, #ffb02e1f, transparent 60%), linear-gradient(160deg, #2a2312, #1a1810);
+  border: 1px solid #ffb02e33; }
+.mk-h { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--warn); }
+.mk-h .proj-ic { width: 12px; height: 12px; }
+.mk-h span { margin-left: auto; font-weight: 600; letter-spacing: 0; text-transform: none; color: #c9b58a; opacity: .75; }
+.mk-k { margin-top: 9px; font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #b9a678; }
+.mk-range { margin-top: 1px; font-size: 22px; font-weight: 800; letter-spacing: -.3px; font-variant-numeric: tabular-nums; color: var(--fg); }
+.mk-gauge { position: relative; height: 6px; margin: 9px 0 4px; border-radius: 99px; background: #ffffff14; }
+.mk-gauge u { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--warn); opacity: .28; }
+.mk-gauge i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--warn); box-shadow: 0 0 10px #ffb02e99; }
+.mk-gauge s { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 2px; background: #fff; }
+.mk-lm { display: flex; gap: 12px; margin-top: 2px; font-size: 11px; color: var(--dim); }
+.mk-lm b { color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mk-lm em { font-style: normal; margin-right: 4px; font-size: 9px; }
+.mk-lm .lo { color: var(--win); }
+.mk-lm .hi { color: var(--loss); }
+.mk-gauge b { position: absolute; right: 0; top: -3px; width: 2px; height: 12px; border-radius: 2px; background: var(--loss); }
+.mk-gl { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.mk-why, .mk-wait { margin-top: 6px; font-size: 10.5px; color: var(--dim); }
+.mk-wait { margin-top: 8px; }
+.mk-proj em, .mk-best em { font-style: normal; font-weight: 700; }
+em.down { color: var(--loss); }
+em.up { color: var(--win); }
+.mk-lock { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 8px; padding: 0; border: 0; background: none;
+  color: var(--dim); font: inherit; font-size: 11px; cursor: pointer; text-align: left; }
+.mk-lock .ic { width: 12px; height: 12px; flex: none; }
+.mk-lock:hover { color: var(--warn); }
+
+.mk-wide { grid-column: 1 / -1; }
+.mk-best summary, .mk-best .mk-sum { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "l m" "v v" "s s";
+  align-items: center; list-style: none; }
+.mk-best summary { cursor: pointer; }
+.mk-best summary::-webkit-details-marker { display: none; }
+.mk-best .mk-lbl { grid-area: l; }
+.mk-best summary > b, .mk-best .mk-sum > b { grid-area: v; }
+.mk-best summary > small, .mk-best .mk-sum > small { grid-area: s; }
+.w-fact .mk-more { grid-area: m; display: flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600;
+  letter-spacing: 0; text-transform: none; color: var(--dim); }
+.mk-more .ic { width: 11px; height: 11px; transition: transform .15s; }
+.mk-best[open] .mk-more .ic { transform: rotate(180deg); }
+.mk-best summary:hover .mk-more { color: var(--fg); }
+.mk-best ul { margin: 7px 0 0; padding: 0; list-style: none; }
+.mk-best li { display: grid; grid-template-columns: 1fr auto auto 40px; gap: 8px; align-items: baseline;
+  padding: 5px 0; border-top: 1px solid var(--line); font-size: 11px; }
+.mk-best li a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); text-decoration: none; }
+.mk-best li a:hover { color: var(--accent); }
+.mk-best li small { color: var(--faint); font-size: 10px; }
+.w-fact.mk-best li span { display: inline; margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none;
+  color: var(--fg); font-variant-numeric: tabular-nums; }
+.mk-best li em { font-size: 10px; text-align: right; }
+
 /* --------------------------- réconciliation ---------------------------- */
 
 

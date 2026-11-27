@@ -911,6 +911,101 @@ export const getResaleRaps = cachedLookup({
 });
 
 /**
+ * Ce que le calcul projected lit sur la page item de Rolimon's (projected-estimate.js) :
+ * `history_data` (RAP et best price, toutes les 30 min depuis la sortie) ramené à UN
+ * point par jour (le dernier RAP, le plus bas best price), et `sales_data` (ventes par jour).
+ * 27 nov. : remplace resale-data de Roblox, figé depuis janvier 2025. Temps en secondes.
+ * @returns {{ ts, rap, best, salesTs, salesPrice, salesVol }}
+ */
+export function parseProjectedSource(html) {
+  const grab = (name) => {
+    const m = new RegExp(`var\\s+${name}\\s*=\\s*(\\{[^\\n]*?\\});`).exec(html);
+    if (!m) return null;
+    try { return JSON.parse(m[1]); } catch { return null; }
+  };
+  const hist = grab('history_data');
+  if (!Array.isArray(hist?.timestamp) || !hist.timestamp.length) {
+    throw new ApiError("historique de l'objet introuvable dans la page Rolimon's", 0);
+  }
+  const days = new Map();
+  hist.timestamp.forEach((t, i) => {
+    t = Number(t);
+    if (!t) return;
+    const d = Math.floor(t / 86400), r = Number(hist.rap?.[i]) || 0, b = Number(hist.best_price?.[i]) || 0;
+    const cur = days.get(d) || { t, r: 0, b: 0 };
+    if (t >= cur.t) { cur.t = t; if (r > 0) cur.r = r; }
+    if (b > 0 && (!cur.b || b < cur.b)) cur.b = b;
+    days.set(d, cur);
+  });
+  const rows = [...days.values()].filter(x => x.r > 0).sort((x, y) => x.t - y.t);
+  const sales = grab('sales_data') || {};
+  return {
+    ts: rows.map(x => x.t), rap: rows.map(x => x.r), best: rows.map(x => x.b),
+    salesTs: (sales.timestamp || []).map(Number), salesPrice: (sales.avg_daily_sales_price || []).map(Number),
+    salesVol: (sales.sales_volume || []).map(Number)
+  };
+}
+
+/** La page item Rolimon's d'un projected, lue pour son calcul (le worker garde le résultat). */
+export async function getProjectedSource(itemId) {
+  return parseProjectedSource(await rolimonsItemHtml(itemId));
+}
+
+/**
+ * La page item de Rolimon's (~1,7 Mo), lue UNE fois pour tous : la fiche d'un objet en tire
+ * son graphique et son vrai prix projected au même moment. La lecture en cours ou faite
+ * il y a moins de 2 min est partagée ; une erreur n'est pas gardée.
+ */
+const itemPages = new Map();
+export function rolimonsItemHtml(itemId, now = Date.now()) {
+  const id = Number(itemId);
+  if (!id) return Promise.reject(new ApiError("identifiant d'objet invalide", 0));
+  const hit = itemPages.get(id);
+  if (hit && now - hit.at < 120e3) return hit.page;
+  const url = `https://www.rolimons.com/item/${id}`;
+  const page = through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 30000)).then(async (r) => {
+    if (!r.ok) {
+      if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 5);
+      throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
+    }
+    return r.text();
+  });
+  page.catch(() => { if (itemPages.get(id)?.page === page) itemPages.delete(id); });
+  itemPages.set(id, { at: now, page });
+  while (itemPages.size > 6) itemPages.delete(itemPages.keys().next().value);
+  return page;
+}
+
+/**
+ * Les revendeurs d'un limited (objet ou bundle), du moins cher au plus cher : le best price et
+ * les 5 premiers, pour la fiche d'un objet. 27 nov. : l'ancienne route economy …/resellers rend
+ * 410 ; le site Roblox passe par les collectibles (catalog details → collectibleItemId →
+ * marketplace-sales …/resellers). Gardés 60 s en mémoire : rouvrir la fiche ne relit rien.
+ * @returns {{ best: number, resellers: Array<{id, name, price, serial}> }}
+ */
+const resellersMemo = new Map();
+export async function getResellers(kind, id, now = Date.now()) {
+  id = Number(id) || 0;
+  const key = (kind === 'bundle' ? 'b' : 'a') + id;
+  const hit = resellersMemo.get(key);
+  if (hit && now - hit.at < 60e3) return hit.value;
+  const det = await apiPost(`${CATALOG}/catalog/items/details`, { items: [{ itemType: kind === 'bundle' ? 'Bundle' : 'Asset', id }] });
+  const d = JSON.parse(det.body || '{}').data?.[0] || {};
+  let resellers = [];
+  if (d.collectibleItemId) {
+    const j = await apiGet(`${SALES}/${d.collectibleItemId}/resellers?limit=10`, { allowRelay: false, retryOn429: false });
+    resellers = (j?.data || []).map(r => ({
+      id: Number(r?.seller?.sellerId ?? r?.seller?.id) || 0, name: String(r?.seller?.name || ''),
+      price: Number(r?.price) || 0, serial: Number(r?.serialNumber) || 0
+    })).filter(r => r.price > 0).sort((x, y) => x.price - y.price).slice(0, 5);
+  }
+  const value = { best: resellers[0]?.price || Number(d.lowestResalePrice) || 0, resellers };
+  resellersMemo.set(key, { at: now, value });
+  if (resellersMemo.size > 50) resellersMemo.delete(resellersMemo.keys().next().value);
+  return value;
+}
+
+/**
  * assetId -> bundleId, via le catalogue.
  *
  * Sert quand un trade designe un objet par un asset qui n'est que le CONTENU
@@ -1274,15 +1369,7 @@ export function parseItemHistory(html, now = Date.now()) {
 
 /** Historique d'un objet, lu sur sa page publique Rolimon's (voir parseItemHistory). */
 export async function getItemHistory(itemId) {
-  const id = Number(itemId);
-  if (!id) throw new ApiError("identifiant d'objet invalide", 0);
-  const url = `https://www.rolimons.com/item/${id}`;
-  const r = await through(url, () => fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 30000));
-  if (!r.ok) {
-    if (r.status === 429) holdBack(url, Number(r.headers?.get('retry-after')) || 5);
-    throw new ApiError('HTTP ' + r.status, r.status, Number(r.headers?.get('retry-after')) || 0, "Rolimon's");
-  }
-  return parseItemHistory(await r.text());
+  return parseItemHistory(await rolimonsItemHtml(itemId));
 }
 
 /**

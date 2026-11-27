@@ -12,6 +12,7 @@ import { setLang, t } from '../common/i18n.js';
 import { pullSettings, isSettingsChange, notifiedElsewhere, shareNotifs, closedElsewhere, leaveSync } from '../common/sync.js';
 import { NEURONAL } from '../common/defaults.js';
 import { thumbKeysFor, resolveItem } from '../common/analysis.js';
+import { estimateProjected } from '../common/projected-estimate.js';
 import { resolveThumbs, flushThumbs, clearThumbs, assetKey, bundleKey } from '../common/thumbs.js';
 import { buildPortfolio, portfolioThumbKeys, attachPortfolioThumbs } from '../common/portfolio.js';
 import { detectRevaluations, newestRevision } from '../common/revalue.js';
@@ -19,7 +20,7 @@ import { passesFilters } from '../common/filters.js';
 import { historyFor, thinSeries, playerFaces, partnerTimeline, partnerStats } from '../common/player.js';
 import { eachLimit, inQuietHours, newestEntries, serialQueue } from '../common/utils.js';
 import { pollStream, markSeen, directionOf } from './streams.js';
-import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalBestPrices, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
+import { neuronalPlayerTrades, neuronalLookup, neuronalProfiles, neuronalDeals, neuronalBestPrices, neuronalProjected, neuronalDemand, shareWithNeuronal, neuronalExternal, syncHelloScript, neuronalForget, neuronalWatch } from './neuronal.js';
 import { premiumStatus, premiumConnect, premiumKey, premiumLink, premiumVerify, premiumRobloxOAuth, premiumCancel, premiumLogout, premiumShowcase, premiumGet, premiumHeaders, premiumHas, premiumTrial } from './premium.js';
 import { proofPrepare, proofShare, proofSave } from './proof.js';
 import { recordSent, sentHistory, clearSent } from './sent.js';
@@ -143,6 +144,8 @@ B.runtime.onInstalled.addListener(async (details) => {
   // Les alarmes ne survivent pas toujours à une mise à jour de l'extension : sans ça, l'auto-post s'arrêtait en silence.
   await safe(() => scheduleTradeAds());
   if (details.reason === 'update') await safe(refreshRobloxTabs);
+  // 2.18.3 : les ventes resale-data de Roblox (figées depuis janvier 2025) ne servent plus.
+  await B.storage.local.remove(['resaleHistory', 'resaleHistory2']).catch(() => {});
   await safe(syncFromCloud);
   // Première installation : la page d'accueil (merci + comment épingler l'icône) remplace la notification.
   if (details.reason === 'install') {
@@ -1304,6 +1307,74 @@ async function askTwoStep(challenge, msg) {
   return { twoStep: { key, media } };
 }
 
+/**
+ * Le vrai prix des projected (Elite). 27 nov. (« ça suggère pas la même chose que sur Discord ») :
+ * d'abord le Lowball / Fair / Max de `/projected check` (Neuronal, `/ext/v1/projected`), le même
+ * chiffre au rand près. Seuls les items que Neuronal n'a pas analysés, ou Neuronal injoignable,
+ * passent par le calcul local (projected-estimate.js : Value Rolimon's, sinon ventes Roblox,
+ * resale-data, 4 objets lus par appel), plafonné au best price. Un objet pas encore lu manque
+ * à la réponse : la page le redemande.
+ */
+async function projectedEstimates(rawIds, best = 0) {
+  const settings = await getSettings();
+  const cat = await getCatalog(settings);
+  const ids = (Array.isArray(rawIds) ? rawIds : []).map(Number).filter(n => n > 0).slice(0, 12);
+  const items = ids.map(id => [id, resolveItem({ assetId: id }, cat)]).filter(([, it]) => it.projected);
+  const out = {};
+  if (!items.length) return out;
+  const race = (p, ms, fallback) => Promise.race([p.catch(() => fallback), new Promise(r => setTimeout(() => r(fallback), ms))]);
+  // Tout part en même temps : Neuronal, la mémoire locale et le best price (un Neuronal absent
+  // répond tout de suite, il est mémorisé 10 min ; le best price est gardé 60 s).
+  const [nw, got, bests] = await Promise.all([
+    race(neuronalProjected(items.map(([id]) => id)), 2500, {}),
+    B.storage.local.get(PROJ_LOCAL_KEY).catch(() => ({})),
+    best ? {} : race(neuronalBestPrices(settings).then(r => r?.data?.prices || {}), 2000, {})
+  ]);
+  for (const [id] of items) {
+    const n = nw.items?.[id];
+    if (n?.fair > 0) out[id] = { fair: n.fair, low: n.low, high: n.high, rap: n.rap, basis: 'neuronal',
+      source: n.source || '', confidence: n.confidence || '', pumped: n.source === 'pump', sales: 0 };
+  }
+  const rest = items.filter(([id]) => !(id in out));
+  if (!rest.length) return out;
+  // Le calcul local : celui de Neuronal, sur la page item Rolimon's. Les pages se lisent EN MÊME
+  // TEMPS (la porte Rolimon's en laisse passer 3) ; résultat gardé 6 h, une erreur retentée après 30 min.
+  const memo = got?.[PROJ_LOCAL_KEY] || {};
+  const now = Date.now();
+  const todo = [];
+  for (const [id, it] of rest) {
+    const hit = memo[id];
+    if (hit && now - hit.at < (hit.e === undefined ? PROJ_LOCAL_RETRY : PROJ_LOCAL_TTL)) {
+      if (hit.e !== undefined) out[id] = hit.e;
+    } else if (todo.length < 6) todo.push([id, it]);    // la page redemande les autres
+  }
+  if (!todo.length) return out;
+  await Promise.all(todo.map(async ([id, it]) => {
+    try {
+      const srcData = await api.getProjectedSource(id);
+      const e = estimateProjected(srcData, { value: it.noValue ? 0 : it.value, demand: it.demand ?? -1,
+        bestNow: best || Number(bests[id]) || 0, now: now / 1000 });
+      out[id] = e;
+      memo[id] = { at: now, e };
+    } catch (err) {
+      if (err?.status !== 429) memo[id] = { at: now };
+    }
+  }));
+  // Relue juste avant d'écrire : un autre appel a pu garder ses propres items entre-temps.
+  const fresh = (await B.storage.local.get(PROJ_LOCAL_KEY).catch(() => ({})))?.[PROJ_LOCAL_KEY] || {};
+  for (const [id] of todo) if (memo[id]) fresh[id] = memo[id];
+  const keep = Object.entries(fresh).sort((x, y) => y[1].at - x[1].at).slice(0, 200);
+  await B.storage.local.set({ [PROJ_LOCAL_KEY]: Object.fromEntries(keep) }).catch(() => {});
+  return out;
+}
+/** Personne ne devrait donner plus en RAP que ce qu'un vendeur demande : le best price plafonne Fair et Max. */
+function capToBest(e, best) {
+  if (!e || !(best > 0) || best >= e.high) return e;
+  const high = Math.max(1, Math.round(best));
+  return { ...e, high, fair: Math.min(e.fair, high), low: Math.min(e.low, high) };
+}
+const PROJ_LOCAL_KEY = 'projEstimate', PROJ_LOCAL_TTL = 6 * 60 * 60 * 1000, PROJ_LOCAL_RETRY = 30 * 60 * 1000;
+
 async function handleMessage(msg, sender = null) {
   switch (msg.type) {
     case 'ronote:page-analysis': {
@@ -1521,6 +1592,26 @@ async function handleMessage(msg, sender = null) {
     }
     case 'ronote:premium-has':                      // content scripts : une fonction premium ouverte ?
       return { ok: await premiumHas(String(msg.feature || '')) };
+    // Le vrai prix des projected affichés (Elite, comme Share proof) : calculé ici, la page ne fait qu'afficher.
+    case 'ronote:projected-estimate': {
+      if (!await premiumHas('proof')) return { locked: true };
+      return { estimates: await projectedEstimates(msg.ids) };
+    }
+    // La fiche d'un objet (popup) : son best price et ses 5 revendeurs les moins chers (Roblox,
+    // pour tout le monde), et le vrai prix d'un projected pour Elite.
+    case 'ronote:item-market': {
+      const id = Number(msg.id) || 0, kind = msg.kind === 'bundle' ? 'bundle' : 'asset';
+      if (!id) return { error: 'id' };
+      const estId = kind === 'asset' ? id : Number(msg.assetId) || 0;
+      const estimate = msg.projected ? premiumHas('proof').then(elite => !elite ? { locked: true }
+        : estId ? projectedEstimates([estId]).then(est => ({ e: estId in est ? est[estId] : undefined }), () => ({ e: undefined }))
+        : { e: null }) : Promise.resolve(null);
+      const [sale, est] = await Promise.all([api.getResellers(kind, id).catch(e => ({ error: e?.status === 429 ? 'busy' : 'network' })), estimate]);
+      const out = { ...sale };
+      if (est?.locked) out.locked = true;
+      else if (est) out.estimate = capToBest(est.e, sale.best);
+      return out;
+    }
     // Auto-post de trade ads (tradeads.js) : l'onglet Trade ads du popup.
     case 'ronote:tradeads-get':
       return tradeAdsStatus();

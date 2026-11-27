@@ -7,6 +7,12 @@ l'utilisateur, pas la liste des commits.
 
 - **Éditeur d'avatar** : les accessoires s'empilent directement dans l'éditeur de Roblox (jusqu'à 10 au lieu de 3 chapeaux et 1 par type). Le panneau RoNote sous l'avatar est retiré.
 
+## v2.18.3 : Projected check dans RoNote, best price
+
+- **Projected (Elite)** : survoler le badge projected d'une page de trade, ou cliquer pour l'épingler, ouvre une carte avec le même conseil que `/projected check` sur Discord : combien donner en RAP (Fair), où commencer (Lowball), ne jamais dépasser (Max), et une jauge de ce qu'il vaut face au RAP affiché. Les chiffres viennent de Neuronal ; sans réponse, RoNote refait le même calcul sur l'historique Rolimon's : la base est le RAP d'avant le pump, les ventes d'après pump disent où l'item retombe.
+- **Fiche d'un item** (popup) : le grand chiffre est le prix d'une pièce (le total de tes copies passe dessous) ; la carte projected donne ce même conseil pour Elite ; une tuile Best price donne le prix le plus bas en vente et son écart, et déplie les 5 revendeurs les moins chers.
+- **Best price** : lu par la route actuelle de Roblox (l'ancienne ne répond plus).
+
 ## v2.18.1 : Clés d'essai et premium
 
 - **Clés d'essai** : le staff Neuronal peut offrir des clés d'essai Insider ou Elite (de 3 heures à 3 jours) ; elles s'utilisent dans Réglages › Neuronal et Premium, et l'accès se ferme tout seul à la fin.

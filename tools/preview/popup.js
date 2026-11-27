@@ -318,6 +318,12 @@ const mockRuntime = {
           value: i.value, rap: i.rap, thumb: i.thumb, bp: Math.round(i.rap * [0.9, 1.05, 1.4, 1.2][n]), target: [Math.round(i.rap), Math.round(i.rap), 0, Math.round(i.rap)][n] })) };
       }
       case 'ronote:wl-set': return { ok: true };
+      // Fiche d'un objet : best price, 5 revendeurs, vrai prix d'un projected (Elite).
+      case 'ronote:item-market': {
+        const base = 4400 + (Number(msg.id) % 7) * 37;
+        return { best: base, resellers: [0, 1, 2, 3, 4].map(n => ({ id: 100 + n, name: ['Simoon68', 'itemnebulous', 'smovvz', 'NikitBros', 'FallenRubies'][n], price: base + n * 150, serial: n % 2 ? 0 : 120 + n * 37 })),
+          ...(msg.projected ? { estimate: { fair: 16000, low: 13000, high: 17000, basis: 'neuronal', source: 'pump', pumped: true, sales: 0, rap: 60000 } } : {}) };
+      }
       case 'ronote:neuronal-bestprices': {
         await new Promise(r => setTimeout(r, 300));
         const items = report.items;

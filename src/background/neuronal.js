@@ -238,6 +238,40 @@ export const neuronalDeals = (settings, minutes = 0) =>
 export const neuronalBestPrices = (settings) => sharedList(settings, 'bestprices', 'bestprices', 60e3);
 
 /**
+ * 27 nov. : le Lowball / Fair / Max de `/projected check` (`/ext/v1/projected?ids=`, Elite), pour que
+ * l'extension suggère exactement ce que dit Discord. Gardé 5 min par item, comme sur le serveur.
+ * Rend `{ items: { id: {low, fair, high, rap, confidence, source} | null } }`, ou `{ locked }`,
+ * `{ off }`, `{ unavailable }`, `{ error }` : le worker retombe alors sur son propre calcul.
+ */
+const PROJ_MS = 5 * 60e3, PROJ_DOWN_MS = 10 * 60e3;
+const projMemo = new Map();
+let projDown = null;            // { at, value } : Neuronal absent, refusé ou en panne, pas redemandé avant 10 min
+export async function neuronalProjected(ids, now = Date.now()) {
+  ids = [...new Set((ids || []).map(Number).filter(n => n > 0))].slice(0, 12);
+  if (!ids.length) return { items: {} };
+  if (projDown && now - projDown.at < PROJ_DOWN_MS) return projDown.value;
+  const granted = await B.permissions?.contains({ origins: NEURONAL.origins }).catch(() => false);
+  if (!granted) return { off: true };
+  const items = {}, todo = [];
+  for (const id of ids) {
+    const hit = projMemo.get(id);
+    if (hit && now - hit.at < PROJ_MS) items[id] = hit.value; else todo.push(id);
+  }
+  if (todo.length) {
+    const r = await fetchOne('projected', 0, 'projected?ids=' + todo.join(','));
+    if (!r.data) { projDown = { at: now, value: r }; return r; }
+    projDown = null;
+    for (const id of todo) {
+      const v = r.data.items?.[id] ?? null;
+      items[id] = v;
+      projMemo.set(id, { at: now, value: v });
+    }
+    if (projMemo.size > 500) projMemo.delete(projMemo.keys().next().value);
+  }
+  return { items };
+}
+
+/**
  * La demande des objets (`/ext/v1/demand`) : le classement de Neuronal par trades sur
  * 30 jours, une note sur 5 par objet, la même table pour tout le monde. Gardée 1 h
  * comme sur le serveur ; un worker réveillé la relit (ETag → 304). Mêmes conditions

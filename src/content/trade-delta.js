@@ -25,6 +25,15 @@
   // Les textes de la page, dans la langue de Roblox : écrits une fois ici.
   const TEXT = fr ? {
     projected: 'Projected : RAP gonflé par des reventes, chiffre peu fiable',
+    tipGive: 'À donner en RAP',
+    tipStart: 'Commence à',
+    tipMax: 'Jamais plus de',
+    tipShare: (p) => `vaut ≈ ${p} % du RAP affiché`,
+    tipInflated: 'RAP gonflé',
+    tipBasis: { neuronal: 'Le même calcul que /projected check sur Discord', value: 'D’après la Value Rolimon’s', pump: 'Prix d’avant le pump et ventes récentes', sales: 'Ventes récentes, sans les pumpeurs' },
+    tipNone: 'Pas assez de ventes propres pour estimer son vrai prix.',
+    tipWait: 'Estimation de son vrai prix…',
+    tipOffer: 'Son vrai prix estimé s’affiche ici avec RoNote Elite.',
     currentValue: 'Cote Rolimon’s actuelle',
     openRolimons: 'Ouvrir sur Rolimon’s',
     rapUsed: 'RAP actuel utilisé : aucune Value publiée pour cet objet.',
@@ -103,6 +112,15 @@
     demandAverageNone: 'Demande N/A : aucun objet noté de ce côté.'
   } : {
     projected: 'Projected: RAP inflated by resales, unreliable figure',
+    tipGive: 'Give about, in RAP',
+    tipStart: 'Start at',
+    tipMax: 'Never above',
+    tipShare: (p) => `worth ≈ ${p}% of the RAP shown`,
+    tipInflated: 'Inflated RAP',
+    tipBasis: { neuronal: 'Same as /projected check on Discord', value: 'From its Rolimon’s value', pump: 'Pre-pump price and recent sales', sales: 'Recent sales, without pumpers' },
+    tipNone: 'Not enough clean sales to estimate its real price.',
+    tipWait: 'Estimating its real price…',
+    tipOffer: 'Its estimated real price shows here with RoNote Elite.',
     currentValue: 'Current Rolimon’s value',
     openRolimons: 'Open on Rolimon’s',
     rapUsed: 'Current RAP used: no published value for this item.',
@@ -414,13 +432,153 @@
     badge.marks = null;
     badge.marksCorner = null;
   }
-  function showFlag(badge, card, projected) {
+  // Le vrai prix des projected (Elite) : calculé par le worker, gardé par objet le temps de la page.
+  const estimates = new Map();          // assetId -> estimation | null (pas assez de ventes)
+  const estWant = new Map();            // assetId -> essais
+  let estLocked = false, estAsking = false, estTimer = 0;
+  function wantEstimate(id) {
+    if (!id || estLocked || estimates.has(id) || estWant.has(id)) return;
+    estWant.set(id, 0);
+    clearTimeout(estTimer);
+    estTimer = setTimeout(askEstimates, 300);
+  }
+  async function askEstimates() {
+    if (estAsking || !estWant.size || !alive()) return;
+    estAsking = true;
+    const ids = [...estWant.keys()].slice(0, 12);
+    const res = await B.runtime.sendMessage({ type: 'ronote:projected-estimate', ids }).catch(() => null);
+    estAsking = false;
+    if (res?.locked) { estLocked = true; estWant.clear(); paintTip(); return; }
+    for (const id of ids) {
+      if (res?.estimates && id in res.estimates) { estimates.set(id, res.estimates[id]); estWant.delete(id); }
+      else if (estWant.get(id) >= 4) estWant.delete(id);       // Roblox ne répond pas : on laisse tomber
+      else estWant.set(id, estWant.get(id) + 1);
+    }
+    paintTip();
+    if (estWant.size) estTimer = setTimeout(askEstimates, 1200);   // le worker en lit 6 par appel, en parallèle
+  }
+
+  /* La carte du badge projected : au survol, ou épinglée d'un clic (un second clic, Échap
+   * ou un clic ailleurs la ferment). Une seule pour la page, posée sur <body> : les cartes
+   * de Roblox coupent ce qui déborde. Le clic ne va jamais jusqu'à la carte de Roblox
+   * (qui ajouterait l'objet au trade). */
+  const TIP_W = 240;
+  const TIP_CSS = `
+    :host{all:initial}
+    .t{position:fixed;z-index:2147483000;width:${TIP_W}px;box-sizing:border-box;padding:12px 13px 13px;border-radius:14px;
+      font:500 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#e9ecf5;
+      background:linear-gradient(165deg,#1b2033,#12162399);background-color:#141827;
+      border:1px solid rgba(255,255,255,.09);box-shadow:0 14px 36px rgba(0,0,0,.55);
+      opacity:0;transform:translateY(4px) scale(.98);transform-origin:top left;transition:opacity .14s,transform .14s}
+    .t[data-on]{opacity:1;transform:none}
+    .h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+    .h svg{width:13px;height:13px;flex:none}
+    .h span{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:#8d95ab}
+    .k{margin-top:10px;color:#8d95ab;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .r{margin-top:1px;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;letter-spacing:-.01em}
+    .r small{font-size:12px;font-weight:600;color:#8d95ab}
+    .lm{display:flex;gap:12px;margin-top:3px;font-size:11px;color:#8d95ab}
+    .lm b{color:#e9ecf5;font-weight:700;font-variant-numeric:tabular-nums}
+    .lm em{font-style:normal;margin-right:4px;font-size:9px}
+    .lm .lo{color:#5fd38d}.lm .hi{color:#ff7b7b}
+    .g{position:relative;height:6px;margin:11px 0 5px;border-radius:99px;background:rgba(255,255,255,.07)}
+    .g u{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--c);opacity:.28}
+    .g i{position:absolute;top:0;bottom:0;border-radius:99px;background:var(--c);box-shadow:0 0 10px var(--c)}
+    .g s{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;border-radius:2px;background:#fff}
+    .g b{position:absolute;right:0;top:-3px;width:2px;height:12px;border-radius:2px;background:#ff6b6b}
+    .gl{display:flex;justify-content:space-between;font-size:10.5px;color:#8d95ab;font-variant-numeric:tabular-nums}
+    .m{margin-top:8px;color:#8d95ab;font-size:11px}
+    .w{margin-top:9px;color:#8d95ab;font-size:11px}
+    @media (prefers-reduced-motion:reduce){.t{transition:none}}`;
+  const TIP_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 1.6 21h20.8L12 2.8z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 9.6v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17.8" r="1.3" fill="currentColor"/></svg>';
+  const escT = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let tip = null, tipFor = null, tipPinned = false, tipHide = 0;
+  // La jauge : de 0 au RAP (le trait rouge), la fourchette du vrai prix en couleur.
+  // La jauge, comme sur Discord : ce que l'item vaut vraiment, en part du RAP affiché (le trait rouge
+  // au bout). La bande claire va du Lowball au Max, le trait blanc est le Fair.
+  function gauge(e) {
+    const max = Math.max(e.rap, e.high) || 1;
+    const at = (n) => (Math.min(n, max) / max * 100).toFixed(1);
+    return `<div class="g"><u style="width:${at(e.fair)}%"></u><i style="left:${at(e.low)}%;width:${Math.max(1.5, at(e.high) - at(e.low))}%"></i>
+        <s style="left:${at(e.fair)}%"></s><b></b></div>
+      <div class="gl"><span>${escT(TEXT.tipShare(Math.round(e.fair / e.rap * 100)))}</span><span>RAP ${number.format(e.rap)}</span></div>`;
+  }
+  function tipHtml(id) {
+    const e = id ? estimates.get(id) : undefined;
+    let part;
+    if (estLocked) part = `<div class="w">${escT(TEXT.tipOffer)}</div>`;
+    else if (e) {
+      const why = e.basis === 'neuronal' ? TEXT.tipBasis.neuronal : TEXT.tipBasis[e.basis === 'value' ? 'value' : e.pumped ? 'pump' : 'sales'];
+      part = `<div class="k">${escT(TEXT.tipGive)}</div>
+        <div class="r">${number.format(e.fair)} <small>R$</small></div>
+        <div class="lm"><span><em class="lo">●</em>${escT(TEXT.tipStart)} <b>${number.format(e.low)}</b></span><span><em class="hi">●</em>${escT(TEXT.tipMax)} <b>${number.format(e.high)}</b></span></div>
+        ${e.rap > 0 ? gauge(e) : ''}
+        <div class="m">${escT(why)}</div>`;
+    } else if (id && estimates.has(id)) part = `<div class="w">${escT(TEXT.tipNone)}</div>`;
+    else if (id && estWant.has(id)) part = `<div class="w">${escT(TEXT.tipWait)}</div>`;
+    else part = `<div class="w">${escT(warnTitle)}</div>`;
+    return `<style>${TIP_CSS}</style><div class="t" style="--c:${escT(look.color || '#e3b04b')}">
+      <div class="h">${TIP_SVG}Projected<span>${escT(TEXT.tipInflated)}</span></div>${part}</div>`;
+  }
+  function paintTip() {
+    if (!tip?.isConnected) return;
+    if (!tipFor?.flag?.isConnected) { closeTip(); return; }
+    tip._root.innerHTML = tipHtml(tipFor.flagId);
+    const card = tip._root.querySelector('.t');
+    const r = (tipFor.flagCorner || tipFor.flag).getBoundingClientRect();
+    const h = card.offsetHeight || 120;
+    card.style.left = Math.max(8, Math.min(innerWidth - TIP_W - 8, r.left)) + 'px';
+    card.style.top = (r.bottom + 8 + h <= innerHeight - 8 ? r.bottom + 8 : Math.max(8, r.top - h - 8)) + 'px';
+    requestAnimationFrame(() => card.setAttribute('data-on', ''));
+    // la carte reste ouverte tant que la souris est dessus
+    card.onpointerenter = () => clearTimeout(tipHide);
+    card.onpointerleave = () => { if (!tipPinned) tipHide = setTimeout(closeTip, 160); };
+  }
+  function openTip(badge, pin) {
+    clearTimeout(tipHide);
+    if (!tip) {
+      tip = document.createElement('span');
+      tip.dataset.rn = 'projected-tip';
+      tip._root = tip.attachShadow({ mode: 'closed' });
+      for (const type of ['pointerdown', 'mousedown', 'click']) tip.addEventListener(type, (e) => e.stopPropagation());
+    }
+    if (!tip.isConnected) document.body.append(tip);
+    const same = tipFor === badge;
+    tipFor = badge;
+    tipPinned = pin;
+    if (!same || !tip._root.firstChild) paintTip();
+  }
+  function closeTip() {
+    clearTimeout(tipHide);
+    tip?.remove();
+    if (tip) tip._root.innerHTML = '';
+    tipFor = null; tipPinned = false;
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (tipPinned && !e.composedPath().some(n => n === tip || n === tipFor?.flag)) closeTip();
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tip?.isConnected) closeTip(); }, true);
+  addEventListener('scroll', () => { if (tip?.isConnected) { if (tipPinned) paintTip(); else closeTip(); } }, true);
+  function hookFlag(badge, el) {
+    const stop = (e) => { e.stopPropagation(); };
+    for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'touchstart']) el.addEventListener(type, stop);
+    el.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (tipPinned && tipFor === badge) closeTip(); else openTip(badge, true);
+    });
+    el.addEventListener('pointerenter', () => { if (!tipPinned) openTip(badge, false); });
+    el.addEventListener('pointerleave', () => { if (!tipPinned) { clearTimeout(tipHide); tipHide = setTimeout(closeTip, 160); } });
+  }
+  function showFlag(badge, card, projected, id = 0) {
     if (!projected) { dropFlag(badge); return; }
-    if (badge.flag?.isConnected && badge.flag.parentElement === card) return;
+    wantEstimate(id);
+    if (badge.flag?.isConnected && badge.flag.parentElement === card && badge.flagId === id) return;
     dropFlag(badge);
     if (!globalThis.RoNoteBadge) return;
-    const { box, corner, root } = cornerBox(card, 'item-projected', look.corner, false);
-    globalThis.RoNoteBadge.fill(root, look, warnTitle);
+    const { box, corner, root } = cornerBox(card, 'item-projected', look.corner, true);
+    globalThis.RoNoteBadge.fill(root, look);
+    hookFlag(badge, corner || box.firstChild);
+    badge.flagId = id;
     badge.flag = box;
     badge.flagRoot = root;
     badge.flagCorner = corner;
@@ -428,7 +586,7 @@
   // Nouvelle couleur, taille, forme, coin ou image : les badges se redessinent sur place.
   function restyleFlags() {
     for (const badge of [...badges.values(), ...invBadges.values()]) {
-      if (badge.flagRoot) globalThis.RoNoteBadge?.fill(badge.flagRoot, look, warnTitle);
+      if (badge.flagRoot) globalThis.RoNoteBadge?.fill(badge.flagRoot, look);
       if (badge.flagCorner) {
         badge.flagCorner.style.left = look.corner === 'left' ? '7px' : '';
         badge.flagCorner.style.right = look.corner === 'right' ? '7px' : '';
@@ -438,8 +596,10 @@
         badge.marksCorner.style.right = marksCorner() === 'right' ? '7px' : '';
       }
     }
+    paintTip();
   }
   function dropFlag(badge) {
+    if (tipFor === badge) closeTip();
     badge.flag?.remove();
     badge.flag = null;
     badge.flagRoot = null;
@@ -813,7 +973,7 @@
         linkBadge(badge, roliUrl(matched ? { assetId: item.assetId || info.assetId, bundleId: item.bundleId || info.bundleId,
           legacyAssetId: info.legacyAssetId } : item));
         showFlag(badge, card, matched && typeof info.projected === 'boolean'
-          ? info.projected : !!projectedKnown.get(itemKey(item)));
+          ? info.projected : !!projectedKnown.get(itemKey(item)), Number(item.assetId || (matched && info.assetId)) || 0);
         showMarks(badge, card, matched && !!info.rare, !!globalThis.RoNoteMarks?.isLucky(lucky,
           { uaid: matched ? info.matchedUaid : null, assetId: item.assetId || info?.assetId, serial: serialOf(card) }));
       }
@@ -848,7 +1008,7 @@
       else if (info?.known && Number.isFinite(item.rap) && item.rap >= 0) paintBadge(badge, number.format(item.rap), 'ok', TEXT.rapUsed, card);
       else paintBadge(badge, info?.known ? 'N/A' : '…', info?.known ? 'none' : 'wait', TEXT.noValue, card);
       linkBadge(badge, roliUrl({ ...item, legacyAssetId: info?.legacyAssetId }));
-      showFlag(badge, card, !!info?.projected);
+      showFlag(badge, card, !!info?.projected, Number(item.assetId) || 0);
       showMarks(badge, card, !!info?.rare, !!globalThis.RoNoteMarks?.isLucky(lucky, { assetId: item.assetId, serial: serialOf(card) }));
     }
     for (const [card, badge] of invBadges) if (!keep.has(card)) { dropBadge(badge); invBadges.delete(card); }
@@ -2195,6 +2355,7 @@
     // Peut tourner avant que le reste du script soit prêt : rien ici ne doit lever d'erreur.
     try { observer?.disconnect(); clearInterval(ticker); clearTimeout(timer); clearTimeout(projectedSave); } catch { /* not set up yet */ }
     try { clear(); clearInventories(); } catch { /* not set up yet, or page already gone */ }
+    try { closeTip(); clearTimeout(estTimer); } catch { /* not set up yet */ }
   }
   function schedule() {
     if (timer || dead) return;

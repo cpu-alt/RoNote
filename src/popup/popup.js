@@ -2521,6 +2521,56 @@ function sheetItemOf(x) {
   };
 }
 
+/* ------------------------- marché d'un objet ------------------------- */
+
+const pctOf = (n, ref) => (ref > 0 ? Math.round((n / ref - 1) * 100) : 0);
+const pctHtml = (p) => `<em class="${p > 0 ? 'up' : p < 0 ? 'down' : ''}">${p > 0 ? '+' : ''}${p}%</em>`;
+
+/**
+ * La carte projected, sous le prix : le vrai prix estimé (Elite) et une jauge de 0 au RAP.
+ * `res` : null pendant la lecture, sinon la réponse de `ronote:item-market`.
+ */
+function projHtml(i, res) {
+  if (!i.projected) return '';
+  const e = res?.estimate;
+  let body;
+  if (!res) body = `<div class="mk-wait">${escapeHtml(t('Estimation de son vrai prix…'))}</div>`;
+  else if (res.locked) body = `<button class="mk-lock" data-elite type="button">${ic('lock')}<span>${escapeHtml(t('Son vrai prix estimé, avec RoNote Elite'))}</span></button>`;
+  else if (e) {
+    const rap = e.rap || i.rap;
+    const why = e.basis === 'neuronal' ? t('Le même calcul que /projected check sur Discord')
+      : e.basis === 'value' ? t("D'après la Value Rolimon's")
+      : e.pumped ? t("Prix d'avant le pump et ventes récentes") : t('Ventes récentes, sans les pumpeurs');
+    const max = Math.max(rap, e.high) || 1;
+    const at = (n) => (Math.min(n, max) / max * 100).toFixed(1);
+    body = `<div class="mk-k">${escapeHtml(t('À donner en RAP'))}</div>
+      <div class="mk-range">${amount(e.fair)}</div>
+      <div class="mk-lm"><span><em class="lo">●</em>${escapeHtml(t('Commence à'))} <b>${amount(e.low)}</b></span>
+        <span><em class="hi">●</em>${escapeHtml(t('Jamais plus de'))} <b>${amount(e.high)}</b></span></div>
+      ${rap > 0 ? `<div class="mk-gauge"><u style="width:${at(e.fair)}%"></u><i style="left:${at(e.low)}%;width:${Math.max(1.5, at(e.high) - at(e.low))}%"></i><s style="left:${at(e.fair)}%"></s><b></b></div>
+      <div class="mk-gl"><span>${escapeHtml(t('vaut ≈ {p} % du RAP affiché', { p: Math.round(e.fair / rap * 100) }))}</span><span>RAP ${amount(rap)}</span></div>` : ''}
+      <div class="mk-why">${escapeHtml(why)}</div>`;
+  } else if (res.estimate === null) body = `<div class="mk-wait">${escapeHtml(t('Pas assez de ventes propres pour estimer son vrai prix.'))}</div>`;
+  else body = `<div class="mk-wait">${escapeHtml(t('Estimation indisponible pour le moment.'))}</div>`;
+  return `<div class="mk-proj">
+    <div class="mk-h"><i class="proj-ic">${PROJ_ICON}</i><b>Projected</b><span>${escapeHtml(t('RAP gonflé'))}</span></div>
+    ${body}</div>`;
+}
+
+/** La tuile Best price, ses 5 revendeurs les moins chers repliés dessous. */
+function bestHtml(i, res) {
+  const list = res?.resellers || [];
+  const ref = i.projected && res?.estimate ? res.estimate.fair : i.noValue ? i.rap : i.value || i.rap;
+  const best = !res ? '…' : res.error ? t('indisponible') : res.best ? amount(res.best) : t('personne ne le vend');
+  const vs = res?.best && ref ? `<small>${pctHtml(pctOf(res.best, ref))} ${escapeHtml(i.projected && res?.estimate ? t('vs vrai prix') : i.noValue ? t('vs RAP') : t('vs value'))}</small>` : '';
+  const rows = list.map(r => `<li><a href="#" data-user="${r.id}">@${escapeHtml(r.name || String(r.id))}</a>
+      <small>${r.serial ? '#' + r.serial : ''}</small><span>${amount(r.price)}</span>${ref ? pctHtml(pctOf(r.price, ref)) : '<em></em>'}</li>`).join('');
+  const head = `<span class="mk-lbl">${escapeHtml(t('Best price'))}</span><b>${best}</b>${vs}`;
+  return list.length
+    ? `<details class="w-fact mk-best"><summary>${head}<span class="mk-more">${escapeHtml(t('{n} revendeurs', { n: list.length }))}${ic('chevron')}</span></summary><ul>${rows}</ul></details>`
+    : `<div class="w-fact mk-best"><div class="mk-sum">${head}</div></div>`;
+}
+
 /** Un clic sur un objet d'un trade : sa fiche, puis retour au zoom d'où il venait. */
 function openTradeItem(x) {
   const i = sheetItemOf(x);
@@ -2542,6 +2592,7 @@ function openItemSheet(key, given = null, onClosed = null) {
   ].filter(Boolean);
   const ch = i.change;
   const kind = i.isFace ? t('visage') : i.kind === 'bundle' ? t('bundle') : '';
+  const unit = i.noValue ? i.rap : i.value || i.rap;   // le prix d'UNE pièce, pas le total de l'inventaire
 
   zoomed = 'item:' + key;   // le rafraîchissement de fond attend la fermeture
   Object.assign(sheet, { key, roliId, data: null, changes: [], error: '' });
@@ -2556,18 +2607,20 @@ function openItemSheet(key, given = null, onClosed = null) {
       <button class="z-close" title="${t('Fermer')}">${ic('x')}</button>
     </header>
     <div class="z-body">
-      <div class="w-sh-amount${i.noValue ? ' novalue' : ''}">${i.noValue && i.notMine ? 'N/A' : amount(i.total)}</div>
-      <div class="w-sh-sub">${i.noValue ? t("Pas de value Rolimon's : compté au RAP ({v}).", { v: amount(i.rap) }) + ' ' : ''}${i.notMine ? t('Tu ne possèdes pas cet objet.')
-        : (i.count > 1 ? t('{n} exemplaires × {v}', { n: i.count, v: amount(i.value) }) : t('1 exemplaire')) + (sum ? ' · ' + t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : '')}</div>
+      <div class="w-sh-amount${i.noValue ? ' novalue' : ''}">${unit ? amount(unit) : 'N/A'}</div>
+      <div class="w-sh-sub">${[i.noValue ? t("Pas de value Rolimon's : prix au RAP") : '',
+        i.notMine ? t('Tu ne possèdes pas cet objet.') : i.count > 1 ? t('{n} exemplaires · {v} au total', { n: i.count, v: amount(i.total) }) : t('1 exemplaire'),
+        sum ? t('{p} de tes objets cotés', { p: sharePct((i.total / sum) * 100) }) : ''].filter(Boolean).join(' · ')}</div>
+      <div id="w-sh-proj">${projHtml(i, null)}</div>
       <div class="w-sh-chart" id="w-sh-chart"></div>
       <div class="w-facts">
         ${factHtml('Value', i.noValue ? 'N/A' : amount(i.value), i.noValue ? t("pas de value Rolimon's") : '')}
         ${factHtml('RAP', amount(i.rap))}
         ${factHtml(t('Demande'), i.demand >= 0 && DEMAND_LABEL[i.demand] ? t(DEMAND_LABEL[i.demand]) : 'N/A')}
         ${factHtml(t('Tendance'), i.trend >= 0 && TREND_LABEL[i.trend] ? `${ic(TREND_ICON[i.trend])} ${t(TREND_LABEL[i.trend])}` : 'N/A')}
+        <div id="w-sh-best" class="mk-wide">${bestHtml(i, null)}</div>
       </div>
       ${ch ? `<div class="w-rev ${toneOf(ch.pct)}">${ic(ch.pct >= 0 ? 'trend-up' : 'trend-down')} ${t('Réévalué {ago} : {from} → {to} ({pct})', { ago: timeAgo(ch.at), from: amount(ch.from), to: amount(ch.to), pct: fmtPct(ch.pct) })}</div>` : ''}
-      ${i.projected ? `<div class="w-warn"><i class="proj-ic">${PROJ_ICON}</i> ${t('PROJECTED : RAP gonflé artificiellement')}</div>` : ''}
       <div id="w-sh-nw">${roliId ? neuronalItemHtml(null) : ''}</div>
     </div>
     <footer class="z-foot">${links.map(l =>
@@ -2578,8 +2631,27 @@ function openItemSheet(key, given = null, onClosed = null) {
     b.addEventListener('click', () => B.tabs.create({ url: b.dataset.url }));
   });
 
-  if (!roliId) return;
   const still = () => zoomed === 'item:' + key;
+  // Best price, revendeurs et vrai prix d'un projected (Elite) : une seule question au worker.
+  const paintMkt = (res) => {
+    if (!still()) return;
+    res = res || { error: 'network' };
+    const proj = wrap.querySelector('#w-sh-proj'), best = wrap.querySelector('#w-sh-best');
+    if (proj) proj.innerHTML = projHtml(i, res);
+    if (best) {
+      const open = !!best.querySelector('details[open]');
+      best.innerHTML = bestHtml(i, res);
+      if (open) best.querySelector('details')?.setAttribute('open', '');
+    }
+    wrap.querySelectorAll('[data-user]').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      B.tabs.create({ url: `https://www.roblox.com/users/${Number(a.dataset.user)}/profile` });
+    }));
+    wrap.querySelector('[data-elite]')?.addEventListener('click', () => B.runtime.openOptionsPage?.());
+  };
+  send({ type: 'ronote:item-market', kind: i.kind, id: i.id, assetId: i.kind === 'asset' ? i.id : i.faceAssetId || 0,
+    projected: !!i.projected }).then(paintMkt, () => paintMkt(null));
+  if (!roliId) return;
   if (nwOn()) {
     const paintNw = (res) => {
       if (!still()) return;
