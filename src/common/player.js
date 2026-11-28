@@ -143,16 +143,17 @@ export function thinSeries(points, max = 400, now = Date.now(), recentDays = 90)
  */
 export function playerFaces(report) {
   if (!report) return null;
-  const faces = (report.items || [])
-    .filter(i => i.kind === 'bundle' || i.isFace)
-    .map(i => ({
+  const line = (i) => ({
       key: i.key, kind: i.kind, id: i.id, faceAssetId: i.faceAssetId || 0,
       name: i.name, value: i.value, count: i.count, total: i.total, thumb: i.thumb || null
-    }));
+    });
+  const all = report.items || [];
+  const faces = all.filter(i => i.kind === 'bundle' || i.isFace).map(line);
+  const items = all.filter(i => i.value > 0).sort((a, b) => b.total - a.total).map(line);   // l'aperçu d'inventaire de la fiche
   return {
     ok: !!report.ok, partial: !!report.partial, private: !!report.private, terminated: !!report.terminated,
     reason: report.reason || '',
-    faces
+    faces, items
   };
 }
 

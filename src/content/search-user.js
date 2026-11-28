@@ -187,7 +187,7 @@
     if (list) {
       if (list.firstElementChild !== host) list.insertBefore(host, list.firstElementChild);
       host.dataset.row = '1';
-      host.style.cssText = 'list-style:none;display:block;width:100%';
+      host.style.cssText = 'list-style:none;display:block;width:100%;background:#24103f';   // son propre fond : texte clair lisible aussi sur le Roblox en thème clair
       watch(list);
     } else if (input) {
       const r = input.getBoundingClientRect();

@@ -1441,11 +1441,11 @@ function faceRow(l) {
   </a>`;
 }
 
-/** Ses bundles cotés, du plus gros au plus petit. */
+/** Son inventaire coté (ses bundles compris), du plus gros au plus petit. */
 function playerFacesHtml() {
   const f = player.faces;
   const copies = (list) => list.reduce((s, l) => s + l.count, 0);
-  const head = (n) => `<div class="p-h">${t('Ses bundles')}${n ? ` <small>${n}</small>` : ''}</div>`;
+  const head = (n) => `<div class="p-h">${t('Son inventaire')}${n ? ` <small>${n}</small>` : ''}</div>`;
   if (!f) return head(0) + '<div class="p-fskel"></div>';
   if (f.error || (!f.ok && !f.partial)) {
     const why = f.private ? t('Inventaire privé')
@@ -1453,18 +1453,18 @@ function playerFacesHtml() {
     return head(0) + `<div class="ls-none p-fnone">${escapeHtml(why)}</div>`;
   }
 
-  const lines = f.faces;
+  const lines = f.items || f.faces;   // une réponse en cache d'avant n'a que les bundles
   const shown = player.facesAll ? lines : lines.slice(0, 8);
   const rows = shown.length
     ? shown.map(l => faceRow(l)).join('')
-    : `<div class="ls-none">${t('Aucun bundle coté.')}</div>`;
+    : `<div class="ls-none">${t('Aucun item coté.')}</div>`;
   const more = lines.length > shown.length
     ? `<button class="p-more" data-fmore>${plural(lines.length - shown.length, '+ {n} autre', '+ {n} autres')}</button>`
     : '';
   const partial = f.partial
     ? `<div class="note">${escapeHtml(t('Liste incomplète : {why}.', { why: t(f.reason) }))}</div>`
     : '';
-  return `${head(copies(f.faces))}<div class="jr-day p-faces">${rows}${more}</div>${partial}`;
+  return `${head(copies(lines))}<div class="jr-day p-faces">${rows}${more}</div>${partial}`;
 }
 
 function playerFootHtml() {
@@ -1564,13 +1564,14 @@ function closePlayer() {
   setTimeout(done, 160);
 }
 
-function openPlayer(id) {
+function openPlayer(id, from = null) {
   if (!id) return;
   // Un second clic sur le même joueur referme sa fiche.
   if (player.id === id && document.getElementById('side')) { closePlayer(); return; }
   const live = liveTradesWith(id);
   const seed = live.find(c => c.headshot) || live[0]
-    || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id);
+    || Object.values(cards).flatMap(m => [...m.values()]).find(c => Number(c.partner?.id) === id)
+    || (from && { partner: { id, name: from.name || '' }, headshot: from.thumb || null });   // un profil hors de mes trades
   if (!seed) return;
   const token = ++player.token;
   Object.assign(player, {
@@ -3280,7 +3281,7 @@ const LIST_ACTIONS = [
     if (res?.settings) data.settings = res.settings;
     await load({ refresh: true });
   }],
-  ['[data-player]', (el) => openPlayer(Number(el.dataset.player))],
+  ['[data-player]', (el) => openPlayer(Number(el.dataset.player), el.dataset.pname !== undefined ? { name: el.dataset.pname, thumb: el.dataset.pthumb } : null)],
   ['button[data-act]', (el) => quickAct(el, Number(el.dataset.trade), el.dataset.kind, el.dataset.act)],
   ['button[data-ctr]', (el) => openCounter(Number(el.dataset.ctr))],
   ['button[data-track]', (el) => setTracked([Number(el.dataset.track)], el.dataset.on === '1')],

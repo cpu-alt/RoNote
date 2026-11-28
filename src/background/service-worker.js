@@ -1723,7 +1723,7 @@ async function handleMessage(msg, sender = null) {
           const report = await buildPortfolio(id, await getCatalog(settings));
           answered = !!(report.rolimons || report.private || report.terminated);
           const faces = playerFaces(report);
-          const lines = { items: faces.faces };
+          const lines = { items: faces.items };
           const urls = await safe(() => resolveThumbs(portfolioThumbKeys(lines)), []);
           attachPortfolioThumbs(lines, urls || []);
           await flushThumbs();

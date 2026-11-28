@@ -125,6 +125,7 @@ function nextText(cfg, sites) {
   return due.map(([n, m]) => (m ? t('{site} dans {n} min', { site: n, n: m }) : t('{site} au prochain passage', { site: n }))).join(' · ');
 }
 
+const tagImg = (g) => `https://www.rolimons.com/images/tradetag${encodeURIComponent(g)}-420.png`;   // les vraies vignettes des tags Rolimons
 const thumb = (i) => (i?.thumb ? `<img src="${escapeHtml(i.thumb)}" alt="" loading="lazy">` : `<span class="ph">${ic('box')}</span>`);
 
 /** L'aperçu de l'annonce, comme une fenêtre de trade : 4 cases de chaque côté, un clic retire. */
@@ -133,7 +134,7 @@ function adPreview(cfg, inv) {
   const give = Array.from({ length: MAX }, (_, n) => {
     const id = cfg.offer[n];
     if (!id) return '<span class="ta-slot empty"></span>';
-    const it = byId.get(id);
+    const it = byId.get(id) || askInfo.get(id);   // pas (ou plus) dans l'inventaire chargé : le catalogue
     return `<button class="ta-slot" data-ta-offer="${id}" title="${escapeHtml(t('Retirer'))} : ${escapeHtml(it?.name || nameOf(id))}">${thumb(it)}
       <small>${escapeHtml(it?.acronym || it?.name || nameOf(id))}</small></button>`;
   }).join('');
@@ -142,7 +143,7 @@ function adPreview(cfg, inv) {
     const a = asks[n];
     if (!a) return '<span class="ta-slot empty"></span>';
     return a.tag
-      ? `<button class="ta-slot" data-ta-tag="${escapeHtml(a.tag)}" title="${escapeHtml(t('Retirer'))}"><span class="ph tag">#</span><small>${escapeHtml(a.tag)}</small></button>`
+      ? `<button class="ta-slot" data-ta-tag="${escapeHtml(a.tag)}" title="${escapeHtml(t('Retirer'))}"><img src="${tagImg(a.tag)}" alt=""><small>${escapeHtml(a.tag)}</small></button>`
       : `<button class="ta-slot" data-ta-item="${a.item}" title="${escapeHtml(t('Retirer'))} : ${escapeHtml(nameOf(a.item))}">${askInfo.get(a.item)?.thumb ? thumb(askInfo.get(a.item)) : `<span class="ph">${ic('star')}</span>`}<small>${escapeHtml(askInfo.get(a.item)?.acronym || nameOf(a.item))}</small></button>`;
   }).join('');
   const total = cfg.offer.reduce((sum, id) => sum + (byId.get(id)?.value || 0), 0);
@@ -175,7 +176,7 @@ function pickerHtml(cfg, all) {
         ${cfg.reqAlea ? `<button class="ta-btn" data-ta-draw>${ic('swap')}${t('Tirer')}</button>` : ''}
       </div>
       ${cfg.reqAlea ? `<small class="ta-why">${t('Des items au hasard qui valent ce que tu offres, plus {p} % : nouveaux à chaque envoi. Choisis un item à la main pour arrêter.', { p: cfg.op })}</small>` : ''}
-      <div class="ta-tags">${TAGS.map(g => `<button role="checkbox" aria-checked="${cfg.tags.includes(g)}" data-ta-tag="${g}">#${g}</button>`).join('')}</div>
+      <div class="ta-tags">${TAGS.map(g => `<button role="checkbox" aria-checked="${cfg.tags.includes(g)}" data-ta-tag="${g}"><img src="${tagImg(g)}" alt="" class="ta-tag-img">${g}</button>`).join('')}</div>
       <input class="ta-q" type="search" data-ta-q placeholder="${escapeHtml(t('Ajouter un item demandé…'))}" value="${escapeHtml(query)}">
       <div class="ta-items">${found.filter(i => !cfg.items.includes(i.assetId)).map(i =>
         `<button class="ta-item" data-ta-item="${i.assetId}">${i.thumb ? thumb(i) : `<span class="ph">${ic('plus')}</span>`}<span class="ta-item-n">${escapeHtml(i.name)}</span><b>${fmtNum(i.value)}</b></button>`).join('')}</div>`;
@@ -289,7 +290,8 @@ async function load(root) {
 
 /** Vignette, nom et value des items demandés : le catalogue déjà en cache du worker, une fois par item. */
 async function refreshAsk(root) {
-  const miss = (res?.cfg?.items || []).filter(id => !askInfo.has(id));
+  const inInv = new Set(inventory().map(tradeId));
+  const miss = [...(res?.cfg?.items || []), ...(res?.cfg?.offer || []).filter(id => !inInv.has(id))].filter(id => !askInfo.has(id));
   if (!miss.length) return;
   const r = await send({ type: 'ronote:catalog-search', ids: miss.map(assetId => ({ assetId })) }).catch(() => null);
   for (const i of r?.items || []) askInfo.set(i.assetId, i);

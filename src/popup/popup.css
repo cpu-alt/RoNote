@@ -2002,7 +2002,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .pf-live::before { animation: none; }
 }
 .pf-top { display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; }
-.pf-avw { flex: none; padding: 2px; border-radius: 50%; border: 2px solid currentColor; color: var(--line); line-height: 0; }
+.pf-avw { flex: none; padding: 2px; border-radius: 50%; border: 2px solid currentColor; color: var(--line); line-height: 0; background: none; cursor: pointer; font: inherit; }
 .pf-av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--dim); font-weight: 700; font-size: 13px; line-height: 1; object-fit: cover; }
 .pf-id { flex: 1; min-width: 0; }
 .pf-nl { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -2265,6 +2265,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .ta-saved-n:hover { border-color: var(--accent); }
 .ta-saved-n b { font-size: 11.5px; } .ta-saved-n small { color: var(--faint); font-size: 10px; }
 .ta-tags button { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--line-soft); background: none; color: var(--dim); font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+.ta-tags button { display: inline-flex; align-items: center; gap: 4px; }
+.ta-tag-img { width: 16px; height: 16px; object-fit: contain; }
 .ta-tags button[aria-checked="true"] { border-color: var(--accent); color: var(--fg); background: #13213a; }
 
 /* historique replié */
@@ -2396,7 +2398,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .pf-nl b { font-size: 13px; font-weight: 750; }
 .pf-meta { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
 .pf-meta small { flex: 0 1 auto; min-width: 0; color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-meta .pf-rn, .pf-meta .pf-unv, .pf-meta .pf-known, .pf-meta .pf-stk { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; vertical-align: 0; }
+.pf-meta .pf-rn, .pf-meta .pf-unv, .pf-meta .pf-known, .pf-meta .pf-stk, .pf-nl .pf-rn, .pf-nl .pf-unv, .pf-nl .pf-stk, .pf-nl .pf-ver { flex: none; margin: 0; height: 15px; line-height: 15px; padding: 0 5px; border-radius: 4px; font-size: 9px; vertical-align: 0; }
 .pf-meta .pf-rn { line-height: 13px; }
 .pf-nl { overflow: hidden; }
 .pf-right { flex: none; display: grid; justify-items: end; gap: 4px; }
@@ -2621,3 +2623,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .rn-toast button { padding: 4px 10px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font: inherit; font-size: 11.5px; font-weight: 750; cursor: pointer; }
 @keyframes rn-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 @media (prefers-reduced-motion: reduce) { .rn-toast { animation: none; } }
+/* Profils : le type de la fiche se lit d'abord (annonce ou trade fait) */
+.ncl-k { flex: none; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .3px; }
+.ncl-k.done { color: var(--win); background: color-mix(in srgb, var(--win) 14%, transparent); }
+.ncl-k.ad { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.ncl-s > b small.pf-adl { margin-right: 3px; }
+.pf-meta small b { color: var(--fg); font-weight: 750; }
+.pf-meta .pf-rap { color: var(--dim); }
+.pf-nl .pf-ver { color: var(--win); border: 1px solid color-mix(in srgb, var(--win) 40%, transparent); background: none; }
+.pf-card .pf-ad .ncl-h, .pf-card .ncl-h { flex-wrap: nowrap; }

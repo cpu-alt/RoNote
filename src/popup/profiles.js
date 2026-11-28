@@ -120,9 +120,10 @@ function toolbarHtml(p, count) {
  * de contenu : le trade qui l'a révélé, ou son annonce (Propose → Cherche, un côté vide dit « rien de précis »).
  */
 function adHtml(p) {
-  const side = (label, cls, items) => `<div class="ncl-s"><b class="pf-adl ${cls}">${t(label)}</b>${items?.length
+  const sum = (items) => (items || []).reduce((s, i) => s + (i.value || 0) * (i.n || 1), 0);
+  const side = (label, cls, items) => `<div class="ncl-s"><b><small class="pf-adl ${cls}">${t(label)}</small> ${sum(items) ? fmtNum(sum(items)) : ''}</b>${items?.length
     ? nwTilesHtml(items) : `<span class="pf-any">${t('Rien de précis')}</span>`}</div>`;
-  return `<div class="ncl pf-ad"><div class="ncl-sides">${side('Propose', 'win', p.offering)}<span class="ncl-ar">⇄</span>${side('Cherche', 'loss', p.wanting)}</div></div>`;
+  return `<div class="ncl pf-ad"><div class="ncl-h"><span class="ncl-k ad">📢 ${t('Annonce')}</span><span class="nc-ago">${p.at ? timeAgo(p.at * 1000) : ''}</span></div><div class="ncl-sides">${side('Propose', 'win', p.offering)}<span class="ncl-ar">⇄</span>${side('Cherche', 'loss', p.wanting)}</div></div>`;
 }
 function cardHtml(p, both, isNew = false) {
   const id = Number(p.id);
@@ -133,18 +134,19 @@ function cardHtml(p, both, isNew = false) {
     : `<span class="pf-av" aria-hidden="true">${escapeHtml((p.name || '?').slice(0, 1).toUpperCase())}</span>`;
   const body = p.last ? nwTradeLine({ ...p.last, partner: p.partner })
     : p.offering?.length || p.wanting?.length ? adHtml(p) : '';
-  const meta = [ads, timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
+  // 28 nov. : l'heure va dans le cadre du trade ou de l'annonce (elle coupait la ligne) ; l'inventaire en Value et RAP
+  const inv = (p.value ? `${t('Inv.')} <b>${fmtNum(p.value)}</b>` : '') + (p.rap ? ` <span class="pf-rap">RAP ${fmtNum(p.rap)}</span>` : '');
+  const meta = [inv, ads, body ? '' : timeAgo(p.at * 1000), both ? (p._kind === 'neuronal' ? 'Neuronal' : t('Classique')) : ''].filter(Boolean).join(' · ');
   const badges = (p.storage ? `<span class="pf-stk" title="${escapeHtml(t('Skin Roblox de base et vu dans un transfert : un compte qui sert à stocker ou déplacer des items'))}">${t('Stockage')}</span>` : '')
     + (p.ronote ? `<span class="pf-rn" title="${escapeHtml(t('Utilise RoNote et partage ses trades'))}">RoNote</span>` : '')
-    + (p.roli_verified ? `<span class="pf-ver" title="${escapeHtml(t("Badge Verified sur son profil Rolimon's"))}">✓ ${t('Vérifié')}</span>` : '')
     + (p.roli_verified === false ? `<span class="pf-unv" title="${escapeHtml(t("Pas de badge Verified sur son profil Rolimon's"))}">${t('Non vérifié')}</span>` : '')
     + knownBadge(id);
   return `<article class="pf-card${isNew ? ' pf-new' : ''}" data-pf-id="${id}">
     <header class="pf-top">
-      <span class="pf-avw t-${escapeHtml(p.tier)}">${av}</span>
-      <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span></span>
-        <span class="pf-meta">${badges}<small>${meta}</small></span></span>
-      <span class="pf-right">${acts(id, id)}${p.value ? `<span class="pf-val" title="${escapeHtml(t('Value de son inventaire'))}"><small>${t('Inv.')}</small><b>${fmtNum(p.value)}</b></span>` : ''}</span>
+      <button class="pf-avw t-${escapeHtml(p.tier)}" data-player="${id}" data-pname="${escapeHtml(p.name || '')}" data-pthumb="${escapeHtml(p.thumb || '')}" title="${escapeHtml(t('Fiche du joueur'))}">${av}</button>
+      <span class="pf-id"><span class="pf-nl"><b>${name}</b><span class="pf-tier t-${escapeHtml(p.tier)}">${escapeHtml(p.tier)}</span>${p.roli_verified ? `<span class="pf-ver" title="${escapeHtml(t("Badge Verified sur son profil Rolimon's"))}">✓</span>` : ''}</span>
+        <span class="pf-meta">${badges}<small title="${escapeHtml(t('Value de son inventaire'))}">${meta}</small></span></span>
+      <span class="pf-right">${acts(id, id)}</span>
     </header>
     ${body}
   </article>`;

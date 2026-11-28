@@ -368,8 +368,8 @@
   }
 
   const STRIP_CSS = `
-    :host{margin-left:auto;display:flex;min-width:0;color:inherit}
-    .st{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;
+    :host{display:flex;min-width:0;margin-top:10px;color:inherit}
+    .st{display:flex;flex-wrap:wrap;gap:8px;
       font:700 13px/1 "Builder Sans","Gotham SSm",system-ui,sans-serif;font-variant-numeric:tabular-nums}
     .p{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;color:inherit;
       font:inherit;text-decoration:none;background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
@@ -444,7 +444,7 @@
   }
 
   let strip = null, stripShadow = null;
-  /** La rangée « Friends · Followers · Following » : elle fait toute la largeur, la droite est libre. */
+  /** La rangée « Friends · Followers · Following » : le bandeau va SOUS elle (sa droite porte les boutons Edit ou la carte du jeu en cours). */
   function stripRow() {
     return document.querySelector('.user-profile-header > .flex-nowrap');
   }
@@ -457,7 +457,7 @@
       stripShadow = strip.attachShadow({ mode: 'closed' });
       stripShadow.addEventListener('click', onClick);
     }
-    if (strip.parentElement !== row || row.lastElementChild !== strip) row.append(strip);
+    if (row.nextElementSibling !== strip) row.after(strip);
     if (strip._drawn !== data) { stripShadow.innerHTML = drawStrip(id); strip._drawn = data; }
   }
 

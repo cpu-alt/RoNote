@@ -44,13 +44,13 @@ export function nwTilesHtml(items, more = 0, robux = 0) {
 export function nwTradeLine(tr) {
   if (!tr) return '';
   const delta = (tr.got || 0) - (tr.gave || 0);
-  const side = (items, more, robux, total) => `<div class="ncl-s"><b>${total ? fmtNum(total) : 'N/A'}</b>${nwTilesHtml(items, more, robux)}</div>`;
+  const side = (label, cls, items, more, robux, total) => `<div class="ncl-s"><b><small class="pf-adl ${cls}">${t(label)}</small> ${total ? fmtNum(total) : 'N/A'}</b>${nwTilesHtml(items, more, robux)}</div>`;
   return `<div class="ncl">
-    <div class="ncl-h"><span class="nc-who">${t('avec {who}', { who: `<b>${who(tr.partner)}</b>` })}</span>
+    <div class="ncl-h"><span class="ncl-k done">✓ ${t('Trade fait')}</span><span class="nc-who">${t('avec {who}', { who: `<b>${who(tr.partner)}</b>` })}</span>
       ${tr.parts > 1 ? `<span class="nw-tag">mass ×${tr.parts}</span>` : ''}
       <span class="nc-ago">${tr.at ? timeAgo(tr.at * 1000) : ''}</span>
       ${tr.got || tr.gave ? `<span class="jr-pill ${toneOf(delta)}">${fmtSigned(delta)}</span>` : ''}</div>
-    <div class="ncl-sides">${side(tr.gave_items, tr.gave_more, tr.gave_robux, tr.gave)}<span class="ncl-ar">→</span>${side(tr.got_items, tr.got_more, tr.got_robux, tr.got)}</div>
+    <div class="ncl-sides">${side('A donné', 'loss', tr.gave_items, tr.gave_more, tr.gave_robux, tr.gave)}<span class="ncl-ar">→</span>${side('A reçu', 'win', tr.got_items, tr.got_more, tr.got_robux, tr.got)}</div>
   </div>`;
 }
 
